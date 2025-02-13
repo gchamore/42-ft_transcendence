@@ -24,25 +24,25 @@ Le projet est conçu comme un **site web single-page (SPA)**, combinant **fronte
 
 ### **📌 Modules (Fonctionnalités Additionnelles)**
 
-🟢 Modules Majeurs ✅
-⛔ Multijoueur à distance (via WebSockets) → Permet aux joueurs de s'affronter en ligne en temps réel.
-⛔ Gestion complète des utilisateurs (comptes persistants, avatars, stats, amis) → Création et gestion des profils utilisateurs.
-⛔ Chat en direct → Messagerie entre joueurs et notifications des tournois.
-⛔ Matchmaking et système de tournois avancé → Organisation automatique des parties avec suivi du classement.
-⛔ Mode IA pour jouer contre un bot intelligent → Un adversaire IA simulant un joueur humain.
-⛔ Sécurisation avancée (JWT, 2FA, conformité RGPD) → Authentification sécurisée et protection des données.
-⛔ Infrastructure de logs avec ELK (Elasticsearch, Logstash, Kibana) → Suivi et stockage des logs serveurs.
-⛔ Architecture backend en microservices → Séparation du backend en plusieurs services indépendants.
+🟢 Modules Majeurs ✅  
+⛔ Multijoueur à distance (via WebSockets) → Permet aux joueurs de s'affronter en ligne en temps réel.  
+⛔ Gestion complète des utilisateurs (comptes persistants, avatars, stats, amis) → Création et gestion des profils utilisateurs.  
+⛔ Chat en direct → Messagerie entre joueurs et notifications des tournois.  
+⛔ Matchmaking et système de tournois avancé → Organisation automatique des parties avec suivi du classement.  
+⛔ Mode IA pour jouer contre un bot intelligent → Un adversaire IA simulant un joueur humain.  
+⛔ Sécurisation avancée (JWT, 2FA, conformité RGPD) → Authentification sécurisée et protection des données.  
+⛔ Infrastructure de logs avec ELK (Elasticsearch, Logstash, Kibana) → Suivi et stockage des logs serveurs.  
+⛔ Architecture backend en microservices → Séparation du backend en plusieurs services indépendants.  
 
-🟡 Modules Mineurs ✅
-⛔ Personnalisation du jeu (skins, vitesse de la balle, power-ups) → Options de personnalisation pour enrichir l’expérience.
-⛔ Surveillance des performances et logs (Prometheus & Grafana) → Monitoring du système en temps réel.
-⛔ Déploiement CI/CD avec GitHub Actions → Automatisation du build, des tests et du déploiement.
-⛔ Compatibilité multi-navigateurs (Chrome, Safari, Edge) → Assurer le bon fonctionnement sur différents navigateurs.
-⛔ Support sur tous les appareils (mobiles, tablettes, desktop) → Adaptation du jeu à toutes les résolutions d’écran.
-⛔ Support multilingue (français, anglais, etc.) → Interface disponible en plusieurs langues.
-⛔ Accessibilité pour malvoyants (contraste, narration, navigation clavier) → Amélioration de l’accessibilité.
-⛔ Intégration Server-Side Rendering (SSR) → Optimisation du chargement et du référencement.
+🟡 Modules Mineurs ✅  
+⛔ Personnalisation du jeu (skins, vitesse de la balle, power-ups) → Options de personnalisation pour enrichir l’expérience.  
+⛔ Surveillance des performances et logs (Prometheus & Grafana) → Monitoring du système en temps réel.  
+⛔ Déploiement CI/CD avec GitHub Actions → Automatisation du build, des tests et du déploiement.  
+⛔ Compatibilité multi-navigateurs (Chrome, Safari, Edge) → Assurer le bon fonctionnement sur différents navigateurs.  
+⛔ Support sur tous les appareils (mobiles, tablettes, desktop) → Adaptation du jeu à toutes les résolutions d’écran.  
+⛔ Support multilingue (français, anglais, etc.) → Interface disponible en plusieurs langues.  
+⛔ Accessibilité pour malvoyants (contraste, narration, navigation clavier) → Amélioration de l’accessibilité.  
+⛔ Intégration Server-Side Rendering (SSR) → Optimisation du chargement et du référencement.  
 
 ---
 
