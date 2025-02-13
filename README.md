@@ -122,10 +122,10 @@ Le projet est conçu comme un **site web single-page (SPA)**, combinant **fronte
 
 ## 🧑‍💻 Équipe
 
-👨‍💻 **Frontend :** 
-👨‍💻 **Backend :** 
-👨‍💻 **Jeu & Multijoueur :** 
-👨‍💻 **DevOps & Sécurité :** 
+👨‍💻 **Frontend :**  
+👨‍💻 **Backend :**  
+👨‍💻 **Jeu & Multijoueur :**  
+👨‍💻 **DevOps & Sécurité :**  
 
 ---
 
