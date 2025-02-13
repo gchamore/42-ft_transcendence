@@ -72,11 +72,11 @@ Le projet est conçu comme un **site web single-page (SPA)**, combinant **fronte
 
 ## 🏗️ Structure du Projet
 
-/frontend        # Code du client (UI, SPA)
-/backend         # API REST et gestion des utilisateurs
-/game            # Moteur du jeu Pong (logique et multijoueur)
-/infra           # Docker, CI/CD, monitoring et logs
-/docs            # Documentation technique et API
+/frontend        # Code du client (UI, SPA)  
+/backend         # API REST et gestion des utilisateurs  
+/game            # Moteur du jeu Pong (logique et multijoueur)  
+/infra           # Docker, CI/CD, monitoring et logs  
+/docs            # Documentation technique et API  
 
 ---
 
