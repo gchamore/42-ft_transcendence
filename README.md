@@ -24,25 +24,14 @@ Le projet est conçu comme un **site web single-page (SPA)**, combinant **fronte
 
 ### **📌 Modules (Fonctionnalités Additionnelles)**
 
-🟢 Modules Majeurs ✅  
-⛔ Multijoueur à distance (via WebSockets) → Permet aux joueurs de s'affronter en ligne en temps réel.  
-⛔ Gestion complète des utilisateurs (comptes persistants, avatars, stats, amis) → Création et gestion des profils utilisateurs.  
-⛔ Chat en direct → Messagerie entre joueurs et notifications des tournois.  
-⛔ Matchmaking et système de tournois avancé → Organisation automatique des parties avec suivi du classement.  
-⛔ Mode IA pour jouer contre un bot intelligent → Un adversaire IA simulant un joueur humain.  
-⛔ Sécurisation avancée (JWT, 2FA, conformité RGPD) → Authentification sécurisée et protection des données.  
-⛔ Infrastructure de logs avec ELK (Elasticsearch, Logstash, Kibana) → Suivi et stockage des logs serveurs.  
-⛔ Architecture backend en microservices → Séparation du backend en plusieurs services indépendants.  
+🟢 Modules Majeurs ✅
+⛔ Utilisation d’un framework backend (Fastify, Node.js) **GREG**
+⛔ Gestion complète des utilisateurs (authentification, avatars, stats, amis) **GREG** & **ALEX**
+⛔ Sécurisation avancée (JWT, 2FA) **GREG**
 
 🟡 Modules Mineurs ✅  
-⛔ Personnalisation du jeu (skins, vitesse de la balle, power-ups) → Options de personnalisation pour enrichir l’expérience.  
-⛔ Surveillance des performances et logs (Prometheus & Grafana) → Monitoring du système en temps réel.  
-⛔ Déploiement CI/CD avec GitHub Actions → Automatisation du build, des tests et du déploiement.  
-⛔ Compatibilité multi-navigateurs (Chrome, Safari, Edge) → Assurer le bon fonctionnement sur différents navigateurs.  
-⛔ Support sur tous les appareils (mobiles, tablettes, desktop) → Adaptation du jeu à toutes les résolutions d’écran.  
-⛔ Support multilingue (français, anglais, etc.) → Interface disponible en plusieurs langues.  
-⛔ Accessibilité pour malvoyants (contraste, narration, navigation clavier) → Amélioration de l’accessibilité.  
-⛔ Intégration Server-Side Rendering (SSR) → Optimisation du chargement et du référencement.  
+⛔ Utilisation d’une base de données (SQLite) **GREG**
+⛔ Authentification Google (OAuth) **GREG**
 
 ---
 
@@ -54,19 +43,13 @@ Le projet est conçu comme un **site web single-page (SPA)**, combinant **fronte
 - WebSockets (temps réel)
 
 ### **Backend**
-- Node.js avec Fastify **(ou PHP sans framework)**
+- Node.js avec Fastify
 - SQLite (base de données)
 - JWT (authentification sécurisée)
 
-### **Multijoueur & WebSockets**
+### **Jeu Multijoueur & WebSockets**
 - Gestion des parties en temps réel
-- Mode CLI pour jouer en ligne depuis un terminal
-
-### **DevOps & Sécurité**
-- Docker (déploiement rapide)
-- HTTPS & Sécurité WebSockets
-- CI/CD (GitHub Actions)
-- Monitoring avec Prometheus & Grafana
+- 
 
 ---
 
@@ -84,48 +67,41 @@ Le projet est conçu comme un **site web single-page (SPA)**, combinant **fronte
 
 ### **🗓️ Semaine 1 : Mise en place des bases**
 - **Frontend** : 
-- **Backend** : 
-- **Multijoueur** : 
-- **DevOps** : 
+- **Backend** : Installation et configuration de Node.js, Fastify, SQLite. Structuration du projet, mise en place de l’API, création de la base de données et des premiers modèles (users, games, friends). Implémentation des routes CRUD pour la gestion des utilisateurs avec sécurisation des mots de passe (bcrypt).  
+- **Jeu** : 
 
 ### **🗓️ Semaine 2 : Développement des Fondations**
 - **Frontend** : 
-- **Backend** : 
-- **Multijoueur** : 
-- **DevOps** : 
+- **Backend** : Mise en place de JWT pour l’authentification sécurisée et ajout du 2FA via Google Authenticator. Gestion des profils utilisateurs et système d’amis. Développement du matchmaking et des WebSockets pour la gestion des parties en temps réel.  
+- **Jeu** : 
 
 ### **🗓️ Semaine 3 : Développement des Fonctionnalités Clés**
 - **Frontend** : 
-- **Backend** : 
-- **Multijoueur** : 
-- **DevOps** : 
+- **Backend** : Implémentation de Google OAuth pour l’authentification externe. Sécurisation avancée du serveur (validation des entrées, protection XSS/SQL Injection). Optimisation des requêtes SQLite, mise en place des tests unitaires et d’intégration. Finalisation avec documentation API et logs pour le monitoring.
+- **Jeu** : 
 
 ### **🗓️ Semaine 4 : Intégration des Modules Avancés**
 - **Frontend** : 
 - **Backend** : 
-- **Multijoueur** : 
-- **DevOps** : 
+- **Jeu** : 
 
 ### **🗓️ Semaine 5 : Tests et Optimisation**
 - **Frontend** : 
 - **Backend** : 
-- **Multijoueur** : 
-- **DevOps** : 
+- **Jeu** : 
 
 ### **🗓️ Semaine 6 : Finalisation & Préparation à l’Évaluation**
 - **Frontend** : 
 - **Backend** : 
-- **Multijoueur** : 
-- **DevOps** : 
+- **Jeu** : 
 
 ---
 
 ## 🧑‍💻 Équipe
 
-👨‍💻 **Frontend :**  
-👨‍💻 **Backend :**  
-👨‍💻 **Jeu & Multijoueur :**  
-👨‍💻 **DevOps & Sécurité :**  
+👨‍💻 **Frontend :**  Alexandre Autin (Aautin)
+👨‍💻 **Backend :**  Gregoire Chamorel (Gchamore)
+👨‍💻 **Jeu & Multijoueur :**  Antonin Ferre (Anferre)
 
 ---
 
