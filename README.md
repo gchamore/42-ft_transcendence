@@ -22,16 +22,16 @@ Le projet est conçu comme un **site web single-page (SPA)**, combinant **fronte
 
 ---
 
-### **📌 Modules (Fonctionnalités Additionnelles)**
+### **📌 Modules (Fonctionnalités Additionnelles)**  
 
-🟢 Modules Majeurs ✅
-⛔ Utilisation d’un framework backend (Fastify, Node.js) **GREG**
-⛔ Gestion complète des utilisateurs (authentification, avatars, stats, amis) **GREG** & **ALEX**
-⛔ Sécurisation avancée (JWT, 2FA) **GREG**
+🟢 Modules Majeurs ✅  
+⛔ Utilisation d’un framework backend (Fastify, Node.js) **GREG**  
+⛔ Gestion complète des utilisateurs (authentification, avatars, stats, amis) **GREG** & **ALEX**  
+⛔ Sécurisation avancée (JWT, 2FA) **GREG**  
 
 🟡 Modules Mineurs ✅  
-⛔ Utilisation d’une base de données (SQLite) **GREG**
-⛔ Authentification Google (OAuth) **GREG**
+⛔ Utilisation d’une base de données (SQLite) **GREG**  
+⛔ Authentification Google (OAuth) **GREG**  
 
 ---
 
