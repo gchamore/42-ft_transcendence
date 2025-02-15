@@ -99,9 +99,9 @@ Le projet est conçu comme un **site web single-page (SPA)**, combinant **fronte
 
 ## 🧑‍💻 Équipe
 
-👨‍💻 **Frontend :**  Alexandre Autin (Aautin)
-👨‍💻 **Backend :**  Gregoire Chamorel (Gchamore)
-👨‍💻 **Jeu & Multijoueur :**  Antonin Ferre (Anferre)
+👨‍💻 **Frontend :**  Alexandre Autin (Aautin)  
+👨‍💻 **Backend :**  Gregoire Chamorel (Gchamore)  
+👨‍💻 **Jeu & Multijoueur :**  Antonin Ferre (Anferre)  
 
 ---
 
