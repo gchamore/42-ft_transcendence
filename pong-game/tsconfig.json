@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES6",                                /* Set to ES6 for modern JavaScript features */
+    "module": "ES6",                                /* Use ES6 modules (import/export syntax) */
+    "strict": true,                                 /* Enable strict type-checking options */
+    "esModuleInterop": true,                        /* Allows importing CommonJS modules like ES modules */
+    "forceConsistentCasingInFileNames": true,       /* Ensure consistent casing in imports */
+    "moduleResolution": "node",                     /* Enable Node.js-style module resolution */
+    "lib": ["dom", "es2016"],                       /* Include DOM types for web-related functionality (localStorage, etc.) */
+    "noImplicitAny": true,                          /* Flag if any variable has an 'any' type (helps with strict type-checking) */
+    "noUnusedLocals": true,                         /* Report an error on unused local variables */
+    "noUnusedParameters": true,                     /* Report an error on unused parameters */
+    "noImplicitReturns": true,                      /* Ensure that all code paths return a value in functions */
+    "noFallthroughCasesInSwitch": true,             /* Prevent fallthrough behavior in switch statements */
+    "skipLibCheck": true,                           /* Skip type-checking of third-party libraries */
+    "outDir": "./dist"                              /* Compile JS files to the 'dist' folder */
+  },
+  "include": [
+    "src/**/*.ts"                                   /* Include all TypeScript files in the 'src' folder */
+  ]
+}
