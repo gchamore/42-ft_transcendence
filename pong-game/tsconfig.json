@@ -13,7 +13,8 @@
     "noImplicitReturns": true,                      /* Ensure that all code paths return a value in functions */
     "noFallthroughCasesInSwitch": true,             /* Prevent fallthrough behavior in switch statements */
     "skipLibCheck": true,                           /* Skip type-checking of third-party libraries */
-    "outDir": "./dist"                              /* Compile JS files to the 'dist' folder */
+    "outDir": "./dist",
+	"rootDir": "./src"                              /* Compile JS files to the 'dist' folder */
   },
   "include": [
     "src/**/*.ts"                                   /* Include all TypeScript files in the 'src' folder */
