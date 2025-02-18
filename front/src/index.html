@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Switcher</title>
+    <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+
+    <div class="buttonContainer">
+        <button id="homeBtn" class="btn active" onclick="switchPanel('home')">HOME</button>
+        <button id="loginBtn" class="btn" onclick="switchPanel('login')">LOGIN</button>
+        <button id="registerBtn" class="btn" onclick="switchPanel('register')">REGISTER</button>
+    </div>
+
+    <div id="homePanel" class="panel active">
+        <h2>Put your name and back-end will calculate its lenght:</h2>
+        <input id="name" placeholder="Name">
+        <button onclick="getLength()">Calculate</button>
+        <label id="nameLength" style="display: none;"></label>
+    </div>
+
+    <div id="loginPanel" class="panel">
+      <input id="loginUsername" placeholder="Username">
+      <input id="loginPassword" placeholder="Password">
+      <button onclick="login()">LOGIN</button>
+  </div>
+
+    <div id="registerPanel" class="panel">
+      <input id="registerUsername" placeholder="Username">
+      <input id="registerPassword" placeholder="Password">
+      <button onclick="register()">REGISTER</button>
+    </div>
+
+    <script src="dist/length.js"></script>
+    <script src="dist/panel.js"></script>
+    <script src="dist/user.js"></script>
+</body>
+</html>

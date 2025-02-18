@@ -1,0 +1,37 @@
+services:
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app_network
+
+  # frontend:
+
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/data:/data
+    environment:
+      - DATABASE_URL=/data/database.db
+    depends_on:
+      - database
+    networks:
+      - app_network
+
+  database:
+    build: ./database
+    volumes:
+      - ./backend/data:/data
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
