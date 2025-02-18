@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Switcher</title>
+    <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+
+    <div class="buttonContainer">
+        <button id="loginBtn" class="btn active" onclick="switchPanel('login')">LOGIN</button>
+        <button id="registerBtn" class="btn" onclick="switchPanel('register')">REGISTER</button>
+    </div>
+
+    <div id="loginPanel" class="panel active">
+      <input id="loginUsername" placeholder="Username">
+      <input id="loginPassword" placeholder="Password">
+      <button onclick="login()">LOGIN</button>
+  </div>
+
+    <div id="registerPanel" class="panel">
+      <input id="registerUsername" placeholder="Username">
+      <input id="registerPassword" placeholder="Password">
+      <button onclick="register()">REGISTER</button>
+    </div>
+
+    <script src="dist/panel.js"></script>
+    <script src="dist/user.js"></script>
+</body>
+</html>
