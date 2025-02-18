@@ -1,17 +1,16 @@
-import { Ball } from './classes/Ball.js';
-import { Paddle } from './classes/Paddle.js';
-import { ScoreBoard } from './classes/ScoreBoard.js';
-import { GameControls } from './classes/GameControls.js';
-import { GameConfig } from './config/GameConfig.js';
-import { SettingsManager } from './managers/SettingsManager.js';
-import { CollisionManager } from './managers/CollisionManager.js';
-import { InputManager } from './managers/InputManager.js';
-import { UIManager } from './managers/UIManager.js';
+import { Ball } from '../game/classes/ball.js';
+import { Paddle } from '../game/classes/paddle.js';
+import { ScoreBoard } from '../game/classes/scoreBoard.js';
+import { GameControls } from '../game/classes/gameControls.js';
+import { GameConfig } from '../utils/config/gameConfig.js';
+import { CollisionManager } from '../game/managers/collisionManager.js';
+import { InputManager } from '../game/managers/inputManager.js';
+import { UIManager } from '../game/managers/uiManager.js';
+import { SettingsService } from '../services/settingsServices.js';
 
 export class Game {
 	private canvas!: HTMLCanvasElement;
 	private context!: CanvasRenderingContext2D;
-	private settingsManager!: SettingsManager;
     private ball!: Ball;
     private paddle1!: Paddle;
 	private paddle2!: Paddle;
@@ -35,13 +34,13 @@ export class Game {
     }
 
 	private initializeComponents() {
-		this.ball = new Ball(400, 300, 10, GameConfig.DEFAULT_BALL_SPEED);
-		this.paddle1 = new Paddle(10, this.canvas.height / 2, 10, GameConfig.DEFAULT_PADDLE_LENGTH, GameConfig.DEFAULT_PADDLE_SPEED);
-		this.paddle2 = new Paddle(780, this.canvas.height / 2, 10, GameConfig.DEFAULT_PADDLE_LENGTH, GameConfig.DEFAULT_PADDLE_SPEED);
+		const settings = SettingsService.loadSettings();
+		this.ball = new Ball(400, 300, 10, settings.ballSpeed);
+		this.paddle1 = new Paddle(10, this.canvas.height / 2, 10, settings.paddleLength, settings.paddleSpeed);
+		this.paddle2 = new Paddle(780, this.canvas.height / 2, 10, settings.paddleLength, settings.paddleSpeed);
 		this.scoreBoard = new ScoreBoard(GameConfig.WINNING_SCORE);
 		this.controls = new GameControls();
 		this.servingPlayer = Math.random() < 0.5 ? 1 : 2;
-		this.settingsManager = new SettingsManager(this.ball, this.paddle1, this.paddle2);
 		this.uiManager = new UIManager(this.context, this.canvas);
 		this.collisionManager = new CollisionManager();
 		this.inputManager = new InputManager(this.controls, () => this.gameStarted, this.startGame.bind(this));
@@ -60,7 +59,7 @@ export class Game {
 
 	serveBall(): void {
 		const direction = this.servingPlayer === 1 ? 1 : -1;
-		const speed = parseInt(this.settingsManager.getBallSpeed());
+		const speed = this.ball.speedX;
 		this.ball.serve(direction, speed);
 		this.gameStarted = true;
 	}

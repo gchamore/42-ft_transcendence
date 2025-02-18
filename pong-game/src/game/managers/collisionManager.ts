@@ -1,6 +1,6 @@
-import { Ball } from '../classes/Ball.js';
-import { Paddle } from '../classes/Paddle.js';
-import { GameConfig } from '../config/GameConfig.js';
+import { Ball } from '../classes/ball.js';
+import { Paddle } from '../classes/paddle.js';
+import { GameConfig } from '../../utils/config/gameConfig.js';
 
 
 export class CollisionManager {

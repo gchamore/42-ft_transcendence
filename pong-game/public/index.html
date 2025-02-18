@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pong Game</title>
+	<script src="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.js"></script>
     <style>
         body { 
 			margin: 0;
@@ -25,6 +26,7 @@
 			border-radius: 10px;
 			border: 1px solid white;
 			color: white;
+			width: 300px;
 		}
 		.controls h2 {
 			text-align: center;
@@ -39,13 +41,16 @@
 			font-weight: bold;
 			margin-bottom: 5px;
 		}
+		#gameCanvas {
+			display: none;
+		}
     </style>
 </head>
 <body>
-	<div class="controls">
+	<div id="settings-page" class="controls">
 		<h2>Pong Game Settings</h2>
 		<div class="slider-container">
-			<label for="ball-speed">Ball Speed:</label>
+			<label for="ball-speed" class="settings-title">Ball Speed:</label>
 			<input type="range" id="ball-speed" min="1" max="10" step="1" value="4">
 			<span id="ball-speed-value">4</span>
 		</div>
@@ -59,9 +64,12 @@
 			<input type="range" id="paddle-speed" min="1" max="10" step="1" value="4">
 			<span id="paddle-speed-value">4</span>
 		</div>
+		<button id="start-game" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full mt-4">
+            Start Game
+        </button>
 	</div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-    <script type="module" src="dist/main.js"></script>
+    <script type="module" src="../dist/main.js"></script>
 </body>
 </html>

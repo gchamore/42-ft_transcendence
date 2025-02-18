@@ -1,10 +1,18 @@
-import { Game } from './Game.js';
-document.addEventListener('DOMContentLoaded', () => {
-    try {
-        const game = new Game();
-        game.start();
+import { SettingsPage } from './pages/settingsPage';
+import { Game } from './pages/gamePage';
+class App {
+    constructor() {
+        this.setupRouting();
     }
-    catch (error) {
-        console.error(error);
+    setupRouting() {
+        const hash = window.location.hash || '#settings';
+        if (hash === '#game') {
+            new Game(); // Load game page
+        }
+        else {
+            new SettingsPage(); // Load settings page
+        }
     }
-});
+}
+// Initialize SPA
+new App();

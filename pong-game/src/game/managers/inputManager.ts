@@ -1,4 +1,4 @@
-import { GameControls } from '../classes/GameControls.js';
+import { GameControls } from '../classes/gameControls.js';
 
 export class InputManager {
 
