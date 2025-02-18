@@ -62,14 +62,16 @@ status:
 # ...existing code...
 
 # Get database backup copy to check inside
+BACKEND_DOCKER_NAME = $(shell docker ps --format "{{.Names}}" | grep backend)
+
 database:
 	@echo "$(YELLOW)Création d'une copie de la base de données...$(RESET)"
 	@if [ -f ./backend/tools/database.db ]; then \
         rm ./backend/tools/database.db && \
         echo "$(GREEN)✓ Ancienne copie supprimée$(RESET)"; \
     fi
-	@if [ $$(docker ps -q -f name=transcendence-backend) ]; then \
-        docker cp transcendence-backend-1:/data/database.db ./backend/tools/ && \
+	@if [ $$(docker ps -q -f name=$(BACKEND_DOCKER_NAME)) ]; then \
+        docker cp $(BACKEND_DOCKER_NAME):/data/database.db ./backend/tools/ && \
         echo "$(GREEN)✓ Base de données copiée dans ./backend/tools/database.db$(RESET)"; \
     else \
         echo "$(ORANGE)⚠ Le conteneur backend n'est pas en cours d'exécution$(RESET)"; \
