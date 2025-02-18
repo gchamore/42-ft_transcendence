@@ -21,6 +21,7 @@ export class Ball {
 	}
 
 	serve(direction: number, speed: number): void {
+		// 30% chance of a straight serve
 		const isStraightServe = Math.random() < 0.3;
 
 		if (isStraightServe) {
@@ -31,5 +32,10 @@ export class Ball {
 			this.speedX = direction * speed * Math.cos(angle);
 			this.speedY = speed * Math.sin(angle);
 		}
+	}
+
+	move(): void {
+		this.x += this.speedX;
+		this.y += this.speedY;
 	}
 }

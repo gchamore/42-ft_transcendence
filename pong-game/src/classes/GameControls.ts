@@ -52,9 +52,4 @@ export class GameControls {
 				break;
 		}
 	}
-
-	isMoving(): boolean {
-		return this.player1.up || this.player1.down
-		|| this.player2.up || this.player2.down;
-	}
 }

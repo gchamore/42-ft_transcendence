@@ -1,18 +1,6 @@
-import { Ball } from '../classes/Ball';
-import { Paddle } from '../classes/Paddle';
-
-interface GameSettings {
-	readonly DEFAULT_BALL_SPEED: number;
-	readonly DEFAULT_PADDLE_LENGTH: number;
-	readonly DEFAULT_PADDLE_SPEED: number;
-}
-
-export const DEFAULT_SETTINGS: GameSettings = {
-	DEFAULT_BALL_SPEED: 4,
-	DEFAULT_PADDLE_LENGTH: 100,
-	DEFAULT_PADDLE_SPEED: 5
-};
-
+import { Ball } from '../classes/Ball.js';
+import { Paddle } from '../classes/Paddle.js';
+import { GameConfig } from '../config/GameConfig.js';
 
 export class SettingsManager {
 	private ballSpeedSlider!: HTMLInputElement;
@@ -28,7 +16,7 @@ export class SettingsManager {
 		private paddle2: Paddle,
 	) {
 		this.initializeElements();
-		this.setuptEventListeners();
+		this.loadSettings();
 	}
 
 	private initializeElements() {
@@ -47,29 +35,6 @@ export class SettingsManager {
 			console.error('Failed to initialize settings elements:', error);
 			throw error;
 		}
-	}
-
-	private setuptEventListeners() {
-		this.ballSpeedSlider.addEventListener('input', () => {
-			this.ballSpeedValue.innerText = this.ballSpeedSlider.value;
-			const speed = parseInt(this.ballSpeedSlider.value);
-			this.ball.speedX = Math.sign(this.ball.speedX) * speed;
-			this.ball.speedY = Math.sign(this.ball.speedY) * speed;
-			this.saveSettings();
-		});
-
-		this.paddleLengthSlider.addEventListener('input', () => {
-			this.paddleLengthValue.innerText = this.paddleLengthSlider.value;
-			const newHeight = parseInt(this.paddleLengthSlider.value);
-			this.paddle1.updateHeight(newHeight);
-			this.paddle2.updateHeight(newHeight);
-			this.saveSettings();
-		});
-
-		this.paddleSpeedSlider.addEventListener('input', () => {
-			this.paddleSpeedValue.innerText = this.paddleSpeedSlider.value;
-			this.saveSettings();
-		});
 	}
 
 	loadSettings() {
@@ -106,9 +71,16 @@ export class SettingsManager {
 		localStorage.setItem('paddleSpeed', this.paddleSpeedSlider.value);
 	}
 
-	public cleanup(): void {
-		this.ballSpeedSlider.removeEventListener('input', this.handleBallSpeedChange);
-		this.paddleLengthSlider.removeEventListener('input', this.handlePaddleLengthChange);
-		this.paddleSpeedSlider.removeEventListener('input', this.handlePaddleSpeedChange);
+	getBallSpeed(): string {
+		return this.ballSpeedSlider.value || GameConfig.DEFAULT_BALL_SPEED.toString();
 	}
+
+	getPaddleLength(): string {
+		return this.paddleLengthSlider.value || GameConfig.DEFAULT_PADDLE_LENGTH.toString();
+	}
+
+	getPaddleSpeed(): string {
+		return this.paddleSpeedSlider.value || GameConfig.DEFAULT_PADDLE_SPEED.toString();
+	}
+
 }

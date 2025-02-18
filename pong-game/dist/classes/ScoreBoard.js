@@ -1,5 +1,6 @@
 export class ScoreBoard {
-    constructor(winningScore = 5) {
+    // Create a new ScoreBoard instance
+    constructor(winningScore) {
         this.player1Score = 0;
         this.player2Score = 0;
         this.display = null;
@@ -13,6 +14,7 @@ export class ScoreBoard {
             this.display = this.createScoreDisplay();
         }
     }
+    // Create the score display element
     createScoreDisplay() {
         try {
             const display = document.createElement('div');

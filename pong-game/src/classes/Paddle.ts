@@ -3,17 +3,14 @@ export class Paddle {
 	y: number = 0;
 	width: number = 0;
 	height: number = 0;
+	speed: number = 0;
 
-	constructor(x: number, y: number, width: number, height: number) {
+	constructor(x: number, y: number, width: number, height: number, speed: number) {
 		this.x = x;
 		this.width = width;
 		this.height = height;
+		this.speed = speed;
 		this.setY(y);
-	}
-
-	// Get the center of the paddle
-	getCenterY():number {
-		return this.y + this.height / 2;
 	}
 
 	// Set the center of the paddle
@@ -26,5 +23,18 @@ export class Paddle {
 		const centerY = this.y + this.height / 2;
 		this.height = newHeight;
 		this.setY(centerY);
+	}
+
+	move(moveUp: boolean, moveDown: boolean, canvasHeight: number): void {
+		if (moveUp && this.y > 0) {
+			this.y -= this.speed;
+		}
+		if (moveDown && this.y + this.height < canvasHeight) {
+			this.y += this.speed;
+		}
+	}
+
+	reset(): void {
+		this.y = 0;
 	}
 }
