@@ -72,7 +72,7 @@ fastify.get("/", async (request, reply) => {
 });
 
 // Gestion de l'arrêt propre
-const closeGracefully = async (signal) => {
+const close_system = async (signal) => {
     console.log(`Reçu signal ${signal}, fermeture propre...`);
     
     await fastify.close();
@@ -87,8 +87,8 @@ const closeGracefully = async (signal) => {
 };
 
 // Écoute des signaux d'arrêt
-process.on('SIGTERM', () => closeGracefully('SIGTERM'));
-process.on('SIGINT', () => closeGracefully('SIGINT'));
+process.on('SIGTERM', () => close_system('SIGTERM'));
+process.on('SIGINT', () => close_system('SIGINT'));
 
 // Démarrer le serveur
 fastify.listen({
