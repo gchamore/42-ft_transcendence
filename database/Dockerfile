@@ -1,7 +1,0 @@
-FROM alpine:latest
-
-RUN apk add --no-cache sqlite
-
-# WORKDIR /data
-
-CMD ["tail", "-f", "/dev/null"]

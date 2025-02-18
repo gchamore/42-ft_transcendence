@@ -12,7 +12,7 @@ fastify.register(require('@fastify/cors'), {
 });
 
 // Connexion à la base SQLite
-const db = new Database("./data/database.db");
+const db = new Database(process.env.DATABASE_URL);
 
 // Création de la table "users" si elle n'existe pas
 db.prepare(`
