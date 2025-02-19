@@ -1,3 +1,5 @@
+const user = {username : ""}
+
 async function isUser(username: string): Promise<boolean> {
     try {
         const response = await fetch(`http://localhost/isUser/${username}`, {
@@ -11,6 +13,8 @@ async function isUser(username: string): Promise<boolean> {
     } catch (error) {
         console.error("Error:", error);
     }
+
+    return false;
 }
 
 async function isPassword(username: string, password: string): Promise<boolean> {
@@ -27,6 +31,14 @@ async function isPassword(username: string, password: string): Promise<boolean> 
     } catch (error) {
         console.error("Error:", error);
     }
+    
+    return false;
+}
+
+function logout() {
+    user.username = "";
+    switchRegistrationLevel("logged-off");
+    console.log("Logout successful");
 }
 
 async function login() {
@@ -39,6 +51,9 @@ async function login() {
         if (!passwordValid) {
             console.log("Invalid username or password");
         } else {
+            user.username = username.value;
+            document.getElementById("username")!.textContent = "Username: " + user.username;
+            switchRegistrationLevel("logged-in");
             console.log("Login successful");
         }
     }
@@ -65,6 +80,7 @@ async function register() {
             body: JSON.stringify({ username: username.value, password: password.value })
         });
         const data = await response.json();
+        console.log("http://localhost/register", data);
 
         if (data.success)
             console.log(data.message);

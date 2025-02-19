@@ -9,6 +9,7 @@ body {
 }
 
 .btn {
+    display: none;
     padding: 10px 20px;
     margin: 5px;
     border: none;
@@ -17,7 +18,6 @@ body {
     cursor: pointer;
     border-radius: 5px;
 }
-
 
 .panel {
     display: none;
@@ -34,5 +34,9 @@ body {
 }
 
 .btn.active {
+    display: inline-block;
+}
+
+.btn.selected {
 	background-color: #ff0000;
 }

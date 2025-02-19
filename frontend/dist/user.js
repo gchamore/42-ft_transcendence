@@ -7,6 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+const user = { username: "" };
 function isUser(username) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -21,6 +22,7 @@ function isUser(username) {
         catch (error) {
             console.error("Error:", error);
         }
+        return false;
     });
 }
 function isPassword(username, password) {
@@ -38,7 +40,13 @@ function isPassword(username, password) {
         catch (error) {
             console.error("Error:", error);
         }
+        return false;
     });
+}
+function logout() {
+    user.username = "";
+    switchRegistrationLevel("logged-off");
+    console.log("Logout successful");
 }
 function login() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -51,6 +59,9 @@ function login() {
                 console.log("Invalid username or password");
             }
             else {
+                user.username = username.value;
+                document.getElementById("username").textContent = "Username: " + user.username;
+                switchRegistrationLevel("logged-in");
                 console.log("Login successful");
             }
         }
@@ -74,6 +85,7 @@ function register() {
                 body: JSON.stringify({ username: username.value, password: password.value })
             });
             const data = yield response.json();
+            console.log("http://localhost/register", data);
             if (data.success)
                 console.log(data.message);
         }

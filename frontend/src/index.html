@@ -7,16 +7,20 @@
 </head>
 <body>
 
+    <!-- Buttons -->
     <div class="buttonContainer">
-        <button id="loginBtn" class="btn active" onclick="switchPanel('login')">LOGIN</button>
-        <button id="registerBtn" class="btn" onclick="switchPanel('register')">REGISTER</button>
-    </div>
+        <button id="loginBtn" class="btn logged-off active selected" onclick="switchPanel('login')">LOGIN</button>
+        <button id="registerBtn" class="btn logged-off active" onclick="switchPanel('register')">REGISTER</button>
+        <button id="profileBtn" class="btn logged-in" onclick="switchPanel('profile')">PROFILE</button>
+        <button id="logoutBtn" class="btn logged-in" onclick="switchPanel('logout')">LOGOUT</button>
+      </div>
 
+    <!-- Panels -->
     <div id="loginPanel" class="panel active">
       <input id="loginUsername" placeholder="Username">
       <input id="loginPassword" placeholder="Password">
       <button onclick="login()">LOGIN</button>
-  </div>
+    </div>
 
     <div id="registerPanel" class="panel">
       <input id="registerUsername" placeholder="Username">
@@ -24,7 +28,16 @@
       <button onclick="register()">REGISTER</button>
     </div>
 
-    <script src="dist/panel.js"></script>
+    <div id="profilePanel" class="panel logged-in">
+      <label id="username"><label>
+    </div>
+
+    <div id="logoutPanel" class="panel logged-in">
+      <button onclick="logout()">CONFIRM</button>
+    </div>
+
+    <!-- Javascripts -->
+    <script src="dist/switch.js"></script>
     <script src="dist/user.js"></script>
 </body>
 </html>
