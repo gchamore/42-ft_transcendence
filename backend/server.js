@@ -71,10 +71,33 @@ fastify.get("/", async (request, reply) => {
     return { message: "Backend is running!" };
 });
 
+// Gestion de l'arrêt propre
+const close_system = async (signal) => {
+    console.log(`Reçu signal ${signal}, fermeture propre...`);
+    
+    await fastify.close();
+    console.log('Serveur Fastify fermé');
+    
+    if (db) {
+        db.close();
+        console.log('Base de données fermée');
+    }
+    
+    process.exit(0);
+};
+
+// Écoute des signaux d'arrêt
+process.on('SIGTERM', () => close_system('SIGTERM'));
+process.on('SIGINT', () => close_system('SIGINT'));
+
 // Démarrer le serveur
 fastify.listen({
     port: 3000,
     host: '0.0.0.0'  // Écouter sur toutes les interfaces
-}, () => {
+}, (err) => {
+    if (err) {
+        fastify.log.error(err);
+        process.exit(1);
+    }
     console.log("🚀 Serveur démarré sur http://0.0.0.0:3000");
 });

@@ -75,7 +75,7 @@ database:
         echo "$(GREEN)✓ Base de données copiée dans ./backend/tools/database.db$(RESET)"; \
     else \
         echo "$(ORANGE)⚠ Le conteneur backend n'est pas en cours d'exécution$(RESET)"; \
-        echo "$(YELLOW)→ Démarrez d'abord les conteneurs avec 'make up'$(RESET)"; \
+        echo "$(YELLOW)→ Démarrez d'abord les conteneurs et verifiez avec make logs si vous avez une erreur$(RESET)"; \
     fi
 	@code ./backend/tools/database.db
 
