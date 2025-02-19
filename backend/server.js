@@ -1,103 +1,94 @@
 // 🚀 Import des dépendances
-const fastify = require("fastify")({ logger: true });
-const Database = require("better-sqlite3");
+const fastify = require("fastify")({ 
+    logger: {
+        transport: {
+            target: 'pino-pretty',
+            options: {
+                translateTime: 'HH:MM:ss Z',
+                ignore: 'pid,hostname',
+            }
+        }
+    }
+});
+
+const initializeDatabase = require("./db/schema");
 const bcrypt = require("bcrypt");
 
-// 📌 Vérifier si les modules sont bien trouvés
-console.log("Modules chargés avec succès !");
+// Couleurs pour les logs
+const colors = {
+    reset: "\x1b[0m",
+    bright: "\x1b[1m",
+    green: "\x1b[32m",
+    yellow: "\x1b[33m",
+    red: "\x1b[31m",
+    cyan: "\x1b[36m"
+};
+
+// Logger personnalisé
+const customLog = {
+    success: (msg) => console.log(`${colors.bright}${colors.green}✓ ${msg}${colors.reset}`),
+    error: (msg) => console.log(`${colors.bright}${colors.red}✗ ${msg}${colors.reset}`),
+    info: (msg) => console.log(`${colors.bright}${colors.cyan}ℹ ${msg}${colors.reset}`),
+    warning: (msg) => console.log(`${colors.bright}${colors.yellow}⚠ ${msg}${colors.reset}`)
+};
+
+// Vérifier si les modules sont bien trouvés
+try {
+    customLog.info("Vérification des modules...");
+    const db = initializeDatabase(process.env.DATABASE_URL);
+    fastify.decorate('db', db);
+    customLog.success("Base de données initialisée avec succès");
+} catch (error) {
+    customLog.error(`Erreur d'initialisation de la base de données: ${error.message}`);
+    process.exit(1);
+}
 
 // Activer CORS pour permettre les requêtes depuis le frontend
 fastify.register(require('@fastify/cors'), {
     origin: true // permet toutes les origines en développement
 });
 
-// Connexion à la base SQLite
-const db = new Database(process.env.DATABASE_URL);
-
-// Création de la table "users" si elle n'existe pas
-db.prepare(`
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT
-    )
-`).run();
-
-// Route 1 : Inscription d'un utilisateur avec hashage du mot de passe
-fastify.post("/register", async (request, reply) => {
-    const { username, password } = request.body;
-
-    if (!username || !password) {
-        return reply.code(400).send({ error: "Username and password are required" });
-    }
-
-    // Vérifier si l'utilisateur existe déjà
-    const userExists = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-    if (userExists) {
-        return reply.code(400).send({ error: "Username already taken" });
-    }
-
-    // Hashage du mot de passe avec bcrypt
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Sauvegarde de l'utilisateur
-    db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, hashedPassword);
-
-    return { success: true, message: "User registered successfully" };
-});
-
-// Route 2 : Vérifier si un username existe
-fastify.get("/isUser/:username", async (request, reply) => {
-    const { username } = request.params;
-    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-    return { exists: !!user }; // Renvoie true si l'utilisateur existe, false sinon
-});
-
-// Route 3 : Vérifier si un mot de passe est correct
-fastify.post("/isPassword", async (request, reply) => {
-    const { username, password } = request.body;
-    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-
-    if (!user) return reply.code(404).send({ error: "User not found" });
-
-    // Vérifier le mot de passe avec bcrypt
-    const validPassword = await bcrypt.compare(password, user.password);
-
-    return { valid: validPassword }; // true si le mot de passe est correct
-});
-
-// Pour tester que le serveur fonctionne
-fastify.get("/", async (request, reply) => {
-    return { message: "Backend is running!" };
-});
+// Enregistrement des routes
+fastify.register(require('./routes/auth.routes'));
+fastify.register(require('./routes/game.routes'));
 
 // Gestion de l'arrêt propre
-const close_system = async (signal) => {
-    console.log(`Reçu signal ${signal}, fermeture propre...`);
+const clean_close = async (signal) => {
+    customLog.warning(`Signal ${signal} reçu, arrêt propre en cours...`);
     
-    await fastify.close();
-    console.log('Serveur Fastify fermé');
-    
-    if (db) {
-        db.close();
-        console.log('Base de données fermée');
+    try {
+        await fastify.close();
+        customLog.success("Serveur Fastify fermé");
+        
+        if (fastify.db) {
+            fastify.db.close();
+            customLog.success("Base de données fermée");
+        }
+        
+        customLog.success("Arrêt propre terminé");
+        process.exit(0);
+    } catch (error) {
+        customLog.error(`Erreur lors de l'arrêt: ${error.message}`);
+        process.exit(1);
     }
-    
-    process.exit(0);
 };
 
-// Écoute des signaux d'arrêt
-process.on('SIGTERM', () => close_system('SIGTERM'));
-process.on('SIGINT', () => close_system('SIGINT'));
+process.on('SIGTERM', () => clean_close('SIGTERM'));
+process.on('SIGINT', () => clean_close('SIGINT'));
 
-// Démarrer le serveur
+// Démarrer le serveur avec logs améliorés
 fastify.listen({
     port: 3000,
     host: '0.0.0.0'  // Écouter sur toutes les interfaces
 }, (err) => {
     if (err) {
-        fastify.log.error(err);
+        customLog.error(`Erreur de démarrage du serveur: ${err.message}`);
         process.exit(1);
     }
-    console.log("🚀 Serveur démarré sur http://0.0.0.0:3000");
+    
+    customLog.info("Status du serveur:");
+    customLog.success("- API REST disponible sur http://0.0.0.0:3000");
+    customLog.success("- Base de données connectée");
+    customLog.success("- CORS activé");
+    console.log("\n" + colors.bright + colors.green + "🚀 Serveur prêt et opérationnel !" + colors.reset + "\n");
 });
