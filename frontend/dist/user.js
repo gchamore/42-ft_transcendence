@@ -71,7 +71,7 @@ function register() {
             const response = yield fetch(`http://localhost/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username: username, password: password })
+                body: JSON.stringify({ username: username.value, password: password.value })
             });
             const data = yield response.json();
             if (data.success)
