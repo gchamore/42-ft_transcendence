@@ -36,6 +36,16 @@ else
     echo $RESPONSE2
 fi
 
+# Récupération de l'ID du player1
+PLAYER1_ID=$(curl -s -X POST "$API_URL/getUserId" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"player1"}' | jq -r '.id')
+
+# Récupération de l'ID du player2
+PLAYER2_ID=$(curl -s -X POST "$API_URL/getUserId" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"player2"}' | jq -r '.id')
+
 # Création d'un utilisateur avec le meme username
 echo -e "\n 2️⃣  Creating of user with same username..."
 RESPONSE2=$(curl -s -X POST "$API_URL/register" \
@@ -49,17 +59,17 @@ else
     echo $RESPONSE2
 fi
 
-# Ajout d'une partie dans l'historique
+# Ajout d'une partie dans l'historique avec les IDs dynamiques
 echo -e "\n 🎮 Adding game..."
 RESPONSE3=$(curl -s -X POST "$API_URL/user/game" \
   -H "Content-Type: application/json" \
-  -d '{
-    "player1_id": 1,
-    "player2_id": 2,
-    "score_player1": 5,
-    "score_player2": 8,
-    "winner_id": 2
-  }')
+  -d "{
+    \"player1_id\": $PLAYER1_ID,
+    \"player2_id\": $PLAYER2_ID,
+    \"score_player1\": 5,
+    \"score_player2\": 8,
+    \"winner_id\": $PLAYER2_ID
+  }")
 
 if [[ $RESPONSE3 == *"success"* ]]; then
     echo -e "${GREEN}✓ Game added successfully${NC}"

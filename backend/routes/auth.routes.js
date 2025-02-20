@@ -151,6 +151,18 @@ async function routes(fastify, options) {
 
         return reply.send({ valid: validPassword });
     });
+
+    /*** 📌 Route: GET USER ID ***/
+    fastify.post("/getUserId", async (request, reply) => {
+        const { username } = request.body;
+        
+        const user = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
+        if (!user) {
+            return reply.code(404).send({ error: "User not found" });
+        }
+        
+        return { id: user.id };
+    });
 }
 
 module.exports = routes;
