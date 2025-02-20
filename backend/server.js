@@ -79,7 +79,7 @@ process.on('SIGINT', () => clean_close('SIGINT'));
 // Démarrer le serveur avec logs améliorés
 fastify.listen({
     port: 3000,
-    host: '0.0.0.0'  // Écouter sur toutes les interfaces
+    host: '0.0.0.0'  // Écouter sur tous les ports
 }, (err) => {
     if (err) {
         customLog.error(`Erreur de démarrage du serveur: ${err.message}`);

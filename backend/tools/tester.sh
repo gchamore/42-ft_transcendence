@@ -50,8 +50,8 @@ else
 fi
 
 # Ajout d'une partie dans l'historique
-echo -e "\n 🎮 Adding game to history..."
-RESPONSE3=$(curl -s -X POST "$API_URL/user/history" \
+echo -e "\n 🎮 Adding game..."
+RESPONSE3=$(curl -s -X POST "$API_URL/user/game" \
   -H "Content-Type: application/json" \
   -d '{
     "player1_id": 1,
@@ -62,9 +62,9 @@ RESPONSE3=$(curl -s -X POST "$API_URL/user/history" \
   }')
 
 if [[ $RESPONSE3 == *"success"* ]]; then
-    echo -e "${GREEN}✓ Game history added successfully${NC}"
+    echo -e "${GREEN}✓ Game added successfully${NC}"
 else
-    echo -e "${RED}✗ Failed to add game history${NC}"
+    echo -e "${RED}✗ Failed to add game${NC}"
     echo $RESPONSE3
 fi
 

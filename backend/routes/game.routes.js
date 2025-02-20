@@ -1,8 +1,8 @@
 async function routes(fastify, options) {
     const { db } = fastify;
 
-    /*** 📌 Route: GAME HISTORY ***/
-    fastify.post("/user/history", async (request, reply) => {
+    /*** 📌 Route: GAME ***/
+    fastify.post("/user/game", async (request, reply) => {
         const { player1_id, player2_id, score_player1, score_player2, winner_id } = request.body;
 
         // Log la requête entrante
@@ -102,13 +102,13 @@ async function routes(fastify, options) {
             return { 
                 success: true, 
                 gameId: result.lastInsertRowid,
-                message: "Game history saved successfully"
+                message: "Game saved successfully"
             };
 
         } catch (error) {
             fastify.log.error(error, "Erreur lors de l'enregistrement de la partie");
             return reply.code(500).send({ 
-                error: "Failed to save game history",
+                error: "Failed to save game",
                 details: error.message
             });
         }
