@@ -26,6 +26,7 @@ export class Game {
     constructor() {
         this.initializeCanvas();
 		this.initializeComponents();
+		this.start();
     }
 
     private initializeCanvas() {
@@ -89,15 +90,17 @@ export class Game {
 		this.context.fill();
 		this.context.closePath();
 
-		this.uiManager.drawStartMessage(timestamp, this.gameStarted);
-
+		if (!this.gameStarted) {
+			this.uiManager.drawStartMessage(timestamp, this.gameStarted);
+		}
+		
 		if (this.gameStarted) {
 			this.ball.move();
 		}
 
 		this.handleCollisions();
 
-		requestAnimationFrame(this.gameLoop.bind(this));
+		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
 	}
 
 	private handleCollisions(): void {

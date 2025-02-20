@@ -13,6 +13,7 @@ export class Game {
         this.animationFrameId = null;
         this.initializeCanvas();
         this.initializeComponents();
+        this.start();
     }
     initializeCanvas() {
         this.canvas = document.getElementById('gameCanvas');
@@ -64,12 +65,14 @@ export class Game {
         this.context.fillStyle = "white";
         this.context.fill();
         this.context.closePath();
-        this.uiManager.drawStartMessage(timestamp, this.gameStarted);
+        if (!this.gameStarted) {
+            this.uiManager.drawStartMessage(timestamp, this.gameStarted);
+        }
         if (this.gameStarted) {
             this.ball.move();
         }
         this.handleCollisions();
-        requestAnimationFrame(this.gameLoop.bind(this));
+        this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
     }
     handleCollisions() {
         this.collisionManager.handleWallCollision(this.ball, this.canvas);

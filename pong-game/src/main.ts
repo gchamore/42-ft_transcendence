@@ -1,5 +1,5 @@
-import { SettingsPage } from './pages/settingsPage';
-import { Game } from './pages/gamePage';
+import { SettingsPage } from './pages/settingsPage.js';
+import { Game } from './pages/gamePage.js';
 
 class App {
     constructor() {
@@ -9,14 +9,22 @@ class App {
     setupRouting() {
         const hash = window.location.hash || '#settings';
 
+        const settingsPage = document.getElementById('settings-page');
+        const gamePage = document.getElementById('gameCanvas');
+
+        if (!settingsPage || !gamePage) {
+            console.error('Required elements are not available in the DOM!');
+            return; // Prevent errors if elements are not found
+        }
+
         if (hash === '#game') {
             new Game(); // Load game page
-            document.getElementById('settings-page')!.style.display = 'none'; // Hide settings page
-            document.getElementById('game-page')!.style.display = 'block'; // Show game page
+            settingsPage!.style.display = 'none'; // Hide settings page
+            gamePage!.style.display = 'block'; // Show game page
         } else {
             new SettingsPage(); // Load settings page
-            document.getElementById('settings-page')!.style.display = 'block'; // Show settings page
-            document.getElementById('game-page')!.style.display = 'none'; // Hide game page
+            settingsPage!.style.display = 'block'; // Show settings page
+            gamePage!.style.display = 'none'; // Hide game page
         }
 
         window.addEventListener('hashchange', () => {

@@ -1,6 +1,6 @@
 {
     "server": {
-      "baseDir": "./public",
+      "baseDir": ["./public", "./dist"],
       "index": "index.html"
     }
   }

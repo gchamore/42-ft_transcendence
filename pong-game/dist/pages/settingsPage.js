@@ -53,7 +53,6 @@ export class SettingsPage {
         (_a = document.getElementById('start-game')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             // Handle starting the game
             window.location.hash = '#game';
-            this.startGame();
         });
     }
     getCurrentSettings() {
@@ -64,7 +63,5 @@ export class SettingsPage {
             mapType: this.mapSelect.value,
             powerUpsEnabled: this.powerUpsToggle.checked
         };
-    }
-    startGame() {
     }
 }

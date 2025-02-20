@@ -14,9 +14,9 @@
     "noFallthroughCasesInSwitch": true,             /* Prevent fallthrough behavior in switch statements */
     "skipLibCheck": true,                           /* Skip type-checking of third-party libraries */
     "outDir": "./dist",
-	"rootDir": "./src"                              /* Compile JS files to the 'dist' folder */
+	  "rootDir": "./src"                              /* Compile JS files to the 'dist' folder */
   },
   "include": [
-    "src/**/*.ts"                                   /* Include all TypeScript files in the 'src' folder */
+    "src/**/**/*.ts"                                   /* Include all TypeScript files in the 'src' folder */
   ]
 }
