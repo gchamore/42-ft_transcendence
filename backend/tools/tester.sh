@@ -37,14 +37,34 @@ else
 fi
 
 # Récupération de l'ID du player1
-PLAYER1_ID=$(curl -s -X POST "$API_URL/getUserId" \
+echo -e "\n 🔍 Getting player1 ID..."
+ID_RESPONSE_1=$(curl -s -X POST "$API_URL/getUserId" \
   -H "Content-Type: application/json" \
-  -d '{"username":"player1"}' | jq -r '.id')
+  -d '{"username":"player1"}')
+
+if [[ $ID_RESPONSE_1 == *"success"* ]]; then
+    PLAYER1_ID=$(echo $ID_RESPONSE_1 | jq -r '.id')
+    echo -e "${GREEN}✓ Got player1 ID: $PLAYER1_ID${NC}"
+else
+    echo -e "${RED}✗ Failed to get player1 ID${NC}"
+    echo $ID_RESPONSE_1
+    exit 1
+fi
 
 # Récupération de l'ID du player2
-PLAYER2_ID=$(curl -s -X POST "$API_URL/getUserId" \
+echo -e "\n 🔍 Getting player2 ID..."
+ID_RESPONSE_2=$(curl -s -X POST "$API_URL/getUserId" \
   -H "Content-Type: application/json" \
-  -d '{"username":"player2"}' | jq -r '.id')
+  -d '{"username":"player2"}')
+
+if [[ $ID_RESPONSE_2 == *"success"* ]]; then
+    PLAYER2_ID=$(echo $ID_RESPONSE_2 | jq -r '.id')
+    echo -e "${GREEN}✓ Got player2 ID: $PLAYER2_ID${NC}"
+else
+    echo -e "${RED}✗ Failed to get player2 ID${NC}"
+    echo $ID_RESPONSE_2
+    exit 1
+fi
 
 # Création d'un utilisateur avec le meme username
 echo -e "\n 2️⃣  Creating of user with same username..."
@@ -59,17 +79,101 @@ else
     echo $RESPONSE2
 fi
 
+# Test de login pour player1
+echo -e "\n 🔑 Testing login..."
+LOGIN_RESPONSE_1=$(curl -s -X POST "$API_URL/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "player1",
+    "password": "pass1"
+  }')
+
+if [[ $LOGIN_RESPONSE_1 == *"accessToken"* ]]; then
+    echo -e "${GREEN}✓ Login successful${NC}"
+    ACCESS_TOKEN_1=$(echo $LOGIN_RESPONSE_1 | jq -r '.accessToken')
+else
+    echo -e "${RED}✗ Login failed${NC}"
+    echo $LOGIN_RESPONSE_1
+    exit 1
+fi
+
+# Test de login pour player2
+echo -e "\n 🔑 Testing login..."
+LOGIN_RESPONSE_2=$(curl -s -X POST "$API_URL/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "player2",
+    "password": "pass2"
+  }')
+
+if [[ $LOGIN_RESPONSE_2 == *"accessToken"* ]]; then
+    echo -e "${GREEN}✓ Login successful${NC}"
+    ACCESS_TOKEN_2=$(echo $LOGIN_RESPONSE_2 | jq -r '.accessToken')
+else
+    echo -e "${RED}✗ Login failed${NC}"
+    echo $LOGIN_RESPONSE_2
+    exit 1
+fi
+
+# Test de la route protégée
+echo -e "\n 🔒 Testing protected route..."
+PROTECTED_RESPONSE_1=$(curl -s -X GET "$API_URL/protected" \
+  -H "Authorization: Bearer $ACCESS_TOKEN_1")
+
+if [[ $PROTECTED_RESPONSE_1 == *"protected information"* ]]; then
+    echo -e "${GREEN}✓ Protected route accessible${NC}"
+else
+    echo -e "${RED}✗ Protected route access failed${NC}"
+    echo $PROTECTED_RESPONSE_1
+fi
+
+# Test de la route protégée
+echo -e "\n 🔒 Testing protected route..."
+PROTECTED_RESPONSE_2=$(curl -s -X GET "$API_URL/protected" \
+  -H "Authorization: Bearer $ACCESS_TOKEN_2")
+
+if [[ $PROTECTED_RESPONSE_2 == *"protected information"* ]]; then
+    echo -e "${GREEN}✓ Protected route accessible${NC}"
+else
+    echo -e "${RED}✗ Protected route access failed${NC}"
+    echo $PROTECTED_RESPONSE_2
+fi
+
+# Test de vérification du token
+echo -e "\n 🔍 Testing token verification player 1..."
+VERIFY_RESPONSE_1=$(curl -s -X POST "$API_URL/verify_token" \
+  -H "Authorization: Bearer $ACCESS_TOKEN_1")
+
+if [[ $VERIFY_RESPONSE_1 == *"\"valid\":true"* ]]; then
+    echo -e "${GREEN}✓ Token verified successfully${NC}"
+else
+    echo -e "${RED}✗ Token verification failed${NC}"
+    echo $VERIFY_RESPONSE_1
+fi
+
+# Test de vérification du token
+echo -e "\n 🔍 Testing token verification player 2..."
+VERIFY_RESPONSE_2=$(curl -s -X POST "$API_URL/verify_token" \
+  -H "Authorization: Bearer $ACCESS_TOKEN_2")
+
+if [[ $VERIFY_RESPONSE_2 == *"\"valid\":true"* ]]; then
+    echo -e "${GREEN}✓ Token verified successfully${NC}"
+else
+    echo -e "${RED}✗ Token verification failed${NC}"
+    echo $VERIFY_RESPONSE_2
+fi
+
+echo "Player1 ID: $PLAYER1_ID"
+echo "Player2 ID: $PLAYER2_ID"
+
+
 # Ajout d'une partie dans l'historique avec les IDs dynamiques
 echo -e "\n 🎮 Adding game..."
+GAME_DATA="{\"player1_id\":\"$PLAYER1_ID\",\"player2_id\":\"$PLAYER2_ID\",\"score_player1\":5,\"score_player2\":8,\"winner_id\":\"$PLAYER2_ID\"}"
 RESPONSE3=$(curl -s -X POST "$API_URL/user/game" \
+  -H "Authorization: Bearer $ACCESS_TOKEN_2" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"player1_id\": $PLAYER1_ID,
-    \"player2_id\": $PLAYER2_ID,
-    \"score_player1\": 5,
-    \"score_player2\": 8,
-    \"winner_id\": $PLAYER2_ID
-  }")
+  -d "$GAME_DATA")
 
 if [[ $RESPONSE3 == *"success"* ]]; then
     echo -e "${GREEN}✓ Game added successfully${NC}"
@@ -80,7 +184,8 @@ fi
 
 # Vérification du leaderboard
 echo -e "\n 🏆 Checking leaderboard..."
-RESPONSE4=$(curl -s -X GET "$API_URL/leaderboard")
+RESPONSE4=$(curl -s -X GET "$API_URL/leaderboard" \
+  -H "Authorization: Bearer $ACCESS_TOKEN_2")  # Utiliser le token du player2
 if [[ $RESPONSE4 == *"success"* ]]; then
     echo -e "${GREEN}✓ leaderboard OK${NC}"
 else
@@ -134,7 +239,8 @@ fi
 
 # Vérification du leaderboard après suppression
 echo -e "\n 🏆 Checking updated leaderboard..."
-RESPONSE8=$(curl -s -X GET "$API_URL/leaderboard")
+RESPONSE8=$(curl -s -X GET "$API_URL/leaderboard" \
+  -H "Authorization: Bearer $ACCESS_TOKEN_2")  # Utiliser le token du player2
 if [[ $RESPONSE8 == *"success"* ]]; then
     echo -e "${GREEN}✓ Leaderboard still accessible${NC}"
     echo -e "\nUpdated leaderboard:"
@@ -142,6 +248,54 @@ if [[ $RESPONSE8 == *"success"* ]]; then
 else
     echo -e "${RED}✗ Failed to get updated leaderboard${NC}"
     echo $RESPONSE8
+fi
+
+# Test de déconnexion pour player1
+echo -e "\n 🚪 Testing logout for player1..."
+LOGOUT_RESPONSE_1=$(curl -s -X POST "$API_URL/logout" \
+  -H "Authorization: Bearer $ACCESS_TOKEN_1")
+
+if [[ $LOGOUT_RESPONSE_1 == *"success"* ]]; then
+    echo -e "${GREEN}✓ Logout successful${NC}"
+else
+    echo -e "${RED}✗ Logout failed${NC}"
+    echo $LOGOUT_RESPONSE_1
+fi
+
+# Test de déconnexion pour player2
+echo -e "\n 🚪 Testing logout for player2..."
+LOGOUT_RESPONSE_2=$(curl -s -X POST "$API_URL/logout" \
+  -H "Authorization: Bearer $ACCESS_TOKEN_2")
+
+if [[ $LOGOUT_RESPONSE_2 == *"success"* ]]; then
+    echo -e "${GREEN}✓ Logout successful${NC}"
+else
+    echo -e "${RED}✗ Logout failed${NC}"
+    echo $LOGOUT_RESPONSE_2
+fi
+
+# Vérification que le token n'est plus valide après déconnexion
+echo -e "\n 🔍 Verifying token invalidation after logout..."
+VERIFY_AFTER_LOGOUT_1=$(curl -s -X POST "$API_URL/verify_token" \
+  -H "Authorization: Bearer $ACCESS_TOKEN_1")
+
+if [[ $VERIFY_AFTER_LOGOUT_1 == *"\"valid\":false"* ]]; then
+    echo -e "${GREEN}✓ Token correctly invalidated${NC}"
+else
+    echo -e "${RED}✗ Token still valid after logout${NC}"
+    echo $VERIFY_AFTER_LOGOUT_1
+fi
+
+# Vérification que le token n'est plus valide après déconnexion
+echo -e "\n 🔍 Verifying token invalidation after logout..."
+VERIFY_AFTER_LOGOUT_2=$(curl -s -X POST "$API_URL/verify_token" \
+  -H "Authorization: Bearer $ACCESS_TOKEN_2")
+
+if [[ $VERIFY_AFTER_LOGOUT_2 == *"\"valid\":false"* ]]; then
+    echo -e "${GREEN}✓ Token correctly invalidated${NC}"
+else
+    echo -e "${RED}✗ Token still valid after logout${NC}"
+    echo $VERIFY_AFTER_LOGOUT_2
 fi
 
 echo -e "\n✨ Tests completed!"

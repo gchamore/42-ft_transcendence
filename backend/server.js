@@ -13,6 +13,7 @@ const fastify = require("fastify")({
 
 const initializeDatabase = require("./db/schema");
 const bcrypt = require("bcrypt");
+const authMiddleware = require('./middlewares/auth.middleware');
 
 // Couleurs pour les logs
 const colors = {
@@ -46,6 +47,35 @@ try {
 // Activer CORS pour permettre les requêtes depuis le frontend
 fastify.register(require('@fastify/cors'), {
     origin: true // permet toutes les origines en développement
+});
+
+// Enregistrer le plugin cookie
+fastify.register(require('@fastify/cookie'));
+
+// Ajouter le middleware d'authentification aux routes protégées
+fastify.addHook('preHandler', (request, reply, done) => {
+    // Liste des routes qui ne nécessitent pas d'authentification
+    const publicRoutes = [
+        '/login',
+        '/register',
+        '/refresh',
+        '/isUser',
+        '/unregister',
+        '/verify_token',
+        '/getUserId',
+        '/getUserProfile',  // Si vous avez cette route
+        '/leaderboard'      // Rendre le leaderboard public
+    ];
+
+    // Vérifier si la route actuelle est publique
+    if (request.routerPath && (
+        publicRoutes.some(route => request.routerPath.startsWith(route)) ||
+        request.routerPath === '/'
+    )) {
+        return done();
+    }
+
+    return authMiddleware(request, reply);
 });
 
 // Enregistrement des routes
