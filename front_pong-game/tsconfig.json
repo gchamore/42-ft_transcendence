@@ -17,6 +17,6 @@
 	  "rootDir": "./src"                              /* Compile JS files to the 'dist' folder */
   },
   "include": [
-    "src/**/**/*.ts"                                   /* Include all TypeScript files in the 'src' folder */
+    "src/**/*.ts"                                   /* Include all TypeScript files in the 'src' folder */
   ]
 }

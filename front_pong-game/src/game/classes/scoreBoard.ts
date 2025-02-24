@@ -2,11 +2,9 @@ export class ScoreBoard {
 	private player1Score: number = 0;
 	private player2Score: number = 0;
 	private display: HTMLDivElement | null = null;
-	private readonly winningScore: number;
 
 	// Create a new ScoreBoard instance
-	constructor(winningScore: number) {
-		this.winningScore = winningScore;
+	constructor() {
 		if (document.readyState === 'loading') {
 			document.addEventListener('DOMContentLoaded', () => {
 				this.display = this.createScoreDisplay();

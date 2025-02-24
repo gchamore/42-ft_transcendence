@@ -2,7 +2,6 @@ import { Ball } from '../game/classes/ball.js';
 import { Paddle } from '../game/classes/paddle.js';
 import { ScoreBoard } from '../game/classes/scoreBoard.js';
 import { GameControls } from '../game/classes/gameControls.js';
-import { GameConfig } from '../utils/config/gameConfig.js';
 import { InputManager } from '../game/managers/inputManager.js';
 import { UIManager } from '../game/managers/uiManager.js';
 import { SettingsService } from '../services/settingsServices.js';
@@ -40,14 +39,26 @@ export class Game {
 		this.socket.onmessage = (message) => {
 			const data = JSON.parse(message.data);
 			if (data.type === 'gameState') {
+				if (data.playerNumber) {
+					this.playerNumber = data.playerNumber;
+				}
 				this.updateGameState(data.gameState);
 			}
+		};
+		this.socket.onerror = (error) => {
+			console.error('WebSocket error:', error);
+		};
+
+		this.socket.onclose = () => {
+			console.log('Disconnected from server');
 		};
 	}
 
 	private updateGameState(gameState: GameState) {
 		this.gameStarted = gameState.gameStarted;
-		this.playerNumber = gameState.playerNumber;
+		if (gameState.playerNumber) {
+			this.playerNumber = gameState.playerNumber;
+		}
 		this.servingPlayer = gameState.servingPlayer;
 		this.paddle1.updatePosition(gameState.paddle1);
 		this.paddle2.updatePosition(gameState.paddle2);
@@ -70,7 +81,7 @@ export class Game {
 		this.controls = new GameControls(this.paddle1, this.paddle2, this.playerNumber, this.socket);
 
 		this.servingPlayer = Math.random() < 0.5 ? 1 : 2;
-		this.scoreBoard = new ScoreBoard(GameConfig.WINNING_SCORE);
+		this.scoreBoard = new ScoreBoard();
 		this.uiManager = new UIManager(this.context, this.canvas);
 		this.inputManager = new InputManager(this.controls, () => this.gameStarted, this.socket);
 	}

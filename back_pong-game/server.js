@@ -1,8 +1,17 @@
 const Fastify = require('fastify');
-const fastify = Fastify();
-const fastifyWebSocket = require('fastify-websocket');
+const fastify = Fastify({logger: true});
+const fastifyWebSocket = require('@fastify/websocket');
+const path = require('path');
+const WebSocket = require('ws');
 
 fastify.register(fastifyWebSocket);
+
+fastify.register(require('@fastify/static'), {
+	root: path.join(__dirname, 'public'),
+	prefix: '/',
+	list: true,
+	index: 'index.html'
+});
 
 let gameState = {
 	ball: { x: 400, y: 300, radius: 10, xSpeed: 4, ySpeed: 4 },
@@ -23,11 +32,11 @@ fastify.get('/game', { websocket: true }, (connection, req) => {
 	connection.playerNumber = playerNumber;
 	players.push(connection);
 
-	connection.send(JSON.stringify({
+	safeSend(connection.socket, {
 		type: 'gameState',
 		data: gameState,
-		playerNumber: connection.playerNumber
-	}));
+		playerNumber: playerNumber
+	});
 
 	connection.on('message', message => {
 		const data = JSON.parse(message);
@@ -60,6 +69,21 @@ fastify.get('/game', { websocket: true }, (connection, req) => {
 	});
 });
 
+fastify.get('/', (req, reply) => {
+	reply.sendFile('index.html');
+});
+
+//prevent local crash with failed connection
+function safeSend(socket, message) {
+	if (socket.readyState === WebSocket.OPEN) {
+		try {
+			socket.send(JSON.stringify(message));
+		} catch (e) {
+			console.error('Error sending message:', e);
+		}
+	}
+}
+
 function handleDisconnect(connection) {
 	
 	const playerIndex = players.indexOf(connection);
@@ -77,9 +101,7 @@ function handleDisconnect(connection) {
 	};
 
 	players.forEach((player) => {
-		if (player.readyState === websocket.OPEN) {
-			player.send(JSON.stringify(gameOverMessage));
-		}
+		safeSend(player, gameOverMessage);
 	});
 
 	gameState.gameStarted = false;
@@ -90,12 +112,10 @@ function handleDisconnect(connection) {
 
 function broadcastGameState(gameState) {
 	players.forEach((player) => {
-		if (player.readyState === websocket.OPEN) {
-			player.send(JSON.stringify({
-				type: 'gameState',
-				data: gameState
-			}));
-		}
+		safeSend(player, {
+			type: 'gameState',
+			data: gameState
+		});
 	});
 }
 
@@ -125,7 +145,7 @@ function updateScore(player) {
 	}
 }
 
-fastify.listen(3000, (err, address) => {
+fastify.listen({port: 3000,	host: '0.0.0.0'}, (err, address) => {
 	if (err) {
 		console.error(err);
 		process.exit(1);

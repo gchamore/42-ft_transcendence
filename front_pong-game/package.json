@@ -5,10 +5,10 @@
   "main": "index.js",
   "type": "module",
  "scripts": {
-  "build": "tsc",
-  "start": "tsc && lite-server",
-  "dev": "tsc --watch && lite-server",
-  "clean": "rm -rf dist"
+   "build": "tsc && mkdir -p ../back_pong-game/public/dist && cp public/index.html ../back_pong-game/public/ && cp -r dist/* ../back_pong-game/public/dist/",
+   "start": "tsc && lite-server",
+   "dev": "tsc --watch && lite-server",
+   "clean": "rm -rf dist && rm -rf ../back_pong-game/public"
 },
   "keywords": [],
   "author": "",
