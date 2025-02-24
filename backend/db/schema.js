@@ -1,6 +1,7 @@
 const Database = require("better-sqlite3");
 
-function initializeDatabase(dbPath) {
+function initializeDatabase(dbPath)
+{
     const db = new Database(dbPath);
 
     db.prepare(`
