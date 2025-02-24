@@ -13,7 +13,7 @@ const fastify = require("fastify")({
 
 const initializeDatabase = require("./db/schema");
 const bcrypt = require("bcrypt");
-const authMiddleware = require('./middlewares/auth.middleware');
+const authMiddleware = require('./jwt/middlewares/auth.middleware');
 
 // Couleurs pour les logs
 const colors = {

@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-const authService = require('../services/auth.service');
+const authService = require('../jwt/services/auth.service');
 
 async function routes(fastify, options) {
     const { db } = fastify;
