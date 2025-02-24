@@ -13,29 +13,10 @@ export class Ball {
 		this.speedY = speed;
 	}
 
-	reset(canvasWidth: number, canvasHeight: number): void {
-		this.x = canvasWidth / 2;
-		this.y = canvasHeight / 2;
-		this.speedX = -this.speedX;
-		this.speedY = -this.speedY;
-	}
-
-	serve(direction: number, speed: number): void {
-		// 30% chance of a straight serve
-		const isStraightServe = Math.random() < 0.3;
-
-		if (isStraightServe) {
-			this.speedX = direction * speed;
-			this.speedY = 0;
-		} else {
-			const angle = (Math.random() - 0.5) * (Math.PI / 4); // 45 degrees
-			this.speedX = direction * speed * Math.cos(angle);
-			this.speedY = speed * Math.sin(angle);
-		}
-	}
-
-	move(): void {
-		this.x += this.speedX;
-		this.y += this.speedY;
+	updatePosition(ballState:{x:number, y:number, speedX:number, speedY:number}): void {
+		this.x = ballState.x;
+		this.y = ballState.y;
+		this.speedX = ballState.speedX;
+		this.speedY = ballState.speedY;
 	}
 }

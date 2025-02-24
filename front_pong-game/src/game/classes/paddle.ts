@@ -34,7 +34,10 @@ export class Paddle {
 		}
 	}
 
-	reset(): void {
-		this.y = 0;
+	updatePosition(paddleState: { x: number, y: number, height: number }): void {
+		this.x = paddleState.x;
+		this.y = paddleState.y;
+		if (paddleState.height !== this.height)
+			this.updateHeight(paddleState.height);
 	}
 }

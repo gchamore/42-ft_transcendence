@@ -2,32 +2,41 @@ import { GameControls } from '../classes/gameControls.js';
 
 export class InputManager {
 
+	private socket!: WebSocket;
+
 	constructor(
 		private gameControls: GameControls,
 		private isGameStarted: () => boolean,
-		private startGame: () => void
+		socket: WebSocket
 	) {
 		this.setupEventListeners();
+		this.socket = socket;
 	}
 
+	// Setup event listeners for keydown and keyup events send the changes to the server
 	private setupEventListeners(): void {
-		window.addEventListener('keydown', this.handleKeyDown.bind(this));
-		window.addEventListener('keyup', this.handleKeyUp.bind(this));
+		window.addEventListener('keydown', (event) => {
+			if (event.key === ' ') {
+				this.sendStartGame();
+			}
+			if (!this.isGameStarted()) return;
+			this.gameControls.handleKeyDown(event);
+		});
+
+		window.addEventListener('keyup', (event) => {
+			if (!this.isGameStarted()) return;
+			this.gameControls.handleKeyUp(event);
+		});
 	}
 
-	private handleKeyDown(event: KeyboardEvent): void {
-		if (event.code === 'Space' && !this.isGameStarted()) {
-			this.startGame();
+	sendStartGame() {
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+			this.socket.send(JSON.stringify({ type: 'startGame' }));
 		}
-		this.gameControls.handleKeyDown(event);
 	}
 
-	private handleKeyUp(event: KeyboardEvent): void {
-		this.gameControls.handleKeyUp(event);
-	}
-
-	public cleanup(): void {
-		window.removeEventListener('keydown', this.handleKeyDown.bind(this));
-		window.removeEventListener('keyup', this.handleKeyUp.bind(this));
+	removeEventListeners(): void {
+		window.removeEventListener('keydown', this.gameControls.handleKeyDown);
+		window.removeEventListener('keyup', this.gameControls.handleKeyUp);
 	}
 }

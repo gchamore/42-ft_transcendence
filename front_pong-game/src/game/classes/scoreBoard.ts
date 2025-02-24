@@ -35,30 +35,14 @@ export class ScoreBoard {
 		}
 	}
 
+	updateScore(score: { player1Score: number, player2Score: number }): void {
+		this.player1Score = score.player1Score;
+		this.player2Score = score.player2Score;
+		this.updateDisplay();
+	}
+
 	private updateDisplay(): void {
 		if (this.display)
 			this.display.textContent = `${this.player1Score} - ${this.player2Score}`;
-	}
-
-	incrementPlayer1(): void {
-		this.player1Score++;
-		this.updateDisplay();
-	}
-
-	incrementPlayer2(): void {
-		this.player2Score++;
-		this.updateDisplay();
-	}
-
-	reset(): void {
-		this.player1Score = 0;
-		this.player2Score = 0;
-		this.updateDisplay();
-	}
-
-	checkWinner(): string | null {
-		if (this.player1Score >= this.winningScore) return "Player 1";
-		if (this.player2Score >= this.winningScore) return "Player 2";
-		return null;
 	}
 }

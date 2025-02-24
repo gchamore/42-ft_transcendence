@@ -10,7 +10,7 @@ let gameState = {
 	paddle2: { x: 780, y: 250, width: 10, height: 100, speed: 4 },
 	score1: 0,
 	score2: 0,
-	servingPlayer: 1,
+	servingPlayer: Math.random() < 0.5 ? 1 : 2,
 	gameStarted: false
 };
 
@@ -19,11 +19,14 @@ let players = [];
 fastify.get('/game', { websocket: true }, (connection, req) => {
 	console.log('A player has connected');
 
+	const playerNumber = players.length + 1;
+	connection.playerNumber = playerNumber;
 	players.push(connection);
 
 	connection.send(JSON.stringify({
 		type: 'gameState',
-		data: gameState
+		data: gameState,
+		playerNumber: connection.playerNumber
 	}));
 
 	connection.on('message', message => {
@@ -33,19 +36,21 @@ fastify.get('/game', { websocket: true }, (connection, req) => {
 				gameState.gameStarted = true;
 				break;
 			case 'movePaddle':
+				if (data.player !== connection.playerNumber) {
+					console.error('Player trying to move paddle that is not theirs');
+					return;
+				}
 				if (data.player === 1) {
-					gameState.paddle1.y = data.y;
+					gameState.paddle1.y = data.y; //Update left paddle position
 				} else {
-					gameState.paddle2.y = data.y;
+					gameState.paddle2.y = data.y; //Update right paddle position
 				}
 				break;
 			case 'playerDisconnect':
 				console.log(data.message);
 				handleDisconnect(connection);
 				break;
-
 		}
-
 		broadcastGameState(gameState);
 	});
 
@@ -92,6 +97,32 @@ function broadcastGameState(gameState) {
 			}));
 		}
 	});
+}
+
+function updateServingPlayer() {
+	gameState.servingPlayer = gameState.servingPlayer === 1 ? 2 : 1;
+}
+
+function updateScore(player) {
+	if (player === 1) {
+		gameState.score1++;
+		gameState.gameStarted = false;
+	} else {
+		gameState.score2++;
+		gameState.gameStarted = false;
+	}
+	if (gameState.score1 >= 5) {
+		broadcastGameState(gameState);
+		broadcastGameOver(player);
+	} else if (gameState.score2 >= 5) {
+		broadcastGameState(gameState);
+		broadcastGameOver(player);
+	}
+	else
+	{
+		updateServingPlayer();
+		broadcastGameState(gameState);
+	}
 }
 
 fastify.listen(3000, (err, address) => {
