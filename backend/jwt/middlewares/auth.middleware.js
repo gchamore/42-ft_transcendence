@@ -1,5 +1,6 @@
 const authService = require('../services/auth.service');
 
+// Middleware pour vérifier si l'utilisateur est authentifié
 async function authMiddleware(request, reply) {
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {

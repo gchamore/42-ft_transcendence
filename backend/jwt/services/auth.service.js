@@ -7,6 +7,8 @@ const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days
 
 class AuthService {
+
+    // Générer un token d'accès et un token de rafraîchissement
     async generateTokens(userId) {
         const accessToken = jwt.sign({ userId }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
         const refreshToken = jwt.sign({ userId }, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
@@ -17,6 +19,7 @@ class AuthService {
         return { accessToken, refreshToken };
     }
 
+    // Valider un token
     async validateToken(token, type = 'access') {
         try {
             // Vérifier d'abord si le token est blacklisté
@@ -34,6 +37,7 @@ class AuthService {
         }
     }
 
+    // Rafraîchir le token d'accès
     async refreshAccessToken(refreshToken) {
         const decoded = await this.validateToken(refreshToken, 'refresh');
         if (!decoded) return null;
@@ -42,6 +46,7 @@ class AuthService {
         return accessToken;
     }
 
+    // Révoquer les tokens d'un utilisateur
     async revokeTokens(userId) {
         // Récupérer et blacklister les tokens s’ils existent en Redis
         const accessToken = await redis.get(`access_${userId}`);
@@ -62,6 +67,7 @@ class AuthService {
         return true;
     }
 
+    // Blacklister un token
     async blacklistToken(token) {
         const decoded = jwt.decode(token);
         if (decoded) {
