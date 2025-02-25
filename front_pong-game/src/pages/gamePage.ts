@@ -38,11 +38,15 @@ export class Game {
 		//listen for gameState updates
 		this.socket.onmessage = (message) => {
 			const data = JSON.parse(message.data);
+			console.log('Received message : ', data);
 			if (data.type === 'gameState') {
 				if (data.playerNumber) {
 					this.playerNumber = data.playerNumber;
 				}
 				this.updateGameState(data.gameState);
+			}
+			else if (data.type === 'gameOver') {
+				this.handleGameOver(data);
 			}
 		};
 		this.socket.onerror = (error) => {
@@ -52,6 +56,13 @@ export class Game {
 		this.socket.onclose = () => {
 			console.log('Disconnected from server');
 		};
+	}
+
+	private handleGameOver(data: any) {
+		this.gameStarted = false;
+		this.scoreBoard.updateScore({ player1Score: data.score1, player2Score: data.score2 });
+		// this.uiManager.drawGameOverMessage(performance.now(), data.winner); 
+		this.stopGame();
 	}
 
 	private updateGameState(gameState: GameState) {
@@ -79,6 +90,7 @@ export class Game {
 		this.paddle1 = new Paddle(10, this.canvas.height / 2, 10, settings.paddleLength, settings.paddleSpeed);
 		this.paddle2 = new Paddle(780, this.canvas.height / 2, 10, settings.paddleLength, settings.paddleSpeed);
 		this.controls = new GameControls(this.paddle1, this.paddle2, this.playerNumber, this.socket);
+		
 
 		this.servingPlayer = Math.random() < 0.5 ? 1 : 2;
 		this.scoreBoard = new ScoreBoard();

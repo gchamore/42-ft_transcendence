@@ -4,18 +4,20 @@
   "description": "",
   "main": "index.js",
   "type": "module",
- "scripts": {
-   "build": "tsc && mkdir -p ../back_pong-game/public/dist && cp public/index.html ../back_pong-game/public/ && cp -r dist/* ../back_pong-game/public/dist/",
-   "start": "tsc && lite-server",
-   "dev": "tsc --watch && lite-server",
-   "clean": "rm -rf dist && rm -rf ../back_pong-game/public"
-},
+  "scripts": {
+    "build": "tsc && mkdir -p ../back_pong-game/public/dist && cp public/index.html ../back_pong-game/public/ && cp -r dist/* ../back_pong-game/public/dist/",
+    "clean": "rm -rf dist && rm -rf ../back_pong-game/public",
+    "dev": "tsc -w",
+    "start": "npm run build && cd ../back_pong-game && npm start",
+    "rebuild": "npm run clean && npm run start"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^22.13.4",
     "lite-server": "^2.6.1",
+    "nodemon": "^3.1.9",
     "typescript": "^5.7.3"
   },
   "dependencies": {

@@ -27,6 +27,10 @@ export class InputManager {
 			if (!this.isGameStarted()) return;
 			this.gameControls.handleKeyUp(event);
 		});
+
+		window.addEventListener('beforeunload', () => {
+			this.gameControls.handleDisconnect();
+		});
 	}
 
 	sendStartGame() {

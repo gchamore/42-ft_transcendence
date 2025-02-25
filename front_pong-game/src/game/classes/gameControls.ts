@@ -62,17 +62,27 @@ export class GameControls {
 		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 			if (this.playerNumber === 1) {
 				this.socket.send(JSON.stringify({
-					type: 'paddleMoves',
+					type: 'movePaddle',
 					player: 1,
 					y: this.paddle1.y,
 				}));
 			} else if (this.playerNumber === 2) {
 				this.socket.send(JSON.stringify({
-					type: 'paddleMoves',
+					type: 'movePaddle',
 					player: 2,
 					y: this.paddle2.y
 				}));
 			}
+		}
+	}
+
+	handleDisconnect(): void {
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+			this.socket.send(JSON.stringify({
+				type: 'playerDisconnect',
+				player: this.playerNumber,
+				message: `Player ${this.playerNumber} disconnected`
+			}));
 		}
 	}
 }

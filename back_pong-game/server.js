@@ -1,13 +1,15 @@
-const Fastify = require('fastify');
+import Fastify from 'fastify';
+import fastifyWebSocket from '@fastify/websocket';
+import fastifyStatic from '@fastify/static';
+import { join } from 'path';
+import WebSocket from 'ws';
+
 const fastify = Fastify({logger: true});
-const fastifyWebSocket = require('@fastify/websocket');
-const path = require('path');
-const WebSocket = require('ws');
 
 fastify.register(fastifyWebSocket);
 
-fastify.register(require('@fastify/static'), {
-	root: path.join(__dirname, 'public'),
+fastify.register(fastifyStatic, {
+	root: join(process.cwd(), 'public'),
 	prefix: '/',
 	list: true,
 	index: 'index.html'
@@ -28,9 +30,22 @@ let players = [];
 fastify.get('/game', { websocket: true }, (connection, req) => {
 	console.log('A player has connected');
 
+	// Limit players to 2
+	if (players.length >= 2) {
+		console.log('Game is full');
+		connection.socket.close();
+		return;
+	}
+
 	const playerNumber = players.length + 1;
-	connection.playerNumber = playerNumber;
-	players.push(connection);
+	connection.socket.playerNumber = playerNumber;
+	players.push(connection.socket);
+
+	// Send welcome message first
+	safeSend(connection.socket, {
+		type: 'connected',
+		message: `Welcome Player ${playerNumber}!`
+	});
 
 	safeSend(connection.socket, {
 		type: 'gameState',
@@ -38,7 +53,7 @@ fastify.get('/game', { websocket: true }, (connection, req) => {
 		playerNumber: playerNumber
 	});
 
-	connection.on('message', message => {
+	connection.socket.on('message', message => {
 		const data = JSON.parse(message);
 		switch (data.type) {
 			case 'startGame':
@@ -63,7 +78,7 @@ fastify.get('/game', { websocket: true }, (connection, req) => {
 		broadcastGameState(gameState);
 	});
 
-	connection.on('close', () => {
+	connection.socket.on('close', () => {
 		console.log('A player has disconnected');
 		handleDisconnect(connection);
 	});
