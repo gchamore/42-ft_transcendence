@@ -22,8 +22,10 @@ export class Game {
 	private gameStarted: boolean = false;
 	private animationFrameId: number | null = null;
 	private playerNumber: number = 0;
+	private gameId: string;
 
-	constructor() {
+	constructor(gameId: string = 'default') {
+		this.gameId = gameId;
 		this.connectWebSocket();
 		this.initializeCanvas();
 		this.initializeComponents();
@@ -31,7 +33,7 @@ export class Game {
 	}
 
 	private connectWebSocket() {
-		this.socket = new WebSocket('ws://localhost:3000/game');
+		this.socket = new WebSocket('ws://localhost:3000/game/' + this.gameId);
 		this.socket.onopen = () => {
 			console.log('Connected to server');
 		};
@@ -39,37 +41,42 @@ export class Game {
 		this.socket.onmessage = (message) => {
 			const data = JSON.parse(message.data);
 			console.log('Received message : ', data);
-			if (data.type === 'gameState') {
-				if (data.playerNumber) {
-					this.playerNumber = data.playerNumber;
-				}
-				this.updateGameState(data.gameState);
-			}
-			else if (data.type === 'gameOver') {
-				this.handleGameOver(data);
-			}
-		};
-		this.socket.onerror = (error) => {
-			console.error('WebSocket error:', error);
-		};
+			switch (data.type) {
+				case 'gameState':
+					if (data.playerNumber) {
+						this.playerNumber = data.playerNumber;
+					}
+					this.updateGameState(data.gameState);
+					break;
+				case 'gameOver':
+					this.handleGameOver(data);
+					break;
+				case 'connected':
+					console.log(data.message);
+					break;
+				case 'error':
+					console.error('Game error:', data.message);
+					this.uiManager.drawErrorMessage(data.message);
+					break;
+			};
+			this.socket.onerror = (error) => {
+				console.error('WebSocket error:', error);
+			};
 
-		this.socket.onclose = () => {
-			console.log('Disconnected from server');
-		};
+			this.socket.onclose = () => {
+				console.log('Disconnected from server');
+			};
+		}
 	}
-
 	private handleGameOver(data: any) {
 		this.gameStarted = false;
 		this.scoreBoard.updateScore({ player1Score: data.score1, player2Score: data.score2 });
-		// this.uiManager.drawGameOverMessage(performance.now(), data.winner); 
+		// this.uiManager.drawGameOverMessage(performance.now(), data.winner);
 		this.stopGame();
 	}
 
 	private updateGameState(gameState: GameState) {
 		this.gameStarted = gameState.gameStarted;
-		if (gameState.playerNumber) {
-			this.playerNumber = gameState.playerNumber;
-		}
 		this.servingPlayer = gameState.servingPlayer;
 		this.paddle1.updatePosition(gameState.paddle1);
 		this.paddle2.updatePosition(gameState.paddle2);
@@ -116,7 +123,7 @@ export class Game {
 		this.context.closePath();
 
 		if (!this.gameStarted) {
-			this.uiManager.drawStartMessage(timestamp, this.gameStarted, this.playerNumber, this.servingPlayer);
+			this.uiManager.drawStartMessage(timestamp, this.gameStarted, this.playerNumber, this.servingPlayer, );
 		}
 
 		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));

@@ -4,16 +4,25 @@ import fastifyStatic from '@fastify/static';
 import { join } from 'path';
 import WebSocket from 'ws';
 
-const fastify = Fastify({logger: true});
+const fastify = Fastify({ logger: true });
 
+// Register fastify websocket plugin
 fastify.register(fastifyWebSocket);
 
+// Register fastify static plugin to serve static files
 fastify.register(fastifyStatic, {
 	root: join(process.cwd(), 'public'),
 	prefix: '/',
 	list: true,
 	index: 'index.html'
 });
+
+// Register the Websocket route inside an encapsulated plugin
+fastify.register(async function (fastify) {
+	fastify.get('/game', { websocket: true }, (socket, req) => {
+		handleNewPlayer(socket);
+	});
+})
 
 let gameState = {
 	ball: { x: 400, y: 300, radius: 10, xSpeed: 4, ySpeed: 4 },
@@ -27,40 +36,77 @@ let gameState = {
 
 let players = [];
 
-fastify.get('/game', { websocket: true }, (connection, req) => {
-	console.log('A player has connected');
+function handleNewPlayer(socket) {
+	console.log('WebSocket connection state:', {
+		readyState: socket.readyState,
+		isOpen: socket.readyState === WebSocket.OPEN,
+		stateMap: {
+			[WebSocket.CONNECTING]: 'CONNECTING',
+			[WebSocket.OPEN]: 'OPEN',
+			[WebSocket.CLOSING]: 'CLOSING',
+			[WebSocket.CLOSED]: 'CLOSED'
+		}
+	});
+
+	// Verify socket is open
+	if (socket.readyState !== WebSocket.OPEN) {
+		console.error('Socket not in OPEN state');
+		return;
+	}
 
 	// Limit players to 2
 	if (players.length >= 2) {
 		console.log('Game is full');
-		connection.socket.close();
+		socket.close();
 		return;
 	}
 
 	const playerNumber = players.length + 1;
-	connection.socket.playerNumber = playerNumber;
-	players.push(connection.socket);
+	socket.playerNumber = playerNumber;
+	players.push(socket);
+
+	console.log(`Player ${playerNumber} has connected. Total players: ${players.length}`);
 
 	// Send welcome message first
-	safeSend(connection.socket, {
+	safeSend(socket, {
 		type: 'connected',
 		message: `Welcome Player ${playerNumber}!`
 	});
 
-	safeSend(connection.socket, {
+	safeSend(socket, {
 		type: 'gameState',
 		data: gameState,
 		playerNumber: playerNumber
 	});
 
-	connection.socket.on('message', message => {
+	socket.on('message', message => {
 		const data = JSON.parse(message);
 		switch (data.type) {
 			case 'startGame':
-				gameState.gameStarted = true;
+				if (players.length === 2) {
+					gameState.gameStarted = true;
+				} else {
+					safeSend(socket, {
+						type: 'error',
+						message: 'Waiting for another player to join'
+					});
+					return;
+				}
 				break;
 			case 'movePaddle':
-				if (data.player !== connection.playerNumber) {
+				if (!gameState.gameStarted) {
+					safeSend(socket, {
+						type: 'error',
+						message: 'Cannot move paddle Game has not started'
+					});
+					console.log('Cannot move paddle Game has not started');
+					return;
+				}
+				if (data.player !== playerNumber) {
+					safeSend(socket, {
+						type: 'error',
+						message: 'Player trying to move paddle that is not theirs'
+					});
 					console.error('Player trying to move paddle that is not theirs');
 					return;
 				}
@@ -72,17 +118,17 @@ fastify.get('/game', { websocket: true }, (connection, req) => {
 				break;
 			case 'playerDisconnect':
 				console.log(data.message);
-				handleDisconnect(connection);
+				handleDisconnect(socket);
 				break;
 		}
 		broadcastGameState(gameState);
 	});
 
-	connection.socket.on('close', () => {
+	socket.on('close', () => {
 		console.log('A player has disconnected');
-		handleDisconnect(connection);
+		handleDisconnect(socket);
 	});
-});
+}
 
 fastify.get('/', (req, reply) => {
 	reply.sendFile('index.html');
@@ -90,39 +136,62 @@ fastify.get('/', (req, reply) => {
 
 //prevent local crash with failed connection
 function safeSend(socket, message) {
+	console.log('Attempting to send message:', {
+		socketState: socket.readyState,
+		stateAsString: socket.readyState === WebSocket.OPEN ? 'OPEN' : 'NOT_OPEN',
+		messageType: message.type
+	});
 	if (socket.readyState === WebSocket.OPEN) {
 		try {
-			socket.send(JSON.stringify(message));
+			const jsonMessage = JSON.stringify(message);
+			socket.send(jsonMessage);
+			console.log('Message sent:', jsonMessage);
 		} catch (e) {
 			console.error('Error sending message:', e);
 		}
 	}
+	else {
+		console.warn('Cannot send message, socket state:', {
+			current: socket.readyState,
+			states: {
+				CONNECTING: WebSocket.CONNECTING,
+				OPEN: WebSocket.OPEN,
+				CLOSING: WebSocket.CLOSING,
+				CLOSED: WebSocket.CLOSED
+			},
+			expectedState: `OPEN (${WebSocket.OPEN})`
+		});
+	}
 }
 
 function handleDisconnect(connection) {
-	
+
 	const playerIndex = players.indexOf(connection);
-	if (playerIndex !== -1) {
-		players.splice(playerIndex, 1);
+	if (playerIndex === -1) {
+		console.error('Player not found');
+		return;
 	}
+	const disconnectedPlayer = connection.playerNumber;
+	players.splice(playerIndex, 1);
 
-	const winner = players[0];
+	console.log(`Player ${disconnectedPlayerNumber} disconnected. Remaining players: ${players.length}`);
 
-	const gameOverMessage = {
-		type: 'gameOver',
-		winner: winner === players[0] ? 'Player 1' : 'Player 2',
-		score1: gameState.score1,
-		score2: gameState.score2
-	};
-
-	players.forEach((player) => {
-		safeSend(player, gameOverMessage);
-	});
-
-	gameState.gameStarted = false;
-	gameState.score1 = 0;
-	gameState.score2 = 0;
-	broadcastGameState(gameState);
+	if (players.length === 0) {
+		console.log('No players left. Resetting game state');
+	} else if (players.length === 1) {
+		const remainingPlayer = players[0];
+		const gameOverMessage = {
+			type: 'gameOver',
+			winner: remainingPlayer.playerNumber === 1 ? 'Player 1' : 'Player 2',
+            score1: gameState.score1,
+            score2: gameState.score2,
+            reason: 'Opponent disconnected'
+		};
+		safeSend(remainingPlayer, gameOverMessage);
+		gameState.gameStarted = false;
+		gameState.score1 = 0;
+		gameState.score2 = 0;
+	}
 }
 
 function broadcastGameState(gameState) {
@@ -153,14 +222,13 @@ function updateScore(player) {
 		broadcastGameState(gameState);
 		broadcastGameOver(player);
 	}
-	else
-	{
+	else {
 		updateServingPlayer();
 		broadcastGameState(gameState);
 	}
 }
 
-fastify.listen({port: 3000,	host: '0.0.0.0'}, (err, address) => {
+fastify.listen({ port: 3000 }, (err, address) => {
 	if (err) {
 		console.error(err);
 		process.exit(1);

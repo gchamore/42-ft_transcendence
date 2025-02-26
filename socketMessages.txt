@@ -1,0 +1,18 @@
+// Send this message
+{
+    "type": "startGame"
+}
+
+// Send these messages to test paddle movement
+{
+    "type": "movePaddle",
+    "player": 1,
+    "y": 300
+}
+
+// Send this to test disconnect handling
+{
+    "type": "playerDisconnect",
+    "player": 1,
+    "message": "Player 1 disconnected"
+}
