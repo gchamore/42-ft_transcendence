@@ -5,7 +5,7 @@ import { GameControls } from '../game/classes/gameControls.js';
 import { InputManager } from '../game/managers/inputManager.js';
 import { UIManager } from '../game/managers/uiManager.js';
 import { SettingsService } from '../services/settingsServices.js';
-import { GameState } from '../game/classes/gameState.js';
+import { GameState } from '@shared/types/gameState';
 
 export class Game {
 	private socket!: WebSocket;
@@ -78,9 +78,11 @@ export class Game {
 	private updateGameState(gameState: GameState) {
 		this.gameStarted = gameState.gameStarted;
 		this.servingPlayer = gameState.servingPlayer;
+
 		this.paddle1.updatePosition(gameState.paddle1);
 		this.paddle2.updatePosition(gameState.paddle2);
 		this.ball.updatePosition(gameState.ball);
+
 		this.scoreBoard.updateScore(gameState.score);
 		this.uiManager.drawStartMessage(performance.now(), this.gameStarted, this.playerNumber, this.servingPlayer);
 	}
@@ -92,16 +94,15 @@ export class Game {
 
 	private initializeComponents() {
 		const settings = SettingsService.loadSettings();
-		this.ball = new Ball(400, 300, 10, settings.ballSpeed);
 
+		this.ball = new Ball(400, 300, 10, settings.ballSpeed);
 		this.paddle1 = new Paddle(10, this.canvas.height / 2, 10, settings.paddleLength, settings.paddleSpeed);
 		this.paddle2 = new Paddle(780, this.canvas.height / 2, 10, settings.paddleLength, settings.paddleSpeed);
-		this.controls = new GameControls(this.paddle1, this.paddle2, this.playerNumber, this.socket);
-		
 
-		this.servingPlayer = Math.random() < 0.5 ? 1 : 2;
 		this.scoreBoard = new ScoreBoard();
 		this.uiManager = new UIManager(this.context, this.canvas);
+
+		this.controls = new GameControls(this.paddle1, this.paddle2, this.playerNumber, this.socket);
 		this.inputManager = new InputManager(this.controls, () => this.gameStarted, this.socket);
 	}
 
@@ -110,8 +111,7 @@ export class Game {
 	private gameLoop(timestamp: number): void {
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-		// this.updatePaddles();
-
+		// draw game elements
 		this.context.fillStyle = "white";
 		this.context.fillRect(this.paddle1.x, this.paddle1.y, this.paddle1.width, this.paddle1.height);
 		this.context.fillRect(this.paddle2.x, this.paddle2.y, this.paddle2.width, this.paddle2.height);
@@ -122,9 +122,7 @@ export class Game {
 		this.context.fill();
 		this.context.closePath();
 
-		if (!this.gameStarted) {
-			this.uiManager.drawStartMessage(timestamp, this.gameStarted, this.playerNumber, this.servingPlayer, );
-		}
+		this.uiManager.drawStartMessage(timestamp, this.gameStarted, this.playerNumber, this.servingPlayer, );
 
 		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
 	}
