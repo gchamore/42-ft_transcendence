@@ -1,43 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Panel Switcher</title>
-    <link rel="stylesheet" href="src/style.css">
+  <meta charset="UTF-8">
+  <title>Our spectacular website!</title>
 </head>
 <body>
+  <div id="home">
 
-    <!-- Buttons -->
-    <div class="buttonContainer">
-        <button id="loginBtn" class="btn logged-off active selected" onclick="switchPanel('login')">LOGIN</button>
-        <button id="registerBtn" class="btn logged-off active" onclick="switchPanel('register')">REGISTER</button>
-        <button id="profileBtn" class="btn logged-in" onclick="switchPanel('profile')">PROFILE</button>
-        <button id="logoutBtn" class="btn logged-in" onclick="switchPanel('logout')">LOGOUT</button>
+    <div id="homePanel">
+      <button id="menuBtn" src="../assets/avatar.png"></button>
+      <button id="friendsBtn" src="../assets/friends.png"></button>
+    </div>
+
+    <canvas id="game"></canvas>
+
+  </div>
+
+
+  <div id="menu">
+
+    <div id="logged-in">
+      <img id="menuAvatar" src="../assets/avatar.png">
+      <h1>Username:</h1>
+      <input id="logged-inUsername" value="Username here...">
+    </div>
+
+    <div id="logged-off">
+      <h1>Username:</h1>
+      <input id="logged-offUsername">
+      <h1>Password:</h1>
+      <input id="password">
+    </div>
+    
+    <button id="menuBtn1">Button 1</button>
+    <button id="menuBtn2">Button 2</button>
+
+  </div>
+
+
+  <div id="friends">
+
+    <h1>Search a user:</h1>
+    <input id="user" value="Someguy's username...">
+    <p id="friendsError">Someguy's not found</p>
+
+    <div id="found">
+      <img id="friendsAvatar" src="../assets/avatar.png">
+      <div id="status">
+        <img id="statusImg" src="../assets/connected.png"><p>Connected</p>
       </div>
 
-    <!-- Panels -->
-    <div id="loginPanel" class="panel active">
-      <input id="loginUsername" placeholder="Username">
-      <input id="loginPassword" placeholder="Password">
-      <button onclick="login()">LOGIN</button>
+      <h2 id="stat1">Stat1: <span id="statSpan1">Value1</span></h2>
+      <h2 id="stat2">Stat2: <span id="statSpan2">Value2</span></h2>
+      <h2 id="stat3">Stat3: <span id="statSpan3">Value3</span></h2>
     </div>
 
-    <div id="registerPanel" class="panel">
-      <input id="registerUsername" placeholder="Username">
-      <input id="registerPassword" placeholder="Password">
-      <button onclick="register()">REGISTER</button>
+    <button id="friendsBtn1">Button 1</button>
+    <button id="friendsBtn2">Button 2</button>
+    <button id="friendsBtn3">Button 3</button>
+  
+  </div>
+
+
+  <div id="settings">
+
+    <div id="settingsPanel">
+      <button id="go-backBtn">Go-back</button>
+      <button id="accountBtn">Account</button>
+      <button id="statsBtn">Stats</button>
+      <button id="confidentialityBtn">Confidentiality</button>
+    </div>
+    
+    <div id="settingsContent">
     </div>
 
-    <div id="profilePanel" class="panel logged-in">
-      <label id="username"><label>
+    <button id="creditsBtn">Credits</button>
+    <div id="credits">
+      <button id="Alexandre" img="../assets/aautin.png"></button>
+      <button id="Greg" img="../assets/gchamore.png"></button>
+      <button id="Antonin" img="../assets/anferre.png"></button>
     </div>
 
-    <div id="logoutPanel" class="panel logged-in">
-      <button onclick="logout()">CONFIRM</button>
-    </div>
+  </div>
 
-    <!-- Javascripts -->
-    <script src="dist/switch.js"></script>
-    <script src="dist/user.js"></script>
 </body>
 </html>
