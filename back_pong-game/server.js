@@ -3,7 +3,7 @@ import fastifyWebSocket from '@fastify/websocket';
 import fastifyStatic from '@fastify/static';
 import { join } from 'path';
 import WebSocket from 'ws';
-import { GameInstance } from './src/classes/gameInstance';
+import { GameInstance } from './src/classes/gameInstance.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -71,8 +71,15 @@ function handleNewPlayer(socket, game) {
 		return;
 	}
 
+	socket.GameInstance = game;
+
 	const playerNumber = socket.playerNumber;
 	console.log(`Player ${playerNumber} joined game ${game.gameId}`);
+
+	safeSend(socket, {
+		type: 'playerNumber',
+		playerNumber: playerNumber
+	});
 
 	// Send welcome message first
 	safeSend(socket, {
@@ -88,57 +95,81 @@ function handleNewPlayer(socket, game) {
 		playerNumber: playerNumber
 	});
 
+	safeSend(socket, {
+		type: 'settingsUpdate',
+		data: game.settings
+	});
+
 	socket.on('message', message => {
 		const data = JSON.parse(message);
 		handleGameMessage(socket, game, data);
 	});
 
 	socket.on('close', () => {
-		console.log(`Player ${playerNumber} disconnected from game ${game.gameId}`);
-		handleDisconnect(socket, game);
+		console.log(`Player ${socket.playerNumber} disconnected`);
+		if (socket.gameInstance) {
+			handleDisconnect(socket, socket.gameInstance);
+		}
 	});
 }
 
-	function handleGameMessage(socket, game, data) {
-		const playerNumber = socket.playerNumber;
-		switch (data.type) {
-			case 'startGame':
-				if (game.players.length === 2) {
-					game.gameState.gameStarted = true;
-				} else {
-					safeSend(socket, {
-						type: 'error',
-						message: 'Waiting for another player to join'
+function handleGameMessage(socket, game, data) {
+	const playerNumber = socket.playerNumber;
+	switch (data.type) {
+		case 'startGame':
+			if (game.players.length === 2) {
+				game.gameState.gameStarted = true;
+			} else {
+				safeSend(socket, {
+					type: 'error',
+					message: 'Waiting for another player to join'
+				});
+				return;
+			}
+			break;
+		case 'movePaddle':
+			if (!game.gameState.gameStarted) {
+				safeSend(socket, {
+					type: 'error',
+					message: 'Cannot move paddle Game has not started'
+				});
+				console.log('Cannot move paddle Game has not started');
+				return;
+			}
+			if (data.player !== playerNumber) {
+				safeSend(socket, {
+					type: 'error',
+					message: 'Player trying to move paddle that is not theirs'
+				});
+				console.error('Player trying to move paddle that is not theirs');
+				return;
+			}
+			game.updatePaddlePosition(data.player, data.y);
+			break;
+		case 'playerDisconnect':
+			console.log(data.message);
+			handleDisconnect(socket);
+			break;
+		case 'updateSettings': //client to server
+			if (playerNumber === 1) {
+				game.updateSettings(data.settings);
+				game.players.forEach((player) => {
+					safeSend(player, {
+						type: 'settingsUpdate', //server to client
+						settings: data.settings
 					});
-					return;
-				}
-				break;
-			case 'movePaddle':
-				if (!game.gameState.gameStarted) {
-					safeSend(socket, {
-						type: 'error',
-						message: 'Cannot move paddle Game has not started'
-					});
-					console.log('Cannot move paddle Game has not started');
-					return;
-				}
-				if (data.player !== playerNumber) {
-					safeSend(socket, {
-						type: 'error',
-						message: 'Player trying to move paddle that is not theirs'
-					});
-					console.error('Player trying to move paddle that is not theirs');
-					return;
-				}
-				game.updatePaddlePosition(data.player, data.y);
-				break;
-			case 'playerDisconnect':
-				console.log(data.message);
-				handleDisconnect(socket);
-				break;
-		}
-		broadcastGameState(game);
+				});
+			}
+			else {
+				safeSend(socket, {
+					type: 'error',
+					message: 'Only player 1 can update settings'
+				});
+			}
+			break;
 	}
+	broadcastGameState(game);
+}
 
 
 
@@ -168,20 +199,28 @@ function safeSend(socket, message) {
 
 function handleDisconnect(socket, game) {
 
-	game.removePlayer(socket);
+	if (!game) {
+		console.error('Game not found');
+		return;
+	}
+	try {
+		game.removePlayer(socket);
 
-	if (game.players.length === 0) {
-		// Remove empty game
-		games.delete(game.gameId);
-		console.log(`Game ${game.gameId} removed`);
-	} else {
-		// Notify remaining player
-		const remainingPlayer = game.players[0];
-		safeSend(remainingPlayer, {
-			type: 'gameOver',
-			reason: 'Opponent disconnected'
-		});
-		broadcastGameState(game);
+		if (game.players.length === 0) {
+			// Remove empty game
+			games.delete(game.gameId);
+			console.log(`Game ${game.gameId} removed`);
+		} else {
+			// Notify remaining player
+			const remainingPlayer = game.players[0];
+			safeSend(remainingPlayer, {
+				type: 'gameOver',
+				reason: 'Opponent disconnected'
+			});
+			broadcastGameState(game);
+		}
+	} catch (e) {
+		console.error('Error handling disconnect:', e);
 	}
 }
 

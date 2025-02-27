@@ -4,7 +4,6 @@ import { ScoreBoard } from '../game/classes/scoreBoard.js';
 import { GameControls } from '../game/classes/gameControls.js';
 import { InputManager } from '../game/managers/inputManager.js';
 import { UIManager } from '../game/managers/uiManager.js';
-import { SettingsService } from '../services/settingsServices.js';
 import { GameState } from '@shared/types/gameState';
 
 export class Game {
@@ -54,6 +53,9 @@ export class Game {
 				case 'connected':
 					console.log(data.message);
 					break;
+				case 'settingsUpdate':
+					this.updateSettings(data.settings);
+					break;
 				case 'error':
 					console.error('Game error:', data.message);
 					this.uiManager.drawErrorMessage(data.message);
@@ -93,11 +95,10 @@ export class Game {
 	}
 
 	private initializeComponents() {
-		const settings = SettingsService.loadSettings();
 
-		this.ball = new Ball(400, 300, 10, settings.ballSpeed);
-		this.paddle1 = new Paddle(10, this.canvas.height / 2, 10, settings.paddleLength, settings.paddleSpeed);
-		this.paddle2 = new Paddle(780, this.canvas.height / 2, 10, settings.paddleLength, settings.paddleSpeed);
+		this.ball = new Ball(400, 300, 10, 4);
+		this.paddle1 = new Paddle(10, this.canvas.height / 2, 10, 100, 4);
+		this.paddle2 = new Paddle(780, this.canvas.height / 2, 10, 100, 4);
 
 		this.scoreBoard = new ScoreBoard();
 		this.uiManager = new UIManager(this.context, this.canvas);
@@ -137,5 +138,14 @@ export class Game {
 			this.animationFrameId = null;
 		}
 		this.inputManager.removeEventListeners();
+	}
+
+	private updateSettings(settings: any) {
+		this.ball.speedX = settings.ballSpeed;
+		this.ball.speedY = settings.ballSpeed;
+		this.paddle1.speed = settings.paddleSpeed;
+		this.paddle2.speed = settings.paddleSpeed;
+		this.paddle1.height = settings.paddleLength;
+		this.paddle2.height = settings.paddleLength;
 	}
 }

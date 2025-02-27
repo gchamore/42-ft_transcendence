@@ -1,10 +1,17 @@
-import { createDefaultGameState } from '../../shared/types/gameState.js';
+import { createDefaultGameState } from '../../public/dist/shared/types/gameState.js';
 
 export class GameInstance {
 	constructor(gameId) {
 		this.gameId = gameId;
 		this.players = [];
 		this.gameState = createDefaultGameState();
+		this.settings = {
+			ballSpeed: 4,
+			paddleSpeed: 4,
+			paddleLength: 100,
+			mapType: 'default',
+			powerUps: false,
+		};
 	}
 
 	addPlayer(socket) {
@@ -59,6 +66,22 @@ export class GameInstance {
 
 	getState() {
 		return this.gameState;
+	}
+
+	updateSettings(newSettings) {
+		// Update settings that are passed in and keep the rest the same
+		this.settings = {
+            ...this.settings,
+            ...newSettings
+        };
+		this.gameState.ball.speedX = parseInt(newSettings.ballSpeed);
+		this.gameState.ball.speedY = parseInt(newSettings.ballSpeed);
+		this.gameState.paddle1.speed = parseInt(newSettings.paddleSpeed);
+		this.gameState.paddle2.speed = parseInt(newSettings.paddleSpeed);
+		this.gameState.paddle1.height = parseInt(newSettings.paddleLength);
+		this.gameState.paddle2.height = parseInt(newSettings.paddleLength);
+
+		return this.settings;
 	}
 	
 }
