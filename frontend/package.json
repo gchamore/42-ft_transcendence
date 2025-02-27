@@ -1,14 +1,13 @@
 {
   "name": "front",
-
   "dependencies": {
     "live-server": "^1.2.2",
     "typescript": "^5.7.3"
   },
-
   "scripts": {
-    "tsc": "npx tsc --watch --preserveWatchOutput",
-    "live-server": "node start-live-server.js",
-    "stop": "pkill -f live-server && pkill -f tsc"
+    "tsc": "npx tsc --watch --preserveWatchOutput &",
+    "live-server": "npx live-server --port=5500 --open=src &",
+    "start": "npm run live-server && npm run tsc",
+    "stop": "ps aux | grep -E 'tsc|live-server' | grep -v 'grep' | awk '{print $2}' | xargs kill"
   }
 }
