@@ -60,11 +60,10 @@ fastify.addHook('preHandler', (request, reply, done) => {
         '/register',
         '/refresh',
         '/isUser',
-        '/unregister',
         '/verify_token',
         '/getUserId',
-        '/getUserProfile',  // Si vous avez cette route
-        '/leaderboard'      // Rendre le leaderboard public
+        '/getUserProfile',
+        '/leaderboard'
     ];
 
     // Vérifier si la route actuelle est publique

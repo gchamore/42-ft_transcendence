@@ -181,26 +181,35 @@ async function routes(fastify, options) {
     fastify.post("/login", async (request, reply) => {
         const { username, password } = request.body;
         fastify.log.info({ username }, "Tentative de connexion");
-
+    
         const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
         if (!user || !(await bcrypt.compare(password, user.password))) {
             fastify.log.warn(`Échec de connexion pour: ${username}`);
             return reply.code(401).send({ error: "Invalid credentials" });
         }
-
+    
         const { accessToken, refreshToken } = await authService.generateTokens(user.id);
-
-        reply.setCookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
-        });
-
-        fastify.log.info(`Connexion réussie pour: ${username}`);
-        return { accessToken };
+    
+        // Définir les cookies HTTP-Only
+        reply
+            .setCookie('accessToken', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'Strict',
+                path: '/',
+                maxAge: 15 * 60 // 15 min en SECONDES (900 sec)
+            })
+            .setCookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'Strict',
+                path: '/',
+                maxAge: 7 * 24 * 60 * 60 // 7 jours en SECONDES (604800 sec)
+            });
+    
+        return { success: true, message: "Login successful" };
     });
+    
 
     /*** 📌 Route: REFRESH TOKEN ***/
     fastify.post("/refresh", async (request, reply) => {
@@ -231,12 +240,12 @@ async function routes(fastify, options) {
 
     /*** 📌 Route: LOGOUT ***/
     fastify.post("/logout", async (request, reply) => {
-        const authHeader = request.headers.authorization;
-        if (!authHeader?.startsWith('Bearer ')) {
+        const token = request.cookies.accessToken;
+        
+        if (!token) {
             return reply.code(401).send({ error: 'No token provided' });
         }
 
-        const token = authHeader.split(' ')[1];
         // Blacklist du token reçu
         await authService.blacklistToken(token);
 
@@ -247,12 +256,20 @@ async function routes(fastify, options) {
             await authService.revokeTokens(decoded.userId);
         }
 
-        reply.clearCookie('refreshToken', {
-            path: '/',
-            secure: process.env.NODE_ENV === 'production',
-            httpOnly: true,
-            sameSite: 'strict'
-        });
+        // Supprimer les cookies
+        reply
+            .clearCookie('accessToken', {
+                path: '/',
+                secure: process.env.NODE_ENV === 'production',
+                httpOnly: true,
+                sameSite: 'strict'
+            })
+            .clearCookie('refreshToken', {
+                path: '/',
+                secure: process.env.NODE_ENV === 'production',
+                httpOnly: true,
+                sameSite: 'strict'
+            });
 
         return { success: true, message: "Logged out successfully" };
     });
@@ -271,13 +288,12 @@ async function routes(fastify, options) {
 
     /*** 📌 Route: VERIFY TOKEN ***/
     fastify.post("/verify_token", async (request, reply) => {
-        const authHeader = request.headers.authorization;
+        const token = request.cookies.accessToken;
         
-        if (!authHeader?.startsWith('Bearer ')) {
+        if (!token) {
             return { valid: false };
         }
 
-        const token = authHeader.split(' ')[1];
         const decoded = await authService.validateToken(token);
         
         fastify.log.debug({

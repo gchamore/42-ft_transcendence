@@ -82,15 +82,15 @@ fi
 # Test de login pour player1
 echo -e "\n 🔑 Testing login..."
 LOGIN_RESPONSE_1=$(curl -s -X POST "$API_URL/login" \
+  -c cookies_p1.txt \
   -H "Content-Type: application/json" \
   -d '{
     "username": "player1",
     "password": "pass1"
   }')
 
-if [[ $LOGIN_RESPONSE_1 == *"accessToken"* ]]; then
+if [[ $LOGIN_RESPONSE_1 == *"success"* ]]; then
     echo -e "${GREEN}✓ Login successful${NC}"
-    ACCESS_TOKEN_1=$(echo $LOGIN_RESPONSE_1 | jq -r '.accessToken')
 else
     echo -e "${RED}✗ Login failed${NC}"
     echo $LOGIN_RESPONSE_1
@@ -100,15 +100,15 @@ fi
 # Test de login pour player2
 echo -e "\n 🔑 Testing login..."
 LOGIN_RESPONSE_2=$(curl -s -X POST "$API_URL/login" \
+  -c cookies_p2.txt \
   -H "Content-Type: application/json" \
   -d '{
     "username": "player2",
     "password": "pass2"
   }')
 
-if [[ $LOGIN_RESPONSE_2 == *"accessToken"* ]]; then
+if [[ $LOGIN_RESPONSE_2 == *"success"* ]]; then
     echo -e "${GREEN}✓ Login successful${NC}"
-    ACCESS_TOKEN_2=$(echo $LOGIN_RESPONSE_2 | jq -r '.accessToken')
 else
     echo -e "${RED}✗ Login failed${NC}"
     echo $LOGIN_RESPONSE_2
@@ -118,7 +118,7 @@ fi
 # Test de la route protégée
 echo -e "\n 🔒 Testing protected route..."
 PROTECTED_RESPONSE_1=$(curl -s -X GET "$API_URL/protected" \
-  -H "Authorization: Bearer $ACCESS_TOKEN_1")
+  -b cookies_p1.txt)
 
 if [[ $PROTECTED_RESPONSE_1 == *"protected information"* ]]; then
     echo -e "${GREEN}✓ Protected route accessible${NC}"
@@ -127,10 +127,10 @@ else
     echo $PROTECTED_RESPONSE_1
 fi
 
-# Test de la route protégée
+# Test de la route protégée pour player2
 echo -e "\n 🔒 Testing protected route..."
 PROTECTED_RESPONSE_2=$(curl -s -X GET "$API_URL/protected" \
-  -H "Authorization: Bearer $ACCESS_TOKEN_2")
+  -b cookies_p2.txt)  # Utiliser les cookies au lieu du header Authorization
 
 if [[ $PROTECTED_RESPONSE_2 == *"protected information"* ]]; then
     echo -e "${GREEN}✓ Protected route accessible${NC}"
@@ -142,7 +142,7 @@ fi
 # Test de vérification du token
 echo -e "\n 🔍 Testing token verification player 1..."
 VERIFY_RESPONSE_1=$(curl -s -X POST "$API_URL/verify_token" \
-  -H "Authorization: Bearer $ACCESS_TOKEN_1")
+  -b cookies_p1.txt)
 
 if [[ $VERIFY_RESPONSE_1 == *"\"valid\":true"* ]]; then
     echo -e "${GREEN}✓ Token verified successfully${NC}"
@@ -154,7 +154,7 @@ fi
 # Test de vérification du token
 echo -e "\n 🔍 Testing token verification player 2..."
 VERIFY_RESPONSE_2=$(curl -s -X POST "$API_URL/verify_token" \
-  -H "Authorization: Bearer $ACCESS_TOKEN_2")
+  -b cookies_p2.txt)  # Utiliser les cookies au lieu du header Authorization
 
 if [[ $VERIFY_RESPONSE_2 == *"\"valid\":true"* ]]; then
     echo -e "${GREEN}✓ Token verified successfully${NC}"
@@ -171,7 +171,7 @@ echo "Player2 ID: $PLAYER2_ID"
 echo -e "\n 🎮 Adding game..."
 GAME_DATA="{\"player1_id\":\"$PLAYER1_ID\",\"player2_id\":\"$PLAYER2_ID\",\"score_player1\":5,\"score_player2\":8,\"winner_id\":\"$PLAYER2_ID\"}"
 RESPONSE3=$(curl -s -X POST "$API_URL/user/game" \
-  -H "Authorization: Bearer $ACCESS_TOKEN_2" \
+  -b cookies_p2.txt \
   -H "Content-Type: application/json" \
   -d "$GAME_DATA")
 
@@ -253,7 +253,7 @@ fi
 # Test de déconnexion pour player1
 echo -e "\n 🚪 Testing logout for player1..."
 LOGOUT_RESPONSE_1=$(curl -s -X POST "$API_URL/logout" \
-  -H "Authorization: Bearer $ACCESS_TOKEN_1")
+  -b cookies_p1.txt)
 
 if [[ $LOGOUT_RESPONSE_1 == *"success"* ]]; then
     echo -e "${GREEN}✓ Logout successful${NC}"
@@ -265,7 +265,7 @@ fi
 # Test de déconnexion pour player2
 echo -e "\n 🚪 Testing logout for player2..."
 LOGOUT_RESPONSE_2=$(curl -s -X POST "$API_URL/logout" \
-  -H "Authorization: Bearer $ACCESS_TOKEN_2")
+  -b cookies_p2.txt)  # Utiliser les cookies au lieu du header Authorization
 
 if [[ $LOGOUT_RESPONSE_2 == *"success"* ]]; then
     echo -e "${GREEN}✓ Logout successful${NC}"
@@ -277,7 +277,7 @@ fi
 # Vérification que le token n'est plus valide après déconnexion
 echo -e "\n 🔍 Verifying token invalidation after logout..."
 VERIFY_AFTER_LOGOUT_1=$(curl -s -X POST "$API_URL/verify_token" \
-  -H "Authorization: Bearer $ACCESS_TOKEN_1")
+  -b cookies_p1.txt)
 
 if [[ $VERIFY_AFTER_LOGOUT_1 == *"\"valid\":false"* ]]; then
     echo -e "${GREEN}✓ Token correctly invalidated${NC}"
@@ -289,7 +289,7 @@ fi
 # Vérification que le token n'est plus valide après déconnexion
 echo -e "\n 🔍 Verifying token invalidation after logout..."
 VERIFY_AFTER_LOGOUT_2=$(curl -s -X POST "$API_URL/verify_token" \
-  -H "Authorization: Bearer $ACCESS_TOKEN_2")
+  -b cookies_p2.txt)  # Utiliser les cookies au lieu du header Authorization
 
 if [[ $VERIFY_AFTER_LOGOUT_2 == *"\"valid\":false"* ]]; then
     echo -e "${GREEN}✓ Token correctly invalidated${NC}"
@@ -297,5 +297,8 @@ else
     echo -e "${RED}✗ Token still valid after logout${NC}"
     echo $VERIFY_AFTER_LOGOUT_2
 fi
+
+# Nettoyage des fichiers de cookies à la fin
+rm -f cookies_p1.txt cookies_p2.txt
 
 echo -e "\n✨ Tests completed!"
