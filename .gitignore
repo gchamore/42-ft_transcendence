@@ -1,3 +1,4 @@
 back_pong-game/node_modules/
 front_pong-game/node_modules/
-/dist/
+back_pong-game/public/dist/
+front_pong-game/public/dist/
