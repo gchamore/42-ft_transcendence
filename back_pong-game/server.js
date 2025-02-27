@@ -5,18 +5,21 @@ import { join } from 'path';
 import WebSocket from 'ws';
 import { GameInstance } from './src/classes/gameInstance.js';
 
+let mainLobby = null; // Main lobby for settings need to change it when implementing multiple lobbies
+
 const fastify = Fastify({ logger: true });
 
+
 fastify.get('/game/status/:gameId', async (request, reply) => {
-    const { gameId } = request.params;
-    const gameExists = games.has(gameId);
-    
-    if (gameExists) {
-        return { exists: true };
-    }
-    
-    reply.code(404);
-    return { exists: false };
+	const { gameId } = request.params;
+	const gameExists = games.has(gameId);
+
+	if (gameExists) {
+		return { exists: true };
+	}
+
+	reply.code(404);
+	return { exists: false };
 });
 
 // Register fastify websocket plugin
@@ -37,13 +40,21 @@ fastify.register(async function (fastify) {
 	fastify.get('/game/:gameId', { websocket: true }, (socket, req) => {
 		const { gameId } = req.params; // Get gameId from URL
 		console.log('WebSocket connection established for game:', { gameId });
-		let game = games.get(gameId); // find or create game instance
-		if (!game) {
-			game = new GameInstance(gameId);
-			games.set(gameId, game);
-			console.log('New game created with Id:', { gameId });
+		if (gameId === 'lobby-main') {
+			if (!mainLobby) {
+				mainLobby = new GameInstance(gameId);
+				console.log('Main lobby created');
+			}
+			handleNewPlayer(socket, mainLobby);
+		} else {
+			// Handle actual game connections
+			let game = games.get(gameId);
+			if (!game) {
+				game = new GameInstance(gameId);
+				games.set(gameId, game);
+			}
+			handleNewPlayer(socket, game);
 		}
-		handleNewPlayer(socket, game);
 	});
 });
 
@@ -116,6 +127,41 @@ function handleNewPlayer(socket, game) {
 function handleGameMessage(socket, game, data) {
 	const playerNumber = socket.playerNumber;
 	switch (data.type) {
+		case 'playerReady':
+			game.setPlayerReady(playerNumber);
+			console.log(`Player ${playerNumber} ready. Total ready: ${game.playerReadyStatus.size}`);
+			if (playerNumber === 2) {
+				const player1 = game.players.find(player => player.playerNumber === 1);
+				if (player1) {
+					safeSend(player1, {
+						type: 'player2Ready'
+					});
+				}
+			}
+			break;
+		case 'startGameRequest':
+			if (playerNumber === 1 && game.isLobby) {
+				if (game.isGameReady()) {
+					const newGameId = data.gameId;
+					const gameInstance = game.transitionToGame(newGameId);
+					games.set(newGameId, gameInstance);
+					games.delete(game.gameId);
+		
+					game.players.forEach((player) => {
+						safeSend(player, {
+							type: 'gameStart',
+							gameId: newGameId,
+							settings: game.settings
+						});
+					});
+				} else {
+					safeSend(socket, {
+						type: 'error',
+						message: 'Cannot start game until all players are ready'
+					});
+				}
+			}
+			break;
 		case 'startGame':
 			if (game.players.length === 2) {
 				game.gameState.gameStarted = true;

@@ -11,8 +11,12 @@ export class SettingsPage {
 	private powerUpsToggle: HTMLInputElement;
 	private playerNumber: number = 0;
 	private socket!: WebSocket;
+	private playerReady: boolean = false;
+	private startButton: HTMLButtonElement;
+	private lobbyId: string;
 
 	constructor() {
+		this.lobbyId = 'lobby-main'
 		this.ballSpeedSlider = document.getElementById('ball-speed') as HTMLInputElement;
 		this.ballSpeedValue = document.getElementById('ball-speed-value')!;
 		this.paddleLengthSlider = document.getElementById('paddle-length') as HTMLInputElement;
@@ -21,34 +25,61 @@ export class SettingsPage {
 		this.paddleSpeedValue = document.getElementById('paddle-speed-value')!;
 		this.mapSelect = document.getElementById('map-select') as HTMLSelectElement;
 		this.powerUpsToggle = document.getElementById('power-ups-toggle') as HTMLInputElement;
-
+		this.startButton = document.getElementById('start-game') as HTMLButtonElement;
+		if (!this.startButton) {
+			console.error('Start button not found');
+			return;
+		}
+		
 		this.connectWebSocket();
-		this.loadSettings();
 	}
 
 	private connectWebSocket() {
-		this.socket = new WebSocket('ws://localhost:3000/game/settings');
+		this.socket = new WebSocket(`ws://localhost:3000/game/${this.lobbyId}`);
 		this.socket.onopen = () => {
 			console.log('Settings socket connected');
+			if (this.playerNumber === 1) {
+				this.loadSettings();
+			}
 		};
 
 		this.socket.onmessage = (message) => {
 			const data = JSON.parse(message.data);
-			if (data.type === 'playerNumber') {
-				this.playerNumber = data.playerNumber;
-				if (this.playerNumber === 1) {
-					const savedSettings = SettingsService.loadSettings();
-					this.updateSettings(savedSettings);
-					this.setupListeners();
-					this.handleSettingsChange();
-				}
-				else
-					this.disableSettings();
-			} else if (data.type === 'settingsUpdate') { //server to client
-				console.log('received settings update:', data.settings);
-				this.updateSettings(data.settings);
-			} else if (data.type === 'error') {
-				console.error(data.message);
+			console.log('Received message : ', data);
+			switch (data.type) {
+				case 'playerNumber':
+					this.playerNumber = data.playerNumber;
+					if (this.playerNumber === 1) {
+						const savedSettings = SettingsService.loadSettings();
+						this.updateSettings(savedSettings);
+						this.setupListeners();
+						this.handleSettingsChange();
+					}
+					else {
+						this.disableSettings();
+						this.setupListeners();
+					}
+					this.updateStartButtonState();
+					break;
+				case 'settingsUpdate':
+					this.updateSettings(data.settings);
+					break;
+				case 'gameStart':
+					if (data.gameId){
+					window.location.hash = `#game/${data.gameId}`;
+					} else {
+						console.error('Game ID not provided');
+					}
+					break;
+				case 'player2Ready':
+					if (this.playerNumber === 1) {
+						this.startButton.disabled = false;
+						this.startButton.textContent = 'Start Game';
+					}
+					break;
+				case 'error':
+					console.error(data.message);
+					break;
 			}
 		};
 	}
@@ -107,6 +138,13 @@ export class SettingsPage {
 	}
 
 	private setupListeners() {
+		if (this.playerNumber === 1) {
+			this.setupSettingsListeners();
+		}
+		this.setupStartButtonListener();
+	}
+
+	private setupSettingsListeners() {
 		// Ball speed slider listener
 		this.ballSpeedSlider.addEventListener('input', () => {
 			this.ballSpeedValue.textContent = this.ballSpeedSlider.value;
@@ -134,12 +172,50 @@ export class SettingsPage {
 		this.powerUpsToggle.addEventListener('change', () => {
 			this.handleSettingsChange();
 		});
+	}
 
+	private setupStartButtonListener() {
 		// Start game listener
-		document.getElementById('start-game')?.addEventListener('click', () => {
-			// Handle starting the game
-			window.location.hash = '#game';
+		this.startButton?.addEventListener('click', () => {
+			if (this.playerNumber === 2 && !this.playerReady) {
+				console.log('Player 2 ready');
+				this.playerReady = true;
+				this.socket.send(JSON.stringify({
+					type: 'playerReady',
+					playerNumber: 2
+				}));
+				this.updateStartButtonState();
+			} else if (this.playerNumber === 1 && !this.startButton.disabled) {
+				console.log('player 1 ready and requesting game start');
+				this.socket.send(JSON.stringify({
+					type: 'playerReady',
+					playerNumber: 1
+				}));
+				const gameId = Math.random().toString(36).substring(2, 8);
+				this.socket.send(JSON.stringify({
+					type: 'startGameRequest',
+					gameId: gameId
+				}));
+			}
 		});
+	}
+
+	private  updateStartButtonState() {
+		if (!this.startButton) return;
+
+		switch (this.playerNumber) {
+			case 1:
+				this.startButton.textContent = 'Waiting for Player 2...';
+				this.startButton.disabled = true;
+				break;
+			case 2:
+				this.startButton.textContent = this.playerReady ? 'Waiting for Player 1...' : 'Ready to Play';
+				this.startButton.disabled = this.playerReady;
+				break;
+			default:
+				this.startButton.disabled = true;
+				this.startButton.textContent = 'Connecting...';
+		}
 	}
 
 	private getCurrentSettings() {

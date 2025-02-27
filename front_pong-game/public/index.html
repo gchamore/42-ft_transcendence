@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pong Game</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Pong Game</title>
 	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style>
-        body { 
+	<style>
+		body { 
 			margin: 0;
 			display: flex; 
 			justify-content: center;
@@ -14,7 +14,7 @@
 			height: 100vh;
 			background: #000;
 		}
-        canvas {
+		canvas {
 			border: 1px solid white; 
 		}
 		.controls {
@@ -44,7 +44,17 @@
 		#gameCanvas {
 			display: none;
 		}
-    </style>
+		.start-button {
+			padding: 10px 20px;
+			font-size: 16px;
+			cursor: pointer;
+			transition: all 0.3s ease;
+		}
+		.start-button:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+	</style>
 </head>
 <body>
 	<div id="settings-page" class="controls">
@@ -69,23 +79,23 @@
 		</div>
 		<!-- Map Select -->
 		<div class="slider-container">
-            <label for="map-select" class="settings-title">Select Map:</label>
-            <select id="map-select" class="w-full mt-2">
-                <option value="default">Default Map</option>
-                <option value="advanced">Advanced Map</option>
-            </select>
-        </div>
-        <!-- Power-ups Toggle -->
-        <div class="slider-container">
-            <label for="power-ups-toggle" class="settings-title">Enable Power-ups:</label>
-            <input type="checkbox" id="power-ups-toggle" class="mt-2">
-        </div>
-		<button id="start-game" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full mt-4">
-            Start Game
-        </button>
+			<label for="map-select" class="settings-title">Select Map:</label>
+			<select id="map-select" class="w-full mt-2">
+				<option value="default">Default Map</option>
+				<option value="advanced">Advanced Map</option>
+			</select>
+		</div>
+		<!-- Power-ups Toggle -->
+		<div class="slider-container">
+			<label for="power-ups-toggle" class="settings-title">Enable Power-ups:</label>
+			<input type="checkbox" id="power-ups-toggle" class="mt-2">
+		</div>
+		<button id="start-game" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full mt-4 start-button">
+			Start Game
+		</button>
 	</div>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+	<canvas id="gameCanvas" width="800" height="600"></canvas>
 
-    <script type="module" src="./dist/front_pong-game/src/main.js"></script>
+	<script type="module" src="./dist/front_pong-game/src/main.js"></script>
 </body>
 </html>

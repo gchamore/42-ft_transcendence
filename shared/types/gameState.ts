@@ -1,4 +1,5 @@
 export interface GameState {
+	gameId: string;
 	gameStarted: boolean;
 	servingPlayer: number;
 	playerNumber: number;
@@ -29,7 +30,8 @@ export interface GameState {
 	};
 }
 
-export const createDefaultGameState = (): GameState => ({
+export const createDefaultGameState = (gameId: string = ''): GameState => ({
+	gameId,
     gameStarted: false,
     servingPlayer: Math.random() < 0.5 ? 1 : 2,
     playerNumber: 0,

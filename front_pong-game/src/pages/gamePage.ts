@@ -23,7 +23,7 @@ export class Game {
 	private playerNumber: number = 0;
 	private gameId: string;
 
-	constructor(gameId: string = 'default') {
+	constructor(gameId: string) {
 		this.gameId = gameId;
 		this.connectWebSocket();
 		this.initializeCanvas();
@@ -32,7 +32,7 @@ export class Game {
 	}
 
 	private connectWebSocket() {
-		this.socket = new WebSocket('ws://localhost:3000/game/' + this.gameId);
+		this.socket = new WebSocket(`ws://localhost:3000/game/${this.gameId}`);
 		this.socket.onopen = () => {
 			console.log('Connected to server');
 		};

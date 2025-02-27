@@ -3,8 +3,9 @@ import { createDefaultGameState } from '../../public/dist/shared/types/gameState
 export class GameInstance {
 	constructor(gameId) {
 		this.gameId = gameId;
+		this.isLobby = gameId.startsWith('lobby-');
 		this.players = [];
-		this.gameState = createDefaultGameState();
+		this.gameState = createDefaultGameState(gameId);
 		this.settings = {
 			ballSpeed: 4,
 			paddleSpeed: 4,
@@ -12,6 +13,16 @@ export class GameInstance {
 			mapType: 'default',
 			powerUps: false,
 		};
+		this.playerReadyStatus = new Set();
+	}
+
+	setPlayerReady(playerNumber) {
+		this.playerReadyStatus.add(playerNumber);
+		return this.playerReadyStatus.size === 2;
+	}
+
+	isGameReady() {
+		return this.playerReadyStatus.size === 2;
 	}
 
 	addPlayer(socket) {
@@ -83,5 +94,12 @@ export class GameInstance {
 
 		return this.settings;
 	}
-	
+
+	transitionToGame(newGameId) {
+		this.gameId = newGameId;
+		this.isLobby = false;
+		this.gameState = createDefaultGameState(newGameId);
+		this.gameState.servingPlayer = Math.random() < 0.5 ? 1 : 2;
+		return this;
+	}
 }
