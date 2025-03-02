@@ -78,14 +78,27 @@ export class Game {
 	}
 
 	private updateGameState(gameState: GameState) {
-		this.gameStarted = gameState.gameStarted;
-		this.servingPlayer = gameState.servingPlayer;
+		if (!gameState) {
+			console.error('Received invalid game state');
+			return;
+		}
+		this.gameStarted = gameState.gameStarted ?? false;
+		this.servingPlayer = gameState.servingPlayer ?? this.servingPlayer;
 
-		this.paddle1.updatePosition(gameState.paddle1);
-		this.paddle2.updatePosition(gameState.paddle2);
-		this.ball.updatePosition(gameState.ball);
-
-		this.scoreBoard.updateScore(gameState.score);
+		if(gameState.ball) {
+			if (gameState.ball.x !== null && gameState.ball.y !== null) {
+			this.ball.updatePosition(gameState.ball);
+			}
+		}
+		if (gameState.paddle1) {
+			this.paddle1.updatePosition(gameState.paddle1);
+		}
+		if (gameState.paddle2) {
+			this.paddle2.updatePosition(gameState.paddle2);
+		}
+		if (gameState.score) {
+			this.scoreBoard.updateScore(gameState.score);
+		}
 		this.uiManager.drawStartMessage(performance.now(), this.gameStarted, this.playerNumber, this.servingPlayer);
 	}
 
@@ -104,7 +117,7 @@ export class Game {
 		this.uiManager = new UIManager(this.context, this.canvas);
 
 		this.controls = new GameControls(this.paddle1, this.paddle2, this.playerNumber, this.socket);
-		this.inputManager = new InputManager(this.controls, () => this.gameStarted, this.socket);
+		this.inputManager = new InputManager(this.controls, () => this.gameStarted);
 	}
 
 

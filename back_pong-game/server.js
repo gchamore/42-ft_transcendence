@@ -61,11 +61,20 @@ fastify.register(async function (fastify) {
 
 // Add game update interval
 setInterval(() => {
-	games.forEach((game) => {
-		if (game.gameState.gameStarted && game.players.length === 2) {
-			game.updateBall(game.gameState.ball.x + game.gameState.ball.xSpeed,
-				game.gameState.ball.y + game.gameState.ball.ySpeed); // Update ball position
-			broadcastGameState(game);
+	games.forEach((game, gameId) => {
+		if (gameId.startsWith('lobby-')) return;
+		if (game.players.length > 0) {
+			// process full game only if the game is started and has 2 players
+			if (game.gameState.gameStarted && game.players.length === 2) {
+				const scoreOccured = game.update();
+				if (scoreOccured || game.gameState.gameStarted) {
+					broadcastGameState(game);
+				}
+			} else { // occasionnal update for paddle movement
+				if (Math.floor(Date.now() / 200) % 5 === 0) {
+					broadcastGameState(game);
+				}
+			}
 		}
 	});
 }, 1000 / 60);  // 60 FPS update rate
@@ -103,13 +112,13 @@ function handleNewPlayer(socket, game) {
 	// Send initial game state with player number
 	safeSend(socket, {
 		type: 'gameState',
-		data: game.getState(),
+		gameState: game.getState(),
 		playerNumber: playerNumber
 	});
 
 	safeSend(socket, {
 		type: 'settingsUpdate',
-		data: game.settings
+		settings: game.settings
 	});
 
 	socket.on('message', message => {
@@ -164,25 +173,24 @@ function handleGameMessage(socket, game, data) {
 			}
 			break;
 		case 'startGame':
-			if (game.players.length === 2) {
-				game.gameState.gameStarted = true;
+			if (playerNumber === game.gameState.servingPlayer) {
+				if (game.players.length === 2) {
+					game.gameState.gameStarted = true;
+				} else {
+					safeSend(socket, {
+						type: 'error',
+						message: 'Waiting for another player to join'
+					});
+					return;
+				}
 			} else {
 				safeSend(socket, {
 					type: 'error',
-					message: 'Waiting for another player to join'
+					message: 'Only the serving player can start the round'
 				});
-				return;
 			}
 			break;
 		case 'movePaddle':
-			if (!game.gameState.gameStarted) {
-				safeSend(socket, {
-					type: 'error',
-					message: 'Cannot move paddle Game has not started'
-				});
-				console.log('Cannot move paddle Game has not started');
-				return;
-			}
 			if (data.player !== playerNumber) {
 				safeSend(socket, {
 					type: 'error',
@@ -275,7 +283,7 @@ function broadcastGameState(game) {
 	game.players.forEach((player) => {
 		safeSend(player, {
 			type: 'gameState',
-			data: game.getState()
+			gameState: game.getState()
 		});
 	});
 }

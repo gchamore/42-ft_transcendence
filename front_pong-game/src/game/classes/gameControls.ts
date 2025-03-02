@@ -24,6 +24,9 @@ export class GameControls {
 
 	handleKeyDown(event: KeyboardEvent): void {
 		switch (event.key) {
+			case ' ':
+				this.handleSpacePress();
+				break;
 			case 'w':
 				this.player1.up = true;
 				break;
@@ -38,6 +41,14 @@ export class GameControls {
 				break;
 		}
 		this.sendPaddleMoves();
+	}
+
+	private handleSpacePress(): void { 
+		if (this.socket?.readyState === WebSocket.OPEN) {
+			this.socket.send(JSON.stringify({
+				type: 'startGame'
+			}));
+		}
 	}
 
 	handleKeyUp(event: KeyboardEvent): void {

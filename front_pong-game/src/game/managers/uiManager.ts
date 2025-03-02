@@ -10,10 +10,6 @@ export class UIManager {
 
 	drawStartMessage(timestamp: number, gameStarted: boolean, playerNumber: number, servingPlayer: number): void {
 		if (!gameStarted) {
-			if (playerNumber === 1) {
-				this.drawWaitingMessage("Waiting for Player 2 to join...");
-				return;
-			} 
 			if (timestamp - this.lastBlink > this.BLINK_INTERVAL) {
 				this.showStartMessage = !this.showStartMessage;
 				this.lastBlink = timestamp;
