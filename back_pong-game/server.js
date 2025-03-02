@@ -37,10 +37,9 @@ const games = new Map(); // Map to store game instances
 
 // Register the Websocket route inside an encapsulated plugin
 fastify.register(async function (fastify) {
-	fastify.get('/game/:gameId', { websocket: true }, (connection, req) => {
+	fastify.get('/game/:gameId', { websocket: true }, (socket, req) => {
 		const { gameId } = req.params; // Get gameId from URL
 		console.log('WebSocket connection established for game:', { gameId });
-		const socket = connection.socket;
 		if (gameId === 'lobby-main') {
 			if (!mainLobby) {
 				mainLobby = new GameInstance(gameId);

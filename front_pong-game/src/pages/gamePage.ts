@@ -44,6 +44,9 @@ export class Game {
 				case 'gameState':
 					if (data.playerNumber) {
 						this.playerNumber = data.playerNumber;
+						if (this.controls) {
+							this.controls.setPlayerNumber(this.playerNumber);
+						}
 					}
 					this.updateGameState(data.gameState);
 					break;
@@ -99,7 +102,7 @@ export class Game {
 		if (gameState.score) {
 			this.scoreBoard.updateScore(gameState.score);
 		}
-		this.uiManager.drawStartMessage(performance.now(), this.gameStarted, this.playerNumber, this.servingPlayer);
+		// this.uiManager.drawStartMessage(performance.now(), this.gameStarted, this.playerNumber, this.servingPlayer);
 	}
 
 	private initializeCanvas() {
@@ -136,8 +139,10 @@ export class Game {
 		this.context.fill();
 		this.context.closePath();
 
-		this.uiManager.drawStartMessage(timestamp, this.gameStarted, this.playerNumber, this.servingPlayer, );
-
+		if (!this.gameStarted) {
+			this.uiManager.drawStartMessage(timestamp, this.gameStarted, this.playerNumber, this.servingPlayer, );
+		}
+		
 		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
 	}
 

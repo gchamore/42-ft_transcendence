@@ -6,19 +6,19 @@ export class PlayerControls {
 }
 
 export class GameControls {
-	player1: PlayerControls;
-	player2: PlayerControls;	
-	paddle1: Paddle;
-	paddle2: Paddle;
+	private upPressed: boolean = false;
+	private downPressed: boolean = false;
+	paddle: Paddle;
 	private socket!: WebSocket;
 	private playerNumber: number;
+	private paddle1: Paddle;
+	private paddle2: Paddle;
 
 	constructor(paddle1: Paddle, paddle2: Paddle, playerNumber: number, socket: WebSocket) {
-		this.player1 = new PlayerControls();
-		this.player2 = new PlayerControls();
+		this.playerNumber = playerNumber;
 		this.paddle1 = paddle1;
 		this.paddle2 = paddle2;
-		this.playerNumber = playerNumber;
+		this.paddle = playerNumber === 1 ? paddle1 : paddle2;
 		this.socket = socket;
 	}
 
@@ -28,19 +28,18 @@ export class GameControls {
 				this.handleSpacePress();
 				break;
 			case 'w':
-				this.player1.up = true;
-				break;
-			case 's':
-				this.player1.down = true;
-				break;
+			case 'W':
 			case 'ArrowUp':
-				this.player2.up = true;
-				break;
+                    this.upPressed = true;
+                    this.sendPaddleMoves();
+                break;
+			case 's':
+			case 'S':
 			case 'ArrowDown':
-				this.player2.down = true;
+				this.downPressed = true;
+				this.sendPaddleMoves();
 				break;
 		}
-		this.sendPaddleMoves();
 	}
 
 	private handleSpacePress(): void { 
@@ -54,36 +53,45 @@ export class GameControls {
 	handleKeyUp(event: KeyboardEvent): void {
 		switch (event.key) {
 			case 'w':
-				this.player1.up = false;
-				break;
-			case 's':
-				this.player1.down = false;
-				break;
+			case 'W':
 			case 'ArrowUp':
-				this.player2.up = false;
-				break;
+                this.upPressed = false;
+				this.sendPaddleMoves();
+                break;
+			case 's':
+			case 'S':
 			case 'ArrowDown':
-				this.player2.down = false;
+				this.downPressed = false;
+				this.sendPaddleMoves();
 				break;
 		}
-		this.sendPaddleMoves();
 	}
 
 	sendPaddleMoves(): void {
-		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-			if (this.playerNumber === 1) {
-				this.socket.send(JSON.stringify({
-					type: 'movePaddle',
-					player: 1,
-					y: this.paddle1.y,
-				}));
-			} else if (this.playerNumber === 2) {
-				this.socket.send(JSON.stringify({
-					type: 'movePaddle',
-					player: 2,
-					y: this.paddle2.y
-				}));
-			}
+		// Calculate new position based on key presses
+		if (this.upPressed) {
+			this.paddle.y -= this.paddle.speed;
+		}
+		if (this.downPressed) {
+			this.paddle.y += this.paddle.speed;
+		}
+
+		// Keep paddle in bounds
+		if (this.paddle.y < 0) {
+			this.paddle.y = 0;
+		}
+		if (this.paddle.y + this.paddle.height > 600) {
+			this.paddle.y = 600 - this.paddle.height;
+		}
+
+		// Send updated position to server
+		if (this.socket?.readyState === WebSocket.OPEN && (this.upPressed || this.downPressed)) {
+			console.log(`Sending paddle ${this.playerNumber} position:`, this.paddle.y);
+			this.socket.send(JSON.stringify({
+				type: 'movePaddle',
+				player: this.playerNumber,
+				y: this.paddle.y
+			}));
 		}
 	}
 
@@ -95,5 +103,10 @@ export class GameControls {
 				message: `Player ${this.playerNumber} disconnected`
 			}));
 		}
+	}
+
+	setPlayerNumber(playerNumber: number): void {
+		this.playerNumber = playerNumber;
+		this.paddle = playerNumber === 1 ? this.paddle1 : this.paddle2;
 	}
 }
