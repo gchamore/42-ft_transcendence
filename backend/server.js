@@ -11,6 +11,10 @@ const fastify = require("fastify")({
     }
 });
 
+const WebSocket = require('ws');
+const WebSocketManager = require('./websocket/WebSocketManager');
+const jwt = require('jsonwebtoken');
+
 const initializeDatabase = require("./db/schema");
 const bcrypt = require("bcrypt");
 const authMiddleware = require('./jwt/middlewares/auth.middleware');
@@ -82,6 +86,86 @@ fastify.addHook('preHandler', (request, reply, done) => {
 fastify.register(require('./routes/auth.routes'));
 fastify.register(require('./routes/game.routes'));
 
+// Instance du WebSocketManager
+const wsManager = new WebSocketManager();
+
+// Créer le serveur WebSocket
+const wss = new WebSocket.Server({ noServer: true });
+
+// Gérer les connexions WebSocket
+wss.on('connection', async (ws, request, userId) => {
+    customLog.info(`Nouvelle connexion WebSocket pour l'utilisateur ${userId}`);
+    
+    const connection = {
+        socket: ws,
+        userId: userId
+    };
+
+    wsManager.handleConnection(connection, userId);
+
+    ws.on('message', async (message) => {
+        try {
+            const data = JSON.parse(message);
+            customLog.info(`Message WebSocket reçu: ${JSON.stringify(data)}`);
+
+            switch (data.type) {
+                case 'JOIN_MATCHMAKING':
+                    wsManager.addToMatchmaking(userId);
+                    break;
+
+                case 'LEAVE_MATCHMAKING':
+                    wsManager.removeFromMatchmaking(userId);
+                    break;
+
+                case 'GAME_INVITE':
+                    if (data.toUserId) {
+                        wsManager.sendGameInvitation(userId, data.toUserId);
+                    }
+                    break;
+
+                case 'GAME_MOVE':
+                    if (data.gameId) {
+                        wsManager.updateGameState(data.gameId, data.state);
+                    }
+                    break;
+
+                default:
+                    customLog.warning(`Type de message WebSocket non reconnu: ${data.type}`);
+            }
+        } catch (error) {
+            customLog.error(`Erreur de traitement du message WebSocket: ${error.message}`);
+        }
+    });
+
+    ws.on('close', () => {
+        customLog.info(`Connexion WebSocket fermée pour l'utilisateur ${userId}`);
+        wsManager.handleDisconnection(userId);
+    });
+});
+
+// Ajouter la gestion de l'upgrade HTTP pour WebSocket
+fastify.server.on('upgrade', (request, socket, head) => {
+    const url = new URL(request.url, `http://${request.headers.host}`);
+    const token = url.searchParams.get('token');
+
+    if (!token) {
+        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+        socket.destroy();
+        return;
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        wss.handleUpgrade(request, socket, head, (ws) => {
+            wss.emit('connection', ws, request, decoded.userId);
+        });
+    } catch (error) {
+        customLog.error(`Erreur d'authentification WebSocket: ${error.message}`);
+        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+        socket.destroy();
+    }
+});
+
 // Gestion de l'arrêt propre
 const clean_close = async (signal) => {
     customLog.warning(`Signal ${signal} reçu, arrêt propre en cours...`);
@@ -118,6 +202,7 @@ fastify.listen({
     
     customLog.info("Status du serveur:");
     customLog.success("- API REST disponible sur http://0.0.0.0:3000");
+    customLog.success("- WebSocket disponible sur ws://0.0.0.0:3000");
     customLog.success("- Base de données connectée");
     customLog.success("- CORS activé");
     console.log("\n" + colors.bright + colors.green + "🚀 Serveur prêt et opérationnel !" + colors.reset + "\n");
