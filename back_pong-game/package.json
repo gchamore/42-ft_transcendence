@@ -1,19 +1,19 @@
 {
-  "type": "module",
-  "dependencies": {
-    "@fastify/static": "^6.10.2",
-    "@fastify/websocket": "^8.2.0",
-    "@types/ws": "^8.5.10",
-    "fastify": "^4.24.3",
-    "ws": "^8.14.2"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.1",
-    "pino-pretty": "^10.2.3"
-  },
-  "scripts": {
-    "start": "node server.js | pino-pretty",
-    "dev": "NODE_DEBUG=ws nodemon server.js | pino-pretty",
-    "clean": "rm -rf public/*"
+	"type": "module",
+	"dependencies": {
+	  "@fastify/static": "^6.10.2",
+	  "@fastify/websocket": "^8.2.0",
+	  "@types/ws": "^8.5.10",
+	  "fastify": "^4.24.3",
+	  "ws": "^8.14.2"
+	},
+	"devDependencies": {
+	  "nodemon": "^3.0.1",
+	  "pino-pretty": "^10.2.3"
+	},
+	"scripts": {
+	  "start": "node server.js | pino-pretty",
+	  "dev": "nodemon server.js | pino-pretty",
+	  "clean": "rm -rf public/*"
+	}
   }
-}

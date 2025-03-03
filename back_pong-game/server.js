@@ -37,7 +37,8 @@ const games = new Map(); // Map to store game instances
 
 // Register the Websocket route inside an encapsulated plugin
 fastify.register(async function (fastify) {
-	fastify.get('/game/:gameId', { websocket: true }, (socket, req) => {
+	fastify.get('/game/:gameId', { websocket: true }, (connection, req) => {
+		const socket = connection.socket;
 		const { gameId } = req.params; // Get gameId from URL
 		console.log('WebSocket connection established for game:', { gameId });
 		if (gameId === 'lobby-main') {
@@ -65,13 +66,14 @@ setInterval(() => {
 		if (game.players.length > 0) {
 			// process full game only if the game is started and has 2 players
 			if (game.gameState.gameStarted && game.players.length === 2) {
-				const scoreOccured = game.update();
+				const scoreOccured = game.update(); //check for collisions and scoring
 				if (scoreOccured || game.gameState.gameStarted) {
 					broadcastGameState(game);
 				}
 			} else { // occasionnal update for paddle movement
-				if (Math.floor(Date.now() / 200) % 5 === 0) {
+				if (game.paddleMoved) {
 					broadcastGameState(game);
+					game.paddleMoved = false;
 				}
 			}
 		}
@@ -91,7 +93,8 @@ function handleNewPlayer(socket, game) {
 		return;
 	}
 
-	socket.GameInstance = game;
+	// attach game instance to socket
+	socket.gameInstance = game;
 
 	const playerNumber = socket.playerNumber;
 	console.log(`Player ${playerNumber} joined game ${game.gameId}`);
@@ -125,10 +128,19 @@ function handleNewPlayer(socket, game) {
 		handleGameMessage(socket, game, data);
 	});
 
+	socket.isDisconnecting = false;
 	socket.on('close', () => {
-		console.log(`Player ${socket.playerNumber} disconnected`);
-		if (socket.gameInstance) {
-			handleDisconnect(socket, socket.gameInstance);
+		if (!socket || socket.isDisconnecting) return;
+		socket.isDisconnecting = true;
+		const playerNum = socket.playerNumber;
+		const gameInst = socket.gameInstance;
+		console.log(`Player ${playerNum} disconnected`);
+		if (gameInst) {
+			setTimeout(() => {
+			handleDisconnect(socket, gameInst);
+			}, 0);
+		} else {
+			console.error('Game instance not found for player disconnect');
 		}
 	});
 }
@@ -198,11 +210,33 @@ function handleGameMessage(socket, game, data) {
 				console.error('Player trying to move paddle that is not theirs');
 				return;
 			}
-			game.updatePaddlePosition(data.player, data.y);
-			break;
-		case 'playerDisconnect':
-			console.log(data.message);
-			handleDisconnect(socket);
+			//server side validation
+			const previousPosition = game.gameState[`paddle${playerNumber}`].y;
+			const newPosition = data.y;
+			const maxMove = game.gameState[`paddle${playerNumber}`].speed * 2;
+			if (Math.abs(newPosition - previousPosition) > maxMove) {
+				console.log(`Suspicious paddle movement detected: Player ${playerNumber} moved ${Math.abs(newPosition - previousPosition)}px (${previousPosition} to ${newPosition})`);
+				// Hybrid approach:
+				// 1. Accept the move if it's within a larger tolerance (allows for occasional lag spikes)
+				// 2. Reject if it's way beyond reasonable
+				const absoluteMaxMove = maxMove * 3;
+
+				if (Math.abs(newPosition - previousPosition) > absoluteMaxMove) {
+					// if cheating or a severe bug - reject the move
+					safeSend(socket, {
+						type: 'syncPaddle',
+						position: previousPosition,
+						message: 'Movement rejected - too large'
+					});
+					// Use previous position instead
+					game.updatePaddlePosition(data.player, previousPosition);
+				} else {
+					// Accept but likely network lag
+					game.updatePaddlePosition(data.player, data.y);
+				}
+			} else {
+				game.updatePaddlePosition(data.player, data.y);
+			}
 			break;
 		case 'updateSettings': //client to server
 			if (playerNumber === 1) {
@@ -253,28 +287,80 @@ function safeSend(socket, message) {
 
 function handleDisconnect(socket, game) {
 
+	if (!socket.playerNumber) {
+		console.error('Player number not found for disconnection handling');
+		return;
+	}
+
 	if (!game) {
-		console.error('Game not found');
+		console.error('Game not found for disconnection handling');
+		return;
+	}
+	// Skip if player is no longer in the game's player list
+	const playerIndex = game.players.indexOf(socket);
+	if (playerIndex === -1) {
+		console.error('Player not found in game for disconnection handling');
 		return;
 	}
 	try {
+		const playerNumber = socket.playerNumber;
+		console.log(`Player ${playerNumber} disconnected from game ${game.gameId}`);
+
+		cleanUpSocketListeners(socket);
+
 		game.removePlayer(socket);
 
 		if (game.players.length === 0) {
 			// Remove empty game
+			console.log(`Game ${game.gameId} is empty, removed it`);
 			games.delete(game.gameId);
-			console.log(`Game ${game.gameId} removed`);
 		} else {
 			// Notify remaining player
 			const remainingPlayer = game.players[0];
+			const winnerNumber = remainingPlayer.playerNumber;
+			if (playerNumber === 1) {
+				game.gameState.score.player2Score = game.settings.maxScore || 5;
+			} else {
+				game.gameState.score.player1Score = game.settings.maxScore || 5;
+			}
 			safeSend(remainingPlayer, {
 				type: 'gameOver',
-				reason: 'Opponent disconnected'
+                reason: 'opponentDisconnected',
+                winner: winnerNumber,
+                score1: game.gameState.score.player1Score,
+                score2: game.gameState.score.player2Score,
+                message: `Player ${playerNumber} disconnected. You win!`
 			});
 			broadcastGameState(game);
+
+			//allow the remaining player some time to see results before clean up
+			setTimeout(() => {
+				if (games.has(game.gameId)) {
+					games.delete(game.gameId);
+					console.log(`Game ${game.gameId} removed after player disconnect`);
+				}
+			}, 10000); // 10 seconds
 		}
 	} catch (e) {
 		console.error('Error handling disconnect:', e);
+	}
+}
+
+function cleanUpSocketListeners(socket) {
+	try{
+		const playerNum = socket.playerNumber;
+
+		socket.removeAllListeners('message');
+		socket.removeAllListeners('close');
+		socket.removeAllListeners('error');
+		
+		socket.gameInstance = null;
+		socket.isDisconnecting = true;
+		socket.playerNumber = null;
+
+		console.log(`Cleaned up listeners for player ${playerNum}`);
+	} catch (e) {
+		console.error('Error cleaning up socket listeners:', e);
 	}
 }
 

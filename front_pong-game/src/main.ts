@@ -2,12 +2,19 @@ import { SettingsPage } from './pages/settingsPage.js';
 import { Game } from './pages/gamePage.js';
 
 class App {
+	private currentSettingsPage: SettingsPage | null = null;
+	private currentGamePage: Game | null = null;
+	private hashChangeListener: () => void;
+
 	constructor() {
+		this.hashChangeListener = this.setupRouting.bind(this);
+		window.addEventListener('hashchange', this.hashChangeListener);
 		this.setupRouting().catch(error => {
 			console.error('Failed to setup routing:', error);
 			window.location.hash = '#settings';
 		});
 	}
+
 
 	async setupRouting() {
 		const path = window.location.hash || '#settings';
@@ -19,6 +26,15 @@ class App {
 		if (!settingsPage || !gamePage) {
 			console.error('Required elements are not available in the DOM!');
 			return; // Prevent errors if elements are not found
+		}
+
+		if (this.currentSettingsPage) {
+			this.currentSettingsPage.cleanup();
+			this.currentSettingsPage = null;
+		}
+		if (this.currentGamePage) {
+			this.currentGamePage.stopGame();
+			this.currentGamePage = null;
 		}
 
 		if (page === '#game') {
@@ -38,7 +54,7 @@ class App {
 				window.location.hash = '#settings';
 			}
 		} else {
-			new SettingsPage(); // Load settings page
+			this.currentSettingsPage = new SettingsPage(); // store reference to settings page
 			settingsPage!.style.display = 'block'; // Show settings page
 			gamePage!.style.display = 'none'; // Hide game page
 		}
@@ -71,7 +87,23 @@ class App {
 		
 		throw new Error('Could not generate unique gameId after maximum attempts');
 	}
+
+	public cleanup() {
+		window.removeEventListener('hashchange', this.hashChangeListener);
+		if (this.currentSettingsPage) {
+			this.currentSettingsPage.cleanup();
+			this.currentSettingsPage = null;
+		}
+		if (this.currentGamePage) {
+			this.currentGamePage.stopGame();
+			this.currentGamePage = null;
+		}
+	}
 }
 
 // Initialize SPA
-new App();
+const app = new App();
+
+window.addEventListener('beforeunload', () => {
+	app.cleanup();
+});

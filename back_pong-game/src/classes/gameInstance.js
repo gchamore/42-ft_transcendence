@@ -15,6 +15,7 @@ export class GameInstance {
 		};
 		this.playerReadyStatus = new Set();
 		this.resetBall();
+		this.paddleMoved = false;
 	}
 
 	setPlayerReady(playerNumber) {
@@ -132,23 +133,20 @@ export class GameInstance {
 	}
 
 	updatePaddlePosition(playerNumber, y) {
-        // Get the correct paddle based on player number
-        const paddle = playerNumber === 1 ? this.gameState.paddle1 : this.gameState.paddle2;
-        
-        // Validate the y position to keep paddle within canvas boundaries
-        const maxY = 600 - paddle.height; // Canvas height - paddle height
-        
-        // Ensure paddle stays within bounds
-        if (y < 0) {
-            paddle.y = 0;
-        } else if (y > maxY) {
-            paddle.y = maxY;
-        } else {
-            paddle.y = y;
-        }
-        
-        return paddle.y;
-    }
+		this.paddleMoved = true;
+		// Get the correct paddle based on player number
+		const paddle = playerNumber === 1 ? this.gameState.paddle1 : this.gameState.paddle2;
+
+		paddle.y = y;
+		// Ensure paddle stays within bounds
+		if (paddle.y < 0) {
+			paddle.y = 0;
+		}
+		if (paddle.y + paddle.height > 600) {
+			paddle.y = 600 - paddle.height;
+		}
+		return paddle.y;
+	}
 
 	cleanup() {
 		this.players.forEach(player => player.close());

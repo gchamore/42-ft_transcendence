@@ -36,7 +36,7 @@ export class Game {
 		this.socket.onopen = () => {
 			console.log('Connected to server');
 		};
-		//listen for gameState updates
+		//listen for messages
 		this.socket.onmessage = (message) => {
 			const data = JSON.parse(message.data);
 			console.log('Received message : ', data);
@@ -59,6 +59,9 @@ export class Game {
 				case 'settingsUpdate':
 					this.updateSettings(data.settings);
 					break;
+				case 'syncPaddle':
+					this.handlePaddleSync(data);
+					break;
 				case 'error':
 					console.error('Game error:', data.message);
 					this.uiManager.drawErrorMessage(data.message);
@@ -66,20 +69,61 @@ export class Game {
 			};
 			this.socket.onerror = (error) => {
 				console.error('WebSocket error:', error);
+				this.uiManager.drawErrorMessage('Connection error');
 			};
 
 			this.socket.onclose = () => {
 				console.log('Disconnected from server');
+				if (this.gameStarted) { 
+					this.uiManager.drawErrorMessage('Connection to server lost');
+					this.pauseGame();
+				}
+				setTimeout(() => {
+					this.stopGame();
+					// Option: Redirect to home page
+					window.location.href = '/';
+				}, 3000);
 			};
 		}
 	}
+
 	private handleGameOver(data: any) {
 		this.gameStarted = false;
 		this.scoreBoard.updateScore({ player1Score: data.score1, player2Score: data.score2 });
-		// this.uiManager.drawGameOverMessage(performance.now(), data.winner);
-		this.stopGame();
+
+		if (data.reason === 'opponentDisconnected') {
+			//distinct message for opponent disconnection
+			this.uiManager.drawDisconnectionMessage(
+				`${data.message}`,
+				data.winner === this.playerNumber
+			);
+		} else {
+			// Regular game over message
+			this.uiManager.drawGameOverMessage(
+				performance.now(), 
+				data.winner,
+				`Game Over! Player ${data.winner} wins!`
+			);
+		}
+		this.pauseGame();
+
+		setTimeout(() => {
+			this.stopGame();
+			// Option: Redirect to lobby or show a "Play Again" button
+			window.dispatchEvent(new CustomEvent('gameComplete', {
+				detail: { reason: data.reason }
+			}));
+			window.location.href = '/';
+		}, 5000);
 	}
 
+	pauseGame() {
+		if (this.animationFrameId) {
+			cancelAnimationFrame(this.animationFrameId);
+			this.animationFrameId = null;
+		}
+	}
+	
 	private updateGameState(gameState: GameState) {
 		if (!gameState) {
 			console.error('Received invalid game state');
@@ -113,14 +157,14 @@ export class Game {
 	private initializeComponents() {
 
 		this.ball = new Ball(400, 300, 10, 4);
-		this.paddle1 = new Paddle(10, this.canvas.height / 2, 10, 100, 4);
-		this.paddle2 = new Paddle(780, this.canvas.height / 2, 10, 100, 4);
+		this.paddle1 = new Paddle(10, (this.canvas.height - 100) / 2, 10, 100, 4);
+		this.paddle2 = new Paddle(780, (this.canvas.height - 100) / 2, 10, 100, 4);
 
 		this.scoreBoard = new ScoreBoard();
 		this.uiManager = new UIManager(this.context, this.canvas);
 
 		this.controls = new GameControls(this.paddle1, this.paddle2, this.playerNumber, this.socket);
-		this.inputManager = new InputManager(this.controls, () => this.gameStarted);
+		this.inputManager = new InputManager(this.controls);
 	}
 
 
@@ -165,5 +209,16 @@ export class Game {
 		this.paddle2.speed = settings.paddleSpeed;
 		this.paddle1.height = settings.paddleLength;
 		this.paddle2.height = settings.paddleLength;
+	}
+
+	// Correct paddle position if server rejects movement
+	private handlePaddleSync(data: any) {
+		console.log('server rejected paddle movement:', data.message);
+		if (this.playerNumber === 1) { 
+			this.paddle1.y = data.position
+		} else if (this.playerNumber === 2) {
+			this.paddle2.y = data.position
+		}
+		this.controls.syncPaddlePosition(data.position);
 	}
 }

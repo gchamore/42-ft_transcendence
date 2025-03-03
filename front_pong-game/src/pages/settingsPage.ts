@@ -15,6 +15,13 @@ export class SettingsPage {
 	private startButton: HTMLButtonElement;
 	private lobbyId: string;
 
+	private handleBallSpeedChange!: (event: Event) => void;
+	private handlePaddleSpeedChange!: (event: Event) => void;
+	private handlePaddleLengthChange!: (event: Event) => void;
+	private handleMapChange!: (event: Event) => void;
+	private handlePowerUpsChange!: (event: Event) => void;
+	private startButtonClickHandler!: (event: Event) => void;
+
 	constructor() {
 		this.lobbyId = 'lobby-main'
 		this.ballSpeedSlider = document.getElementById('ball-speed') as HTMLInputElement;
@@ -82,6 +89,48 @@ export class SettingsPage {
 					break;
 			}
 		};
+
+		this.socket.onerror = (error) => {
+			console.error('WebSocket error:', error);
+			this.handleConnectionIssues();
+		};
+
+		this.socket.onclose = (event) => {
+			console.log('WebSocket connection closed:', event.code, event.reason);
+			this.handleConnectionIssues();
+		};
+	}
+
+	private handleConnectionIssues() {
+		const container = document.getElementById('settings-container');
+		if (container) {
+			const existingError = document.getElementById('connection-error');
+			if (existingError) {
+				existingError.remove();
+			}
+
+			const error = document.createElement('p');
+			error.id = 'connection-error';
+			error.textContent = 'Connection to server lost. Please refresh the page.';
+			error.style.color = 'red';
+			error.style.fontWeight = 'bold';
+			container.prepend(error);
+		}
+		[
+			this.ballSpeedSlider,
+			this.paddleSpeedSlider,
+			this.paddleLengthSlider,
+			this.mapSelect,
+			this.powerUpsToggle,
+			this.startButton
+		].forEach(input => {
+			if (input) 	input.disabled = true;
+		});
+
+		//redirect to home page
+		setTimeout(() => {
+			window.location.href = '/';
+		}, 3000);
 	}
 
 	private async disableSettings() {
@@ -145,38 +194,41 @@ export class SettingsPage {
 	}
 
 	private setupSettingsListeners() {
-		// Ball speed slider listener
-		this.ballSpeedSlider.addEventListener('input', () => {
+		// Create bound methods for each listener
+		this.handleBallSpeedChange = () => {
 			this.ballSpeedValue.textContent = this.ballSpeedSlider.value;
 			this.handleSettingsChange();
-		});
+		};
 
-		// Paddle speed slider listener
-		this.paddleSpeedSlider.addEventListener('input', () => {
+		this.handlePaddleSpeedChange = () => {
 			this.paddleSpeedValue.textContent = this.paddleSpeedSlider.value;
 			this.handleSettingsChange();
-		});
+		};
 
-		// Paddle length slider listener
-		this.paddleLengthSlider.addEventListener('input', () => {
+		this.handlePaddleLengthChange = () => {
 			this.paddleLengthValue.textContent = this.paddleLengthSlider.value;
 			this.handleSettingsChange();
-		});
+		};
 
-		// Map type selection listener
-		this.mapSelect.addEventListener('change', () => {
+		this.handleMapChange = () => {
 			this.handleSettingsChange();
-		});
+		};
 
-		// Power-ups toggle listener
-		this.powerUpsToggle.addEventListener('change', () => {
+		this.handlePowerUpsChange = () => {
 			this.handleSettingsChange();
-		});
+		};
+
+		// Attach the listeners
+		this.ballSpeedSlider.addEventListener('input', this.handleBallSpeedChange);
+		this.paddleSpeedSlider.addEventListener('input', this.handlePaddleSpeedChange);
+		this.paddleLengthSlider.addEventListener('input', this.handlePaddleLengthChange);
+		this.mapSelect.addEventListener('change', this.handleMapChange);
+		this.powerUpsToggle.addEventListener('change', this.handlePowerUpsChange);
 	}
 
 	private setupStartButtonListener() {
 		// Start game listener
-		this.startButton?.addEventListener('click', () => {
+		this.startButtonClickHandler = () => {
 			if (this.playerNumber === 2 && !this.playerReady) {
 				console.log('Player 2 ready');
 				this.playerReady = true;
@@ -197,7 +249,8 @@ export class SettingsPage {
 					gameId: gameId
 				}));
 			}
-		});
+		};
+		this.startButton.addEventListener('click', this.startButtonClickHandler);
 	}
 
 	private  updateStartButtonState() {
@@ -256,4 +309,15 @@ export class SettingsPage {
 			this.updateSettings(defaultSettings);
 		}
 	}
-}
+
+	public cleanup() {
+		if (this.ballSpeedSlider) this.ballSpeedSlider.removeEventListener('input', this.handleBallSpeedChange);
+		if (this.paddleSpeedSlider) this.paddleSpeedSlider.removeEventListener('input', this.handlePaddleSpeedChange);
+		if (this.paddleLengthSlider) this.paddleLengthSlider.removeEventListener('input', this.handlePaddleLengthChange);
+		if (this.mapSelect) this.mapSelect.removeEventListener('change', this.handleMapChange);
+		if (this.powerUpsToggle) this.powerUpsToggle.removeEventListener('change', this.handlePowerUpsChange);
+		const startButton = this.startButton?.onclick;
+		if (this.startButton && startButton) this.startButton.removeEventListener('click', this.startButtonClickHandler);
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) this.socket.close(1000, "Page navigation");
+	}
+}	

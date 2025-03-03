@@ -1,36 +1,32 @@
 import { GameControls } from '../classes/gameControls.js';
 
 export class InputManager {
+	private keydownHandler: (event: KeyboardEvent) => void;
+	private keyupHandler: (event: KeyboardEvent) => void;
 
 	constructor(
 		private gameControls: GameControls,
-		private isGameStarted: () => boolean,
 	) {
+		this.keydownHandler = this.handleKeyDown.bind(this);
+		this.keyupHandler = this.handleKeyUp.bind(this);
 		this.setupEventListeners();
 	}
 
-	// Setup event listeners for keydown and keyup events send the changes to the server
+	private handleKeyDown(event: KeyboardEvent): void {
+		this.gameControls.handleKeyDown(event);
+	}
+
+	private handleKeyUp(event: KeyboardEvent): void {
+		this.gameControls.handleKeyUp(event);
+	}
+
 	private setupEventListeners(): void {
-		window.addEventListener('keydown', (event) => {
-			if (!this.isGameStarted()) {
-				this.gameControls.handleKeyDown(event);
-				return;
-			}
-			this.gameControls.handleKeyDown(event);
-		});
-
-		window.addEventListener('keyup', (event) => {
-			if (!this.isGameStarted()) return;
-			this.gameControls.handleKeyUp(event);
-		});
-
-		window.addEventListener('beforeunload', () => {
-			this.gameControls.handleDisconnect();
-		});
+		window.addEventListener('keydown', this.keydownHandler);
+		window.addEventListener('keyup', this.keyupHandler);
 	}
 
 	removeEventListeners(): void {
-		window.removeEventListener('keydown', this.gameControls.handleKeyDown);
-		window.removeEventListener('keyup', this.gameControls.handleKeyUp);
+		window.removeEventListener('keydown', this.keydownHandler);
+		window.removeEventListener('keyup', this.keyupHandler);
 	}
 }

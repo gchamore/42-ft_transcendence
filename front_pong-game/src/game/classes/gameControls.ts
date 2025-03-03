@@ -8,6 +8,7 @@ export class PlayerControls {
 export class GameControls {
 	private upPressed: boolean = false;
 	private downPressed: boolean = false;
+	private moveIntervalId: number | null = null;
 	paddle: Paddle;
 	private socket!: WebSocket;
 	private playerNumber: number;
@@ -23,6 +24,8 @@ export class GameControls {
 	}
 
 	handleKeyDown(event: KeyboardEvent): void {
+		let changed = false;
+
 		switch (event.key) {
 			case ' ':
 				this.handleSpacePress();
@@ -30,15 +33,23 @@ export class GameControls {
 			case 'w':
 			case 'W':
 			case 'ArrowUp':
+				if (!this.upPressed) {
                     this.upPressed = true;
-                    this.sendPaddleMoves();
+                    changed = true;
+				}
                 break;
 			case 's':
 			case 'S':
 			case 'ArrowDown':
-				this.downPressed = true;
-				this.sendPaddleMoves();
+				if (!this.downPressed) {
+					this.downPressed = true;
+					changed = true;
+				}
 				break;
+		}
+		if (changed) {
+			this.sendPaddleMoves();
+			this.startContinuousMove();
 		}
 	}
 
@@ -51,23 +62,52 @@ export class GameControls {
 	}
 
 	handleKeyUp(event: KeyboardEvent): void {
+		let changed = false;
+
 		switch (event.key) {
 			case 'w':
 			case 'W':
 			case 'ArrowUp':
-                this.upPressed = false;
-				this.sendPaddleMoves();
+                if (this.upPressed) {
+					this.upPressed = false;
+					changed = true;
+				}
                 break;
 			case 's':
 			case 'S':
 			case 'ArrowDown':
-				this.downPressed = false;
-				this.sendPaddleMoves();
+				if (this.downPressed) {
+					this.downPressed = false;
+					changed = true;
+				}
 				break;
+		}
+		if (changed) {
+			this.sendPaddleMoves();
+
+			if (!this.upPressed && !this.downPressed) {
+				this.stopContinuousMove();
+			}
+		}
+	}
+
+	private startContinuousMove(): void {
+		this.stopContinuousMove();
+		this.moveIntervalId = window.setInterval(() => {
+			this.sendPaddleMoves();
+		}, 1000 / 60);
+	}
+
+	private stopContinuousMove(): void {
+		if (this.moveIntervalId) {
+			window.clearInterval(this.moveIntervalId);
+			this.moveIntervalId = null;
 		}
 	}
 
 	sendPaddleMoves(): void {
+		if (!this.paddle) return;
+
 		// Calculate new position based on key presses
 		if (this.upPressed) {
 			this.paddle.y -= this.paddle.speed;
@@ -85,7 +125,7 @@ export class GameControls {
 		}
 
 		// Send updated position to server
-		if (this.socket?.readyState === WebSocket.OPEN && (this.upPressed || this.downPressed)) {
+		if (this.socket?.readyState === WebSocket.OPEN) {
 			console.log(`Sending paddle ${this.playerNumber} position:`, this.paddle.y);
 			this.socket.send(JSON.stringify({
 				type: 'movePaddle',
@@ -95,18 +135,30 @@ export class GameControls {
 		}
 	}
 
-	handleDisconnect(): void {
-		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-			this.socket.send(JSON.stringify({
-				type: 'playerDisconnect',
-				player: this.playerNumber,
-				message: `Player ${this.playerNumber} disconnected`
-			}));
-		}
-	}
-
 	setPlayerNumber(playerNumber: number): void {
 		this.playerNumber = playerNumber;
 		this.paddle = playerNumber === 1 ? this.paddle1 : this.paddle2;
+	}
+
+	// Correct paddle position if server rejects movement
+	syncPaddlePosition(serverPosition: number): void {
+		if (!this.paddle) return;
+
+		this.paddle.y = serverPosition;
+
+		console.log('Paddle position corrected to:', serverPosition);
+
+		// temporarily disable key presses to prevent immediate re-correction
+		const wasUpPressed = this.upPressed;
+		const wasDownPressed = this.downPressed;
+
+		this.upPressed = false;
+		this.downPressed = false;
+
+		setTimeout(() => {
+			// restore key presses
+			this.upPressed = wasUpPressed;
+			this.downPressed = wasDownPressed;
+		}, 100);
 	}
 }
