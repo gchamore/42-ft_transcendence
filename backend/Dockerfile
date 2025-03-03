@@ -5,9 +5,14 @@ RUN apk add --no-cache sqlite redis
 
 WORKDIR /app
 
+# Copier package.json et package-lock.json
 COPY ./tools/package*.json ./
-RUN npm install --production
 
+# Installer les dépendances, y compris ws explicitement
+RUN npm install --production && \
+    npm install ws@8.13.0 --save
+
+# Copier le reste des fichiers de l'application
 COPY . .
 
 # Script de démarrage pour lancer Redis et Node
