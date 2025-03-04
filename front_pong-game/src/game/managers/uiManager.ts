@@ -99,4 +99,33 @@ export class UIManager {
 		
 		this.context.restore();
 	}
+
+	drawWaitingForRematch(timestamp: number): void {
+		this.context.save();
+		this.context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+		this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+		// Set up text styling
+		this.context.font = '28px Arial';
+		this.context.textAlign = 'center';
+		this.context.fillStyle = '#FFFFFF';
+
+		// Draw waiting text
+		this.context.fillText('Waiting for opponent...', this.canvas.width / 2, this.canvas.height / 2 - 30);
+
+		// Draw animated dots
+		const dots = '.'.repeat(Math.floor((timestamp / 500) % 4));
+		this.context.fillText(dots, this.canvas.width / 2, this.canvas.height / 2 + 10);
+
+		this.context.restore();
+	}
+
+	clearOverlay(): void {
+		const gameOverMenu = document.getElementById('game-over-menu');
+		if (gameOverMenu) {
+			gameOverMenu.remove();
+		}
+		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+	}
+
 }

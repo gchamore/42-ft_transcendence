@@ -1,12 +1,15 @@
 import { SettingsPage } from './pages/settingsPage.js';
 import { Game } from './pages/gamePage.js';
+import { WebSocketService } from './services/webSocketService.js';
 
 class App {
 	private currentSettingsPage: SettingsPage | null = null;
 	private currentGamePage: Game | null = null;
 	private hashChangeListener: () => void;
+	private webSocketService: WebSocketService;
 
 	constructor() {
+		this.webSocketService = WebSocketService.getInstance();
 		this.hashChangeListener = this.setupRouting.bind(this);
 		window.addEventListener('hashchange', this.hashChangeListener);
 		this.setupRouting().catch(error => {
@@ -44,8 +47,9 @@ class App {
 				// Update URL with gameId
 				if (!gameId) {
 					window.location.hash = `#game/${activeGameId}`;
+					return; // Wait for hash change event to re-run setupRouting
 				}
-				new Game(activeGameId);
+				this.currentGamePage = new Game(activeGameId);
 				settingsPage!.style.display = 'none'; // Hide settings page
 				gamePage!.style.display = 'block'; // Show game page
 			} catch (error) {
@@ -98,6 +102,7 @@ class App {
 			this.currentGamePage.stopGame();
 			this.currentGamePage = null;
 		}
+		this.webSocketService.close();
 	}
 }
 
@@ -106,4 +111,8 @@ const app = new App();
 
 window.addEventListener('beforeunload', () => {
 	app.cleanup();
+});
+
+window.addEventListener('error', (event) => {
+	console.error('Unhandled error:', event.error);
 });

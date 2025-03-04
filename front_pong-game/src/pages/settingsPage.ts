@@ -1,4 +1,5 @@
 import { SettingsService } from '../services/settingsServices.js';
+import { WebSocketService } from '../services/webSocketService.js';
 
 export class SettingsPage {
 	private ballSpeedSlider: HTMLInputElement;
@@ -42,7 +43,7 @@ export class SettingsPage {
 	}
 
 	private connectWebSocket() {
-		this.socket = new WebSocket(`ws://localhost:3000/game/${this.lobbyId}`);
+		this.socket = WebSocketService.getInstance().connect(this.lobbyId);
 		this.socket.onopen = () => {
 			console.log('Settings socket connected');
 			if (this.playerNumber === 1) {
@@ -73,7 +74,7 @@ export class SettingsPage {
 					break;
 				case 'gameStart':
 					if (data.gameId){
-					window.location.hash = `#game/${data.gameId}`;
+						window.location.hash = `#game/${data.gameId}`;
 					} else {
 						console.error('Game ID not provided');
 					}
@@ -316,8 +317,7 @@ export class SettingsPage {
 		if (this.paddleLengthSlider) this.paddleLengthSlider.removeEventListener('input', this.handlePaddleLengthChange);
 		if (this.mapSelect) this.mapSelect.removeEventListener('change', this.handleMapChange);
 		if (this.powerUpsToggle) this.powerUpsToggle.removeEventListener('change', this.handlePowerUpsChange);
-		const startButton = this.startButton?.onclick;
-		if (this.startButton && startButton) this.startButton.removeEventListener('click', this.startButtonClickHandler);
-		if (this.socket && this.socket.readyState === WebSocket.OPEN) this.socket.close(1000, "Page navigation");
+		if (this.startButton && this.startButtonClickHandler)
+			this.startButton.removeEventListener('click', this.startButtonClickHandler);
 	}
 }	

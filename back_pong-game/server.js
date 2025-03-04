@@ -66,9 +66,22 @@ setInterval(() => {
 		if (game.players.length > 0) {
 			// process full game only if the game is started and has 2 players
 			if (game.gameState.gameStarted && game.players.length === 2) {
-				const scoreOccured = game.update(); //check for collisions and scoring
-				if (scoreOccured || game.gameState.gameStarted) {
-					broadcastGameState(game);
+				const result = game.update(); //check for collisions and scoring
+				broadcastGameState(game);
+				if (result.scored) {
+					if (result.winner) {
+						game.players.forEach((player) => {
+							safeSend(player, {
+								type: 'gameOver',
+								reason: 'scoreLimit',
+								winner: result.winner,
+								score1: game.gameState.score.player1Score,
+								score2: game.gameState.score.player2Score,
+								message: `Player ${result.winner} wins!`
+							});
+						});
+						game.gameState.gameStarted = false;
+					}
 				}
 			} else { // occasionnal update for paddle movement
 				if (game.paddleMoved) {
@@ -164,15 +177,22 @@ function handleGameMessage(socket, game, data) {
 			if (playerNumber === 1 && game.isLobby) {
 				if (game.isGameReady()) {
 					const newGameId = data.gameId;
-					const gameInstance = game.transitionToGame(newGameId);
-					games.set(newGameId, gameInstance);
+					console.log(`Creating new game: ${newGameId} from lobby ${game.gameId}`);
+
 					games.delete(game.gameId);
-		
+					game.transitionToGame(newGameId);
+					games.set(newGameId, game);
+					console.log(`New game has ${game.players.length} players and Id ${game.gameId}`);
 					game.players.forEach((player) => {
 						safeSend(player, {
 							type: 'gameStart',
 							gameId: newGameId,
 							settings: game.settings
+						});
+						safeSend(player, {
+							type: 'gameState',
+							gameState: game.getState(),
+							playerNumber: player.playerNumber
 						});
 					});
 				} else {
@@ -184,9 +204,12 @@ function handleGameMessage(socket, game, data) {
 			}
 			break;
 		case 'startGame':
+			console.log(`Player ${playerNumber} trying to start game ${game.gameId}`);
+			console.log('Available game IDs:', Array.from(games.keys()));
 			if (playerNumber === game.gameState.servingPlayer) {
 				if (game.players.length === 2) {
-					game.gameState.gameStarted = true;
+					const currentGame = games.get(game.gameId);
+					currentGame.gameState.gameStarted = true;
 				} else {
 					safeSend(socket, {
 						type: 'error',
@@ -255,11 +278,29 @@ function handleGameMessage(socket, game, data) {
 				});
 			}
 			break;
+		case 'rematchRequest':
+			const otherPlayer = game.players.find(player => player.playerNumber !== playerNumber);
+			if (!game.rematchRequested) {
+				game.rematchRequested = playerNumber;
+				if (otherPlayer) {
+					safeSend(otherPlayer, {
+						type: 'rematchRequested',
+						player: playerNumber
+					});
+				}
+			} else if (game.rematchRequested && game.rematchRequested !== playerNumber) {
+				game.resetForRematch();
+				game.players.forEach((player) => {
+					safeSend(player, {
+						type: 'rematch'
+					});
+				});
+				game.rematchRequested = null;
+			}
+			break;
 	}
 	broadcastGameState(game);
 }
-
-
 
 //prevent local crash with failed connection
 function safeSend(socket, message) {
