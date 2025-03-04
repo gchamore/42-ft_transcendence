@@ -22,5 +22,9 @@
   },
   "dependencies": {
     "babylonjs": "^7.49.0"
+  },
+  "prettier": {
+    "useTabs": true,
+    "tabWidth": 4
   }
 }

@@ -107,7 +107,11 @@
 			Start Game
 		</button>
 	</div>
-	<canvas id="gameCanvas" width="800" height="600"></canvas>
+	<div id="game-container" style="position: relative; width: 800px; height: 600px;">
+		<canvas id="gameCanvas" width="800" height="600" style="display: block;"></canvas>
+		<canvas id="uiCanvas" width="800" height="600" 
+            style="position: absolute; top: 0; left: 0; pointer-events: none;"></canvas>
+	</div>
 
 	<script type="module" src="./dist/front_pong-game/src/main.js"></script>
 </body>
