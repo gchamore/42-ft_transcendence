@@ -13,6 +13,7 @@ body {
     background-color: rgb(245, 102, 102);
 
     height: 100%;
+
     display: flex;
     flex-direction: row-reverse;
     justify-content: flex-start;
@@ -27,6 +28,26 @@ body {
     border: 2px solid rgb(13, 255, 0);
     width: 100px;
     flex-grow: 0;
+}
+
+nav ul{ /* settings of every lists */
+    background-color: rgb(95, 84, 152);
+    list-style-type: none;
+
+    padding: 10px;
+    gap: 10px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+nav button{ /* settings of every list elements */
+    background-color: rgb(159, 156, 173);
+
+    height: 80px;
+    width: 80px;
+    border-radius: 50%;
 }
 
 #modals-container { /* hide everything but the home section*/
