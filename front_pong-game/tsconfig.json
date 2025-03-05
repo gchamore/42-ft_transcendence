@@ -18,7 +18,11 @@
     "baseUrl": ".",                                 /* Base URL for module resolution */
     "paths": {                                      /* Path mapping for module resolution */
       "@shared/*": ["../shared/*"]
-    }
+    },
+    "typeRoots": [                                  /* Specify the location of type definition files */
+      "./node_modules/@types",
+      "./src/types"
+    ]
   },
   "include": [
     "src/**/*.ts",                                /* Include all TypeScript files in the 'src' folder */

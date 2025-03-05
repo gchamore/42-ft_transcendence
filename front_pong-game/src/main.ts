@@ -25,8 +25,9 @@ class App {
 
 		const settingsPage = document.getElementById('settings-page');
 		const gamePage = document.getElementById('gameCanvas');
+		const gameContainer = document.getElementById('game-container');
 
-		if (!settingsPage || !gamePage) {
+		if (!settingsPage || !gamePage || !gameContainer) {
 			console.error('Required elements are not available in the DOM!');
 			return; // Prevent errors if elements are not found
 		}
@@ -51,6 +52,8 @@ class App {
 				}
 				this.currentGamePage = new Game(activeGameId);
 				settingsPage!.style.display = 'none'; // Hide settings page
+				
+				gameContainer.style.display = 'block'; // Show game container
 				gamePage!.style.display = 'block'; // Show game page
 			} catch (error) {
 				console.error('Failed to generate unique gameId:', error);
@@ -61,6 +64,7 @@ class App {
 			this.currentSettingsPage = new SettingsPage(); // store reference to settings page
 			settingsPage!.style.display = 'block'; // Show settings page
 			gamePage!.style.display = 'none'; // Hide game page
+			gameContainer.style.display = 'none'; // Hide game container
 		}
 
 		window.addEventListener('hashchange', () => {

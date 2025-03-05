@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+	<script src="https://cdn.babylonjs.com/babylon.js"></script>
+	<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Pong Game</title>
@@ -67,6 +69,36 @@
 			opacity: 0.6;
 			cursor: not-allowed;
 		}
+		#babylon-loading-screen {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(5, 5, 20, 0.8);
+			color: white;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			z-index: 1000;
+			font-family: Arial, sans-serif;
+			opacity: 1;
+			transition: opacity 0.5s ease;
+		}
+		.loading-title {
+			font-size: 24px;
+			margin-bottom: 20px;
+		}
+		
+		.loading-spinner {
+			border: 5px solid #f3f3f3;
+			border-top: 5px solid #3498db;
+			border-radius: 50%;
+			width: 50px;
+			height: 50px;
+			animation: spin 1s linear infinite;
+		}
 	</style>
 </head>
 <body>
@@ -107,12 +139,14 @@
 			Start Game
 		</button>
 	</div>
-	<div id="game-container" style="position: relative; width: 800px; height: 600px;">
+	<div id="game-container" style="position: relative; width: 800px; height: 600px; display: none;">
 		<canvas id="gameCanvas" width="800" height="600" style="display: block;"></canvas>
 		<canvas id="uiCanvas" width="800" height="600" 
-            style="position: absolute; top: 0; left: 0; pointer-events: none;"></canvas>
+			style="position: absolute; top: 0; left: 0; pointer-events: none;"></canvas>
 	</div>
-
+	<div id="fps-counter" style="position: fixed; top: 10px; right: 10px; color: white; background: rgba(0,0,0,0.5); padding: 5px; z-index: 1000;">
+		FPS: --
+	</div>
 	<script type="module" src="./dist/front_pong-game/src/main.js"></script>
 </body>
 </html>

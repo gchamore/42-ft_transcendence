@@ -127,8 +127,7 @@ function handleNewPlayer(socket, game) {
 	// Send initial game state with player number
 	safeSend(socket, {
 		type: 'gameState',
-		gameState: game.getState(),
-		playerNumber: playerNumber
+		gameState: game.getState()
 	});
 
 	safeSend(socket, {
@@ -191,8 +190,7 @@ function handleGameMessage(socket, game, data) {
 						});
 						safeSend(player, {
 							type: 'gameState',
-							gameState: game.getState(),
-							playerNumber: player.playerNumber
+							gameState: game.getState()
 						});
 					});
 				} else {

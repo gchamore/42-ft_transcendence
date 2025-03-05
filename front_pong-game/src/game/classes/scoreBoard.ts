@@ -39,7 +39,7 @@ export class ScoreBoard {
 		this.updateDisplay();
 	}
 
-	private updateDisplay(): void {
+	public updateDisplay(): void {
 		if (this.display)
 			this.display.textContent = `${this.player1Score} - ${this.player2Score}`;
 	}

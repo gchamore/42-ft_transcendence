@@ -1,3 +1,4 @@
+/// <reference path="../types/babylon.d.ts" />
 import { Ball } from "../game/classes/ball.js";
 import { Paddle } from "../game/classes/paddle.js";
 import { ScoreBoard } from "../game/classes/scoreBoard.js";
@@ -7,11 +8,14 @@ import { UIManager } from "../game/managers/uiManager.js";
 import { GameState } from "@shared/types/gameState";
 import { WebSocketService } from "../services/webSocketService.js";
 import { BabylonManager } from "../game/managers/babylonManager.js";
+import { FPSManager } from "../game/managers/fpsManager.js";
 
 export class Game {
 	private babylonManager: BabylonManager | null = null;
 	private uiCanvas!: HTMLCanvasElement;
 	private canvas!: HTMLCanvasElement;
+
+	private fpsManager!: FPSManager;
 
 	private socket!: WebSocket;
 	private context!: CanvasRenderingContext2D;
@@ -27,6 +31,7 @@ export class Game {
 	private animationFrameId: number | null = null;
 	private playerNumber: number = 0;
 	private gameId: string;
+	private isLoading: boolean = true;
 
 	constructor(gameId: string) {
 		this.gameId = gameId;
@@ -38,12 +43,44 @@ export class Game {
 	}
 
 	private initializeBabylonScene() {
-		this.babylonManager = new BabylonManager(
-			this.canvas,
-			this.paddle1,
-			this.paddle2,
-			this.ball
-		);
+		try {
+			const canvas = document.createElement('canvas');
+			const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+			if (!gl) {
+				console.warn("WebGL not available, skipping 3D mode");
+				// Still create babylonManager but with shorter timeout
+				this.babylonManager = new BabylonManager(() => {
+					console.log("Simulated 3D loading complete (WebGL not available)");
+					this.isLoading = false;
+				});
+				return;
+			}
+			if (!BABYLON.Engine.isSupported()) {
+				console.error("WebGL not supported");
+				return;
+			}
+			this.babylonManager = new BabylonManager(
+				// this.canvas,
+				// this.paddle1,
+				// this.paddle2,
+				// this.ball
+				() => {
+					console.log("3D scene loading complete");
+					this.isLoading = false; // Update loading state
+				}
+			);
+
+			if (this.babylonManager) {
+				this.fpsManager = new FPSManager(this.babylonManager.getEngine());
+				this.fpsManager.toggleVisibility(true);
+			} else {
+				this.fpsManager = new FPSManager();
+			}
+		} catch (error) {
+			console.error("Error initializing Babylon scene", error);
+			this.isLoading = false;
+		}
 	}
 
 	private connectWebSocket() {
@@ -57,13 +94,14 @@ export class Game {
 			const data = JSON.parse(message.data);
 			console.log("Received message : ", data);
 			switch (data.type) {
+				case "playerNumber":
+					console.log("Player number assigned:", data.playerNumber);
+					this.playerNumber = data.playerNumber;
+					break;
 				case "gameState":
-					if (data.playerNumber) {
-						this.playerNumber = data.playerNumber;
 						if (this.controls) {
 							this.controls.setPlayerNumber(this.playerNumber);
 						}
-					}
 					this.updateGameState(data.gameState);
 					break;
 				case "gameOver":
@@ -299,7 +337,7 @@ export class Game {
 		if (gameState.paddle2) {
 			this.paddle2.updatePosition(gameState.paddle2);
 		}
-		if (gameState.score) {
+		if (gameState.score && !this.isLoading) {
 			this.scoreBoard.updateScore(gameState.score);
 		}
 	}
@@ -313,7 +351,7 @@ export class Game {
 		this.uiCanvas = document.getElementById(
 			"uiCanvas"
 		) as HTMLCanvasElement;
-		this.context = this.canvas.getContext("2d")!;
+		this.context = this.uiCanvas.getContext("2d")!;
 	}
 
 	private initializeComponents() {
@@ -348,14 +386,20 @@ export class Game {
 	private gameLoop(timestamp: number): void {
 		if (this.uiCanvas && this.context)
 			this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-		if (!this.gameStarted) {
-			this.uiManager.drawStartMessage(
-				timestamp,
-				this.gameStarted,
-				this.playerNumber,
-				this.servingPlayer
-			);
+		
+		if (this.fpsManager) {
+			this.fpsManager.update(timestamp);
+		}
+		if (!this.isLoading) {
+			this.scoreBoard.updateDisplay();
+			if (!this.gameStarted) {
+				this.uiManager.drawStartMessage(
+					timestamp,
+					this.gameStarted,
+					this.playerNumber,
+					this.servingPlayer
+				);
+			}
 		}
 
 		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
@@ -371,6 +415,10 @@ export class Game {
 			this.animationFrameId = null;
 		}
 		this.inputManager.removeEventListeners();
+
+		if (this.fpsManager) {
+			this.fpsManager.dispose();
+		}
 
 		if (this.babylonManager) {
 			this.babylonManager.dispose();
