@@ -4,37 +4,44 @@
     padding: 0;
 }
 
+
 body {
     height: 100vh;
 }
-
 #home {
-    border: 5px solid red;
-    background-color: rgb(245, 102, 102);
+    /* border: 5px solid red; */
+    background-color: rgb(145, 83, 83);
 
     height: 100%;
 
     display: flex;
     flex-direction: row-reverse;
     justify-content: flex-start;
+    min-height: 300px;
 }
+
 
 #game {
-    border: 2px solid black;
+    border: 3px solid rgb(0, 0, 0);
+    background-color: rgb(33, 30, 30);
+
+    margin: 10px;
+    border-radius: 40px;
     flex-grow: 1;
 }
-
 #sidebar {
-    border: 2px solid rgb(13, 255, 0);
+    /* border: 2px solid rgb(13, 255, 0); */
     width: 100px;
     flex-grow: 0;
 }
 
+
 nav ul { /* settings of every lists */
-    background-color: rgb(95, 84, 152);
+    /* background-color: rgb(95, 84, 152); */
     list-style-type: none;
 
-    padding: 10px;
+    padding: 15px;
+    margin-right: 10px;
     gap: 10px;
 
     display: flex;
@@ -42,13 +49,34 @@ nav ul { /* settings of every lists */
     align-items: center;
 }
 
-nav button { /* settings of every list elements */
-    color: rgb(138, 134, 157);
 
-    height: 80px;
-    width: 80px;
+li {
+    background-color: rgb(153, 29, 35);
     border-radius: 50%;
 }
+li:hover {
+    background-color: rgb(156, 41, 46);
+}
+li:active {
+    background-color: rgb(122, 30, 35);
+}
+
+
+nav button { /* settings of every list elements */
+    height: 80px;
+    width: 80px;
+
+    border-radius: 100%;
+    border-width: 3px;
+    border-color: black;
+    border-style: solid;
+}
+nav button:hover {
+    animation-name: anim1;
+    animation-duration: 0.5s;
+    animation-timing-function: ease-in-out;
+}
+
 
 #profile-btn {
     background: transparent url(../assets/profile.png) no-repeat center;
@@ -58,6 +86,21 @@ nav button { /* settings of every list elements */
 }
 #chat-btn {
     background: transparent url(../assets/chat.png) no-repeat center;
+}
+
+
+@keyframes anim1 {
+    0% {
+        background-size: 55%;
+    }
+    50% {
+        height: 85px;
+        width: 85px;
+        background-size: 60%;
+    }
+    100% {
+        background-size: 55%;
+    }
 }
 
 #modals-container { /* hide everything but the home section*/
