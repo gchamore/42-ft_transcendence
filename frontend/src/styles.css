@@ -30,7 +30,7 @@ body {
     flex-grow: 0;
 }
 
-nav ul{ /* settings of every lists */
+nav ul { /* settings of every lists */
     background-color: rgb(95, 84, 152);
     list-style-type: none;
 
@@ -42,12 +42,22 @@ nav ul{ /* settings of every lists */
     align-items: center;
 }
 
-nav button{ /* settings of every list elements */
-    background-color: rgb(159, 156, 173);
+nav button { /* settings of every list elements */
+    color: rgb(138, 134, 157);
 
     height: 80px;
     width: 80px;
     border-radius: 50%;
+}
+
+#profile-btn {
+    background: transparent url(../assets/profile.png) no-repeat center;
+}
+#friends-btn {
+    background: transparent url(../assets/friends.png) no-repeat center;
+}
+#chat-btn {
+    background: transparent url(../assets/chat.png) no-repeat center;
 }
 
 #modals-container { /* hide everything but the home section*/
