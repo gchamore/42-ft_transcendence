@@ -4,7 +4,6 @@
     padding: 0;
 }
 
-
 body {
     height: 100vh;
 }
@@ -17,21 +16,37 @@ body {
     display: flex;
     flex-direction: row-reverse;
     justify-content: flex-start;
-    min-height: 300px;
 }
 
 
-#game {
+#game-overlay {
     border: 3px solid rgb(0, 0, 0);
     background-color: rgb(33, 30, 30);
 
     margin: 10px;
-    border-radius: 40px;
+    border-radius: 20px;
+
+    min-height: 300px;
+    min-width: 500px;
+
     flex-grow: 1;
+
+    display: flex;
+    justify-content:  center;
+    align-items: center;
+}
+#game {
+    background-color: rgb(255, 12, 223);
+
+    height: 280px;
+    width: 500px;
+    overflow: hidden;
 }
 #sidebar {
     /* border: 2px solid rgb(13, 255, 0); */
-    width: 100px;
+    min-height: 300px;
+    min-width: 100px;
+
     flex-grow: 0;
 }
 
@@ -40,44 +55,40 @@ nav ul { /* settings of every lists */
     /* background-color: rgb(95, 84, 152); */
     list-style-type: none;
 
-    padding: 15px;
+    padding-top: 10px;
     margin-right: 10px;
-    gap: 10px;
+    gap: 5px;
 
     display: flex;
     flex-direction: column;
     align-items: center;
 }
-
-
 li {
     background-color: rgb(153, 29, 35);
+
     border-radius: 50%;
-}
-li:hover {
-    background-color: rgb(156, 41, 46);
-}
-li:active {
-    background-color: rgb(122, 30, 35);
-}
-
-
-nav button { /* settings of every list elements */
-    height: 80px;
-    width: 80px;
-
-    border-radius: 100%;
     border-width: 3px;
     border-color: black;
     border-style: solid;
+
+    transition: transform 0.1s ease-in-out;
 }
-nav button:hover {
-    animation-name: anim1;
-    animation-duration: 0.5s;
-    animation-timing-function: ease-in-out;
+nav li:hover {
+    background-color: rgb(156, 41, 46);
+    transform: scale(1.05);
+}
+nav li:active {
+    border-style: solid;
+    transform: scale(0.85) rotateZ(180deg);
 }
 
 
+nav button {
+    height: 80px;
+    width: 80px;
+    
+    border: none;
+}
 #profile-btn {
     background: transparent url(../assets/profile.png) no-repeat center;
 }
@@ -88,20 +99,6 @@ nav button:hover {
     background: transparent url(../assets/chat.png) no-repeat center;
 }
 
-
-@keyframes anim1 {
-    0% {
-        background-size: 55%;
-    }
-    50% {
-        height: 85px;
-        width: 85px;
-        background-size: 60%;
-    }
-    100% {
-        background-size: 55%;
-    }
-}
 
 #modals-container { /* hide everything but the home section*/
     display: none;
