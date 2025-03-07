@@ -32,7 +32,7 @@ async function routes(fastify, options) {
         db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, hashedPassword);
         fastify.log.info(`Nouvel utilisateur enregistré : ${username}`);
 
-        return reply.code(201).send({ success: true, message: "User registered successfully" });
+        return reply.code(201).send({ success: true, message: "User registered successfully", username: user.username, id: user.id });
     });
 
     /*** 📌 Route: UNREGISTER ***/
@@ -207,9 +207,8 @@ async function routes(fastify, options) {
                 maxAge: 7 * 24 * 60 * 60 // 7 jours en SECONDES (604800 sec)
             });
     
-        return { success: true, message: "Login successful", username: user.username };
+        return { success: true, message: "Login successful", username: user.username, id: user.id };
     });
-    
 
     /*** 📌 Route: REFRESH TOKEN ***/
     fastify.post("/refresh", async (request, reply) => {
