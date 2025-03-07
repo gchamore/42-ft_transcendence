@@ -10,12 +10,15 @@
       <aside id="sidebar">
         <nav>
           <ul>
-            <li><button class="btn sidebar" id="profile-btn" 
-              onclick="profile_clicked()"></button></li>
-            <li><button class="btn sidebar logged-in" id="friends-btn" 
-              onclick="friends_clicked()"></button></li>
-            <li><button class="btn sidebar logged-in" id="chat-btn"
-              onclick="chat_clicked()"></button></li>
+            <li>
+              <button class="btn sidebar" id="profile-btn" 
+                onclick="profile_clicked()"></button></li>
+            <li class="logged-in" hidden>
+              <button class="btn sidebar" id="friends-btn" 
+                onclick="friends_clicked()"></button></li>
+            <li class="logged-in" hidden>
+              <button class="btn sidebar" id="chat-btn"
+                onclick="chat_clicked()"></button></li>
           </ul>
         </nav>
       </aside>
