@@ -298,12 +298,12 @@ async function routes(fastify, options) {
         
         fastify.log.debug({
             tokenValid: !!decoded,
-            userId: decoded?.userId
+            username: decoded?.username
         }, "Vérification de token");
 
         return { 
             valid: !!decoded,
-            userId: decoded?.userId 
+            username: decoded?.username
         };
     });
 }
