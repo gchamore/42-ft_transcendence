@@ -3,53 +3,96 @@
  */
 
 async function routes(fastify, options) {
-    // Route pour le monitoring des connexions
-    fastify.get('/ws', { websocket: true }, (connection, req) => {
-        let userId = null;
-        let username = null;
-        let disconnectHandler = null;
-        
-        // Gérer les messages reçus du client
-        connection.socket.on('message', (message) => {
-            try {
-                const data = JSON.parse(message);
-                
-                // Gestion de la connexion d'un utilisateur
-                if (data.type === 'connection' && data.userId && data.username) {
-                    userId = data.userId;
-                    username = data.username;
+    // Récupérer l'instance WebSocketManager
+    const wsManager = fastify.wsManager;
+    
+    // Route principale pour les WebSockets
+    fastify.register(async function (fastify) {
+        fastify.get('/ws', { websocket: true }, (connection, req) => {
+            // Connexion WebSocket établie
+            fastify.log.info('Nouvelle connexion WebSocket établie');
+            
+            let userId = null;
+            let username = null;
+            let disconnectHandler = null;
+            
+            // Envoyer immédiatement la liste des utilisateurs en ligne
+            setTimeout(() => {
+                try {
+                    const onlineUsers = Array.from(wsManager.onlineUsers.entries())
+                        .map(([id, name]) => ({ id, username: name }));
                     
-                    // Enregistrer la connexion
-                    disconnectHandler = fastify.wsManager.handleConnection(
-                        { socket: connection.socket },
-                        userId,
-                        username
-                    );
-                }
-                // Répondre aux pings avec des pongs pour vérifier la connexion
-                else if (data.type === 'ping') {
                     connection.socket.send(JSON.stringify({
-                        type: 'pong',
-                        timestamp: data.timestamp
+                        type: 'online_users_update',
+                        users: onlineUsers
                     }));
+                    
+                    fastify.log.debug('Liste initiale des utilisateurs envoyée au nouveau client');
+                } catch (error) {
+                    fastify.log.error(error, 'Erreur lors de l\'envoi de la liste initiale des utilisateurs');
                 }
-                // Gestion d'autres types de messages WebSocket
-                else if (data.type === 'matchmaking_join' && userId) {
-                    fastify.wsManager.addToMatchmaking(userId);
+            }, 100);
+            
+            connection.socket.on('message', async (message) => {
+                try {
+                    const data = JSON.parse(message.toString());
+                    fastify.log.debug({ data }, 'Message WebSocket reçu');
+                    
+                    // Gérer la connexion utilisateur
+                    if (data.type === 'connection') {
+                        userId = String(data.userId);
+                        username = data.username;
+                        
+                        // Stocker la connexion avec le WebSocketManager
+                        disconnectHandler = wsManager.handleConnection(
+                            { socket: connection.socket },
+                            userId,
+                            username
+                        );
+                        
+                        fastify.log.info(`Utilisateur ${username} (${userId}) connecté via WebSocket`);
+                        
+                        // Confirmer la connexion au client
+                        connection.socket.send(JSON.stringify({
+                            type: 'connection_confirmed',
+                            userId: userId,
+                            username: username
+                        }));
+                    }
+                    // Gérer les pings
+                    else if (data.type === 'ping') {
+                        // Répondre avec un pong contenant le timestamp d'origine
+                        connection.socket.send(JSON.stringify({
+                            type: 'pong',
+                            timestamp: data.timestamp,
+                            userId: data.userId
+                        }));
+                        
+                        fastify.log.debug(`Ping reçu de ${username || 'utilisateur inconnu'}`);
+                    }
+                } catch (error) {
+                    fastify.log.error(error, 'Erreur lors du traitement du message WebSocket');
                 }
-                else if (data.type === 'matchmaking_leave' && userId) {
-                    fastify.wsManager.removeFromMatchmaking(userId);
+            });
+            
+            // Gérer la fermeture de connexion
+            connection.socket.on('close', () => {
+                fastify.log.info(`Connexion WebSocket fermée${username ? ` pour ${username}` : ''}`);
+                
+                // Nettoyer avec le WebSocketManager
+                if (disconnectHandler) {
+                    disconnectHandler();
                 }
-            } catch (err) {
-                console.error('Error processing WebSocket message:', err);
-            }
-        });
-        
-        // Gérer la déconnexion
-        connection.socket.on('close', () => {
-            if (disconnectHandler) {
-                disconnectHandler();
-            }
+            });
+            
+            // Gérer les erreurs de connexion
+            connection.socket.on('error', (error) => {
+                fastify.log.error(error, `Erreur WebSocket${username ? ` pour ${username}` : ''}`);
+                
+                if (disconnectHandler) {
+                    disconnectHandler();
+                }
+            });
         });
     });
     
@@ -58,7 +101,7 @@ async function routes(fastify, options) {
         const onlineUsers = Array.from(fastify.wsManager.onlineUsers.entries())
             .map(([id, username]) => ({ id, username }));
         
-        return { users: onlineUsers };
+        return { users: onlineUsers, count: onlineUsers.length };
     });
 }
 

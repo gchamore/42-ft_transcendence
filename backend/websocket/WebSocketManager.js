@@ -8,6 +8,9 @@ class WebSocketManager{
 
     // Gestion des connexions
     handleConnection(connection, userId, username) {
+        // Assurer que les ID sont toujours des chaînes pour la cohérence
+        userId = String(userId);
+        
         // Stocker la connexion
         this.connections.set(userId, connection);
         this.onlineUsers.set(userId, username);
@@ -17,11 +20,15 @@ class WebSocketManager{
         // Informer tous les utilisateurs de la nouvelle connexion
         this.broadcastOnlineUsers();
         
+        // Retourner une fonction de nettoyage pour la déconnexion
         return () => this.handleDisconnection(userId);
     }
 
     // Gestion des déconnexions
     handleDisconnection(userId) {
+        // Assurer que l'ID est une chaîne
+        userId = String(userId);
+        
         if (this.connections.has(userId)) {
             const username = this.onlineUsers.get(userId);
             console.log(`User ${username} (ID: ${userId}) disconnected`);
@@ -137,9 +144,13 @@ class WebSocketManager{
 
     // Envoyer un message à tous les utilisateurs
     broadcast(message) {
+        const messageStr = JSON.stringify(message);
+        
         this.connections.forEach((connection, userId) => {
             try {
-                connection.socket.send(JSON.stringify(message));
+                if (connection && connection.socket && connection.socket.readyState === 1) { // WebSocket.OPEN = 1
+                    connection.socket.send(messageStr);
+                }
             } catch (error) {
                 console.error(`Failed to broadcast to user ${userId}:`, error);
                 this.handleDisconnection(userId);
