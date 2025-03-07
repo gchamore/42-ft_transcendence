@@ -1,6 +1,7 @@
 export class WebSocketService {
 	private static instance: WebSocketService;
 	private socket: WebSocket | null = null;
+	private playerNumber: number = 0;
 
 	private constructor() { }
 
@@ -13,6 +14,14 @@ export class WebSocketService {
 
 	public getSocket(): WebSocket | null {
 		return this.socket;
+	}
+
+	public getPlayerNumber(): number {
+		return this.playerNumber;
+	}
+
+	public setPlayerNumber(playerNumber: number): void {
+		this.playerNumber = playerNumber;
 	}
 
 	public connect(gameId: string): WebSocket {

@@ -35,6 +35,7 @@ export class Game {
 
 	constructor(gameId: string) {
 		this.gameId = gameId;
+		this.playerNumber = WebSocketService.getInstance().getPlayerNumber();
 		this.connectWebSocket();
 		this.initializeCanvas();
 		this.initializeComponents();
@@ -49,22 +50,20 @@ export class Game {
 
 			if (!gl) {
 				console.warn("WebGL not available, skipping 3D mode");
-				// Still create babylonManager but with shorter timeout
-				this.babylonManager = new BabylonManager(() => {
-					console.log("Simulated 3D loading complete (WebGL not available)");
-					this.isLoading = false;
-				});
+				this.isLoading = false;
 				return;
 			}
+
 			if (!BABYLON.Engine.isSupported()) {
 				console.error("WebGL not supported");
 				return;
 			}
+
 			this.babylonManager = new BabylonManager(
-				// this.canvas,
-				// this.paddle1,
-				// this.paddle2,
-				// this.ball
+				this.canvas,
+				this.paddle1,
+				this.paddle2,
+				this.ball,
 				() => {
 					console.log("3D scene loading complete");
 					this.isLoading = false; // Update loading state
@@ -94,14 +93,7 @@ export class Game {
 			const data = JSON.parse(message.data);
 			console.log("Received message : ", data);
 			switch (data.type) {
-				case "playerNumber":
-					console.log("Player number assigned:", data.playerNumber);
-					this.playerNumber = data.playerNumber;
-					break;
 				case "gameState":
-						if (this.controls) {
-							this.controls.setPlayerNumber(this.playerNumber);
-						}
 					this.updateGameState(data.gameState);
 					break;
 				case "gameOver":
@@ -386,7 +378,7 @@ export class Game {
 	private gameLoop(timestamp: number): void {
 		if (this.uiCanvas && this.context)
 			this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-		
+
 		if (this.fpsManager) {
 			this.fpsManager.update(timestamp);
 		}
@@ -400,8 +392,10 @@ export class Game {
 					this.servingPlayer
 				);
 			}
+		} 
+		else if (this.babylonManager) {
+			this.babylonManager.render(timestamp);
 		}
-
 		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
 	}
 

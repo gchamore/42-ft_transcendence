@@ -57,6 +57,7 @@ export class SettingsPage {
 			switch (data.type) {
 				case 'playerNumber':
 					this.playerNumber = data.playerNumber;
+					WebSocketService.getInstance().setPlayerNumber(data.playerNumber);
 					if (this.playerNumber === 1) {
 						const savedSettings = SettingsService.loadSettings();
 						this.updateSettings(savedSettings);
