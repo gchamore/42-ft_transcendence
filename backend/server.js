@@ -51,7 +51,8 @@ try {
 
 // Activer CORS pour permettre les requêtes depuis le frontend
 fastify.register(require('@fastify/cors'), {
-    origin: true // permet toutes les origines en développement
+    origin: true, // permet toutes les origines en développement
+    cedentials: true // permet les cookies et les headers d'authentification
 });
 
 // Enregistrer le plugin cookie
