@@ -13,11 +13,7 @@ function verify_token() {
         try {
             const response = yield fetch(`http://localhost:8080/verify_token`, {
                 method: "POST",
-                credentials: 'include',
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({})
+                credentials: 'include'
             });
             const data = yield response.json();
             if (data.valid) {

@@ -4,11 +4,7 @@ async function verify_token(): Promise<boolean> {
 	try {
         const response = await fetch(`http://localhost:8080/verify_token`, {
             method: "POST",
-			credentials: 'include',
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({})
+			credentials: 'include'
         });
         const data = await response.json();
 
