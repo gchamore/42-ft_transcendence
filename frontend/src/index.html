@@ -2,45 +2,91 @@
 <html>  
   <head>
     <title>Our spectacular Pong-game Website</title>
+    <link rel="stylesheet" href="styles.css">
   </head>
   
   <body>
     <section id="home">
-      <aside>
+      <aside id="sidebar">
         <nav>
           <ul>
-            <li><button class="btn" id="profile-btn"></button></li>
-            <li><button class="btn sidebar" id="friends-btn"></button></li>
-            <li><button class="btn sidebar" id="chat-btn"></button></li>
+            <li><button class="btn sidebar" id="profile-btn" 
+              onclick="profile_clicked()"></button></li>
+            <li><button class="btn sidebar logged-in" id="friends-btn" 
+              onclick="friends_clicked()"></button></li>
+            <li><button class="btn sidebar logged-in" id="chat-btn"
+              onclick="chat_clicked()"></button></li>
           </ul>
         </nav>
       </aside>
-      
-      <main>
-        <canvas id="game"></canvas> <!-- Pong-game belongs here -->
-      </main>
-    </section>
 
-    <!-- Popup Modals -->
-    <div id="modals-container">
-      <div id="profile-modal" class="modal">
-        <div class="modal-content">
-          <!-- Idk from now... -->
-        </div>
-      </div>
+      <main id="game-overlay">
+        <canvas id="game" title="pong-game"></canvas> <!-- Pong-game belongs here -->
+      </main>   
+    </section>
+    
+    <div id="modals-container" class="modal">
+      <article class="profile">
+        <section>
+          <img class="avatar profile logged-in">
+
+          <label for="profile-username">Username:</label>
+          <input type="text" id="profile-username">
+          
+          <div class="logged-off">
+            <label for="profile-password">Password:</label>
+            <input type="text" id="profile-password">
+          </div>
+        </section>
+
+        <section>
+          <nav>
+            <ul>
+              <li><button class="btn modal" id="profile-btn1">Btn1</button></li>
+              <li><button class="btn modal" id="profile-btn2">Btn2</button></li>
+            </ul>
+          </nav>
+        </section>
+      </article>
       
-      <div id="friends-modal" class="modal">
-        <div class="modal-content">
-          <!-- Idk from now... -->
-        </div>
-      </div>
-      
-      <div id="chat-modal" class="modal">
-        <div class="modal-content">
-          <!-- Idk from now... -->
-        </div>
-      </div>
+      <article class="friends">
+        <section>
+          <label for="friends-username">Search a user:</label>
+          <input type="text" id="friends-username">
+          <label class="not-found">User not found...</label>
+        </section>
+        
+        <section class="found">
+          <div id="avatar-status">
+            <img class="avatar friends">
+            <div class="avatar friends friend">
+              <img id="status-img"><span class="status-text">Status</span>
+            </div>
+          </div>
+
+          <div id="friend-stats">
+            <label id="friend-stat1">Stat1</label>
+            <label for="friend-stat2">Stat2</label>
+            <label for="friend-stat3">Stat3</label>
+          </div>
+        </section>
+
+        <section>
+          <nav>
+            <ul>
+              <li><button class="btn modal" id="friends-btn1">Btn1</button></li>
+              <li><button class="btn modal" id="friends-btn2">Btn2</button></li>
+              <li><button class="btn modal" id="friends-btn3">Btn3</button></li>
+            </ul>
+          </nav>
+        </section>
+      </article>
+
+      <article class="chat">
+        <!-- To be continued... -->
+      </article>
     </div>
-    <!-- ----- -->
+
+    <script src="../dist/sidebar.js"></script>
   </body>
 </html>
