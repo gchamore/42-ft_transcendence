@@ -207,7 +207,7 @@ async function routes(fastify, options) {
                 maxAge: 7 * 24 * 60 * 60 // 7 jours en SECONDES (604800 sec)
             });
     
-        return { success: true, message: "Login successful" };
+        return { success: true, message: "Login successful", username: user.username };
     });
     
 
