@@ -1,4 +1,5 @@
 const bcrypt = require("bcrypt");
+const authService = require('../jwt/services/auth.service');
 
 async function routes(fastify, options) {
     const { db } = fastify;
@@ -62,7 +63,10 @@ async function routes(fastify, options) {
             }
 
             // Utilisation d'une transaction pour la suppression atomique
-            const transaction = db.transaction(() => {
+            const transaction = db.transaction(async () => {
+                fastify.log.info("Révocation des tokens de l'utilisateur");
+                await authService.revokeTokens(user.id);
+
                 fastify.log.info("Début de la suppression des données utilisateur");
 
                 // 1. Rendre les parties anonymes plutôt que les supprimer
@@ -150,6 +154,157 @@ async function routes(fastify, options) {
         }
 
         return reply.send({ valid: validPassword });
+    });
+
+    /*** 📌 Route: GET USER ID ***/
+    fastify.post("/getUserId", async (request, reply) => {
+        const { username } = request.body;
+        
+        if (!username) {
+            fastify.log.warn("Tentative de récupération d'ID sans username");
+            return reply.code(400).send({ error: "Username is required" });
+        }
+
+        fastify.log.info(`Recherche de l'ID pour l'utilisateur: ${username}`);
+        
+        const user = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
+        if (!user) {
+            fastify.log.warn(`Utilisateur non trouvé: ${username}`);
+            return reply.code(404).send({ error: "User not found" });
+        }
+        
+        fastify.log.info(`ID trouvé pour ${username}: ${user.id}`);
+        return { success: true, id: user.id };
+    });
+
+    /*** 📌 Route: LOGIN ***/
+    fastify.post("/login", async (request, reply) => {
+        const { username, password } = request.body;
+        fastify.log.info({ username }, "Tentative de connexion");
+    
+        const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            fastify.log.warn(`Échec de connexion pour: ${username}`);
+            return reply.code(401).send({ error: "Invalid credentials" });
+        }
+    
+        const { accessToken, refreshToken } = await authService.generateTokens(user.id);
+    
+        // Définir les cookies HTTP-Only
+        reply
+            .setCookie('accessToken', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'Strict',
+                path: '/',
+                maxAge: 15 * 60 // 15 min en SECONDES (900 sec)
+            })
+            .setCookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'Strict',
+                path: '/',
+                maxAge: 7 * 24 * 60 * 60 // 7 jours en SECONDES (604800 sec)
+            });
+    
+        return { success: true, message: "Login successful" };
+    });
+    
+
+    /*** 📌 Route: REFRESH TOKEN ***/
+    fastify.post("/refresh", async (request, reply) => {
+        const refreshToken = request.cookies.refreshToken;
+        if (!refreshToken) {
+            return reply.code(401).send({ error: "No refresh token provided" });
+        }
+
+        const newAccessToken = await authService.refreshAccessToken(refreshToken);
+        if (!newAccessToken) {
+            return reply.code(401).send({ error: "Invalid refresh token" });
+        }
+
+        return { accessToken: newAccessToken };
+    });
+
+    /*** 📌 Route: PROTECTED EXAMPLE ***/
+    fastify.get("/protected", async (request, reply) => {
+        // Le middleware auth vérifie déjà le token
+        const userId = request.user.userId;
+        const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+        
+        return { 
+            message: "protected information",
+            user: user.username
+        };
+    });
+
+    /*** 📌 Route: LOGOUT ***/
+    fastify.post("/logout", async (request, reply) => {
+        const token = request.cookies.accessToken;
+        
+        if (!token) {
+            return reply.code(401).send({ error: 'No token provided' });
+        }
+
+        // Blacklist du token reçu
+        await authService.blacklistToken(token);
+
+        // Décodage basique pour récupérer l'ID user
+        const decoded = require('jsonwebtoken').decode(token);
+        if (decoded?.userId) {
+            // Révocation de tous les tokens
+            await authService.revokeTokens(decoded.userId);
+        }
+
+        // Supprimer les cookies
+        reply
+            .clearCookie('accessToken', {
+                path: '/',
+                secure: process.env.NODE_ENV === 'production',
+                httpOnly: true,
+                sameSite: 'strict'
+            })
+            .clearCookie('refreshToken', {
+                path: '/',
+                secure: process.env.NODE_ENV === 'production',
+                httpOnly: true,
+                sameSite: 'strict'
+            });
+
+        return { success: true, message: "Logged out successfully" };
+    });
+
+    /*** 📌 Route: REVOKE TOKEN ***/
+    fastify.post("/revoke", async (request, reply) => {
+        const { userId } = request.body;
+        
+        if (!userId) {
+            return reply.code(400).send({ error: "User ID is required" });
+        }
+
+        await authService.revokeTokens(userId);
+        return { success: true, message: "Tokens revoked successfully" };
+    });
+
+    /*** 📌 Route: VERIFY TOKEN ***/
+    fastify.post("/verify_token", async (request, reply) => {
+        const token = request.cookies.accessToken;
+        
+        if (!token) {
+            return { valid: false };
+        }
+
+        const decoded = await authService.validateToken(token);
+        
+        fastify.log.debug({
+            tokenValid: !!decoded,
+            userId: decoded?.userId
+        }, "Vérification de token");
+
+        return { 
+            valid: !!decoded,
+            userId: decoded?.userId 
+        };
     });
 }
 
