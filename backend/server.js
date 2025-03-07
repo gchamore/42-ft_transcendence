@@ -18,6 +18,11 @@ const jwt = require('jsonwebtoken');
 const initializeDatabase = require("./db/schema");
 const bcrypt = require("bcrypt");
 const authMiddleware = require('./jwt/middlewares/auth.middleware');
+const WebSocketManager = require('./websocket/WebSocketManager');
+
+// Initialiser le WebSocketManager
+const webSocketManager = new WebSocketManager();
+fastify.decorate('wsManager', webSocketManager);
 
 // Couleurs pour les logs
 const colors = {
@@ -50,11 +55,20 @@ try {
 
 // Activer CORS pour permettre les requêtes depuis le frontend
 fastify.register(require('@fastify/cors'), {
-    origin: true // permet toutes les origines en développement
+    origin: true, // permet toutes les origines en développement
+    cedentials: true // permet les cookies et les headers d'authentification
 });
 
 // Enregistrer le plugin cookie
 fastify.register(require('@fastify/cookie'));
+
+// Ajouter WebSocket au serveur Fastify
+fastify.register(require('@fastify/websocket'), {
+    options: { maxPayload: 1048576 } // 1MB max payload
+});
+
+// Ajouter les routes WebSocket
+fastify.register(require('./routes/websocket.routes'));
 
 // Ajouter le middleware d'authentification aux routes protégées
 fastify.addHook('preHandler', (request, reply, done) => {
@@ -67,7 +81,8 @@ fastify.addHook('preHandler', (request, reply, done) => {
         '/verify_token',
         '/getUserId',
         '/getUserProfile',
-        '/leaderboard'
+        '/leaderboard',
+        '/ws' // Route WebSocket publique pour le monitoring
     ];
 
     // Vérifier si la route actuelle est publique
@@ -201,7 +216,7 @@ fastify.listen({
     
     customLog.info("Status du serveur:");
     customLog.success("- API REST disponible sur http://0.0.0.0:3000");
-    customLog.success("- WebSocket disponible sur ws://0.0.0.0:3000");
+    customLog.success("- WebSocket disponible sur ws://0.0.0.0:3000/ws");
     customLog.success("- Base de données connectée");
     customLog.success("- CORS activé");
     console.log("\n" + colors.bright + colors.green + "🚀 Serveur prêt et opérationnel !" + colors.reset + "\n");

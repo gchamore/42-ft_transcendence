@@ -1,43 +1,92 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Panel Switcher</title>
-    <link rel="stylesheet" href="src/style.css">
-</head>
-<body>
+<html>  
+  <head>
+    <title>Our spectacular Pong-game Website</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  
+  <body>
+    <section id="home">
+      <aside id="sidebar">
+        <nav>
+          <ul>
+            <li><button class="btn sidebar" id="profile-btn" 
+              onclick="profile_clicked()"></button></li>
+            <li><button class="btn sidebar logged-in" id="friends-btn" 
+              onclick="friends_clicked()"></button></li>
+            <li><button class="btn sidebar logged-in" id="chat-btn"
+              onclick="chat_clicked()"></button></li>
+          </ul>
+        </nav>
+      </aside>
 
-    <!-- Buttons -->
-    <div class="buttonContainer">
-        <button id="loginBtn" class="btn logged-off active selected" onclick="switchPanel('login')">LOGIN</button>
-        <button id="registerBtn" class="btn logged-off active" onclick="switchPanel('register')">REGISTER</button>
-        <button id="profileBtn" class="btn logged-in" onclick="switchPanel('profile')">PROFILE</button>
-        <button id="logoutBtn" class="btn logged-in" onclick="switchPanel('logout')">LOGOUT</button>
-      </div>
+      <main id="game-overlay">
+        <canvas id="game" title="pong-game"></canvas> <!-- Pong-game belongs here -->
+      </main>   
+    </section>
+    
+    <div id="modals-container" class="modal">
+      <article class="profile">
+        <section>
+          <img class="avatar profile logged-in">
 
-    <!-- Panels -->
-    <div id="loginPanel" class="panel active">
-      <input id="loginUsername" placeholder="Username">
-      <input id="loginPassword" placeholder="Password">
-      <button onclick="login()">LOGIN</button>
+          <label for="profile-username">Username:</label>
+          <input type="text" id="profile-username">
+          
+          <div class="logged-off">
+            <label for="profile-password">Password:</label>
+            <input type="text" id="profile-password">
+          </div>
+        </section>
+
+        <section>
+          <nav>
+            <ul>
+              <li><button class="btn modal" id="profile-btn1">Btn1</button></li>
+              <li><button class="btn modal" id="profile-btn2">Btn2</button></li>
+            </ul>
+          </nav>
+        </section>
+      </article>
+      
+      <article class="friends">
+        <section>
+          <label for="friends-username">Search a user:</label>
+          <input type="text" id="friends-username">
+          <label class="not-found">User not found...</label>
+        </section>
+        
+        <section class="found">
+          <div id="avatar-status">
+            <img class="avatar friends">
+            <div class="avatar friends friend">
+              <img id="status-img"><span class="status-text">Status</span>
+            </div>
+          </div>
+
+          <div id="friend-stats">
+            <label id="friend-stat1">Stat1</label>
+            <label for="friend-stat2">Stat2</label>
+            <label for="friend-stat3">Stat3</label>
+          </div>
+        </section>
+
+        <section>
+          <nav>
+            <ul>
+              <li><button class="btn modal" id="friends-btn1">Btn1</button></li>
+              <li><button class="btn modal" id="friends-btn2">Btn2</button></li>
+              <li><button class="btn modal" id="friends-btn3">Btn3</button></li>
+            </ul>
+          </nav>
+        </section>
+      </article>
+
+      <article class="chat">
+        <!-- To be continued... -->
+      </article>
     </div>
 
-    <div id="registerPanel" class="panel">
-      <input id="registerUsername" placeholder="Username">
-      <input id="registerPassword" placeholder="Password">
-      <button onclick="register()">REGISTER</button>
-    </div>
-
-    <div id="profilePanel" class="panel logged-in">
-      <label id="username"><label>
-    </div>
-
-    <div id="logoutPanel" class="panel logged-in">
-      <button onclick="logout()">CONFIRM</button>
-    </div>
-
-    <!-- Javascripts -->
-    <script src="dist/switch.js"></script>
-    <script src="dist/user.js"></script>
-</body>
+    <script src="../dist/sidebar.js"></script>
+  </body>
 </html>

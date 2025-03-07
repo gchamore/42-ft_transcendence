@@ -1,0 +1,105 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    height: 100vh;
+}
+#home {
+    /* border: 5px solid red; */
+    background-color: rgb(145, 83, 83);
+
+    height: 100%;
+
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+}
+
+
+#game-overlay {
+    border: 3px solid rgb(0, 0, 0);
+    background-color: rgb(33, 30, 30);
+
+    margin: 10px;
+    border-radius: 20px;
+
+    min-height: 300px;
+    min-width: 500px;
+
+    flex-grow: 1;
+
+    display: flex;
+    justify-content:  center;
+    align-items: center;
+}
+#game {
+    background-color: rgb(255, 12, 223);
+
+    height: 280px;
+    width: 500px;
+    overflow: hidden;
+}
+#sidebar {
+    /* border: 2px solid rgb(13, 255, 0); */
+    min-height: 300px;
+    min-width: 100px;
+
+    flex-grow: 0;
+}
+
+
+nav ul { /* settings of every lists */
+    /* background-color: rgb(95, 84, 152); */
+    list-style-type: none;
+
+    padding-top: 10px;
+    margin-right: 10px;
+    gap: 5px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+li {
+    background-color: rgb(153, 29, 35);
+
+    border-radius: 50%;
+    border-width: 3px;
+    border-color: black;
+    border-style: solid;
+
+    transition: transform 0.1s ease-in-out;
+}
+nav li:hover {
+    background-color: rgb(156, 41, 46);
+    transform: scale(1.05);
+}
+nav li:active {
+    border-style: solid;
+    transform: scale(0.85) rotateZ(180deg);
+}
+
+
+nav button {
+    height: 80px;
+    width: 80px;
+    
+    border: none;
+}
+#profile-btn {
+    background: transparent url(../assets/profile.png) no-repeat center;
+}
+#friends-btn {
+    background: transparent url(../assets/friends.png) no-repeat center;
+}
+#chat-btn {
+    background: transparent url(../assets/chat.png) no-repeat center;
+}
+
+
+#modals-container { /* hide everything but the home section*/
+    display: none;
+}

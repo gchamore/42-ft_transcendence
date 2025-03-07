@@ -2,13 +2,11 @@
   "name": "front",
 
   "dependencies": {
-    "live-server": "^1.2.2",
     "typescript": "^5.7.3"
   },
 
   "scripts": {
-    "tsc": "npx tsc --watch --preserveWatchOutput",
-    "live-server": "node start-live-server.js",
-    "stop": "pkill -f live-server && pkill -f tsc"
+    "dev": "npx tsc --watch --preserveWatchOutput &",
+    "stop-dev": "ps aux | grep -E '\btsc\b' | grep -v 'grep' | awk '{print $2}' | xargs -r kill"
   }
 }
