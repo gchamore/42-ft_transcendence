@@ -2,7 +2,9 @@
 <html>  
   <head>
     <title>Our spectacular Pong-game Website</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="modals.css">
+    <link rel="stylesheet" href="sidebar.css">
   </head>
   
   <body onload="verify_token()">
@@ -28,8 +30,8 @@
       </main>   
     </section>
     
-    <div id="modals-container" class="modal">
-      <article class="profile">
+    <div id="modals-container">
+      <article class="modal-item profile">
         <section>
           <img class="avatar profile logged-in">
 
@@ -52,7 +54,7 @@
         </section>
       </article>
       
-      <article class="friends">
+      <article class="modal-item friends">
         <section>
           <label for="friends-username">Search a user:</label>
           <input type="text" id="friends-username">

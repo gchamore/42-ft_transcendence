@@ -1,0 +1,25 @@
+#modals-container {
+    /* background-color: rgb(65, 63, 63); */
+
+    position: absolute;
+
+    height: 400px;
+    width: 500px;
+    top: 50%;
+    left: 50%;
+    
+    transform: translate(-50%, -50%);
+}
+
+.modal-item {
+    background-color: rgb(145, 83, 83);
+    border-radius: 10%;
+
+    position:absolute;
+
+    height: 100%;
+    width: 100%;
+}
+.modal-item:not(.active){
+    display: none;
+}

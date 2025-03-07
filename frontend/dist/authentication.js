@@ -19,7 +19,7 @@ function verify_token() {
             if (data.valid) {
                 username = data.username;
                 console.log(username, "authenticated");
-                show_logged_in_sidebar_btn();
+                show_logged_in_li();
                 return true;
             }
             console.log("Not authenticated");
