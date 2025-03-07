@@ -7,6 +7,6 @@
 
   "scripts": {
     "dev": "npx tsc --watch --preserveWatchOutput &",
-    "stop-dev": "ps aux | grep -E '\btsc\b' | grep -v 'grep' | awk '{print $2}' | xargs -r kill"
+    "stop-dev": "ps aux | grep -w 'tsc' | grep -v grep | awk '{print $2}' | xargs -r kill"
   }
 }

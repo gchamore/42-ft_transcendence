@@ -1,6 +1,6 @@
 #!/bin/bash
 
-API_URL="http://localhost"
+API_URL="http://localhost:8080"
 
 # Couleurs pour les logs
 GREEN='\033[0;32m'

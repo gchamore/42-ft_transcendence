@@ -1,3 +1,7 @@
+function hide_logged_in_sidebar_btn() {
+    const btn = document.querySelectorAll('.btn.sidebar.logged-in');
+    console.log(btn);
+}
 function profile_clicked() {
     console.log("profile_clicked");
 }
