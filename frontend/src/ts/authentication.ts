@@ -1,8 +1,8 @@
-let username : string;
+let username : string = null;
 
 async function verify_token(): Promise<boolean> {
 	try {
-        const response = await fetch(`http://localhost:8080/verify_token`, {
+        const response = await fetch(`http://localhost:2/verify_token`, {
             method: "POST",
 			credentials: 'include'
         });
@@ -15,13 +15,10 @@ async function verify_token(): Promise<boolean> {
 			show_logged_in_li();
 			return true;
 		}
-
+		
 		console.log("Not authenticated");
 		return false;
     } catch (error) {
-        console.error("Error:", error);
+		console.error("Error:", error);
     }
-	
-	console.log("Authentication failed");
-	return false;
 }

@@ -2,9 +2,9 @@
 <html>  
   <head>
     <title>Our spectacular Pong-game Website</title>
-    <link rel="stylesheet" href="main.css">
-    <link rel="stylesheet" href="modals.css">
-    <link rel="stylesheet" href="sidebar.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/modals.css">
+    <link rel="stylesheet" href="css/sidebar.css">
   </head>
   
   <body onload="verify_token()">
@@ -13,10 +13,10 @@
         <nav>
           <ul>
             <li>
-              <button class="btn sidebar" id="profile-btn" 
+              <button class="btn sidebar" id="profile-btn"
                 onclick="profile_clicked()"></button></li>
             <li class="logged-in" hidden>
-              <button class="btn sidebar" id="friends-btn" 
+              <button class="btn sidebar" id="friends-btn"
                 onclick="friends_clicked()"></button></li>
             <li class="logged-in" hidden>
               <button class="btn sidebar" id="chat-btn"
@@ -26,7 +26,7 @@
       </aside>
 
       <main id="game-overlay">
-        <canvas id="game" title="pong-game"></canvas> <!-- Pong-game belongs here -->
+        <canvas id="game" title="pong-game"></canvas>
       </main>   
     </section>
     
@@ -93,6 +93,7 @@
     </div>
 
     <script src="../dist/authentication.js"></script>
+    <script src="../dist/modals.js"></script>
     <script src="../dist/sidebar.js"></script>
   </body>
 </html>

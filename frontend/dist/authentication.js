@@ -7,11 +7,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-let username;
+let username = null;
 function verify_token() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield fetch(`http://localhost:8080/verify_token`, {
+            const response = yield fetch(`http://localhost:2/verify_token`, {
                 method: "POST",
                 credentials: 'include'
             });
@@ -28,7 +28,5 @@ function verify_token() {
         catch (error) {
             console.error("Error:", error);
         }
-        console.log("Authentication failed");
-        return false;
     });
 }

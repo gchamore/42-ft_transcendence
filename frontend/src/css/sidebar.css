@@ -6,7 +6,7 @@
     flex-grow: 0;
 }
 
-nav ul { /* settings of every lists */
+nav ul {
     /* background-color: rgb(95, 84, 152); */
     list-style-type: none;
 
@@ -46,11 +46,11 @@ nav button {
 }
 
 #profile-btn {
-    background: transparent url(../assets/profile.png) no-repeat center;
+    background: transparent url(../../assets/profile.png) no-repeat center;
 }
 #friends-btn {
-    background: transparent url(../assets/friends.png) no-repeat center;
+    background: transparent url(../../assets/friends.png) no-repeat center;
 }
 #chat-btn {
-    background: transparent url(../assets/chat.png) no-repeat center;
+    background: transparent url(../../assets/chat.png) no-repeat center;
 }
