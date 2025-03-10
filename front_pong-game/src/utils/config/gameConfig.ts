@@ -12,3 +12,5 @@ export const GameConfig = {
 	DEFAULT_MAP: 'default',
 	DEFAULT_POWERUPS: false,
 };
+
+export const TEST_MODE = true;

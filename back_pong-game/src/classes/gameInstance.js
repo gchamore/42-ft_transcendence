@@ -8,7 +8,7 @@ export class GameInstance {
 		this.gameState = createDefaultGameState(gameId);
 		this.settings = existingSettings || {
 			ballSpeed: 4,
-			paddleSpeed: 4,
+			paddleSpeed: 10,
 			paddleLength: 100,
 			mapType: "default",
 			powerUpsEnabled: false,

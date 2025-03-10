@@ -2,6 +2,7 @@ import WebSocket from "ws";
 import { GameInstance } from "../classes/gameInstance.js";
 import { handleNewPlayer } from '../handlers/messageHandlers.js';
 import { safeSend } from '../utils/socketUtils.js';
+import { TARGET_FPS } from '../utils/config.js';
 
 export const games = new Map();
 export let mainLobby = null;
@@ -60,7 +61,7 @@ function setupGameUpdateInterval() {
 				processGameUpdate(game);
 			}
 		});
-	}, 1000 / 60);  // 60 FPS update rate
+	}, 1000 / TARGET_FPS);  
 }
 
 function processGameUpdate(game) {

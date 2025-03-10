@@ -64,6 +64,7 @@ export class Game {
 				this.paddle1,
 				this.paddle2,
 				this.ball,
+				this.playerNumber,
 				() => {
 					console.log("3D scene loading complete");
 					this.isLoading = false; // Update loading state

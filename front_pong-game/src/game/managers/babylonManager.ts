@@ -1,6 +1,9 @@
 /// <reference path="../../types/babylon.d.ts" />
 import { Ball } from "../classes/ball.js";
 import { Paddle } from "../classes/paddle.js";
+import { TEST_MODE } from "../../utils/config/gameConfig.js";
+
+const TARGET_FPS = 30;
 
 export class BabylonManager {
 	private engine: BABYLON.Engine | null = null;
@@ -16,18 +19,18 @@ export class BabylonManager {
 	private tableMesh: BABYLON.Mesh | null = null;
 	private loadingScreen: HTMLElement | null = null;
 	private lastRenderTime: number = 0;
-	private readonly frameInterval: number = 1000 / 60; // ~16.7ms for 60fps
+	private readonly frameInterval: number = 1000 / TARGET_FPS; 
 
 	private targetPaddle1Pos: BABYLON.Vector3 | null = null;
 	private targetPaddle2Pos: BABYLON.Vector3 | null = null;
 	private targetBallPos: BABYLON.Vector3 | null = null;
-	private interpolationSpeed: number = 0.2; // Adjust for smoother/faster interpolation
 
 	constructor(
 		private canvas: HTMLCanvasElement,
 		private paddle1: Paddle,
 		private paddle2: Paddle,
 		private ball: Ball,
+		private playerNumber: number = 1,
 		private onLoadingComplete?: () => void
 	) {
 		this.showLoadingScreen();
@@ -68,7 +71,7 @@ export class BabylonManager {
 
 	public getEngine() {
 		return {
-			getFps: () => 60,
+			getFps: () => 30,
 			isDisposed: false,
 		};
 	}
@@ -144,18 +147,20 @@ export class BabylonManager {
 			);
 			this.light.intensity = 0.7;
 
-			// add a point light for shadow casting
-			this.pointLight = new BABYLON.PointLight(
-				"pointLight",
-				new BABYLON.Vector3(0, 10, -5),
-				this.scene
-			);
-			this.pointLight.intensity = 0.8;
+			if (!TEST_MODE) {
+				// add a point light for shadow casting
+				this.pointLight = new BABYLON.PointLight(
+					"pointLight",
+					new BABYLON.Vector3(0, 10, -5),
+					this.scene
+				);
+				this.pointLight.intensity = 0.8;
 
-			// enable shadows
-			this.shadowGenerator = new BABYLON.ShadowGenerator(1024, this.pointLight);
-			this.shadowGenerator.useBlurExponentialShadowMap = true;
-			this.shadowGenerator.blurScale = 2;
+				// enable shadows
+				this.shadowGenerator = new BABYLON.ShadowGenerator(1024, this.pointLight);
+				this.shadowGenerator.useBlurExponentialShadowMap = true;
+				this.shadowGenerator.blurScale = 2;
+			}
 		} catch (e) {
 			console.error("Error initializing Babylon.js", e);
 		}
@@ -198,28 +203,33 @@ export class BabylonManager {
 	}
 
 	private createMeshes(): void {
-		if (!this.scene || !this.shadowGenerator) return;
+		if (!this.scene) return;
 
 		const paddleMaterial = new BABYLON.StandardMaterial("paddleMaterial", this.scene);
 		paddleMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1);
-		paddleMaterial.emissiveColor = new BABYLON.Color3(0.5, 0, 1);
-		paddleMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
-		paddleMaterial.alpha = 0.6;
+		if (!TEST_MODE) {
+			paddleMaterial.emissiveColor = new BABYLON.Color3(0.5, 0, 1);
+			paddleMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
+			paddleMaterial.alpha = 0.6;
+		}
 
 		const ballMaterial = new BABYLON.StandardMaterial("ballMaterial", this.scene);
 		ballMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1);
-		ballMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
-		ballMaterial.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+		if (!TEST_MODE) {
+			ballMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
+			ballMaterial.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+		}
 
 		const scaleX = 20 / 800;
 		const scaleY = 15 / 600;
+		const tessellation = TEST_MODE ? 8 : 16;
 
 		this.paddleMesh1 = BABYLON.MeshBuilder.CreateCylinder(
 			"paddle1",
 			{
 				diameter: 1.2,
 				height: this.paddle1.height / 40,
-				tessellation: 16,
+				tessellation: tessellation,
 			},
 			this.scene
 		);
@@ -236,7 +246,7 @@ export class BabylonManager {
 			{
 				diameter: 1.2,
 				height: this.paddle1.height / 40,
-				tessellation: 16,
+				tessellation: tessellation,
 			},
 			this.scene
 		);
@@ -258,14 +268,18 @@ export class BabylonManager {
 		);
 		this.ballMesh.material = ballMaterial;
 
-		this.shadowGenerator.addShadowCaster(this.paddleMesh1);
-		this.shadowGenerator.addShadowCaster(this.paddleMesh2);
-		this.shadowGenerator.addShadowCaster(this.ballMesh);
+		if (!TEST_MODE && this.shadowGenerator) {
+			this.shadowGenerator.addShadowCaster(this.paddleMesh1);
+			this.shadowGenerator.addShadowCaster(this.paddleMesh2);
+			this.shadowGenerator.addShadowCaster(this.ballMesh);
+		}
 
-		const glowLayer = new BABYLON.GlowLayer("glow", this.scene);
-		glowLayer.intensity = 0.7;
-		glowLayer.addIncludedOnlyMesh(this.paddleMesh1);
-		glowLayer.addIncludedOnlyMesh(this.paddleMesh2);
+		if (!TEST_MODE) {
+			const glowLayer = new BABYLON.GlowLayer("glow", this.scene);
+			glowLayer.intensity = 0.7;
+			glowLayer.addIncludedOnlyMesh(this.paddleMesh1);
+			glowLayer.addIncludedOnlyMesh(this.paddleMesh2);
+		}
 
 	}
 
@@ -294,28 +308,57 @@ export class BabylonManager {
 			(300 - this.ball.y) * scaleY
 		);
 
-		// Smoothly interpolate to target positions
-		this.paddleMesh1.position = BABYLON.Vector3.Lerp(
-			this.paddleMesh1.position,
-			this.targetPaddle1Pos,
-			this.interpolationSpeed
-		);
-
-		this.paddleMesh2.position = BABYLON.Vector3.Lerp(
-			this.paddleMesh2.position,
-			this.targetPaddle2Pos,
-			this.interpolationSpeed
-		);
-
+		// Use different interpolation factors based on whether it's local or remote
+		// Local player's paddle (more responsive)
+		const localPaddleInterp = 0.3; 
+		// Remote player's paddle (smoother)
+		const remotePaddleInterp = 0.15;
+		// Ball interpolation
+		const ballInterp = 0.2;
+		
+	
+		
+		// Apply interpolation differently based on which paddle is controlled locally
+		if (this.playerNumber === 1) {
+			// Player 1's paddle (local - more responsive)
+			this.paddleMesh1.position = BABYLON.Vector3.Lerp(
+				this.paddleMesh1.position,
+				this.targetPaddle1Pos,
+				localPaddleInterp
+			);
+			
+			// Player 2's paddle (remote - smoother)
+			this.paddleMesh2.position = BABYLON.Vector3.Lerp(
+				this.paddleMesh2.position,
+				this.targetPaddle2Pos,
+				remotePaddleInterp
+			);
+		} else {
+			// Player 1's paddle (remote - smoother) 
+			this.paddleMesh1.position = BABYLON.Vector3.Lerp(
+				this.paddleMesh1.position,
+				this.targetPaddle1Pos,
+				remotePaddleInterp
+			);
+			
+			// Player 2's paddle (local - more responsive)
+			this.paddleMesh2.position = BABYLON.Vector3.Lerp(
+				this.paddleMesh2.position,
+				this.targetPaddle2Pos,
+				localPaddleInterp
+			);
+		}
+		
+		// Ball always uses medium interpolation
 		this.ballMesh.position = BABYLON.Vector3.Lerp(
 			this.ballMesh.position,
 			this.targetBallPos,
-			0.3 // Ball can move faster
+			ballInterp
 		);
 	}
 
 	public handlePaddleHit(paddle: BABYLON.Mesh): void {
-		if (!this.scene) return;
+		if (!this.scene || TEST_MODE) return;
 		const flash = new BABYLON.PointLight("flash", paddle.position, this.scene);
 		flash.intensity = 3;
 		flash.diffuseColor = new BABYLON.Color3(1, 0.5, 0);

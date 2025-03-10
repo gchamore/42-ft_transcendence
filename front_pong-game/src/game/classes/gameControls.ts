@@ -1,5 +1,7 @@
 import { Paddle } from './paddle';
 
+const TARGET_FPS = 30;
+
 export class PlayerControls {
 	up: boolean = false;
 	down: boolean = false;
@@ -95,7 +97,7 @@ export class GameControls {
 		this.stopContinuousMove();
 		this.moveIntervalId = window.setInterval(() => {
 			this.sendPaddleMoves();
-		}, 1000 / 60);
+		}, 1000 / TARGET_FPS);
 	}
 
 	private stopContinuousMove(): void {
@@ -110,10 +112,10 @@ export class GameControls {
 
 		// Calculate new position based on key presses
 		if (this.upPressed) {
-			this.paddle.y -= this.paddle.speed;
+			this.paddle.y += this.paddle.speed;
 		}
 		if (this.downPressed) {
-			this.paddle.y += this.paddle.speed;
+			this.paddle.y -= this.paddle.speed;
 		}
 
 		// Keep paddle in bounds
@@ -126,6 +128,7 @@ export class GameControls {
 
 		// Send updated position to server
 		if (this.socket?.readyState === WebSocket.OPEN) {
+			console.log(`Sending paddle ${this.playerNumber} position:`, this.paddle.y);
 			this.socket.send(JSON.stringify({
 				type: 'movePaddle',
 				player: this.playerNumber,

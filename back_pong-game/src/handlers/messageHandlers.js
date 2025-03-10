@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import { games, mainLobby, broadcastGameState } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleDisconnect } from './disconnectHandler.js';
+import { TEST_MODE, TARGET_FPS } from '../utils/config.js';
 
 export const broadcastTimeout = {};
 
@@ -169,19 +170,23 @@ function handleMovePaddle(socket, game, playerNumber, data) {
 		console.error('Player trying to move paddle that is not theirs');
 		return;
 	}
-	validateAndUpdatePaddlePosition(socket, game, playerNumber, data);
-	if (game.gameState.gameStarted) {
-		const now = Date.now();
-		if (!broadcastTimeout[game.gameId]) broadcastTimeout[game.gameId] = 0;
-
-		if (game.paddleMoved && now - broadcastTimeout[game.gameId] > 33) { // 30 updates per second max
-			broadcastGameState(game);
-			game.paddleMoved = false;
-			broadcastTimeout[game.gameId] = now;
-		}
-		return { shouldBroadcast: false };
+	if (!TEST_MODE) {
+		validateAndUpdatePaddlePosition(socket, game, playerNumber, data);
+	} else {
+		game.updatePaddlePosition(data.player, data.y);
 	}
-	return { shouldBroadcast: true };
+
+	game.paddleMoved = true;
+
+	const now = Date.now();
+	if (!broadcastTimeout[game.gameId]) broadcastTimeout[game.gameId] = 0;
+
+	if (now - broadcastTimeout[game.gameId] > 33) { // 30 updates per second max
+		broadcastGameState(game);
+		game.paddleMoved = false;
+		broadcastTimeout[game.gameId] = now;
+	}
+	return { shouldBroadcast: false };
 }
 
 function validateAndUpdatePaddlePosition(socket, game, playerNumber, data) {
