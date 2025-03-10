@@ -118,6 +118,30 @@ export class Game {
 					console.error("Game error:", data.message);
 					this.uiManager.drawErrorMessage(data.message);
 					break;
+				case "wallHit":
+					// if (this.babylonManager) {
+					// 	this.babylonManager.handleWallHit(data.position);
+					// }
+					console.log("Wall hit at position", data.position);
+					break;
+				case "scoreEffect":
+					// if (this.babylonManager) {
+					// 	this.babylonManager.handleScoreEffect(data.scorer, data.position);
+					// }
+					console.log("Score effect at position", data.position);
+					break
+				case "gameStartAnimation":
+					// if (this.babylonManager) {
+					// 	this.babylonManager.handleGameStartAnimation();
+					// }
+					console.log("Game start animation");
+					break;
+				case "paddleHit":
+					// if (this.babylonManager) {
+					// 	this.babylonManager.handlePaddleHit(data.player);
+					// }
+					console.log("Paddle hit by player", data.player);
+					break;
 			}
 		};
 
@@ -171,63 +195,24 @@ export class Game {
 	}
 
 	private createGameOverMenu(message: string) {
-		const container = document.createElement("div");
-		container.id = "game-over-menu";
-		container.style.position = "absolute";
-		container.style.top = "50%";
-		container.style.left = "50%";
-		container.style.transform = "translate(-50%, -50%)";
-		container.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
-		container.style.color = "white";
-		container.style.padding = "20px";
-		container.style.borderRadius = "10px";
-		container.style.textAlign = "center";
-		container.style.zIndex = "1000";
+		const container = document.getElementById("game-over-menu") as HTMLElement;
+		const messageEl = document.getElementById("game-over-message") as HTMLElement;
 
-		// Add title
-		const title = document.createElement("h2");
-		title.textContent = "Game Over";
-		title.style.marginBottom = "10px";
-		container.appendChild(title);
+		// Clear any previous states
+		document.getElementById("waiting-rematch")!.style.display = "none";
+		document.getElementById("rematch-request")!.style.display = "none";
 
-		// Add message
-		const messageEl = document.createElement("p");
+		// Show main content elements
+		document.getElementById("game-over-title")!.style.display = "block";
+		document.getElementById("game-over-buttons")!.style.display = "flex";
+
+		// Set message and show main content
 		messageEl.textContent = message;
-		messageEl.style.marginBottom = "20px";
-		container.appendChild(messageEl);
+		container.style.display = "block";
 
-		// Add buttons container
-		const buttonsContainer = document.createElement("div");
-		buttonsContainer.style.display = "flex";
-		buttonsContainer.style.justifyContent = "space-between";
-		buttonsContainer.style.gap = "10px";
-
-		// Add rematch button
-		const rematchButton = document.createElement("button");
-		rematchButton.textContent = "Rematch";
-		rematchButton.style.padding = "8px 16px";
-		rematchButton.style.backgroundColor = "#4CAF50";
-		rematchButton.style.color = "white";
-		rematchButton.style.border = "none";
-		rematchButton.style.borderRadius = "4px";
-		rematchButton.style.cursor = "pointer";
-		rematchButton.onclick = () => this.requestRematch();
-		buttonsContainer.appendChild(rematchButton);
-
-		// Add home button
-		const homeButton = document.createElement("button");
-		homeButton.textContent = "Return Home";
-		homeButton.style.padding = "8px 16px";
-		homeButton.style.backgroundColor = "#f44336";
-		homeButton.style.color = "white";
-		homeButton.style.border = "none";
-		homeButton.style.borderRadius = "4px";
-		homeButton.style.cursor = "pointer";
-		homeButton.onclick = () => (window.location.href = "/");
-		buttonsContainer.appendChild(homeButton);
-
-		container.appendChild(buttonsContainer);
-		document.body.appendChild(container);
+		// Set up event listeners
+		document.getElementById("rematch-button")!.onclick = () => this.requestRematch();
+		document.getElementById("home-button")!.onclick = () => window.location.href = "/";
 	}
 
 	private requestRematch() {
@@ -239,25 +224,20 @@ export class Game {
 				})
 			);
 
-			// Update UI to waiting state
-			const container = document.getElementById("game-over-menu");
-			if (container) {
-				container.innerHTML = `
-				<h2>Waiting for Opponent</h2>
-				<p>Rematch request sent...</p>
-				<div style="margin-top: 20px;">
-					<div class="spinner"></div>
-				</div>
-			`;
-			}
+			// Hide main content elements
+			document.getElementById("game-over-title")!.style.display = "none";
+			document.getElementById("game-over-message")!.style.display = "none";
+			document.getElementById("game-over-buttons")!.style.display = "none";
+
+			document.getElementById("waiting-rematch")!.style.display = "block";
 
 			let waitingAnimationId: number | null = null;
 
-			const waittingAnimation = (timestamp: number) => {
+			const waitingAnimation = (timestamp: number) => {
 				this.uiManager.drawWaitingForRematch(timestamp);
-				waitingAnimationId = requestAnimationFrame(waittingAnimation);
+				waitingAnimationId = requestAnimationFrame(waitingAnimation);
 			};
-			waitingAnimationId = requestAnimationFrame(waittingAnimation);
+			waitingAnimationId = requestAnimationFrame(waitingAnimation);
 
 			const originalHandleRematch = this.handleRematch;
 			this.handleRematch = () => {
@@ -272,23 +252,20 @@ export class Game {
 	}
 
 	private handleRematchRequest(data: any): void {
-		const container = document.getElementById("game-over-menu");
-		if (container) {
-			container.innerHTML = `
-			<h2>Rematch Request</h2>
-			<p>Player ${data.player} wants a rematch!</p>
-			<div style="display: flex; justify-content: space-between; gap: 10px; margin-top: 20px;">
-				<button id="accept-rematch" style="padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">Accept</button>
-				<button id="decline-rematch" style="padding: 8px 16px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">Decline</button>
-			</div>
-		`;
-			document
-				.getElementById("accept-rematch")
-				?.addEventListener("click", () => this.requestRematch());
-			document
-				.getElementById("decline-rematch")
-				?.addEventListener("click", () => (window.location.href = "/"));
-		}
+		// Hide main content elements
+		document.getElementById("game-over-title")!.style.display = "none";
+		document.getElementById("game-over-message")!.style.display = "none";
+		document.getElementById("game-over-buttons")!.style.display = "none";
+
+		const messageEl = document.getElementById("rematch-request-message") as HTMLElement;
+		messageEl.textContent = `Player ${data.player} has requested a rematch`;
+
+		document.getElementById("rematch-request")!.style.display = "block";
+		document.getElementById("game-over-menu")!.style.display = "block";
+
+		// Set up event listeners
+		document.getElementById("accept-rematch")!.onclick = () => this.requestRematch();
+		document.getElementById("decline-rematch")!.onclick = () => window.location.href = "/";
 	}
 
 	private handleRematch(): void {
@@ -296,7 +273,7 @@ export class Game {
 		this.uiManager.clearOverlay();
 		const container = document.getElementById("game-over-menu");
 		if (container) {
-			container.remove();
+			container.style.display = "none";
 		}
 		if (!this.animationFrameId) {
 			this.start();
@@ -379,9 +356,16 @@ export class Game {
 		if (this.uiCanvas && this.context)
 			this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
+
 		if (this.fpsManager) {
 			this.fpsManager.update(timestamp);
 		}
+
+		if (!this.isLoading && this.babylonManager) {
+			this.babylonManager.render(timestamp);
+		}
+
 		if (!this.isLoading) {
 			this.scoreBoard.updateDisplay();
 			if (!this.gameStarted) {
@@ -392,11 +376,8 @@ export class Game {
 					this.servingPlayer
 				);
 			}
-		} 
-		else if (this.babylonManager) {
-			this.babylonManager.render(timestamp);
 		}
-		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
+
 	}
 
 	start(): void {

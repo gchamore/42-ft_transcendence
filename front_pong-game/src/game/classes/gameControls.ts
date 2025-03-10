@@ -126,11 +126,10 @@ export class GameControls {
 
 		// Send updated position to server
 		if (this.socket?.readyState === WebSocket.OPEN) {
-			console.log(`Sending paddle ${this.playerNumber} position:`, this.paddle.y);
 			this.socket.send(JSON.stringify({
 				type: 'movePaddle',
 				player: this.playerNumber,
-				y: this.paddle.y
+				y: this.playerNumber === 1 ? this.paddle1.y : this.paddle2.y
 			}));
 		}
 	}

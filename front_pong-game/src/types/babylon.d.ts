@@ -11,6 +11,7 @@ declare namespace BABYLON {
 
     class Scene {
         constructor(engine: Engine);
+        activeCamera: Camera;
         render(): void;
         clearColor: Color4;
     }
@@ -20,6 +21,7 @@ declare namespace BABYLON {
         x: number;
         y: number;
         z: number;
+        static Lerp(start: Vector3, end: Vector3, amount: number): Vector3;
     }
 
     class Color3 {
@@ -39,14 +41,19 @@ declare namespace BABYLON {
         upperBetaLimit: number;
     }
 
-    class HemisphericLight {
-        constructor(name: string, direction: Vector3, scene: Scene);
+    class Light { 
+        constructor(name: string, scene: Scene);
         intensity: number;
+        diffuseColor: Color3;
+        dispose(): void;
     }
 
-    class PointLight {
+    class HemisphericLight extends Light {
+        constructor(name: string, direction: Vector3, scene: Scene);
+    }
+
+    class PointLight extends Light {
         constructor(name: string, position: Vector3, scene: Scene);
-        intensity: number;
     }
 
     class StandardMaterial {
@@ -71,19 +78,42 @@ declare namespace BABYLON {
         refreshRate: number;
     }
 
+    class GlowLayer {
+        constructor(name: string, scene: Scene);
+        intensity: number;
+        addIncludedOnlyMesh(mesh: any): void;
+        dispose(): void;
+    }
+    
+    class Mesh { 
+        position: Vector3;
+        material: StandardMaterial;
+        receiveShadows: boolean;
+        rotation: Vector3;
+        dispose(): void;
+    }
+
     namespace MeshBuilder {
-        function CreateBox(name: string, options: BoxOptions, scene: Scene): any;
-        function CreateSphere(name: string, options: SphereOptions, scene: Scene): any;
+        function CreateCylinder(name: string, options: CylinderOptions, scene: Scene): Mesh;
+        function CreateSphere(name: string, options: SphereOptions, scene: Scene): Mesh;
+        function CreateBox(name: string, options: BoxOptions, scene: Scene): Mesh;
+        function CreateText(name: string, text: string, options: any | null, scene: Scene): Mesh;
+    }
+
+    interface CylinderOptions {
+        diameter?: number;
+        height?: number;
+        tessellation?: number;
+    }
+
+    interface SphereOptions {
+        diameter?: number;
+        segments?: number;
     }
 
     interface BoxOptions {
         width?: number;
         height?: number;
         depth?: number;
-    }
-
-    interface SphereOptions {
-        diameter?: number;
-        segments?: number;
     }
 }

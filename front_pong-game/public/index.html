@@ -7,6 +7,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Pong Game</title>
 	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
 	<style>
 		body { 
 			margin: 0;
@@ -147,6 +148,33 @@
 	<div id="fps-counter" style="position: fixed; top: 10px; right: 10px; color: white; background: rgba(0,0,0,0.5); padding: 5px; z-index: 1000;">
 		FPS: --
 	</div>
+	<div id="game-over-menu" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.8); color: white; padding: 20px; border-radius: 10px; text-align: center; z-index: 1000;">
+        <h2 id="game-over-title" class="mb-2">Game Over</h2>
+        <p id="game-over-message" class="mb-5"></p>
+        <div id="game-over-buttons" style="display: flex; justify-content: space-between; gap: 10px;">
+            <button id="rematch-button" class="p-2 bg-green-500 text-white border-none rounded cursor-pointer hover:bg-green-700">Rematch</button>
+            <button id="home-button" class="p-2 bg-red-500 text-white border-none rounded cursor-pointer hover:bg-red-700">Return Home</button>
+        </div>
+        
+        <!-- Waiting for rematch state (initially hidden) -->
+        <div id="waiting-rematch" style="display: none;">
+            <h2>Waiting for Opponent</h2>
+            <p>Rematch request sent...</p>
+            <div style="margin-top: 20px;">
+                <div class="spinner"></div>
+            </div>
+        </div>
+        
+        <!-- Rematch request state (initially hidden) -->
+        <div id="rematch-request" style="display: none;">
+            <h2>Rematch Request</h2>
+            <p id="rematch-request-message"></p>
+            <div style="display: flex; justify-content: space-between; gap: 10px; margin-top: 20px;">
+                <button id="accept-rematch" class="p-2 bg-green-500 text-white border-none rounded cursor-pointer hover:bg-green-700">Accept</button>
+                <button id="decline-rematch" class="p-2 bg-red-500 text-white border-none rounded cursor-pointer hover:bg-red-700">Decline</button>
+            </div>
+        </div>
+    </div>
 	<script type="module" src="./dist/front_pong-game/src/main.js"></script>
 </body>
 </html>

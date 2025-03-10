@@ -37,6 +37,7 @@ export class Paddle {
 	updatePosition(paddleState: { x: number, y: number, height: number }): void {
 		this.x = paddleState.x;
 		this.y = paddleState.y;
+		console.log('updated position to', this.x, this.y);
 		if (paddleState.height !== this.height)
 			this.updateHeight(paddleState.height);
 	}
