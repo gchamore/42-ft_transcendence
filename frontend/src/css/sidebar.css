@@ -19,12 +19,9 @@ nav ul {
     align-items: center;
 }
 
-li {
-    background-color: rgb(153, 29, 35);
-
+li.sidebar{
     border-radius: 50%;
     border-width: 3px;
-    border-color: black;
     border-style: solid;
 
     transition: transform 0.1s ease-in-out;
@@ -38,7 +35,7 @@ nav li:active {
     transform: scale(0.85) rotateZ(180deg);
 }
 
-nav button {
+nav button.sidebar {
     height: 80px;
     width: 80px;
     

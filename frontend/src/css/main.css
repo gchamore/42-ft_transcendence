@@ -7,6 +7,18 @@
 body {
     position: relative;
     height: 100vh;
+
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 1.7;
+}
+
+li {
+    background-color: rgb(153, 29, 35);
+    border-color: black;
+    border-width: 3px;
+    border-style: solid;
 }
 
 #home {
