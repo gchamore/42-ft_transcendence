@@ -2,11 +2,15 @@ let username : string = null;
 
 async function verify_token(): Promise<boolean> {
 	try {
-        const response = await fetch(`http://localhost:8080/verify_token`, {
-            method: "POST",
+		const response = await fetch(`http://localhost:8080/verify_token`, {
+			method: "POST",
 			credentials: 'include'
-        });
-        const data = await response.json();
+		});
+		const data = await response.json();
+		if (!response.ok) {
+			console.error("Verify token failed:", data.error);
+			return ;
+		}
 
 		if (data.valid) {
 			username = data.username;
@@ -25,44 +29,81 @@ async function verify_token(): Promise<boolean> {
 	switch_logged_off();
 }
 
-function switch_logged_in() {
-	hide_logged_off();
-	show_logged_in();
+async function register(username: string, password: string) {
+	try {
+		const response = await fetch(`http://localhost:8080/register`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json"
+			},
+			body: JSON.stringify({username: username, password: password})
+		});
+		const data = await response.json();
+		if (!response.ok) {
+			console.error("Registration failed:", data.error);
+			return ;
+		}
+        
+		if (data.success) {
+			username = username;
+			console.log(username, "register");
+
+			switch_logged_in();
+		}
+		else
+			console.log("Not register");
+    } catch (error) {
+		console.error("Error:", error);
+    }
 }
 
-function switch_logged_off() {
-	hide_logged_in();
-	show_logged_off();
+async function login(username: string, password: string) {
+	try {
+        const response = await fetch(`http://localhost:8080/login`, {
+            method: "POST",
+			headers: { "Content-Type": "application/json"
+			},
+			body: JSON.stringify({username: username, password: password})
+		});
+		const data = await response.json();
+		if (!response.ok) {
+            console.error("Login failed:", data.error);
+			return ;
+		}
+
+		if (data.success) {
+			username = data.username;
+			console.log(username, "login");
+
+			switch_logged_in();
+		}
+		else
+			console.log("Not login");
+    } catch (error) {
+		console.error("Error:", error);
+    }
 }
 
-function show_logged_in() {
-	const list = document.querySelectorAll('.logged-in');
+async function logout() {
+	try {
+        const response = await fetch(`http://localhost:8080/logout`, {
+            method: "POST",
+			credentials: 'include'
+		});
+		const data = await response.json();
+		if (!response.ok) {
+            console.error("Logout failed:", data.error);
+			return ;
+		}
 
-	list.forEach((elem) => {
-		elem.removeAttribute('hidden');
-	});
-}
+		if (data.success) {
+			username = data.username;
+			console.log(username, "logout");
 
-function hide_logged_in() {
-	const list = document.querySelectorAll('.logged-in');
-
-	list.forEach((elem) => {
-		elem.setAttribute('hidden', 'hidden');
-	});
-}
-
-function show_logged_off() {
-	const list = document.querySelectorAll('.logged-off');
-
-	list.forEach((elem) => {
-		elem.removeAttribute('hidden');
-	});
-}
-
-function hide_logged_off() {
-	const list = document.querySelectorAll('.logged-off');
-
-	list.forEach((elem) => {
-		elem.setAttribute('hidden', 'hidden');
-	});
+			switch_logged_off();
+		}
+		else
+			console.log("Not logout");
+    } catch (error) {
+		console.error("Error:", error);
+    }
 }
