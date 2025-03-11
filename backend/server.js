@@ -51,8 +51,25 @@ try {
 
 // Activer CORS pour permettre les requêtes depuis le frontend
 fastify.register(require('@fastify/cors'), {
-    origin: true, // permet toutes les origines en développement
-    cedentials: true // permet les cookies et les headers d'authentification
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    maxAge: 86400,
+});
+
+// Ajouter un hook pour logger les erreurs CORS
+fastify.addHook('onRequest', (request, reply, done) => {
+    if (request.method === 'OPTIONS') {
+        fastify.log.info({
+            msg: 'CORS Preflight Request',
+            origin: request.headers.origin,
+            method: request.headers['access-control-request-method'],
+            headers: request.headers['access-control-request-headers']
+        });
+    }
+    done();
 });
 
 // Enregistrer le plugin cookie
@@ -78,7 +95,7 @@ fastify.addHook('preHandler', (request, reply, done) => {
         '/getUserId',
         '/getUserProfile',
         '/leaderboard',
-        '/ws' // Route WebSocket publique pour le monitoring
+        '/ws',
     ];
 
     // Vérifier si la route actuelle est publique
