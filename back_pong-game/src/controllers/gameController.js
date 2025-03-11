@@ -6,6 +6,7 @@ import { TARGET_FPS } from '../utils/config.js';
 
 export const games = new Map();
 export let mainLobby = null;
+const broadcastTimeout = {};
 
 export function setupWebSocketRoutes(fastify) {
 	fastify.get('/game/status/:gameId', async (request, reply) => {
@@ -27,6 +28,11 @@ export function setupWebSocketRoutes(fastify) {
 
 	  // Start game update loop
 	  setupGameUpdateInterval();
+}
+
+export function resetMainLobby() {
+	mainLobby = new GameInstance('lobby-main', null, safeSend);
+	return mainLobby;
 }
 
 function handleGameConnection(connection, request) {
@@ -55,13 +61,19 @@ function handleGameConnection(connection, request) {
 
 function setupGameUpdateInterval() {
 	setInterval(() => {
+		const now = Date.now();
 		games.forEach((game, gameId) => {
 			if (gameId.startsWith('lobby-')) return;
 			if (game.players.length > 0) {
 				processGameUpdate(game);
+				// Broadcast state less frequently than physics updates
+				if (now - (broadcastTimeout[game.gameId] || 0) > 50) {
+					broadcastGameState(game);
+					broadcastTimeout[game.gameId] = now;
+				}
 			}
 		});
-	}, 1000 / TARGET_FPS);  
+	}, 1000 / TARGET_FPS);
 }
 
 function processGameUpdate(game) {

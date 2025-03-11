@@ -1,6 +1,7 @@
 /// <reference path="../../types/babylon.d.ts" />
 import { Ball } from "../classes/ball.js";
 import { Paddle } from "../classes/paddle.js";
+import { GameControls } from "../classes/gameControls.js";
 import { TEST_MODE } from "../../utils/config/gameConfig.js";
 
 const TARGET_FPS = 30;
@@ -17,6 +18,8 @@ export class BabylonManager {
 	private paddleMesh2: BABYLON.Mesh | null = null;
 	private ballMesh: BABYLON.Mesh | null = null;
 	private tableMesh: BABYLON.Mesh | null = null;
+	private topWall: BABYLON.Mesh | null = null;
+	private bottomWall: BABYLON.Mesh | null = null;
 	private loadingScreen: HTMLElement | null = null;
 	private lastRenderTime: number = 0;
 	private readonly frameInterval: number = 1000 / TARGET_FPS; 
@@ -24,6 +27,16 @@ export class BabylonManager {
 	private targetPaddle1Pos: BABYLON.Vector3 | null = null;
 	private targetPaddle2Pos: BABYLON.Vector3 | null = null;
 	private targetBallPos: BABYLON.Vector3 | null = null;
+	private paddle1Correction: number | null = null;
+	private paddle2Correction: number | null = null;
+	private correctionSpeed: number = 0.05; // how fast to blend corrections (higher is faster)
+	private previousSpeedX: number = 0;
+	private previousSpeedY: number = 0;
+	private gameStarted: boolean = false;
+	private controls: GameControls | null = null;
+
+    private lastServerUpdate: number = 0;
+    private serverUpdateInterval: number = 50; // Expected server update rate
 
 	constructor(
 		private canvas: HTMLCanvasElement,
@@ -55,6 +68,14 @@ export class BabylonManager {
 		// Use an instance method for the event listener to enable proper cleanup
 		this.handleResize = this.handleResize.bind(this);
 		window.addEventListener("resize", this.handleResize);
+	}
+
+	public setControls(controls: GameControls): void {
+		this.controls = controls;
+	}
+
+	private getControls(): GameControls {
+		return this.controls || { isMoving: () => false } as GameControls;
 	}
 
 	public render(timestamp: number): void {
@@ -185,6 +206,34 @@ export class BabylonManager {
 		this.tableMesh.material = tableMaterial;
 		this.tableMesh.receiveShadows = true;
 
+		const wallMaterial = new BABYLON.StandardMaterial("wallMaterial", this.scene);
+		wallMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.3);
+		wallMaterial.alpha = 0.7;
+
+		this.topWall = BABYLON.MeshBuilder.CreateBox(
+			"topWall",
+			{
+				width: 22,
+				height: 0.75,
+				depth: 0.25,
+			},
+			this.scene
+		);
+		this.topWall.position = new BABYLON.Vector3(0, -0.5, 7.75);
+		this.topWall.material = wallMaterial;
+
+		this.bottomWall = BABYLON.MeshBuilder.CreateBox(
+			"bottomWall",
+			{
+				width: 22,
+				height: 0.75,
+				depth: 0.25,
+			},
+			this.scene
+		);
+		this.bottomWall.position = new BABYLON.Vector3(0, -0.5, -7.75);
+		this.bottomWall.material = wallMaterial;
+
 		const lineMaterial = new BABYLON.StandardMaterial("lineMaterial", this.scene);
 		lineMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1);
 		lineMaterial.alpha = 0.5;
@@ -213,13 +262,6 @@ export class BabylonManager {
 			paddleMaterial.alpha = 0.6;
 		}
 
-		const ballMaterial = new BABYLON.StandardMaterial("ballMaterial", this.scene);
-		ballMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1);
-		if (!TEST_MODE) {
-			ballMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
-			ballMaterial.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
-		}
-
 		const scaleX = 20 / 800;
 		const scaleY = 15 / 600;
 		const tessellation = TEST_MODE ? 8 : 16;
@@ -227,8 +269,8 @@ export class BabylonManager {
 		this.paddleMesh1 = BABYLON.MeshBuilder.CreateCylinder(
 			"paddle1",
 			{
-				diameter: 1.2,
-				height: this.paddle1.height / 40,
+				diameter: this.paddle1.width * 2 * scaleX,
+				height: this.paddle1.height * scaleY,
 				tessellation: tessellation,
 			},
 			this.scene
@@ -236,16 +278,16 @@ export class BabylonManager {
 		this.paddleMesh1.rotation.x = Math.PI / 2;
 		this.paddleMesh1.material = paddleMaterial;
 		this.paddleMesh1.position = new BABYLON.Vector3(
-			(this.paddle1.x - 400) * scaleX,
+			(this.paddle1.x + (this.paddle1.width / 2) - 400) * scaleX, // Center of paddle
 			-0.25,
 			(300 - this.paddle1.y - this.paddle1.height / 2) * scaleY
 		);
-
+		
 		this.paddleMesh2 = BABYLON.MeshBuilder.CreateCylinder(
 			"paddle2",
 			{
-				diameter: 1.2,
-				height: this.paddle1.height / 40,
+				diameter: this.paddle2.width * 2 * scaleX,
+				height: this.paddle2.height * scaleY,
 				tessellation: tessellation,
 			},
 			this.scene
@@ -253,25 +295,35 @@ export class BabylonManager {
 		this.paddleMesh2.rotation.x = Math.PI / 2;
 		this.paddleMesh2.material = paddleMaterial;
 		this.paddleMesh2.position = new BABYLON.Vector3(
-			(this.paddle2.x - 400) * scaleX,
+			(this.paddle2.x + (this.paddle2.width / 2) - 400) * scaleX, // Center of paddle
 			-0.25,
 			(300 - this.paddle2.y - this.paddle2.height / 2) * scaleY
 		);
+		
+		const ballMaterial = new BABYLON.StandardMaterial("ballMaterial", this.scene);
+		ballMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1);
+		if (!TEST_MODE) {
+			ballMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
+			ballMaterial.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+		}
 
 		this.ballMesh = BABYLON.MeshBuilder.CreateSphere(
 			"ball",
 			{
-				diameter: this.ball.radius / 5,
-				segments: 16,
+				diameter: this.ball.radius * 2 * scaleX,
+				segments: TEST_MODE ? 8 : 16,
 			},
 			this.scene
 		);
+		this.ballMesh.position.y = -0.2
 		this.ballMesh.material = ballMaterial;
 
 		if (!TEST_MODE && this.shadowGenerator) {
 			this.shadowGenerator.addShadowCaster(this.paddleMesh1);
 			this.shadowGenerator.addShadowCaster(this.paddleMesh2);
 			this.shadowGenerator.addShadowCaster(this.ballMesh);
+			this.shadowGenerator.addShadowCaster(this.bottomWall);
+			this.shadowGenerator.addShadowCaster(this.topWall);
 		}
 
 		if (!TEST_MODE) {
@@ -280,81 +332,180 @@ export class BabylonManager {
 			glowLayer.addIncludedOnlyMesh(this.paddleMesh1);
 			glowLayer.addIncludedOnlyMesh(this.paddleMesh2);
 		}
+	}
 
+	public updateGameState(gameState: any, gameStarted: boolean = false): void {
+		// Record when we received the update
+		this.lastServerUpdate = performance.now();
+		this.gameStarted = gameStarted;
+
+		// Store the server paddle positions
+		if (this.playerNumber === 1) {
+			// For player 1, paddle1 is local, paddle2 is remote
+			this.paddle2.x = gameState.paddle2.x;
+			this.paddle2.y = gameState.paddle2.y;
+
+			const ballCloseToLocalPaddle = Math.abs(this.ball.x - this.paddle1.x) < (this.ball.radius + this.paddle1.width / 2);
+
+			// Only make corrections when user is NOT actively moving the paddle
+			// AND there's a significant deviation
+			const deviation = Math.abs(this.paddle1.y - gameState.paddle1.y);
+			const controls = this.getControls();
+			if (deviation > 10 && !controls.isMoving() && !ballCloseToLocalPaddle) {
+				console.log("Server correction for paddle1:", deviation);
+				this.paddle1Correction = gameState.paddle1.y;
+				this.correctionSpeed = deviation > 50 ? 0.15 : 0.05;
+			}
+		} else {
+			// For player 2, paddle2 is local, paddle1 is remote
+			this.paddle1.x = gameState.paddle1.x;
+			this.paddle1.y = gameState.paddle1.y;
+
+			const ballCloseToLocalPaddle = Math.abs(this.ball.x - this.paddle2.x) < (this.ball.radius + this.paddle2.width / 2);
+
+			const deviation = Math.abs(this.paddle2.y - gameState.paddle2.y);
+			const controls = this.getControls(); // You need to add this method
+			if (deviation > 10 && !controls.isMoving() && !ballCloseToLocalPaddle) {
+				console.log("Server correction for paddle2:", deviation);
+				this.paddle2Correction = gameState.paddle2.y;
+				this.correctionSpeed = deviation > 50 ? 0.15 : 0.05;
+			}
+		}
+
+		// Always update ball from server
+		this.ball.x = gameState.ball.x;
+		this.ball.y = gameState.ball.y;
+		this.ball.speedX = gameState.ball.speedX;
+		this.ball.speedY = gameState.ball.speedY;
 	}
 
 	private updateMeshPositions(): void {
-		if (!this.paddleMesh1 || !this.paddleMesh2 || !this.ballMesh) return;
-
 		const scaleX = 20 / 800;
 		const scaleY = 15 / 600;
+		this.updatePaddleMeshPositions(scaleX, scaleY);
+		if (this.gameStarted) {
+			this.updateBallMeshPosition(scaleX, scaleY);
+		} else {
+			this.centerBallPosition();
+		}
+	}
 
-		// Calculate target positions
-		this.targetPaddle1Pos = new BABYLON.Vector3(
-			(this.paddle1.x - 400) * scaleX,
-			-0.25,
-			(300 - this.paddle1.y - this.paddle1.height / 2) * scaleY
-		);
+	private centerBallPosition(): void {
+		if (!this.ballMesh) return;
+		this.ballMesh.position = new BABYLON.Vector3(0, -0.2, 0);
+		this.previousSpeedX = 0;
+		this.previousSpeedY = 0;
+	}
 
-		this.targetPaddle2Pos = new BABYLON.Vector3(
-			(this.paddle2.x - 400) * scaleX,
-			-0.25,
-			(300 - this.paddle2.y - this.paddle2.height / 2) * scaleY
-		);
+	private updatePaddleMeshPositions(scaleX: number, scaleY: number): void {
+		if (!this.paddleMesh1 || !this.paddleMesh2) return;
 
-		this.targetBallPos = new BABYLON.Vector3(
-			(this.ball.x - 400) * scaleX,
-			0,
-			(300 - this.ball.y) * scaleY
-		);
+		// Apply any pending server corrections smoothly
+		if (this.paddle1Correction !== null) {
+			// Gradually move toward the correction
+			const currentDiff = this.paddle1Correction - this.paddle1.y;
+			if (Math.abs(currentDiff) < 1) {
+				// Close enough, snap to final position
+				this.paddle1.y = this.paddle1Correction;
+				this.paddle1Correction = null;
+			} else {
+				// Move a percentage of the way there
+				this.paddle1.y += currentDiff * this.correctionSpeed;
+			}
+		}
 
-		// Use different interpolation factors based on whether it's local or remote
-		// Local player's paddle (more responsive)
-		const localPaddleInterp = 0.3; 
-		// Remote player's paddle (smoother)
-		const remotePaddleInterp = 0.15;
-		// Ball interpolation
-		const ballInterp = 0.2;
-		
-	
-		
-		// Apply interpolation differently based on which paddle is controlled locally
+		if (this.paddle2Correction !== null) {
+			// Gradually move toward the correction
+			const currentDiff = this.paddle2Correction - this.paddle2.y;
+			if (Math.abs(currentDiff) < 1) {
+				// Close enough, snap to final position
+				this.paddle2.y = this.paddle2Correction;
+				this.paddle2Correction = null;
+			} else {
+				// Move a percentage of the way there
+				this.paddle2.y += currentDiff * this.correctionSpeed;
+			}
+		}
+
+		// Calculate target positions (with instant response for local paddle)
 		if (this.playerNumber === 1) {
-			// Player 1's paddle (local - more responsive)
-			this.paddleMesh1.position = BABYLON.Vector3.Lerp(
-				this.paddleMesh1.position,
-				this.targetPaddle1Pos,
-				localPaddleInterp
+			// Player 1's paddle - local, apply immediately
+			this.paddleMesh1.position = new BABYLON.Vector3(
+				(this.paddle1.x + (this.paddle1.width / 2) - 400) * scaleX,
+				-0.25,
+				(300 - this.paddle1.y - this.paddle1.height / 2) * scaleY
 			);
-			
-			// Player 2's paddle (remote - smoother)
+
+			// Player 2's paddle - remote, interpolate smoothly
+			this.targetPaddle2Pos = new BABYLON.Vector3(
+				(this.paddle2.x + (this.paddle2.width / 2) - 400) * scaleX,
+				-0.25,
+				(300 - this.paddle2.y - this.paddle2.height / 2) * scaleY
+			);
+
 			this.paddleMesh2.position = BABYLON.Vector3.Lerp(
 				this.paddleMesh2.position,
 				this.targetPaddle2Pos,
-				remotePaddleInterp
+				0.5
 			);
 		} else {
-			// Player 1's paddle (remote - smoother) 
+			// Player 2's paddle - local, apply immediately
+			this.paddleMesh2.position = new BABYLON.Vector3(
+				(this.paddle2.x + (this.paddle2.width / 2) - 400) * scaleX,
+				-0.25,
+				(300 - this.paddle2.y - this.paddle2.height / 2) * scaleY
+			);
+
+			// Player 1's paddle - remote, interpolate smoothly
+			this.targetPaddle1Pos = new BABYLON.Vector3(
+				(this.paddle1.x + (this.paddle1.width / 2) - 400) * scaleX,
+				-0.25,
+				(300 - this.paddle1.y - this.paddle1.height / 2) * scaleY
+			);
+
 			this.paddleMesh1.position = BABYLON.Vector3.Lerp(
 				this.paddleMesh1.position,
 				this.targetPaddle1Pos,
-				remotePaddleInterp
-			);
-			
-			// Player 2's paddle (local - more responsive)
-			this.paddleMesh2.position = BABYLON.Vector3.Lerp(
-				this.paddleMesh2.position,
-				this.targetPaddle2Pos,
-				localPaddleInterp
+				0.5
 			);
 		}
-		
-		// Ball always uses medium interpolation
+	}
+
+	private updateBallMeshPosition(scaleX: number, scaleY: number): void {
+		if (!this.ballMesh) return;
+
+		// Game is in progress - calculate prediction and interpolation
+		// Calculate time since last server update for prediction
+		const timeSinceUpdate = performance.now() - this.lastServerUpdate;
+		const predictionFactor = Math.min(timeSinceUpdate / this.serverUpdateInterval, 1.0);
+
+		// Detect bounce/direction changes
+		const directionChanged =
+			(Math.sign(this.ball.speedX) !== Math.sign(this.previousSpeedX) ||
+				Math.sign(this.ball.speedY) !== Math.sign(this.previousSpeedY));
+
+		// Predict where the ball should be based on its velocity
+		const predictedX = this.ball.x + (this.ball.speedX * predictionFactor);
+		const predictedY = this.ball.y + (this.ball.speedY * predictionFactor);
+
+		// Update target position with prediction
+		this.targetBallPos = new BABYLON.Vector3(
+			(predictedX - 400) * scaleX,
+			-0.2,
+			(300 - predictedY) * scaleY
+		);
+
+		// Dynamic ball interpolation - use higher factor for direction changes
+		const interpolationFactor = directionChanged ? 0.8 : 0.5;
 		this.ballMesh.position = BABYLON.Vector3.Lerp(
 			this.ballMesh.position,
 			this.targetBallPos,
-			ballInterp
+			interpolationFactor
 		);
+
+		// Store current speeds for next frame comparison
+		this.previousSpeedX = this.ball.speedX;
+		this.previousSpeedY = this.ball.speedY;
 	}
 
 	public handlePaddleHit(paddle: BABYLON.Mesh): void {

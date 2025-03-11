@@ -1,4 +1,5 @@
 import { createDefaultGameState } from "../../public/dist/shared/types/gameState.js";
+import { TEST_MODE } from "../utils/config.js";
 
 export class GameInstance {
 	constructor(gameId, existingSettings = null, safeSendFunction = null) {
@@ -9,7 +10,7 @@ export class GameInstance {
 		this.settings = existingSettings || {
 			ballSpeed: 4,
 			paddleSpeed: 10,
-			paddleLength: 100,
+			paddleLength: 150,
 			mapType: "default",
 			powerUpsEnabled: false,
 			maxScore: 3,
@@ -57,10 +58,12 @@ export class GameInstance {
 		const prevBallX = this.gameState.ball.x;
 		const prevBallY = this.gameState.ball.y;
 
+		const speedMultiplier = TEST_MODE ? 1.2 : 1.0; // Increase speed for testing
 		this.gameState.ball.x += this.gameState.ball.speedX;
 		this.gameState.ball.y += this.gameState.ball.speedY;
+
 		const wallHit = this.checkWallCollision();
-		const paddleHit = this.checkPaddleCollision();
+		const paddleHit = this.checkPaddleCollision(prevBallX, prevBallY);
 		const scoreResult = this.checkScoring();
 
 		if (wallHit) {
@@ -98,39 +101,72 @@ export class GameInstance {
 		const ball = this.gameState.ball;
 		if (ball.y - ball.radius <= 0 || ball.y + ball.radius >= 600) {
 			ball.speedY *= -1;
+			// Add small random factor to avoid loops (non-TEST mode only)
+			if (!TEST_MODE)
+				ball.speedY += (Math.random() - 0.5) * 0.5; 
 			return true;
 		}
 		return false;
 	}
 
-	checkPaddleCollision() {
+	checkPaddleCollision(prevBallX, prevBallY) {
 		const ball = this.gameState.ball;
 		const paddle1 = this.gameState.paddle1;
 		const paddle2 = this.gameState.paddle2;
 
+		// Paddle 1 collision
 		if (
-			ball.speedX < 0 &&
-			ball.x - ball.radius <= paddle1.x + paddle1.width &&
-			ball.y >= paddle1.y &&
-			ball.y <= paddle1.y + paddle1.height
+			ball.speedX < 0 && // Ball moving left
+			ball.x - ball.radius <= paddle1.x + paddle1.width && //ball left edge reaches paddle right edge
+			prevBallX - ball.radius > paddle1.x + paddle1.width && // ball was right of paddle previously
+			ball.y + ball.radius >= paddle1.y && // ball bottom edge is below paddle top 
+			ball.y - ball.radius <= paddle1.y + paddle1.height // ball top edge is above paddle bottom 
 		) {
-			ball.speedX *= -1;
+			ball.speedX = -ball.speedX;
 			//add angle based on where the ball hits the paddle
 			const hitPosition = (ball.y - paddle1.y) / paddle1.height;
 			ball.speedY = (hitPosition - 0.5) * 10;
+			const speedIncrease = 0.25; // Slightly higher increase factor
+			const maxSpeed = 12; // Higher maximum speed
+
+			// Calculate current speed magnitude
+			const currentSpeed = Math.sqrt(ball.speedX * ball.speedX + ball.speedY * ball.speedY);
+
+			// Calculate new speed magnitude (capped at maxSpeed)
+			const newSpeed = Math.min(maxSpeed, currentSpeed + speedIncrease);
+
+			// Calculate scale factor to apply to both components
+			const scaleFactor = newSpeed / currentSpeed;
+
+			// Apply to both X and Y components to maintain angle
+			ball.speedX *= scaleFactor;
+			ball.speedY *= scaleFactor;
+
 			return { paddleHit: 1, position: { x: paddle1.x, y: paddle1.y } };
 		}
-
+		// Paddle 2 collision
 		if (
-			ball.speedX > 0 &&
-			ball.x + ball.radius >= paddle2.x &&
-			ball.y >= paddle2.y &&
-			ball.y <= paddle2.y + paddle2.height
+			ball.speedX > 0 && // Ball moving right
+			ball.x + ball.radius >= paddle2.x && //ball right edge reaches paddle left edge
+			prevBallX + ball.radius < paddle2.x && // ball was left of paddle previously
+			ball.y + ball.radius >= paddle2.y && // ball bottom edge is below paddle top
+			ball.y - ball.radius <= paddle2.y + paddle2.height // ball top edge is above paddle bottom
 		) {
 			ball.speedX *= -1;
 			//add angle based on where the ball hits the paddle
 			const hitPosition = (ball.y - paddle2.y) / paddle2.height;
 			ball.speedY = (hitPosition - 0.5) * 10;
+
+			const speedIncrease = 0.25;
+			const maxSpeed = 12;
+
+			const currentSpeed = Math.sqrt(ball.speedX * ball.speedX + ball.speedY * ball.speedY);
+			const newSpeed = Math.min(maxSpeed, currentSpeed + speedIncrease);
+			const scaleFactor = newSpeed / currentSpeed;
+
+			ball.speedX *= scaleFactor;
+			ball.speedY *= scaleFactor;
+
 			return { paddleHit: 2, position: { x: paddle2.x, y: paddle2.y } };
 		}
 		return null;
@@ -140,7 +176,7 @@ export class GameInstance {
 		const ball = this.gameState.ball;
 
 		// Player 2 scores
-		if (ball.x - ball.radius <= 0) {
+		if (ball.x - ball.radius <= -40) {
 			this.gameState.score.player2Score++;
 			this.resetBall(2);
 			const winner = this.checkWin();
@@ -150,7 +186,7 @@ export class GameInstance {
 			return { scored: true, scorer: 2 };
 		}
 		// Player 1 scores
-		else if (ball.x + ball.radius >= 800) {
+		else if (ball.x + ball.radius >= 840) {
 			this.gameState.score.player1Score++;
 			this.resetBall(1);
 			const winner = this.checkWin();

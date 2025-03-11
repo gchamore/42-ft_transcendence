@@ -22,6 +22,8 @@ declare namespace BABYLON {
         y: number;
         z: number;
         static Lerp(start: Vector3, end: Vector3, amount: number): Vector3;
+        clone(): Vector3;
+        static Distance(value1: Vector3, value2: Vector3): number;
     }
 
     class Color3 {
@@ -62,6 +64,7 @@ declare namespace BABYLON {
         specularColor: Color3;
         emissiveColor: Color3;
         alpha: number;
+        wireframe: boolean;
     }
 
     class ShadowGenerator {

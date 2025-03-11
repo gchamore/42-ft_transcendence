@@ -1,7 +1,5 @@
 import { Paddle } from './paddle';
 
-const TARGET_FPS = 30;
-
 export class PlayerControls {
 	up: boolean = false;
 	down: boolean = false;
@@ -16,6 +14,9 @@ export class GameControls {
 	private playerNumber: number;
 	private paddle1: Paddle;
 	private paddle2: Paddle;
+	private lastUpdateTime: number = 0;
+    private readonly updateInterval: number = 50; // 20 updates per second (ms)
+    private pendingUpdate: boolean = false;
 
 	constructor(paddle1: Paddle, paddle2: Paddle, playerNumber: number, socket: WebSocket) {
 		this.playerNumber = playerNumber;
@@ -23,6 +24,10 @@ export class GameControls {
 		this.paddle2 = paddle2;
 		this.paddle = playerNumber === 1 ? paddle1 : paddle2;
 		this.socket = socket;
+	}
+
+	public isMoving(): boolean {
+		return this.upPressed || this.downPressed;
 	}
 
 	handleKeyDown(event: KeyboardEvent): void {
@@ -93,17 +98,62 @@ export class GameControls {
 		}
 	}
 
+	// start continuous movement of paddle
 	private startContinuousMove(): void {
-		this.stopContinuousMove();
-		this.moveIntervalId = window.setInterval(() => {
-			this.sendPaddleMoves();
-		}, 1000 / TARGET_FPS);
-	}
+        this.stopContinuousMove();
+        
+        // Process local movement at 60fps for smooth visuals
+        this.moveIntervalId = window.setInterval(() => {
+            if (this.upPressed || this.downPressed) {
+                // Always apply local movement
+                if (this.upPressed) {
+                    this.paddle.y += this.paddle.speed;
+                }
+                if (this.downPressed) {
+                    this.paddle.y -= this.paddle.speed;
+                }
+                
+                // Keep paddle in bounds
+                if (this.paddle.y < 0) {
+                    this.paddle.y = 0;
+                }
+                if (this.paddle.y + this.paddle.height > 600) {
+                    this.paddle.y = 600 - this.paddle.height;
+                }
+                
+                // Only send to server at controlled rate
+                const now = performance.now();
+                if (now - this.lastUpdateTime >= this.updateInterval) {
+                    if (this.socket?.readyState === WebSocket.OPEN) {
+                        this.socket.send(JSON.stringify({
+                            type: 'movePaddle',
+                            player: this.playerNumber,
+                            y: this.playerNumber === 1 ? this.paddle1.y : this.paddle2.y
+                        }));
+                        this.lastUpdateTime = now;
+                        this.pendingUpdate = false;
+                    }
+                } else {
+                    this.pendingUpdate = true;
+                }
+            }
+        }, 1000 / 60); // 60fps for smooth local movement
+    }
 
 	private stopContinuousMove(): void {
 		if (this.moveIntervalId) {
 			window.clearInterval(this.moveIntervalId);
 			this.moveIntervalId = null;
+			
+			// Send final position if there's a pending update
+			if (this.pendingUpdate) {
+				this.socket.send(JSON.stringify({
+					type: 'movePaddle',
+					player: this.playerNumber,
+					y: this.playerNumber === 1 ? this.paddle1.y : this.paddle2.y
+				}));
+				this.pendingUpdate = false;
+			}
 		}
 	}
 
@@ -126,14 +176,22 @@ export class GameControls {
 			this.paddle.y = 600 - this.paddle.height;
 		}
 
-		// Send updated position to server
-		if (this.socket?.readyState === WebSocket.OPEN) {
-			console.log(`Sending paddle ${this.playerNumber} position:`, this.paddle.y);
-			this.socket.send(JSON.stringify({
-				type: 'movePaddle',
-				player: this.playerNumber,
-				y: this.playerNumber === 1 ? this.paddle1.y : this.paddle2.y
-			}));
+		// Throttle WebSocket messages
+		const now = performance.now();
+		if (now - this.lastUpdateTime >= this.updateInterval) {
+			// Only send if enough time has passed
+			if (this.socket?.readyState === WebSocket.OPEN) {
+				this.socket.send(JSON.stringify({
+					type: 'movePaddle',
+					player: this.playerNumber,
+					y: this.playerNumber === 1 ? this.paddle1.y : this.paddle2.y
+				}));
+				this.lastUpdateTime = now;
+				this.pendingUpdate = false;
+			}
+		} else {
+			// Mark that we have a pending update
+			this.pendingUpdate = true;
 		}
 	}
 

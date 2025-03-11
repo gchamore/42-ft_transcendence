@@ -1,8 +1,8 @@
 import WebSocket from 'ws';
-import { games, mainLobby, broadcastGameState } from '../controllers/gameController.js';
+import { games, mainLobby, broadcastGameState, resetMainLobby} from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleDisconnect } from './disconnectHandler.js';
-import { TEST_MODE, TARGET_FPS } from '../utils/config.js';
+import { TEST_MODE } from '../utils/config.js';
 
 export const broadcastTimeout = {};
 
@@ -114,9 +114,15 @@ function handleStartGameRequest(socket, game, playerNumber, data) {
 			const newGameId = data.gameId;
 			console.log(`Creating new game: ${newGameId} from lobby ${game.gameId}`);
 
+			const oldGameId = game.gameId;
+
 			games.delete(game.gameId);
 			game.transitionToGame(newGameId);
 			games.set(newGameId, game);
+			if (oldGameId === 'lobby-main') {
+				resetMainLobby();
+				console.log('Main lobby reset after transition to game');
+			}
 			console.log(`New game has ${game.players.length} players and Id ${game.gameId}`);
 			game.players.forEach((player) => {
 				safeSend(player, {
@@ -139,10 +145,9 @@ function handleStartGameRequest(socket, game, playerNumber, data) {
 }
 
 function handleStartGame(socket, game, playerNumber) {
-	console.log(`Player ${playerNumber} trying to start game ${game.gameId}`);
-	console.log('Available game IDs:', Array.from(games.keys()));
 	if (playerNumber === game.gameState.servingPlayer) {
 		if (game.players.length === 2) {
+			console.log(`Player ${playerNumber} starting game ${game.gameId}`);
 			const currentGame = games.get(game.gameId);
 			currentGame.gameState.gameStarted = true;
 		} else {
@@ -181,8 +186,7 @@ function handleMovePaddle(socket, game, playerNumber, data) {
 	const now = Date.now();
 	if (!broadcastTimeout[game.gameId]) broadcastTimeout[game.gameId] = 0;
 
-	if (now - broadcastTimeout[game.gameId] > 33) { // 30 updates per second max
-		broadcastGameState(game);
+	if (now - broadcastTimeout[game.gameId] > 66.7) { // 15 updates per second max
 		game.paddleMoved = false;
 		broadcastTimeout[game.gameId] = now;
 	}

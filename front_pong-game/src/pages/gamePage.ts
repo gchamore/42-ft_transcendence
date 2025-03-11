@@ -77,6 +77,7 @@ export class Game {
 			} else {
 				this.fpsManager = new FPSManager();
 			}
+			this.babylonManager.setControls(this.controls);
 		} catch (error) {
 			console.error("Error initializing Babylon scene", error);
 			this.isLoading = false;
@@ -301,14 +302,8 @@ export class Game {
 				this.ball.updatePosition(gameState.ball);
 			}
 		}
-		if (gameState.paddle1) {
-			this.paddle1.updatePosition(gameState.paddle1);
-		}
-		if (gameState.paddle2) {
-			this.paddle2.updatePosition(gameState.paddle2);
-		}
-		if (gameState.score && !this.isLoading) {
-			this.scoreBoard.updateScore(gameState.score);
+		if (this.babylonManager) {
+			this.babylonManager.updateGameState(gameState, this.gameStarted);
 		}
 	}
 
@@ -357,12 +352,11 @@ export class Game {
 		if (this.uiCanvas && this.context)
 			this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
-
+		
 		if (this.fpsManager) {
 			this.fpsManager.update(timestamp);
 		}
-
+		
 		if (!this.isLoading && this.babylonManager) {
 			this.babylonManager.render(timestamp);
 		}
@@ -378,7 +372,7 @@ export class Game {
 				);
 			}
 		}
-
+		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
 	}
 
 	start(): void {
