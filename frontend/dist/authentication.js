@@ -41,6 +41,7 @@ function register(username, password) {
         try {
             const response = yield fetch(`http://localhost:8080/register`, {
                 method: "POST",
+                credentials: "include",
                 headers: { "Content-Type": "application/json"
                 },
                 body: JSON.stringify({ username: username, password: password })
@@ -68,6 +69,7 @@ function login(username, password) {
         try {
             const response = yield fetch(`http://localhost:8080/login`, {
                 method: "POST",
+                credentials: "include",
                 headers: { "Content-Type": "application/json"
                 },
                 body: JSON.stringify({ username: username, password: password })
