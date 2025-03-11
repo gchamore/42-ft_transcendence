@@ -502,25 +502,64 @@
         }
         
         // Update user list in UI
-        function updateUserList() {
+        async function updateUserList() {
             if (!searchResults || !searchResults.length) return;
 
-            // Si onlineUsers n'est pas défini, faisons d'abord la requête
-            if (!onlineUsers) {
-                fetch(`${API_URL}/online-users`, {
-                    credentials: 'include'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    onlineUsers = data.users;
-                    console.log("🔗 Liste des utilisateurs en ligne mise à jour:", onlineUsers);
-                    renderUserList();
-                })
-                .catch(error => {
-                    console.error('Erreur lors de la récupération des utilisateurs en ligne:', error);
-                    renderUserList(); // Afficher quand même la liste, mais tout le monde sera offline
+            try {
+                let response = await fetch(`${API_URL}/online-users`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
                 });
-            } else {
+
+                if (response.status === 401) {
+                    console.log("Token expiré, tentative de rafraîchissement...");
+                    
+                    // Essayer de rafraîchir le token
+                    const refreshResponse = await fetch(`${API_URL}/refresh`, {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+
+                    if (refreshResponse.ok) {
+                        // Réessayer la requête originale avec le nouveau token
+                        response = await fetch(`${API_URL}/online-users`, {
+                            method: 'GET',
+                            credentials: 'include',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                    } else {
+                        // Si le rafraîchissement échoue, vérifier si c'est un problème de session
+                        const verifyResponse = await fetch(`${API_URL}/verify_token`, {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+
+                        if (!verifyResponse.ok) {
+                            console.log("Session expirée, redirection vers la page de connexion");
+                            resetAppState();
+                            return;
+                        }
+                    }
+                }
+
+                if (response.ok) {
+                    const data = await response.json();
+                    onlineUsers = data.users;
+                    console.log("👥 Utilisateurs en ligne mis à jour:", onlineUsers);
+                    renderUserList();
+                } else {
+                    console.error("Erreur lors de la récupération des utilisateurs en ligne:", response.status);
+                    onlineUsers = [];
+                    renderUserList();
+                }
+            } catch (error) {
+                console.error('Erreur lors de la récupération des utilisateurs en ligne:', error);
+                onlineUsers = [];
                 renderUserList();
             }
         }

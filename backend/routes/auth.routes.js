@@ -225,12 +225,26 @@ async function routes(fastify, options) {
             return reply.code(401).send({ error: "No refresh token provided" });
         }
 
-        const newAccessToken = await authService.refreshAccessToken(refreshToken);
-        if (!newAccessToken) {
-            return reply.code(401).send({ error: "Invalid refresh token" });
-        }
+        try {
+            const newAccessToken = await authService.refreshAccessToken(refreshToken);
+            if (!newAccessToken) {
+                return reply.code(401).send({ error: "Invalid refresh token" });
+            }
 
-        return { accessToken: newAccessToken };
+            // Définir le nouveau cookie avec le token d'accès
+            reply.setCookie('accessToken', newAccessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'Strict',
+                path: '/',
+                maxAge: 15 * 60 // 15 minutes
+            });
+
+            return { success: true };
+        } catch (error) {
+            fastify.log.error(error);
+            return reply.code(500).send({ error: "Failed to refresh token" });
+        }
     });
 
     /*** 📌 Route: PROTECTED EXAMPLE ***/
@@ -243,6 +257,25 @@ async function routes(fastify, options) {
             message: "protected information",
             user: user.username
         };
+    });
+
+    /*** 📌 Route: ONLINE USERS (Protected) ***/
+    fastify.get("/online-users", async (request, reply) => {
+        // Le middleware auth vérifie déjà le token
+        if (!request.user) {
+            return reply.code(401).send({ error: "Unauthorized" });
+        }
+
+        const wsManager = fastify.wsManager;
+        const onlineUsers = Array.from(wsManager.onlineUsers.entries())
+            .map(([id, username]) => ({ id, username }));
+        
+        fastify.log.info({
+            requestUser: request.user.userId,
+            onlineCount: onlineUsers.length
+        }, "Liste des utilisateurs en ligne envoyée");
+
+        return { users: onlineUsers, count: onlineUsers.length };
     });
 
     /*** 📌 Route: LOGOUT ***/
@@ -298,20 +331,53 @@ async function routes(fastify, options) {
         const token = request.cookies?.accessToken;
         
         if (!token) {
-            return { valid: false };
+            return reply.code(401).send({ valid: false, error: 'No token provided' });
         }
 
-        const decoded = await authService.validateToken(token);
+        const decoded = await authService.validateToken(token, 'access', db);
+        
+        // Si le token n'est pas valide, supprimer les cookies et renvoyer 401
+        if (!decoded) {
+            reply
+                .clearCookie('accessToken', {
+                    path: '/',
+                    secure: process.env.NODE_ENV === 'production',
+                    httpOnly: true,
+                    sameSite: 'strict'
+                })
+                .clearCookie('refreshToken', {
+                    path: '/',
+                    secure: process.env.NODE_ENV === 'production',
+                    httpOnly: true,
+                    sameSite: 'strict'
+                });
+            
+            return reply.code(401).send({ 
+                valid: false, 
+                error: 'Invalid or expired token' 
+            });
+        }
         
         fastify.log.debug({
-            tokenValid: !!decoded,
-            username: decoded?.username
+            tokenValid: true,
+            userId: decoded.userId
         }, "Vérification de token");
 
-        return { 
-            valid: !!decoded,
-            username: decoded?.username
-        };
+        // Récupérer le username actuel depuis la base de données
+        const user = db.prepare("SELECT username FROM users WHERE id = ?").get(decoded.userId);
+        
+        if (!user) {
+            // L'utilisateur n'existe plus dans la base de données
+            return reply.code(401).send({ 
+                valid: false, 
+                error: 'User no longer exists' 
+            });
+        }
+
+        return reply.send({ 
+            valid: true,
+            username: user.username
+        });
     });
 }
 
