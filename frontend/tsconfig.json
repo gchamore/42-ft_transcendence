@@ -4,8 +4,8 @@
     "module": "commonjs",
 
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src/ts"
   },
-  "include": ["src/*.ts"],
+  "include": ["src/ts/*.ts"],
   "exclude": null
 }

@@ -2,33 +2,41 @@
 <html>  
   <head>
     <title>Our spectacular Pong-game Website</title>
-    <link rel="stylesheet" href="styles.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/modals.css">
+    <link rel="stylesheet" href="css/sidebar.css">
   </head>
   
-  <body>
+  <body onload="verify_token()">
     <section id="home">
       <aside id="sidebar">
         <nav>
           <ul>
-            <li><button class="btn sidebar" id="profile-btn" 
-              onclick="profile_clicked()"></button></li>
-            <li><button class="btn sidebar logged-in" id="friends-btn" 
-              onclick="friends_clicked()"></button></li>
-            <li><button class="btn sidebar logged-in" id="chat-btn"
-              onclick="chat_clicked()"></button></li>
+            <li class="sidebar">
+              <button class="btn sidebar" id="profile-btn"
+                onclick="profile_clicked()"></button></li>
+            <li class="sidebar logged-in" hidden>
+              <button class="btn sidebar" id="friends-btn"
+                onclick="friends_clicked()"></button></li>
+            <li class="sidebar logged-in" hidden>
+              <button class="btn sidebar" id="chat-btn"
+                onclick="chat_clicked()"></button></li>
           </ul>
         </nav>
       </aside>
 
       <main id="game-overlay">
-        <canvas id="game" title="pong-game"></canvas> <!-- Pong-game belongs here -->
+        <canvas id="game" title="pong-game"></canvas>
       </main>   
     </section>
     
-    <div id="modals-container" class="modal">
-      <article class="profile">
+    <div id="modals-container">
+      <article class="modal-item profile">
         <section>
-          <img class="avatar profile logged-in">
+          <img class="avatar profile logged-in" id="profile-avatar" src="../assets/avatar.png">
 
           <label for="profile-username">Username:</label>
           <input type="text" id="profile-username">
@@ -42,14 +50,14 @@
         <section>
           <nav>
             <ul>
-              <li><button class="btn modal" id="profile-btn1">Btn1</button></li>
-              <li><button class="btn modal" id="profile-btn2">Btn2</button></li>
+              <li class="modal l1"><button class="btn modal" id="profile-btn1">Btn1</button></li>
+              <li class="modal l2"><button class="btn modal" id="profile-btn2">Btn2</button></li>
             </ul>
           </nav>
         </section>
       </article>
       
-      <article class="friends">
+      <article class="modal-item friends">
         <section>
           <label for="friends-username">Search a user:</label>
           <input type="text" id="friends-username">
@@ -87,6 +95,9 @@
       </article>
     </div>
 
+    <script src="../dist/authentication.js"></script>
+    <script src="../dist/modals.js"></script>
     <script src="../dist/sidebar.js"></script>
+    <script src="../dist/view.js"></script>
   </body>
 </html>
