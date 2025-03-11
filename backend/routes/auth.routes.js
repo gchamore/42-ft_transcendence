@@ -29,10 +29,18 @@ async function routes(fastify, options) {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Insertion dans la base de données
-        db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, hashedPassword);
+        const result = db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, hashedPassword);
         fastify.log.info(`Nouvel utilisateur enregistré : ${username}`);
 
-        return reply.code(201).send({ success: true, message: "User registered successfully", username: user.username, id: user.id });
+        // Récupérer l'utilisateur nouvellement créé
+        const newUser = db.prepare("SELECT id, username FROM users WHERE id = ?").get(result.lastInsertRowid);
+
+        return reply.code(201).send({ 
+            success: true, 
+            message: "User registered successfully", 
+            username: newUser.username, 
+            id: newUser.id 
+        });
     });
 
     /*** 📌 Route: UNREGISTER ***/
