@@ -95,7 +95,7 @@ fastify.addHook('preHandler', (request, reply, done) => {
         '/getUserId',
         '/getUserProfile',
         '/leaderboard',
-        '/ws',
+        '/ws'
     ];
 
     // Vérifier si la route actuelle est publique

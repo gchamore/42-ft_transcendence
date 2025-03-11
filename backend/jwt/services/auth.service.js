@@ -20,7 +20,7 @@ class AuthService {
     }
 
     // Valider un token
-    async validateToken(token, type = 'access') {
+    async validateToken(token, type = 'access', db) {
         try {
             // Vérifier d'abord si le token est blacklisté
             const isBlacklisted = await redis.get(`blacklist_${token}`);
@@ -31,7 +31,21 @@ class AuthService {
             const decoded = jwt.verify(token, JWT_SECRET);
             const inSet = await redis.sismember(`access_tokens_${decoded.userId}`, token);
 
-            return inSet ? decoded : null;
+            if (!inSet) {
+                return null;
+            }
+
+            // Vérifier si l'utilisateur existe toujours dans la base de données
+            if (db) {
+                const userExists = db.prepare("SELECT id FROM users WHERE id = ?").get(decoded.userId);
+                if (!userExists) {
+                    // L'utilisateur n'existe plus, on révoque ses tokens
+                    await this.revokeTokens(decoded.userId);
+                    return null;
+                }
+            }
+
+            return decoded;
         } catch (error) {
             return null;
         }
@@ -39,11 +53,33 @@ class AuthService {
 
     // Rafraîchir le token d'accès
     async refreshAccessToken(refreshToken) {
-        const decoded = await this.validateToken(refreshToken, 'refresh');
-        if (!decoded) return null;
-        
-        const { accessToken } = await this.generateTokens(decoded.userId);
-        return accessToken;
+        try {
+            // Vérifier si le token de rafraîchissement est dans la blacklist
+            const isBlacklisted = await redis.get(`blacklist_${refreshToken}`);
+            if (isBlacklisted) {
+                return null;
+            }
+
+            const decoded = jwt.verify(refreshToken, JWT_SECRET);
+            const storedRefreshToken = await redis.get(`refresh_${decoded.userId}`);
+
+            if (refreshToken !== storedRefreshToken) {
+                return null;
+            }
+
+            // Générer un nouveau token d'accès
+            const accessToken = jwt.sign({ userId: decoded.userId }, JWT_SECRET, { 
+                expiresIn: ACCESS_TOKEN_EXPIRY 
+            });
+
+            // Enregistrer le nouveau token dans Redis
+            await redis.sadd(`access_tokens_${decoded.userId}`, accessToken);
+
+            return accessToken;
+        } catch (error) {
+            console.error('Refresh token error:', error);
+            return null;
+        }
     }
 
     // Révoquer les tokens d'un utilisateur
