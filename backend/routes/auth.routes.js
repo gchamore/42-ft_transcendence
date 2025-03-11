@@ -328,7 +328,7 @@ async function routes(fastify, options) {
 
     /*** 📌 Route: VERIFY TOKEN ***/
     fastify.post("/verify_token", async (request, reply) => {
-        const token = request.cookies.accessToken;
+        const token = request.cookies?.accessToken;
         
         if (!token) {
             return reply.code(401).send({ valid: false, error: 'No token provided' });
