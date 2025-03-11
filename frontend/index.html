@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>42 Transcendence</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #121212;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            color: #00babc;
+            text-align: center;
+        }
+        .card {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .auth-forms {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .auth-form {
+            flex: 1;
+            min-width: 300px;
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border: none;
+        }
+        input {
+            background-color: #2d2d2d;
+            color: #fff;
+            border: 1px solid #444;
+        }
+        button {
+            background-color: #00babc;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #00a0a2;
+        }
+        .hidden {
+            display: none;
+        }
+        .alert {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .alert-success {
+            background-color: #2e7d32;
+            color: white;
+        }
+        .alert-error {
+            background-color: #c62828;
+            color: white;
+        }
+        .user-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .online {
+            background-color: #4CAF50;
+        }
+        .offline {
+            background-color: #9e9e9e;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+        }
+        .search-box input {
+            flex: 1;
+        }
+        .search-box button {
+            width: auto;
+        }
+        .user-list {
+            list-style: none;
+            padding: 0;
+        }
+        .user-list li {
+            padding: 10px;
+            border-bottom: 1px solid #444;
+            display: flex;
+            align-items: center;
+        }
+        .logout-btn {
+            background-color: #f44336;
+        }
+        .logout-btn:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>42 Transcendence</h1>
+        
+        <!-- Authentication Section -->
+        <div id="auth-section">
+            <div class="card">
+                <div id="auth-message" class="alert hidden"></div>
+                <div class="auth-forms">
+                    <!-- Register Form -->
+                    <div class="auth-form">
+                        <h2>Register</h2>
+                        <form id="register-form">
+                            <input type="text" id="register-username" placeholder="Username" required>
+                            <input type="password" id="register-password" placeholder="Password" required>
+                            <button type="submit">Register</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Login Form -->
+                    <div class="auth-form">
+                        <h2>Login</h2>
+                        <form id="login-form">
+                            <input type="text" id="login-username" placeholder="Username" required>
+                            <input type="password" id="login-password" placeholder="Password" required>
+                            <button type="submit">Login</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- App Section (hidden until logged in) -->
+        <div id="app-section" class="hidden">
+            <div class="card">
+                <div id="user-info">
+                    <h2>Welcome, <span id="current-username"></span>!</h2>
+                    <button id="logout-btn" class="logout-btn">Logout</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Search Players</h2>
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Search by username...">
+                    <button id="search-btn">Search</button>
+                </div>
+                <div id="search-results">
+                    <ul id="user-list" class="user-list"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Base URL
+        const API_URL = 'http://localhost:3000';
+        
+        // Elements
+        const authSection = document.getElementById('auth-section');
+        const appSection = document.getElementById('app-section');
+        const authMessage = document.getElementById('auth-message');
+        const registerForm = document.getElementById('register-form');
+        const loginForm = document.getElementById('login-form');
+        const currentUsername = document.getElementById('current-username');
+        const logoutBtn = document.getElementById('logout-btn');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const userList = document.getElementById('user-list');
+        
+        // Store user data
+        let currentUser = null;
+        let onlineUsers = [];
+        let wsConnection = null;
+
+        // Show message function
+        function showMessage(message, isError = false) {
+            authMessage.textContent = message;
+            authMessage.classList.remove('hidden', 'alert-success', 'alert-error');
+            authMessage.classList.add(isError ? 'alert-error' : 'alert-success');
+            setTimeout(() => {
+                authMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Register function
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('register-username').value;
+            const password = document.getElementById('register-password').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include'
+                });
+                
+                const data = await response.json().catch(e => ({ error: 'Failed to parse response' }));
+                
+                if (response.ok) {
+                    showMessage('Registration successful! You can now log in.');
+                    registerForm.reset();
+                } else {
+                    const errorMessage = data.error || `Registration failed (${response.status}: ${response.statusText})`;
+                    showMessage(errorMessage, true);
+                    console.error('Register failed:', { status: response.status, data });
+                }
+            } catch (error) {
+                const errorMessage = `Server error: ${error.message}`;
+                showMessage(errorMessage, true);
+                console.error('Register error:', error);
+            }
+        });
+
+        // Login function
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentUser = {
+                        username: data.username,
+                        id: data.id
+                    };
+                    currentUsername.textContent = data.username;
+                    
+                    // Switch to app view
+                    authSection.classList.add('hidden');
+                    appSection.classList.remove('hidden');
+                    
+                    // Connect WebSocket after login
+                    connectWebSocket();
+                } else {
+                    showMessage(data.error || 'Login failed', true);
+                }
+            } catch (error) {
+                showMessage('Server error. Please try again later.', true);
+                console.error('Login error:', error);
+            }
+        });
+
+        // Logout function
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                // Vérifier d'abord si l'utilisateur a un token valide
+                const verifyResponse = await fetch(`${API_URL}/verify_token`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                const verifyData = await verifyResponse.json();
+
+                if (!verifyData.valid) {
+                    // Si pas de token valide, déconnecter localement
+                    resetAppState();
+                    return;
+                }
+
+                // Si token valide, procéder au logout côté serveur
+                const response = await fetch(`${API_URL}/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (wsConnection) {
+                    wsConnection.close();
+                    wsConnection = null;
+                }
+
+                // Dans tous les cas, réinitialiser l'état local
+                resetAppState();
+
+            } catch (error) {
+                console.error('Logout error:', error);
+                // En cas d'erreur, réinitialiser quand même l'état local
+                resetAppState();
+            }
+        });
+
+        // Helper function to reset app state
+        function resetAppState() {
+            currentUser = null;
+            onlineUsers = [];
+            searchResults = [];
+            authSection.classList.remove('hidden');
+            appSection.classList.add('hidden');
+            loginForm.reset();
+            userList.innerHTML = '';
+            
+            // Nettoyer les cookies côté client (même si ce n'est pas l'idéal)
+            document.cookie = 'accessToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            document.cookie = 'refreshToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        }
+
+        // Check authentication status on page load
+        async function checkAuth() {
+            try {
+                const response = await fetch(`${API_URL}/verify_token`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.valid) {
+                    currentUser = { username: data.username };
+                    currentUsername.textContent = data.username;
+                    
+                    // Get user ID
+                    const idResponse = await fetch(`${API_URL}/getUserId`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username: data.username }),
+                        credentials: 'include'
+                    });
+                    
+                    const idData = await idResponse.json();
+                    if (idResponse.ok) {
+                        currentUser.id = idData.id;
+                    }
+                    
+                    // Switch to app view
+                    authSection.classList.add('hidden');
+                    appSection.classList.remove('hidden');
+                    
+                    // Connect WebSocket
+                    connectWebSocket();
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+            }
+        }
+
+        // Check auth on page load
+        checkAuth();
+
+        // WebSocket Connection
+        function connectWebSocket() {
+            if (wsConnection) return;
+            
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const hostname = window.location.hostname || "localhost"; // 🔥 Ajoute un fallback
+            const wsUrl = `${protocol}//${hostname}:3000/ws`;
+
+            console.log("🔗 Tentative de connexion WebSocket à :", wsUrl);
+
+            wsConnection = new WebSocket(wsUrl);
+
+
+            wsConnection.onopen = () => {
+                console.log('WebSocket connection established');
+                
+                // Send user info to identify the connection
+                wsConnection.send(JSON.stringify({
+                    type: 'connection',
+                    userId: currentUser.id,
+                    username: currentUser.username
+                }));
+                
+                // Start sending pings to keep connection alive
+                startPingInterval();
+            };
+            
+            wsConnection.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('WebSocket message received:', data);
+                    
+                    if (data.type === 'online_users_update') {
+                        onlineUsers = data.users;
+                        console.log('Online users updated:', onlineUsers);
+                        if (searchResults.length > 0) {
+                            renderUserList(); // Mettre à jour l'affichage si nous avons des résultats
+                        }
+                    } else if (data.type === 'connection_confirmed') {
+                        console.log('Connection confirmed by server');
+                    } else if (data.type === 'pong') {
+                        // Calculate latency
+                        const latency = Date.now() - data.timestamp;
+                        console.log(`WebSocket latency: ${latency}ms`);
+                    }
+                } catch (error) {
+                    console.error('Error parsing WebSocket message:', error);
+                }
+            };
+            
+            wsConnection.onclose = () => {
+                console.log('WebSocket connection closed');
+                stopPingInterval();
+                
+                // Try to reconnect after 5 seconds
+                setTimeout(() => {
+                    if (currentUser) connectWebSocket();
+                }, 5000);
+            };
+            
+            wsConnection.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                wsConnection.close();
+            };
+        }
+        
+        // Keep-alive pings
+        let pingInterval = null;
+        
+        function startPingInterval() {
+            if (pingInterval) return;
+            
+            pingInterval = setInterval(() => {
+                if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+                    wsConnection.send(JSON.stringify({
+                        type: 'ping',
+                        userId: currentUser?.id,
+                        timestamp: Date.now()
+                    }));
+                }
+            }, 30000); // Send ping every 30 seconds
+        }
+        
+        function stopPingInterval() {
+            if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+            }
+        }
+
+        // Check if a user is online
+        function isUserOnline(userId) {
+            if (!onlineUsers || !userId) return false;
+            
+            const searchId = String(userId);
+            const isOnline = Array.isArray(onlineUsers) && onlineUsers.some(user => String(user.id) === searchId);
+            
+            console.log(`Vérification du statut en ligne pour l'utilisateur ${userId}:`, { 
+                isOnline, 
+                onlineUsers: Array.isArray(onlineUsers) ? onlineUsers.length : 'non défini',
+                searchId 
+            });
+            
+            return isOnline;
+        }
+        
+        // Format user list item with debug info
+        function formatUserListItem(user) {
+            const online = isUserOnline(user.id);
+            console.log('Formatting user:', {
+                userId: user.id,
+                username: user.username,
+                online,
+                onlineUsers: onlineUsers
+            });
+            return `
+                <li>
+                    <span class="user-status ${online ? 'online' : 'offline'}"></span>
+                    ${user.username} ${online ? '(Online)' : '(Offline)'}
+                </li>
+            `;
+        }
+        
+        // Update user list in UI
+        function updateUserList() {
+            if (!searchResults || !searchResults.length) return;
+
+            // Si onlineUsers n'est pas défini, faisons d'abord la requête
+            if (!onlineUsers) {
+                fetch(`${API_URL}/online-users`, {
+                    credentials: 'include'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    onlineUsers = data.users;
+                    console.log("🔗 Liste des utilisateurs en ligne mise à jour:", onlineUsers);
+                    renderUserList();
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la récupération des utilisateurs en ligne:', error);
+                    renderUserList(); // Afficher quand même la liste, mais tout le monde sera offline
+                });
+            } else {
+                renderUserList();
+            }
+        }
+
+        // Nouvelle fonction pour le rendu de la liste
+        function renderUserList() {
+            console.log("🔍 Liste des résultats de recherche :", searchResults);
+            console.log("🔗 Liste des utilisateurs en ligne :", onlineUsers);
+
+            userList.innerHTML = searchResults
+                .map(user => formatUserListItem(user))
+                .join('');
+        }
+
+        // Store search results
+        let searchResults = [];
+
+        // Search users
+        searchBtn.addEventListener('click', performSearch);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+        
+        async function performSearch() {
+            const searchTerm = searchInput.value.trim();
+            if (!searchTerm) return;
+            
+            userList.innerHTML = '<li>Searching...</li>';
+            
+            try {
+                const response = await fetch(`${API_URL}/isUser/${searchTerm}`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.exists) {
+                    const idResponse = await fetch(`${API_URL}/getUserId`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username: searchTerm }),
+                        credentials: 'include'
+                    });
+                    
+                    const idData = await idResponse.json();
+                    
+                    if (idResponse.ok) {
+                        searchResults = [{
+                            id: idData.id,
+                            username: searchTerm
+                        }];
+                        
+                        // Fetch current online status
+                        try {
+                            const onlineResponse = await fetch(`${API_URL}/online-users`, {
+                                credentials: 'include'
+                            });
+                            const onlineData = await onlineResponse.json();
+                            onlineUsers = onlineData.users;
+                        } catch (error) {
+                            console.error('Error fetching online users:', error);
+                        }
+                        
+                        // Update the display
+                        updateUserList();
+                    } else {
+                        userList.innerHTML = '<li>Error getting user details</li>';
+                    }
+                } else {
+                    searchResults = [];
+                    userList.innerHTML = '<li>No user found with that username</li>';
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                userList.innerHTML = '<li>Error searching for users</li>';
+            }
+        }
+
+        // Handle WebSocket reconnection on visibility change
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && currentUser && 
+                (!wsConnection || wsConnection.readyState !== WebSocket.OPEN)) {
+                connectWebSocket();
+            }
+        });
+    </script>
+</body>
+</html>

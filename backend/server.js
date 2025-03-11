@@ -78,7 +78,7 @@ fastify.addHook('preHandler', (request, reply, done) => {
         '/getUserId',
         '/getUserProfile',
         '/leaderboard',
-        '/ws' // Route WebSocket publique pour le monitoring
+        '/ws',
     ];
 
     // Vérifier si la route actuelle est publique
