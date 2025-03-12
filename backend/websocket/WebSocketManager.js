@@ -3,8 +3,6 @@ const Redis = require('ioredis');
 class WebSocketManager {
     constructor() {
         this.connections = new Map(); // userId -> connection
-        this.games = new Map();       // gameId -> {player1, player2, ...gameState}
-        this.matchmaking = new Set(); // Users looking for a game
         this.onlineUsers = new Map(); // userId -> username (in-memory cache)
         this.redis = new Redis();     // Redis client for persistence
     }

@@ -12,13 +12,12 @@ const fastify = require("fastify")({
 });
 
 const WebSocket = require('ws');
-const WebSocketManager = require('./websocket/WebSocketManager');
+const WebSocketManager = require('./websocket/WebSocketManager');  // Garder seulement cette ligne
 const jwt = require('jsonwebtoken');
 
 const initializeDatabase = require("./db/schema");
 const bcrypt = require("bcrypt");
 const authMiddleware = require('./jwt/middlewares/auth.middleware');
-const WebSocketManager = require('./websocket/WebSocketManager');
 
 // Initialiser le WebSocketManager
 const webSocketManager = new WebSocketManager();
@@ -55,8 +54,11 @@ try {
 
 // Activer CORS pour permettre les requêtes depuis le frontend
 fastify.register(require('@fastify/cors'), {
-    origin: true, // permet toutes les origines en développement
-    credentials: true
+    origin: ['http://localhost:5500', 'http://127.0.0.1:5500', 'http://localhost:3001'],
+    credentials: true,
+    methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    exposedHeaders: ['Set-Cookie'],
 });
 
 // Enregistrer le plugin cookie
@@ -78,7 +80,6 @@ fastify.addHook('preHandler', (request, reply, done) => {
         '/register',
         '/refresh',
         '/isUser',
-        '/verify_token',
         '/getUserId',
         '/getUserProfile',
         '/leaderboard',
@@ -99,9 +100,6 @@ fastify.addHook('preHandler', (request, reply, done) => {
 // Enregistrement des routes
 fastify.register(require('./routes/auth.routes'));
 fastify.register(require('./routes/game.routes'));
-
-// Instance du WebSocketManager
-const wsManager = new WebSocketManager();
 
 // Créer le serveur WebSocket
 const wss = new WebSocket.Server({ noServer: true });
