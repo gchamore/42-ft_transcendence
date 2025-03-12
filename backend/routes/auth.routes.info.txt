@@ -1,0 +1,104 @@
+ROUTES D'AUTHENTIFICATION
+========================
+
+📌 Route: / (GET)
+----------------
+Simple route de test pour vérifier que l'API fonctionne.
+Response: { status: "API is running" }
+
+📌 Route: /register (POST)
+-------------------------
+Enregistrement d'un nouvel utilisateur.
+Body: { username, password }
+- Vérifie que username et password sont fournis
+- Vérifie que le username n'existe pas déjà
+- Hash le mot de passe
+- Crée l'utilisateur dans la base de données
+Response: { success, message, username, id }
+
+📌 Route: /unregister (POST)
+---------------------------
+Suppression d'un compte utilisateur.
+Body: { username, password }
+- Vérifie les credentials
+- Anonymise les parties de l'utilisateur
+- Révoque tous les tokens
+- Supprime le compte
+Response: { success, message }
+
+📌 Route: /isUser/:username (GET)
+-------------------------------
+Vérifie si un username existe.
+Params: username
+Response: { exists: boolean }
+
+📌 Route: /isPassword (POST)
+--------------------------
+Vérifie si le mot de passe est correct pour un utilisateur.
+Body: { username, password }
+Response: { valid: boolean }
+
+📌 Route: /getUserId (POST)
+-------------------------
+Récupère l'ID d'un utilisateur par son username.
+Body: { username }
+Response: { success, id }
+
+📌 Route: /login (POST)
+---------------------
+Connecte un utilisateur.
+Body: { username, password }
+- Vérifie les credentials
+- Génère access token (15min) et refresh token (7 jours)
+- Crée les cookies HTTP-Only et les envoies au front
+Response: { success, message, username, id }
+
+📌 Route: /refresh (POST)
+-----------------------
+Rafraîchit l'access token avec le refresh token.
+Cookies requis: refreshToken
+- Génère un nouveau access token
+- Met à jour le cookie
+Response: { success: boolean }
+
+📌 Route: /protected (GET)
+------------------------
+Route protégée d'exemple.
+Headers requis: Cookie avec accessToken valide
+Response: { message, user }
+
+📌 Route: /online-users (GET)
+---------------------------
+Récupère la liste des utilisateurs en ligne.
+Headers requis: Cookie avec accessToken valide
+Response: { users: [{id, username}], count }
+
+📌 Route: /logout (POST)
+----------------------
+Déconnecte un utilisateur.
+Cookies requis: accessToken
+- Blacklist le token actuel
+- Révoque tous les tokens de l'utilisateur
+- Supprime les cookies
+Response: { success, message }
+
+📌 Route: /revoke (POST)
+----------------------
+Révoque tous les tokens d'un utilisateur.
+Body: { userId }
+Response: { success, message }
+
+📌 Route: /verify_token (POST)
+---------------------------
+Vérifie si le token est valide.
+Cookies requis: accessToken
+- Valide le token
+- Vérifie si l'utilisateur existe toujours
+Response: { valid: boolean, username? }
+
+Notes:
+------
+- Toutes les routes protégées utilisent le middleware d'authentification
+- Les tokens sont stockés dans des cookies HTTP-Only
+- La gestion des erreurs inclut des logs détaillés
+- Les tokens révoqués sont mis en blacklist dans Redis

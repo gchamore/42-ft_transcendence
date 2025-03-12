@@ -95,14 +95,6 @@ async function routes(fastify, options) {
             });
         });
     });
-    
-    // Route API pour récupérer les utilisateurs en ligne (sans WebSocket)
-    fastify.get('/online-users', async (request, reply) => {
-        const onlineUsers = Array.from(fastify.wsManager.onlineUsers.entries())
-            .map(([id, username]) => ({ id, username }));
-        
-        return { users: onlineUsers, count: onlineUsers.length };
-    });
 }
 
 module.exports = routes;

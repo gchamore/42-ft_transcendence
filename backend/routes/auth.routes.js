@@ -29,10 +29,18 @@ async function routes(fastify, options) {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Insertion dans la base de données
-        db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, hashedPassword);
+        const result = db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, hashedPassword);
         fastify.log.info(`Nouvel utilisateur enregistré : ${username}`);
 
-        return reply.code(201).send({ success: true, message: "User registered successfully" });
+        // Récupérer l'utilisateur nouvellement créé
+        const newUser = db.prepare("SELECT id, username FROM users WHERE id = ?").get(result.lastInsertRowid);
+
+        return reply.code(201).send({ 
+            success: true, 
+            message: "User registered successfully", 
+            username: newUser.username, 
+            id: newUser.id 
+        });
     });
 
     /*** 📌 Route: UNREGISTER ***/
@@ -207,9 +215,8 @@ async function routes(fastify, options) {
                 maxAge: 7 * 24 * 60 * 60 // 7 jours en SECONDES (604800 sec)
             });
     
-        return { success: true, message: "Login successful", username: user.username };
+        return { success: true, message: "Login successful", username: user.username, id: user.id };
     });
-    
 
     /*** 📌 Route: REFRESH TOKEN ***/
     fastify.post("/refresh", async (request, reply) => {
@@ -218,12 +225,26 @@ async function routes(fastify, options) {
             return reply.code(401).send({ error: "No refresh token provided" });
         }
 
-        const newAccessToken = await authService.refreshAccessToken(refreshToken);
-        if (!newAccessToken) {
-            return reply.code(401).send({ error: "Invalid refresh token" });
-        }
+        try {
+            const newAccessToken = await authService.refreshAccessToken(refreshToken);
+            if (!newAccessToken) {
+                return reply.code(401).send({ error: "Invalid refresh token" });
+            }
 
-        return { accessToken: newAccessToken };
+            // Définir le nouveau cookie avec le token d'accès
+            reply.setCookie('accessToken', newAccessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'Strict',
+                path: '/',
+                maxAge: 15 * 60 // 15 minutes
+            });
+
+            return { success: true };
+        } catch (error) {
+            fastify.log.error(error);
+            return reply.code(500).send({ error: "Failed to refresh token" });
+        }
     });
 
     /*** 📌 Route: PROTECTED EXAMPLE ***/
@@ -236,6 +257,25 @@ async function routes(fastify, options) {
             message: "protected information",
             user: user.username
         };
+    });
+
+    /*** 📌 Route: ONLINE USERS (Protected) ***/
+    fastify.get("/online-users", async (request, reply) => {
+        // Le middleware auth vérifie déjà le token
+        if (!request.user) {
+            return reply.code(401).send({ error: "Unauthorized" });
+        }
+
+        const wsManager = fastify.wsManager;
+        const onlineUsers = Array.from(wsManager.onlineUsers.entries())
+            .map(([id, username]) => ({ id, username }));
+        
+        fastify.log.info({
+            requestUser: request.user.userId,
+            onlineCount: onlineUsers.length
+        }, "Liste des utilisateurs en ligne envoyée");
+
+        return { users: onlineUsers, count: onlineUsers.length };
     });
 
     /*** 📌 Route: LOGOUT ***/
@@ -291,20 +331,25 @@ async function routes(fastify, options) {
         const token = request.cookies?.accessToken;
         
         if (!token) {
-            return { valid: false };
+            return reply.code(401).send({ valid: false, error: 'No token provided' });
         }
 
-        const decoded = await authService.validateToken(token);
+        const decoded = await authService.validateToken(token, 'access', db);
         
-        fastify.log.debug({
-            tokenValid: !!decoded,
-            username: decoded?.username
-        }, "Vérification de token");
+        if (!decoded) {
+            reply
+                .clearCookie('accessToken')
+                .clearCookie('refreshToken');
+            
+            return reply.code(401).send({ valid: false });
+        }
 
-        return { 
-            valid: !!decoded,
-            username: decoded?.username
-        };
+        // Si le token est valide, on renvoie simplement le username
+        const user = db.prepare("SELECT username FROM users WHERE id = ?").get(decoded.userId);
+        return reply.send({ 
+            valid: true,
+            username: user.username
+        });
     });
 }
 

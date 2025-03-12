@@ -2,7 +2,7 @@ let username : string = null;
 
 async function verify_token(): Promise<boolean> {
 	try {
-		const response = await fetch(`http://localhost:8080/verify_token`, {
+		const response = await fetch(`/api/verify_token`, {
 			method: "POST",
 			credentials: 'include'
 		});
@@ -31,7 +31,7 @@ async function verify_token(): Promise<boolean> {
 
 async function register(username: string, password: string) {
 	try {
-		const response = await fetch(`http://localhost:8080/register`, {
+		const response = await fetch(`/api/register`, {
 			method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json"
@@ -59,7 +59,7 @@ async function register(username: string, password: string) {
 
 async function login(username: string, password: string) {
 	try {
-        const response = await fetch(`http://localhost:8080/login`, {
+        const response = await fetch(`/api/login`, {
             method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json"
@@ -87,7 +87,7 @@ async function login(username: string, password: string) {
 
 async function logout() {
 	try {
-        const response = await fetch(`http://localhost:8080/logout`, {
+        const response = await fetch(`/api/logout`, {
             method: "POST",
 			credentials: 'include'
 		});
