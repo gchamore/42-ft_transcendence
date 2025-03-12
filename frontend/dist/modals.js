@@ -10,7 +10,7 @@ function select_modal(name) {
 function set_modals(mode) {
     // profile modal
     const avatar = document.getElementById("profile-avatar");
-    const username = document.getElementById("profile-username");
+    const username = document.getElementById("profile-username-input");
     const password = document.getElementById("profile-password");
     const btn1 = document.getElementById("profile-btn1");
     const btn2 = document.getElementById("profile-btn2");

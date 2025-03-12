@@ -12,7 +12,7 @@ function select_modal(name: string) {
 function set_modals(mode: string) {
 	// profile modal
 	const avatar = document.getElementById("profile-avatar");
-	const username = document.getElementById("profile-username") as HTMLInputElement;
+	const username = document.getElementById("profile-username-input") as HTMLInputElement;
 	const password = document.getElementById("profile-password") as HTMLInputElement;
 	const btn1 = document.getElementById("profile-btn1");
 	const btn2 = document.getElementById("profile-btn2");

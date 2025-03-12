@@ -8,6 +8,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 let username = null;
+function assign_username(new_username) {
+    username = new_username;
+    document.getElementById("profile-username").textContent = username;
+}
 function verify_token() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -21,9 +25,9 @@ function verify_token() {
                 return;
             }
             if (data.valid) {
-                username = data.username;
-                console.log(username, "authenticated");
+                assign_username(data.username);
                 switch_logged_in();
+                console.log(username, "authenticated");
                 return true;
             }
             switch_logged_off();
@@ -52,9 +56,9 @@ function register(username, password) {
                 return;
             }
             if (data.success) {
-                username = username;
-                console.log(username, "register");
+                assign_username(data.username);
                 switch_logged_in();
+                console.log(username, "register");
             }
             else
                 console.log("Not register");
@@ -80,9 +84,9 @@ function login(username, password) {
                 return;
             }
             if (data.success) {
-                username = data.username;
-                console.log(username, "login");
+                assign_username(data.username);
                 switch_logged_in();
+                console.log(username, "login");
             }
             else
                 console.log("Not login");

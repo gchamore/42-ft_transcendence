@@ -1,7 +1,6 @@
 function profile_clicked() {
 	console.log("profile_clicked");
 	select_modal("profile");
-
 }
 
 function friends_clicked() {

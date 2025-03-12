@@ -1,5 +1,10 @@
 let username : string = null;
 
+function assign_username(new_username: string) {
+	username = new_username;
+	(document.getElementById("profile-username") as HTMLLabelElement).textContent = username;
+}
+
 async function verify_token(): Promise<boolean> {
 	try {
 		const response = await fetch(`http://localhost:8080/verify_token`, {
@@ -13,10 +18,10 @@ async function verify_token(): Promise<boolean> {
 		}
 
 		if (data.valid) {
-			username = data.username;
+			assign_username(data.username);
+			switch_logged_in();
 			console.log(username, "authenticated");
 
-			switch_logged_in();
 			return true;
 		}
 		
@@ -45,10 +50,9 @@ async function register(username: string, password: string) {
 		}
         
 		if (data.success) {
-			username = username;
-			console.log(username, "register");
-
+			assign_username(data.username);
 			switch_logged_in();
+			console.log(username, "register");
 		}
 		else
 			console.log("Not register");
@@ -73,10 +77,9 @@ async function login(username: string, password: string) {
 		}
 
 		if (data.success) {
-			username = data.username;
-			console.log(username, "login");
-
+			assign_username(data.username);
 			switch_logged_in();
+			console.log(username, "login");
 		}
 		else
 			console.log("Not login");

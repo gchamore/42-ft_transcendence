@@ -35,11 +35,14 @@
     
     <div id="modals-container">
       <article class="modal-item profile">
-        <section>
+        <section class="modal content">
           <img class="avatar profile logged-in" id="profile-avatar" src="../assets/avatar.png">
 
-          <label for="profile-username">Username:</label>
-          <input type="text" id="profile-username">
+          <div>
+            <label class="logged-off" for="profile-username">Username:</label>
+            <input class="logged-off" type="text" id="profile-username-input">
+            <label class="logged-in" id="profile-username"></label>
+          </div>
           
           <div class="logged-off">
             <label for="profile-password">Password:</label>
