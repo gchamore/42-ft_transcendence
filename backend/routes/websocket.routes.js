@@ -1,5 +1,3 @@
-const authService = require('../jwt/services/auth.service');
-
 /**
  * Routes WebSocket pour le monitoring des connexions utilisateurs
  */
@@ -10,7 +8,7 @@ async function routes(fastify, options) {
     
     // Route principale pour les WebSockets
     fastify.register(async function (fastify) {
-        fastify.get('/ws', { websocket: true }, async (connection, req) => {
+        fastify.get('/ws', { websocket: true }, (connection, req) => {
             // Connexion WebSocket établie
             fastify.log.info('Nouvelle connexion WebSocket établie');
             
@@ -19,9 +17,10 @@ async function routes(fastify, options) {
             let disconnectHandler = null;
             
             // Envoyer immédiatement la liste des utilisateurs en ligne
-            setTimeout(async () => {
+            setTimeout(() => {
                 try {
-                    const onlineUsers = await wsManager.getOnlineUsers();
+                    const onlineUsers = Array.from(wsManager.onlineUsers.entries())
+                        .map(([id, name]) => ({ id, username: name }));
                     
                     connection.socket.send(JSON.stringify({
                         type: 'online_users_update',
@@ -41,77 +40,23 @@ async function routes(fastify, options) {
                     
                     // Gérer la connexion utilisateur
                     if (data.type === 'connection') {
-                        // Récupérer le token depuis les cookies
-                        const cookies = req.headers.cookie || '';
-                        const accessTokenMatch = cookies.match(/accessToken=([^;]+)/);
-                        const accessToken = accessTokenMatch ? accessTokenMatch[1] : null;
-                        
-                        if (accessToken) {
-                            // Valider le token
-                            const decoded = await authService.validateToken(accessToken, 'access', fastify.db);
-                            if (decoded) {
-                                userId = String(decoded.userId);
-                                
-                                // Récupérer le username depuis la base de données
-                                const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-                                if (user) {
-                                    username = user.username;
-                                    
-                                    // Vérifier que les données envoyées correspondent
-                                    if (data.userId && String(data.userId) !== userId) {
-                                        fastify.log.warn(`Tentative de connexion avec un ID incorrect: ${data.userId} vs ${userId}`);
-                                    }
-                                    
-                                    // Continuer avec l'utilisateur authentifié
-                                    disconnectHandler = await wsManager.handleConnection(
-                                        { socket: connection.socket },
-                                        userId,
-                                        username
-                                    );
-                                    
-                                    fastify.log.info(`Utilisateur authentifié ${username} (${userId}) connecté via WebSocket`);
-                                    
-                                    // Confirmer la connexion au client
-                                    connection.socket.send(JSON.stringify({
-                                        type: 'connection_confirmed',
-                                        userId: userId,
-                                        username: username,
-                                        authenticated: true
-                                    }));
-                                    
-                                    return;
-                                }
-                            }
-                        }
-                        
-                        // Si on arrive ici, soit pas de token, soit token invalide
-                        // Accepter quand même la connexion mais avec statut non authentifié
                         userId = String(data.userId);
                         username = data.username;
                         
-                        if (!userId || !username) {
-                            connection.socket.send(JSON.stringify({
-                                type: 'error',
-                                message: 'Missing userId or username'
-                            }));
-                            return;
-                        }
-                        
                         // Stocker la connexion avec le WebSocketManager
-                        disconnectHandler = await wsManager.handleConnection(
+                        disconnectHandler = wsManager.handleConnection(
                             { socket: connection.socket },
                             userId,
                             username
                         );
                         
-                        fastify.log.info(`Utilisateur non-authentifié ${username} (${userId}) connecté via WebSocket`);
+                        fastify.log.info(`Utilisateur ${username} (${userId}) connecté via WebSocket`);
                         
                         // Confirmer la connexion au client
                         connection.socket.send(JSON.stringify({
                             type: 'connection_confirmed',
                             userId: userId,
-                            username: username,
-                            authenticated: false
+                            username: username
                         }));
                     }
                     // Gérer les pings
