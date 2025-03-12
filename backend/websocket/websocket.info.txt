@@ -26,12 +26,8 @@ Se connecter automatiquement au WebSocket lors du chargement de la page avec l�
 Envoyer des ping régulièrement pour garder la connexion active et détecter les coupures.
 Mettre en place une reconnexion automatique en cas de déconnexion WebSocket pour garantir la continuité du suivi.
 Intégrer un champ de recherche d’utilisateurs permettant de voir si un utilisateur est connecté ou non en interrogeant SQLite (infos user) et Redis (statut en ligne).
-<<<<<<< HEAD
-Mettre à jour dynamiquement les résultats de recherche en fonction des changements de statut (online/offline).
-=======
 Mettre à jour dynamiquement les résultats de recherche en fonction des changements de statut (online/offline).
 
 📌 Gestion WebSocket a la deconnexion.
 -------------------------
 Bien arreter les connexions websockets.
->>>>>>> 18355d898b631684bb880cd2b295151870c60536
