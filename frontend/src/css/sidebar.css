@@ -20,15 +20,15 @@ ul.sidebar {
     flex-direction: column;
 }
 
-li.sidebar{
+ul.sidebar li{
     border-radius: 50%;
 }
 
-li.sidebar:active {
+ul.sidebar li:active {
     transform: scale(0.90) rotateZ(180deg);
 }
 
-button.sidebar {
+ul.sidebar li button{
     height: 80px;
     width: 80px;
     overflow:visible;

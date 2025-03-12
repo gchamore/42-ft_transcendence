@@ -38,13 +38,13 @@
 
 
 /* Navigation */
-li.modal {
+ul.modal li {
     border-radius: 12% / 26%;
     position: absolute;
     bottom: 5%;
 }
 
-li.modal:active {
+ul.modal li:active {
     transform: scale(0.85);
 }
 
@@ -59,15 +59,13 @@ li.l3 {
     left: 185px;
 }
 
-button.modal {
+ul.modal li button{
     width: 120px;
     height: 50px;
 }
 /* --------- */
 
-
-
-#profile-avatar {
+.avatar {
     background-color: rgb(255, 255, 255);
     border-radius: 50%;
     border-width: 3px;
