@@ -11,7 +11,7 @@ let username = null;
 function verify_token() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield fetch(`http://localhost:8080/verify_token`, {
+            const response = yield fetch(`/api/verify_token`, {
                 method: "POST",
                 credentials: 'include'
             });
@@ -39,7 +39,7 @@ function verify_token() {
 function register(username, password) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield fetch(`http://localhost:8080/register`, {
+            const response = yield fetch(`/api/register`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json"
@@ -67,7 +67,7 @@ function register(username, password) {
 function login(username, password) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield fetch(`http://localhost:8080/login`, {
+            const response = yield fetch(`/api/login`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json"
@@ -95,7 +95,7 @@ function login(username, password) {
 function logout() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield fetch(`http://localhost:8080/logout`, {
+            const response = yield fetch(`/api/logout`, {
                 method: "POST",
                 credentials: 'include'
             });

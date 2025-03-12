@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "test:auth": "node tools/auth_tester.js"
+    "start": "node server.js",
+    "test:auth": "node tools/auth_tester.js"
   },
   "dependencies": {
     "@fastify/cookie": "^8.3.0",
