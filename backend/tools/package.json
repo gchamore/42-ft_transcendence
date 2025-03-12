@@ -4,7 +4,8 @@
   "description": "Backend for transcendence project",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test:auth": "node tools/auth_tester.js"
   },
   "dependencies": {
     "@fastify/cookie": "^8.3.0",
@@ -19,6 +20,8 @@
     "ws": "^8.13.0"
   },
   "devDependencies": {
+    "axios": "^1.8.2",
+    "chalk": "^4.1.2",
     "nodemon": "^3.1.9"
   }
 }
