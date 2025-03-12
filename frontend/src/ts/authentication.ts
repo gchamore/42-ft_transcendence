@@ -2,7 +2,8 @@ let username : string = null;
 
 function assign_username(new_username: string) {
 	username = new_username;
-	(document.getElementById("profile-username") as HTMLLabelElement).textContent = username;
+	console.log(document.getElementById("profile-username") as HTMLLabelElement, username);
+	(document.getElementById("profile-username") as HTMLLabelElement).textContent = new_username;
 }
 
 async function verify_token(): Promise<boolean> {
@@ -14,14 +15,14 @@ async function verify_token(): Promise<boolean> {
 		const data = await response.json();
 		if (!response.ok) {
 			console.error("Verify token failed:", data.error);
+			switch_logged_off();
 			return ;
 		}
 
 		if (data.valid) {
-			assign_username(data.username);
 			switch_logged_in();
+			assign_username(data.username);
 			console.log(username, "authenticated");
-
 			return true;
 		}
 		
@@ -32,16 +33,17 @@ async function verify_token(): Promise<boolean> {
 		console.error("Error:", error);
     }
 	switch_logged_off();
+	return false;
 }
 
-async function register(username: string, password: string) {
+async function register(_username: string, _password: string) {
 	try {
 		const response = await fetch(`http://localhost:8080/register`, {
 			method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json"
 			},
-			body: JSON.stringify({username: username, password: password})
+			body: JSON.stringify({username: _username, password: _password})
 		});
 		const data = await response.json();
 		if (!response.ok) {
@@ -50,8 +52,8 @@ async function register(username: string, password: string) {
 		}
         
 		if (data.success) {
-			assign_username(data.username);
 			switch_logged_in();
+			assign_username(_username);
 			console.log(username, "register");
 		}
 		else
@@ -61,14 +63,14 @@ async function register(username: string, password: string) {
     }
 }
 
-async function login(username: string, password: string) {
+async function login(_username: string, _password: string) {
 	try {
         const response = await fetch(`http://localhost:8080/login`, {
             method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json"
 			},
-			body: JSON.stringify({username: username, password: password})
+			body: JSON.stringify({username: _username, password: _password})
 		});
 		const data = await response.json();
 		if (!response.ok) {
@@ -77,9 +79,9 @@ async function login(username: string, password: string) {
 		}
 
 		if (data.success) {
-			assign_username(data.username);
 			switch_logged_in();
-			console.log(username, "login");
+			assign_username(_username);
+			console.log(_username, "login");
 		}
 		else
 			console.log("Not login");
@@ -101,10 +103,9 @@ async function logout() {
 		}
 
 		if (data.success) {
-			username = data.username;
-			console.log(username, "logout");
-
 			switch_logged_off();
+			console.log(username, "logout");
+			username = null;
 		}
 		else
 			console.log("Not logout");
