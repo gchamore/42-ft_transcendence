@@ -198,25 +198,22 @@ async function routes(fastify, options) {
     
         const { accessToken, refreshToken } = await authService.generateTokens(user.id);
     
-        // Configuration sécurisée des cookies
-        const cookieOptions = {
-            httpOnly: true,     // Empêche l'accès via JavaScript (sécurité)
-            secure: true,       // Nécessaire avec SameSite=None
-            sameSite: 'None',   // Permet le cross-origin
-            path: '/',          // Accessible sur tout le site
+        // Configuration des cookies avec attribut Partitioned explicite
+        const commonHeaders = {
+            'Set-Cookie': [
+                `accessToken=${accessToken}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${15 * 60}; Partitioned`,
+                `refreshToken=${refreshToken}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${7 * 24 * 60 * 60}; Partitioned`
+            ]
         };
 
         reply
-            .setCookie('accessToken', accessToken, {
-                ...cookieOptions,
-                maxAge: 15 * 60  // 15 minutes
-            })
-            .setCookie('refreshToken', refreshToken, {
-                ...cookieOptions,
-                maxAge: 7 * 24 * 60 * 60  // 7 jours
+            .headers(commonHeaders)
+            .send({ 
+                success: true, 
+                message: "Login successful", 
+                username: user.username, 
+                id: user.id 
             });
-    
-        return { success: true, message: "Login successful", username: user.username, id: user.id };
     });
 
     /*** 📌 Route: REFRESH TOKEN ***/
@@ -232,15 +229,15 @@ async function routes(fastify, options) {
                 return reply.code(401).send({ error: "Invalid refresh token" });
             }
 
-            reply.setCookie('accessToken', newAccessToken, {
-                httpOnly: true,
-                secure: true,
-                sameSite: 'None',
-                path: '/',
-                maxAge: 15 * 60
-            });
+            // Utiliser le même format pour le refresh
+            reply
+                .headers({
+                    'Set-Cookie': [
+                        `accessToken=${newAccessToken}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${15 * 60}; Partitioned`
+                    ]
+                })
+                .send({ success: true });
 
-            return { success: true };
         } catch (error) {
             fastify.log.error(error);
             return reply.code(500).send({ error: "Failed to refresh token" });
