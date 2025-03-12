@@ -336,44 +336,16 @@ async function routes(fastify, options) {
 
         const decoded = await authService.validateToken(token, 'access', db);
         
-        // Si le token n'est pas valide, supprimer les cookies et renvoyer 401
         if (!decoded) {
             reply
-                .clearCookie('accessToken', {
-                    path: '/',
-                    secure: process.env.NODE_ENV === 'production',
-                    httpOnly: true,
-                    sameSite: 'strict'
-                })
-                .clearCookie('refreshToken', {
-                    path: '/',
-                    secure: process.env.NODE_ENV === 'production',
-                    httpOnly: true,
-                    sameSite: 'strict'
-                });
+                .clearCookie('accessToken')
+                .clearCookie('refreshToken');
             
-            return reply.code(401).send({ 
-                valid: false, 
-                error: 'Invalid or expired token' 
-            });
+            return reply.code(401).send({ valid: false });
         }
-        
-        fastify.log.debug({
-            tokenValid: true,
-            userId: decoded.userId
-        }, "Vérification de token");
 
-        // Récupérer le username actuel depuis la base de données
+        // Si le token est valide, on renvoie simplement le username
         const user = db.prepare("SELECT username FROM users WHERE id = ?").get(decoded.userId);
-        
-        if (!user) {
-            // L'utilisateur n'existe plus dans la base de données
-            return reply.code(401).send({ 
-                valid: false, 
-                error: 'User no longer exists' 
-            });
-        }
-
         return reply.send({ 
             valid: true,
             username: user.username
