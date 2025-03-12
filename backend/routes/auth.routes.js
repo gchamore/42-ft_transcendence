@@ -198,21 +198,22 @@ async function routes(fastify, options) {
     
         const { accessToken, refreshToken } = await authService.generateTokens(user.id);
     
-        // Définir les cookies HTTP-Only
+        // Configuration sécurisée des cookies
+        const cookieOptions = {
+            httpOnly: true,     // Empêche l'accès via JavaScript (sécurité)
+            secure: true,       // Nécessaire avec SameSite=None
+            sameSite: 'None',   // Permet le cross-origin
+            path: '/',          // Accessible sur tout le site
+        };
+
         reply
             .setCookie('accessToken', accessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'Strict',
-                path: '/',
-                maxAge: 15 * 60 // 15 min en SECONDES (900 sec)
+                ...cookieOptions,
+                maxAge: 15 * 60  // 15 minutes
             })
             .setCookie('refreshToken', refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'Strict',
-                path: '/',
-                maxAge: 7 * 24 * 60 * 60 // 7 jours en SECONDES (604800 sec)
+                ...cookieOptions,
+                maxAge: 7 * 24 * 60 * 60  // 7 jours
             });
     
         return { success: true, message: "Login successful", username: user.username, id: user.id };
@@ -231,13 +232,12 @@ async function routes(fastify, options) {
                 return reply.code(401).send({ error: "Invalid refresh token" });
             }
 
-            // Définir le nouveau cookie avec le token d'accès
             reply.setCookie('accessToken', newAccessToken, {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'Strict',
+                secure: true,
+                sameSite: 'None',
                 path: '/',
-                maxAge: 15 * 60 // 15 minutes
+                maxAge: 15 * 60
             });
 
             return { success: true };
