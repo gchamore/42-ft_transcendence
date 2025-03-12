@@ -2,8 +2,8 @@ let username : string = null;
 
 function assign_username(new_username: string) {
 	username = new_username;
-	console.log(document.getElementById("profile-username") as HTMLLabelElement, username);
-	(document.getElementById("profile-username") as HTMLLabelElement).textContent = new_username;
+	(document.getElementById("profile-username") as HTMLLabelElement)
+		.textContent = new_username;
 }
 
 async function verify_token(): Promise<boolean> {

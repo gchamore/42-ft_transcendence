@@ -11,6 +11,7 @@
   </head>
   
   <body onload="verify_token()">
+
     <section id="home">
       <aside id="sidebar">
         <nav>
@@ -21,7 +22,7 @@
           </ul>
         </nav>
       </aside>
-
+      
       <main id="game-overlay">
         <canvas id="game" title="pong-game"></canvas>
       </main>   
@@ -31,7 +32,7 @@
       <article class="modal-item profile">
         <section class="modal content">
           <img class="avatar logged-in" id="profile-avatar" src="../assets/avatar.png">
-
+          
           <div>
             <label class="logged-off" for="profile-username">Username:</label>
             <input class="logged-off" type="text" id="profile-username-input">
@@ -43,7 +44,7 @@
             <input type="text" id="profile-password">
           </div>
         </section>
-
+        
         <section>
           <nav>
             <ul class="modal">
@@ -66,14 +67,14 @@
             <img class="avatar" id="friend-avatar" src="../assets/avatar.png">
             <span id="status">Status</span>
           </div>
-
+          
           <div id="friend-stats">
             <label id="friend-stat1">Stat1</label>
             <label id="friend-stat2">Stat2</label>
             <label id="friend-stat3">Stat3</label>
           </div>
         </section>
-
+        
         <section>
           <nav>
             <ul class="modal">
@@ -84,10 +85,16 @@
           </nav>
         </section>
       </article>
-
+      
       <article class="chat">
         <!-- To be continued... -->
       </article>
+    </div>
+    
+    <div id="pages-btns">
+      <button id="home-page" onclick="go_home_page()">HOME</button>
+      <button id="profile-page" onclick="go_profile_page()">PROFILE</button>
+      <button id="friends-page" onclick="go_friends_page()">FRIENDS</button>
     </div>
 
     <script src="../dist/authentication.js"></script>
@@ -95,4 +102,4 @@
     <script src="../dist/sidebar.js"></script>
     <script src="../dist/view.js"></script>
   </body>
-</html>
+  </html>

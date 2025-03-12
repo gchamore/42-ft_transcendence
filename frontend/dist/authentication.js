@@ -10,8 +10,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 let username = null;
 function assign_username(new_username) {
     username = new_username;
-    console.log(document.getElementById("profile-username"), username);
-    document.getElementById("profile-username").textContent = new_username;
+    document.getElementById("profile-username")
+        .textContent = new_username;
 }
 function verify_token() {
     return __awaiter(this, void 0, void 0, function* () {

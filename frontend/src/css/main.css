@@ -90,3 +90,33 @@ li:hover {
     transform: scale(1.05);
 }
 /* --------- */
+
+
+/* Pages buttons */
+#pages-btns {
+    border: black solid 3px;
+
+    position: absolute;
+    bottom: 0;
+    height: 100px;
+    margin: 20px;
+    width: calc(100% - 40px);
+
+    display: flex;
+    justify-content:  center;
+    align-items: center;
+}
+
+#pages-btns button {
+    border: black solid 3px;
+
+    max-width: 100px;
+    height: 50px;
+    margin: 10px;
+    flex-grow: 1;
+    color: white;
+}
+
+#pages-btns button:active {
+    border: white solid 3px;
+}
