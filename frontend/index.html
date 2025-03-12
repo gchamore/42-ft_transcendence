@@ -379,29 +379,42 @@
         checkAuth();
 
         // WebSocket Connection
-        function connectWebSocket() {
+        async function connectWebSocket() {
             if (wsConnection) return;
             
+            // Vérifier l'authentification avec la route existante
+            try {
+                const authResponse = await fetch(`${API_URL}/verify_token`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (!authResponse.ok) {
+                    console.warn("Non authentifié, la connexion WebSocket pourrait être limitée");
+                }
+            } catch (error) {
+                console.error("Erreur lors de la vérification d'authentification:", error);
+            }
+            
+            // Configuration WebSocket standard
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const hostname = window.location.hostname || "localhost"; // 🔥 Ajoute un fallback
+            const hostname = window.location.hostname || "localhost";
             const wsUrl = `${protocol}//${hostname}:3000/ws`;
 
             console.log("🔗 Tentative de connexion WebSocket à :", wsUrl);
-
             wsConnection = new WebSocket(wsUrl);
-
 
             wsConnection.onopen = () => {
                 console.log('WebSocket connection established');
                 
-                // Send user info to identify the connection
+                // Envoi simple des informations de connexion
                 wsConnection.send(JSON.stringify({
                     type: 'connection',
                     userId: currentUser.id,
                     username: currentUser.username
+                    // Plus besoin d'envoyer de token, la vérification se fait côté serveur
                 }));
                 
-                // Start sending pings to keep connection alive
                 startPingInterval();
             };
             
@@ -506,7 +519,7 @@
             if (!searchResults || !searchResults.length) return;
 
             try {
-                let response = await fetch(`${API_URL}/online-users`, {
+                let response = await fetch(`${API_URL}/online-users`, {  // Revenir à l'URL originale
                     method: 'GET',
                     credentials: 'include',
                     headers: {
@@ -525,7 +538,7 @@
 
                     if (refreshResponse.ok) {
                         // Réessayer la requête originale avec le nouveau token
-                        response = await fetch(`${API_URL}/online-users`, {
+                        response = await fetch(`${API_URL}/online-users`, {  // Ici aussi
                             method: 'GET',
                             credentials: 'include',
                             headers: {
@@ -616,7 +629,7 @@
                         
                         // Fetch current online status
                         try {
-                            const onlineResponse = await fetch(`${API_URL}/online-users`, {
+                            const onlineResponse = await fetch(`${API_URL}/online-users`, {  // Revenir à l'URL originale
                                 credentials: 'include'
                             });
                             const onlineData = await onlineResponse.json();

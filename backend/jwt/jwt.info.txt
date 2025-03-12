@@ -41,3 +41,44 @@ si possible mais tokens sur cookies aussi) pour un userId donne.
 Cela doit mettre sur liste noire redis les tokens en argument.
 Ces tokens conservent leurs duree et seront retiree de la 
 liste noire et donc des tokens accessible a la fin de leur duree.
+
+----------------
+
+📌 verif redis :
+
+Rentrer dans le conteneur :
+docker exec -it $(docker ps --format "{{.Names}}" | grep backend) /bin/sh
+
+Rentrer dans redis :
+redis-cli
+
+Afficher les tokens :
+KEYS *
+
+connaitre leur type :
+TYPE refresh_1
+TYPE access_1
+
+afficher la key :
+GET refresh_1
+GET access_1
+
+----------------
+
+📌 Archi redis :
+
+/app # redis-cli
+127.0.0.1:6379> KEYS *
+1) "online_users"
+2) "access_1"
+3) "refresh_1"
+4) "user_names"
+127.0.0.1:6379> TYPE refresh_1
+string
+127.0.0.1:6379> TYPE access_1
+string
+127.0.0.1:6379> GET refresh_1
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInR5cGUiOiJyZWZyZXNoIiwiaWF0IjoxNzQxNzQxODI2LCJleHAiOjE3NDIzNDY2MjZ9.fex1j6vA45spL02YSdwEKLSqKd7Zz4i6wF_QD1DP4cA"
+127.0.0.1:6379> GET access_1
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NDE3NDE4MjYsImV4cCI6MTc0MTc0MjcyNn0.JltMvemE0NV6DUhvKE5cJ6v7Qg535NVBeL4ucuwZGQQ"
+127.0.0.1:6379>
