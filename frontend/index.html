@@ -177,8 +177,14 @@
     </div>
 
     <script>
-        // API Base URL
-        const API_URL = 'http://localhost:3000';
+        // API Base URL - Fix for development and production environments
+        const isLocalFile = window.location.protocol === 'file:';
+        const API_URL = isLocalFile 
+            ? 'http://localhost:8080/api'  // Development: direct connection to nginx
+            : window.location.origin + '/api';  // Production: via nginx
+        
+        // Similarly, fix WebSocket URL
+        const WS_HOST = isLocalFile ? 'localhost:8080' : window.location.host;
         
         // Elements
         const authSection = document.getElementById('auth-section');
@@ -337,10 +343,22 @@
         // Check authentication status on page load
         async function checkAuth() {
             try {
+                console.log("Tentative de vérification d'authentification...");
                 const response = await fetch(`${API_URL}/verify_token`, {
                     method: 'POST',
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Origin': window.location.origin
+                    }
                 });
+                
+                console.log("Réponse reçue:", response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 
                 const data = await response.json();
                 
@@ -372,6 +390,7 @@
                 }
             } catch (error) {
                 console.error('Auth check error:', error);
+                resetAppState();
             }
         }
 
@@ -398,8 +417,7 @@
             
             // Configuration WebSocket standard
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const hostname = window.location.hostname || "localhost";
-            const wsUrl = `${protocol}//${hostname}:3000/ws`;
+            const wsUrl = `${protocol}//${WS_HOST}/ws`;
 
             console.log("🔗 Tentative de connexion WebSocket à :", wsUrl);
             wsConnection = new WebSocket(wsUrl);

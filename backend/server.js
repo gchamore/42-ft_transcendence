@@ -52,17 +52,32 @@ try {
     process.exit(1);
 }
 
-// Activer CORS pour permettre les requêtes depuis le frontend
+// Configuration CORS simplifiée et corrigée
 fastify.register(require('@fastify/cors'), {
-    origin: ['http://localhost:5500', 'http://127.0.0.1:5500', 'http://localhost:3001'],
+    origin: true, // Accepter toutes les origines pendant le développement
     credentials: true,
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept'],
     exposedHeaders: ['Set-Cookie'],
+    preflight: true
 });
 
-// Enregistrer le plugin cookie
-fastify.register(require('@fastify/cookie'));
+// Remplacer le hook onRequest par un hook preHandler plus simple
+fastify.addHook('preHandler', (request, reply, done) => {
+    // Ajouter les headers CORS manuellement pour plus de contrôle
+    reply.header('Access-Control-Allow-Origin', request.headers.origin || 'http://localhost:8080');
+    reply.header('Access-Control-Allow-Credentials', 'true');
+    reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, Accept');
+    reply.header('Access-Control-Expose-Headers', 'Set-Cookie');
+
+    // Gérer les requêtes OPTIONS
+    if (request.method === 'OPTIONS') {
+        reply.code(204).send();
+        return;
+    }
+    done();
+});
 
 // Ajouter WebSocket au serveur Fastify
 fastify.register(require('@fastify/websocket'), {
@@ -72,9 +87,9 @@ fastify.register(require('@fastify/websocket'), {
 // Ajouter les routes WebSocket
 fastify.register(require('./routes/websocket.routes'));
 
-// Ajouter le middleware d'authentification aux routes protégées
-fastify.addHook('preHandler', (request, reply, done) => {
-    // Liste des routes qui ne nécessitent pas d'authentification
+// Modifier le hook d'authentification pour vérifier d'abord les OPTIONS
+fastify.addHook('onRequest', (request, reply, done) => {
+    // Liste des routes publiques
     const publicRoutes = [
         '/login',
         '/register',
@@ -83,18 +98,27 @@ fastify.addHook('preHandler', (request, reply, done) => {
         '/getUserId',
         '/getUserProfile',
         '/leaderboard',
-        '/ws'
+        '/ws',
+        '/verify_token'
     ];
 
-    // Vérifier si la route actuelle est publique
+    // Autoriser toutes les requêtes OPTIONS
+    if (request.method === 'OPTIONS') {
+        done();
+        return;
+    }
+
+    // Vérifier si la route est publique
     if (request.routerPath && (
         publicRoutes.some(route => request.routerPath.startsWith(route)) ||
         request.routerPath === '/'
     )) {
-        return done();
+        done();
+        return;
     }
 
-    return authMiddleware(request, reply);
+    // Appliquer le middleware d'authentification pour les routes protégées
+    authMiddleware(request, reply);
 });
 
 // Enregistrement des routes

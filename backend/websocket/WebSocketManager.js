@@ -1,13 +1,8 @@
 const Redis = require('ioredis');
 
 class WebSocketManager {
-const Redis = require('ioredis');
-
-class WebSocketManager {
     constructor() {
         this.connections = new Map(); // userId -> connection
-        this.games = new Map();       // gameId -> {player1, player2, ...gameState}
-        this.matchmaking = new Set(); // Users looking for a game
         this.onlineUsers = new Map(); // userId -> username (in-memory cache)
         this.redis = new Redis();     // Redis client for persistence
     }
@@ -36,89 +31,38 @@ class WebSocketManager {
     }
 
     async handleConnection(connection, userId, username) {
-        // Assurer que les ID sont toujours des chaînes pour la cohérence
         userId = String(userId);
-        
-        // Stocker la connexion et les informations utilisateur
-        // Stocker la connexion et les informations utilisateur
-        this.connections.set(userId, connection);
+    
+        if (!this.connections.has(userId)) {
+            this.connections.set(userId, []);
+        }
+        this.connections.get(userId).push(connection);
+    
         this.onlineUsers.set(userId, username);
-        
-        // Stocker dans Redis
         await this.redis.sadd('online_users', userId);
         await this.redis.hset('user_names', userId, username);
-        
-        // Stocker dans Redis
-        await this.redis.sadd('online_users', userId);
-        await this.redis.hset('user_names', userId, username);
-        
-        console.log(`User ${username} (ID: ${userId}) connected`);
-        
-        // Informer tous les utilisateurs de la nouvelle connexion
+    
         this.broadcastOnlineUsers();
-        
-        // Envoyer la confirmation de connexion
-        try {
-            connection.socket.send(JSON.stringify({
-                type: 'connection_confirmed',
-                userId: userId,
-                username: username
-            }));
-        } catch (error) {
-            console.error('Erreur lors de la confirmation de connexion:', error);
-        }
-        
-        // Envoyer la confirmation de connexion
-        try {
-            connection.socket.send(JSON.stringify({
-                type: 'connection_confirmed',
-                userId: userId,
-                username: username
-            }));
-        } catch (error) {
-            console.error('Erreur lors de la confirmation de connexion:', error);
-        }
-        
-        // Retourner une fonction de nettoyage pour la déconnexion
-        return () => this.handleDisconnection(userId);
+    
+        return () => this.handleDisconnection(userId, connection);
     }
-
-    async handleDisconnection(userId) {
-    async handleDisconnection(userId) {
+    
+    async handleDisconnection(userId, connection) {
         userId = String(userId);
-        
+    
         if (this.connections.has(userId)) {
-            const username = this.onlineUsers.get(userId);
-            console.log(`User ${username} (ID: ${userId}) disconnected`);
-            
-            // Nettoyer les références en mémoire
-            // Nettoyer les références en mémoire
-            this.connections.delete(userId);
-            this.onlineUsers.delete(userId);
-            this.matchmaking.delete(userId);
-            
-            // Nettoyer les références dans Redis
-            await this.redis.srem('online_users', userId);
-            this.matchmaking.delete(userId);
-            
-            // Nettoyer les références dans Redis
-            await this.redis.srem('online_users', userId);
-            
-            // Informer les autres utilisateurs
-            // Informer les autres utilisateurs
-            this.broadcastOnlineUsers();
+            const userConnections = this.connections.get(userId);
+            this.connections.set(userId, userConnections.filter(conn => conn !== connection));
+    
+            if (this.connections.get(userId).length === 0) {
+                this.onlineUsers.delete(userId);
+                await this.redis.srem('online_users', userId);
+                this.broadcastOnlineUsers();
+            }
         }
     }
+    
 
-    // Méthode pour gérer les pings
-    handlePing(userId, timestamp) {
-        const connection = this.connections.get(userId);
-        if (connection && connection.socket.readyState === 1) {
-            try {
-                connection.socket.send(JSON.stringify({
-                    type: 'pong',
-                    timestamp: timestamp
-                }));
     // Méthode pour gérer les pings
     handlePing(userId, timestamp) {
         const connection = this.connections.get(userId);
@@ -129,7 +73,6 @@ class WebSocketManager {
                     timestamp: timestamp
                 }));
             } catch (error) {
-                console.error(`Erreur lors de l'envoi du pong à ${userId}:`, error);
                 console.error(`Erreur lors de l'envoi du pong à ${userId}:`, error);
             }
         }
@@ -147,45 +90,8 @@ class WebSocketManager {
         // Sinon vérifier dans Redis
         const isOnline = await this.redis.sismember('online_users', userId);
         return isOnline === 1;
-    // Méthode pour vérifier si un utilisateur est en ligne
-    async isUserOnline(userId) {
-        userId = String(userId);
-        
-        // Vérifier d'abord en mémoire (plus rapide)
-        if (this.onlineUsers.has(userId)) {
-            return true;
-        }
-        
-        // Sinon vérifier dans Redis
-        const isOnline = await this.redis.sismember('online_users', userId);
-        return isOnline === 1;
     }
 
-    // Obtenir la liste des utilisateurs en ligne
-    async getOnlineUsers() {
-        // Récupérer les IDs depuis Redis
-        const userIds = await this.redis.smembers('online_users');
-        
-        // Récupérer les noms d'utilisateur pour chaque ID
-        const users = [];
-        for (const id of userIds) {
-            const username = await this.redis.hget('user_names', id) || 'Unknown';
-            users.push({ id, username });
-        }
-        
-        return users;
-    }
-    
-    // Synchroniser la mémoire avec Redis au démarrage
-    async syncWithRedis() {
-        // Nettoyer les données existantes
-        await this.redis.del('online_users');
-        
-        // Réinitialiser avec les données en mémoire
-        for (const [userId, username] of this.onlineUsers.entries()) {
-            await this.redis.sadd('online_users', userId);
-            await this.redis.hset('user_names', userId, username);
-        }
     // Obtenir la liste des utilisateurs en ligne
     async getOnlineUsers() {
         // Récupérer les IDs depuis Redis
