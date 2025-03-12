@@ -6,21 +6,24 @@ Gestion Websocket
 Initialiser un serveur WebSocket et le lier au serveur HTTP.
 Vérifier et authentifier les connexions avec un accessToken.
 Associer chaque WebSocket à un userId pour identifier les utilisateurs connectés.
-Gérer la déconnexion et mettre à jour les utilisateurs en ligne.
+Gérer la déconnexion et mettre à jour les utilisateurs en ligne dans Redis.
+Diffuser en temps réel les mises à jour des statuts à tous les clients connectés.
+Assurer la gestion des erreurs et éviter les connexions non autorisées.
 
 📌 suivi users online
 -------------------------
-Stocker la liste des utilisateurs connectés dans Redis pour un accès rapide.
-Diffuser la mise à jour de la liste des utilisateurs en ligne à tous les clients.
-Gérer automatiquement la suppression d'un utilisateur de la liste lorsqu'il se déconnecte.
+Stocker la liste des utilisateurs connectés dans Redis (SADD online_users userId) pour un accès rapide.
+Supprimer un utilisateur de Redis (SREM online_users userId) dès qu'il se déconnecte ou devient inactif.
+Diffuser les mises à jour en temps réel via WebSocket pour informer les autres utilisateurs des connexions/déconnexions.
 Utiliser un mécanisme de ping-pong régulier pour éviter les connexions fantômes.
-Assurer la reconnexion automatique en cas de coupure WebSocket.
+Assurer la reconnexion automatique en cas de coupure WebSocket pour éviter la perte de connexion.
 
 📌 Gestion WebSocket côté front dans index.html
 -------------------------
 
-Se connecter automatiquement au WebSocket lors du chargement de la page.
-Écouter les mises à jour des utilisateurs en ligne et mettre à jour l'affichage.
-Envoyer des ping régulièrement pour garder la connexion active.
-Mettre en place une reconnexion automatique en cas de déconnexion.
-Intégrer la recherche d'utilisateurs avec indication de leur statut en temps réel (online/offline).
+Se connecter automatiquement au WebSocket lors du chargement de la page avec l’accessToken.
+Écouter les mises à jour des utilisateurs en ligne et mettre à jour l'affichage en temps réel.
+Envoyer des ping régulièrement pour garder la connexion active et détecter les coupures.
+Mettre en place une reconnexion automatique en cas de déconnexion WebSocket pour garantir la continuité du suivi.
+Intégrer un champ de recherche d’utilisateurs permettant de voir si un utilisateur est connecté ou non en interrogeant SQLite (infos user) et Redis (statut en ligne).
+Mettre à jour dynamiquement les résultats de recherche en fonction des changements de statut (online/offline).
