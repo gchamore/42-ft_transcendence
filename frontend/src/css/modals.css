@@ -26,6 +26,10 @@
 .modal-item:not(.active){
     display: none;
 }
+
+.modal.content  {
+    display: block;
+}
 /* --------- */
 
 
@@ -38,7 +42,7 @@ li.modal {
 }
 
 li.modal:active {
-    transform: scale(0.80);
+    transform: scale(0.85);
 }
 
 li.l1 {
@@ -47,6 +51,9 @@ li.l1 {
 
 li.l2 {
     right: 5%;
+}
+li.l3 {
+    left: 185px;
 }
 
 button.modal {
