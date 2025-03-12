@@ -327,25 +327,46 @@ async function routes(fastify, options) {
     });
 
     /*** 📌 Route: VERIFY TOKEN ***/
-    fastify.post("/verify_token", async (request, reply) => {
+    fastify.post("/verify_token", {
+        schema: {
+            body: {
+                type: ['object', 'null']
+            }
+        }
+    }, async (request, reply) => {
         const token = request.cookies?.accessToken;
         
+        fastify.log.info('Verify Token Request:', {
+            hasToken: !!token,
+            cookies: request.cookies,
+            headers: request.headers
+        });
+
         if (!token) {
-            return reply.code(401).send({ valid: false, error: 'No token provided' });
+            fastify.log.warn('No access token found in cookies');
+            return reply.code(401).send({ 
+                valid: false, 
+                error: 'No token provided',
+                debug: { cookies: request.cookies }
+            });
         }
 
         const decoded = await authService.validateToken(token, 'access', db);
         
         if (!decoded) {
-            reply
-                .clearCookie('accessToken')
-                .clearCookie('refreshToken');
-            
-            return reply.code(401).send({ valid: false });
+            fastify.log.warn('Invalid or expired token');
+            // Ne pas effacer les cookies ici, laisser une chance au refresh token
+            return reply.code(401).send({ 
+                valid: false,
+                error: 'Invalid or expired token',
+                debug: { tokenProvided: true }
+            });
         }
 
-        // Si le token est valide, on renvoie simplement le username
+        // Si le token est valide
         const user = db.prepare("SELECT username FROM users WHERE id = ?").get(decoded.userId);
+        fastify.log.info('Token verified successfully for user:', user.username);
+        
         return reply.send({ 
             valid: true,
             username: user.username

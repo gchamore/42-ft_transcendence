@@ -1,60 +1,35 @@
-// 🚀 Import des dépendances
 const fastify = require("fastify")({ 
     logger: {
         transport: {
             target: 'pino-pretty',
-            options: {
-                translateTime: 'HH:MM:ss Z',
-                ignore: 'pid,hostname',
-            }
+            options: { translateTime: 'HH:MM:ss Z' }
         }
     }
 });
 
+// Import des dépendances essentielles
 const WebSocket = require('ws');
-const WebSocketManager = require('./websocket/WebSocketManager');  // Garder seulement cette ligne
+const WebSocketManager = require('./websocket/WebSocketManager');
 const jwt = require('jsonwebtoken');
-
 const initializeDatabase = require("./db/schema");
-const bcrypt = require("bcrypt");
-const authMiddleware = require('./jwt/middlewares/auth.middleware');
 
-// Initialiser le WebSocketManager
-const webSocketManager = new WebSocketManager();
-fastify.decorate('wsManager', webSocketManager);
+// ====== Initialisation des services ======
+// WebSocket Manager
+const wsManager = new WebSocketManager();
+fastify.decorate('wsManager', wsManager);
 
-// Couleurs pour les logs
-const colors = {
-    reset: "\x1b[0m",
-    bright: "\x1b[1m",
-    green: "\x1b[32m",
-    yellow: "\x1b[33m",
-    red: "\x1b[31m",
-    cyan: "\x1b[36m"
-};
-
-// Logger personnalisé
-const customLog = {
-    success: (msg) => console.log(`${colors.bright}${colors.green}✓ ${msg}${colors.reset}`),
-    error: (msg) => console.log(`${colors.bright}${colors.red}✗ ${msg}${colors.reset}`),
-    info: (msg) => console.log(`${colors.bright}${colors.cyan}ℹ ${msg}${colors.reset}`),
-    warning: (msg) => console.log(`${colors.bright}${colors.yellow}⚠ ${msg}${colors.reset}`)
-};
-
-// Vérifier si les modules sont bien trouvés
+// Base de données SQLite
 try {
-    customLog.info("Vérification des modules...");
     const db = initializeDatabase(process.env.DATABASE_URL);
     fastify.decorate('db', db);
-    customLog.success("Base de données initialisée avec succès");
 } catch (error) {
-    customLog.error(`Erreur d'initialisation de la base de données: ${error.message}`);
+    console.error('Database initialization error:', error);
     process.exit(1);
 }
 
-// Configuration CORS simplifiée et corrigée
+// ====== Configuration CORS et Cookies ======
 fastify.register(require('@fastify/cors'), {
-    origin: true, // Accepter toutes les origines pendant le développement
+    origin: true,
     credentials: true,
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept'],
@@ -62,16 +37,17 @@ fastify.register(require('@fastify/cors'), {
     preflight: true
 });
 
-// Remplacer le hook onRequest par un hook preHandler plus simple
-fastify.addHook('preHandler', (request, reply, done) => {
-    // Ajouter les headers CORS manuellement pour plus de contrôle
-    reply.header('Access-Control-Allow-Origin', request.headers.origin || 'http://localhost:8080');
-    reply.header('Access-Control-Allow-Credentials', 'true');
-    reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, Accept');
-    reply.header('Access-Control-Expose-Headers', 'Set-Cookie');
+fastify.register(require('@fastify/cookie'));
 
-    // Gérer les requêtes OPTIONS
+// ====== Middleware de gestion des requêtes ======
+// Gestion CORS et OPTIONS
+fastify.addHook('preHandler', (request, reply, done) => {
+    reply.header('Access-Control-Allow-Origin', request.headers.origin || 'http://localhost:8080')
+         .header('Access-Control-Allow-Credentials', 'true')
+         .header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+         .header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, Accept')
+         .header('Access-Control-Expose-Headers', 'Set-Cookie');
+
     if (request.method === 'OPTIONS') {
         reply.code(204).send();
         return;
@@ -79,167 +55,102 @@ fastify.addHook('preHandler', (request, reply, done) => {
     done();
 });
 
-// Ajouter WebSocket au serveur Fastify
-fastify.register(require('@fastify/websocket'), {
-    options: { maxPayload: 1048576 } // 1MB max payload
+// Configuration pour gérer les requêtes sans body
+fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body, done) {
+    if (body === '') {
+        done(null, {});
+        return;
+    }
+    try {
+        const json = JSON.parse(body);
+        done(null, json);
+    } catch (err) {
+        err.statusCode = 400;
+        done(err, undefined);
+    }
 });
 
-// Ajouter les routes WebSocket
-fastify.register(require('./routes/websocket.routes'));
+// Liste des routes publiques
+const publicRoutes = ['/login', '/register', '/refresh', '/verify_token', '/ws'];
 
-// Modifier le hook d'authentification pour vérifier d'abord les OPTIONS
+// Middleware d'authentification
 fastify.addHook('onRequest', (request, reply, done) => {
-    // Liste des routes publiques
-    const publicRoutes = [
-        '/login',
-        '/register',
-        '/refresh',
-        '/isUser',
-        '/getUserId',
-        '/getUserProfile',
-        '/leaderboard',
-        '/ws',
-        '/verify_token'
-    ];
-
-    // Autoriser toutes les requêtes OPTIONS
-    if (request.method === 'OPTIONS') {
-        done();
-        return;
+    if (request.method === 'OPTIONS' || 
+        publicRoutes.some(route => request.routerPath?.startsWith(route))) {
+        return done();
     }
-
-    // Vérifier si la route est publique
-    if (request.routerPath && (
-        publicRoutes.some(route => request.routerPath.startsWith(route)) ||
-        request.routerPath === '/'
-    )) {
-        done();
-        return;
-    }
-
-    // Appliquer le middleware d'authentification pour les routes protégées
-    authMiddleware(request, reply);
+    require('./jwt/middlewares/auth.middleware')(request, reply);
 });
 
-// Enregistrement des routes
-fastify.register(require('./routes/auth.routes'));
-fastify.register(require('./routes/game.routes'));
+// ====== Configuration WebSocket ======
+fastify.register(require('@fastify/websocket'), {
+    options: { maxPayload: 1048576 }
+});
 
-// Créer le serveur WebSocket
+// Serveur WebSocket
 const wss = new WebSocket.Server({ noServer: true });
 
-// Gérer les connexions WebSocket
-wss.on('connection', async (ws, request, userId) => {
-    customLog.info(`Nouvelle connexion WebSocket pour l'utilisateur ${userId}`);
-    
-    const connection = {
-        socket: ws,
-        userId: userId
-    };
+// Gestion des connexions WebSocket
+wss.on('connection', (ws, request, userId) => {
+    wsManager.handleConnection({ socket: ws, userId }, userId);
 
-    wsManager.handleConnection(connection, userId);
-
-    ws.on('message', async (message) => {
+    ws.on('message', message => {
         try {
             const data = JSON.parse(message);
-            customLog.info(`Message WebSocket reçu: ${JSON.stringify(data)}`);
-
-            switch (data.type) {
-                case 'JOIN_MATCHMAKING':
-                    wsManager.addToMatchmaking(userId);
-                    break;
-
-                case 'LEAVE_MATCHMAKING':
-                    wsManager.removeFromMatchmaking(userId);
-                    break;
-
-                case 'GAME_INVITE':
-                    if (data.toUserId) {
-                        wsManager.sendGameInvitation(userId, data.toUserId);
-                    }
-                    break;
-
-                case 'GAME_MOVE':
-                    if (data.gameId) {
-                        wsManager.updateGameState(data.gameId, data.state);
-                    }
-                    break;
-
-                default:
-                    customLog.warning(`Type de message WebSocket non reconnu: ${data.type}`);
-            }
+            // Gérer les messages WebSocket ici
         } catch (error) {
-            customLog.error(`Erreur de traitement du message WebSocket: ${error.message}`);
+            console.error('WebSocket message error:', error);
         }
     });
 
-    ws.on('close', () => {
-        customLog.info(`Connexion WebSocket fermée pour l'utilisateur ${userId}`);
-        wsManager.handleDisconnection(userId);
-    });
+    ws.on('close', () => wsManager.handleDisconnection(userId));
 });
 
-// Ajouter la gestion de l'upgrade HTTP pour WebSocket
+// Gestion de l'authentification WebSocket
 fastify.server.on('upgrade', (request, socket, head) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
     const token = url.searchParams.get('token');
 
     if (!token) {
-        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();
         return;
     }
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.handleUpgrade(request, socket, head, ws => {
             wss.emit('connection', ws, request, decoded.userId);
         });
     } catch (error) {
-        customLog.error(`Erreur d'authentification WebSocket: ${error.message}`);
-        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();
     }
 });
 
-// Gestion de l'arrêt propre
-const clean_close = async (signal) => {
-    customLog.warning(`Signal ${signal} reçu, arrêt propre en cours...`);
-    
+// ====== Routes ======
+fastify.register(require('./routes/auth.routes'));
+fastify.register(require('./routes/websocket.routes'));
+
+// ====== Gestion de l'arrêt propre ======
+const cleanup = async (signal) => {
+    console.log(`\n${signal} received. Cleaning up...`);
     try {
         await fastify.close();
-        customLog.success("Serveur Fastify fermé");
-        
-        if (fastify.db) {
-            fastify.db.close();
-            customLog.success("Base de données fermée");
-        }
-        
-        customLog.success("Arrêt propre terminé");
+        fastify.db?.close();
         process.exit(0);
     } catch (error) {
-        customLog.error(`Erreur lors de l'arrêt: ${error.message}`);
+        console.error('Cleanup error:', error);
         process.exit(1);
     }
 };
 
-process.on('SIGTERM', () => clean_close('SIGTERM'));
-process.on('SIGINT', () => clean_close('SIGINT'));
+process.on('SIGTERM', () => cleanup('SIGTERM'));
+process.on('SIGINT', () => cleanup('SIGINT'));
 
-// Démarrer le serveur avec logs améliorés
-fastify.listen({
-    port: 3000,
-    host: '0.0.0.0'  // Écouter sur tous les ports
-}, (err) => {
+// ====== Démarrage du serveur ======
+fastify.listen({ port: 3000, host: '0.0.0.0' }, (err) => {
     if (err) {
-        customLog.error(`Erreur de démarrage du serveur: ${err.message}`);
+        console.error('Server start error:', err);
         process.exit(1);
     }
-    
-    customLog.info("Status du serveur:");
-    customLog.success("- API REST disponible sur http://0.0.0.0:3000");
-    customLog.success("- WebSocket disponible sur ws://0.0.0.0:3000/ws");
-    customLog.success("- Base de données connectée");
-    customLog.success("- CORS activé");
-    console.log("\n" + colors.bright + colors.green + "🚀 Serveur prêt et opérationnel !" + colors.reset + "\n");
+    console.log('🚀 Server ready at http://0.0.0.0:3000');
 });
