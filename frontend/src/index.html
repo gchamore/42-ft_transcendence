@@ -12,13 +12,13 @@
   
   <body onload="verify_token()">
 
-    <section id="home">
+    <section class="section home profile friends">
       <aside id="sidebar">
         <nav>
           <ul class="sidebar">
-            <li><button id="profile-btn" onclick="profile_click()"></button></li>
-            <li class="logged-in"><button id="friends-btn" onclick="friends_click()"></button></li>
-            <li class="logged-in"><button id="chat-btn" onclick="chat_click()"></button></li>
+            <li><button id="profile-btn" onclick="go_section('profile')"></button></li>
+            <li class="logged-in"><button id="friends-btn" onclick="go_section('friends')"></button></li>
+            <li class="logged-in"><button id="chat-btn"></button></li>
           </ul>
         </nav>
       </aside>
@@ -29,7 +29,7 @@
     </section>
     
     <div id="modals-container">
-      <article class="modal-item profile">
+      <article class="modal-item section profile">
         <section class="modal content">
           <img class="avatar logged-in" id="profile-avatar" src="../assets/avatar.png">
           
@@ -55,7 +55,7 @@
         </section>
       </article>
       
-      <article class="modal-item friends">
+      <article class="modal-item section friends">
         <section>
           <label for="friends-username">Search a user:</label>
           <input type="text" id="friends-username">
@@ -92,12 +92,13 @@
     </div>
     
     <div id="pages-btns">
-      <button id="home-page" onclick="go_home_page()">HOME</button>
-      <button id="profile-page" onclick="go_profile_page()">PROFILE</button>
-      <button id="friends-page" onclick="go_friends_page()">FRIENDS</button>
+      <button id="home-page" onclick="go_section('home')">HOME</button>
+      <button id="profile-page" onclick="go_section('profile')">PROFILE</button>
+      <button id="friends-page" onclick="go_section('friends')">FRIENDS</button>
     </div>
 
     <script src="../dist/authentication.js"></script>
+    <script src="../dist/history_api.js"></script>
     <script src="../dist/modals.js"></script>
     <script src="../dist/sidebar.js"></script>
     <script src="../dist/view.js"></script>

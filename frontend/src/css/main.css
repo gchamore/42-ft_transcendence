@@ -15,12 +15,16 @@ body {
     font-size: 24px;
     line-height: 1.7;
 }
+
+.section.hidden {
+    display: none;
+}
 /* --------- */
 
 
 
 /* Body sections */
-#home {
+.home {
     /* border: 5px solid red; */
     background-color: rgb(145, 83, 83);
     
