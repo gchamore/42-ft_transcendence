@@ -1,16 +1,17 @@
 const authService = require('../services/auth.service');
 
 async function authMiddleware(request, reply, done) {
-    const token = request.cookies?.accessToken;
+    const accessToken = request.cookies?.accessToken;
+    const refreshToken = request.cookies?.refreshToken;
     
-    // Log pour debug
     request.log.debug({
-        hasToken: !!token,
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
         path: request.routerPath,
         cookies: request.cookies
     }, 'Auth middleware check');
 
-    if (!token) {
+    if (!accessToken && !refreshToken) {
         return reply.code(401).send({ 
             error: 'No token provided',
             path: request.routerPath
@@ -18,16 +19,18 @@ async function authMiddleware(request, reply, done) {
     }
 
     try {
-        // Utiliser la même méthode que verify_token
-        const decoded = await authService.validateToken(token, 'access', request.server.db);
-        
+        // ✅ Vérification et renouvellement potentiel du accessToken
+        const decoded = await authService.validateToken(accessToken, refreshToken, 'access', request.server.db);
+
         if (!decoded) {
+            request.log.warn('Invalid or expired token');
+
             const isLocal = request.headers.host.startsWith("localhost");
             const cookieOptions = {
                 path: '/',
                 secure: !isLocal,
                 httpOnly: true,
-                sameSite: 'None'
+                sameSite: !isLocal ? 'None' : 'Lax'
             };
 
             return reply
@@ -37,12 +40,26 @@ async function authMiddleware(request, reply, done) {
                 .send({ error: 'Invalid token' });
         }
 
-        // Si le token est valide, stocker les infos utilisateur
+        // ✅ Si un nouveau accessToken a été généré, mettre à jour le cookie
+        if (decoded.newAccessToken) {
+            request.log.info('New access token generated, updating cookie.');
+
+            reply.setCookie('accessToken', decoded.newAccessToken, {
+                path: '/',
+                secure: !isLocal,
+                httpOnly: true,
+                sameSite: !isLocal ? 'None' : 'Lax',
+                maxAge: 60 * 15 // Expire dans 15 minutes
+            });
+        }
+
+        // ✅ Si le token est valide, stocker les infos utilisateur
         request.user = decoded;
         request.log.debug({
             userId: decoded.userId,
             path: request.routerPath
         }, 'Auth successful');
+
         done();
     } catch (error) {
         request.log.error(error, 'Auth middleware error');
@@ -51,4 +68,3 @@ async function authMiddleware(request, reply, done) {
 }
 
 module.exports = authMiddleware;
-

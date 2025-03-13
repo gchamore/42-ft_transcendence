@@ -25,15 +25,13 @@ class AuthService {
         return { accessToken, refreshToken };
     }
 
-    async validateToken(accessToken, type = 'access', db) {
+    async validateToken(accessToken, refreshToken, type = 'access', db) {
         try {
-            // Vérifier si le token est blacklisté
+            // Vérifier si le token d'accès est blacklisté
             const isBlacklisted = await redis.get(`blacklist_${accessToken}`);
-            if (isBlacklisted) {
-                return null;
-            }
-
-            // Vérifier la validité du accesstoken
+            if (isBlacklisted) return null;
+    
+            // Vérifier la validité du access token
             const decoded = jwt.verify(accessToken, JWT_SECRET);
             
             // Vérifier si l'utilisateur existe
@@ -44,48 +42,33 @@ class AuthService {
                     return null;
                 }
             }
-
-            // Vérifier si c'est le token d'accès actuel
+    
+            // Vérifier si c'est bien le dernier access token valide
             const currentToken = await redis.get(`access_${decoded.userId}`);
-            if (accessToken !== currentToken) {
-                return null;
-            }
-
-            return decoded;
+            if (accessToken !== currentToken) return null;
+    
+            return { userId: decoded.userId };
 
         } catch (error) {
-            // Si le token est invalide, essayer le refresh token
-            const decoded = jwt.decode(accessToken);
-            if (!decoded?.userId) return null;
-
-            const refreshToken = await redis.get(`refresh_${decoded.userId}`);
+            console.warn('Access token invalide, tentative avec le refresh token.');
+    
+            // Essayer avec le refresh token
             if (!refreshToken) return null;
-
+    
             try {
-                // Vérifier le refresh token
-                const refreshDecoded = jwt.verify(refreshToken, JWT_SECRET);
-                const isBlacklisted = await redis.get(`blacklist_${refreshToken}`);
-                if (isBlacklisted) return null;
-
-                // Vérifier si l'utilisateur existe toujours
-                if (db) {
-                    const userExists = db.prepare("SELECT id FROM users WHERE id = ?").get(refreshDecoded.userId);
-                    if (!userExists) {
-                        await this.revokeTokens(refreshDecoded.userId);
-                        return null;
-                    }
-                }
-
-                // Générer un nouveau token d'accès
+                // Générer un nouveau access token
                 const newAccessToken = await this.refreshAccessToken(refreshToken);
-                if (newAccessToken) {
-                    return jwt.verify(newAccessToken, JWT_SECRET);
-                }
+                if (!newAccessToken) return null;
+
+                const decoded = jwt.verify(newAccessToken, JWT_SECRET);
+                return {
+                    userId: decoded.userId,
+                    newAccessToken
+                };
             } catch (refreshError) {
+                console.error('Échec de la vérification du refresh token.', refreshError);
                 return null;
             }
-
-            return null;
         }
     }
 
