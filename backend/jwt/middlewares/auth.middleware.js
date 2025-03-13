@@ -10,20 +10,18 @@ async function authMiddleware(request, reply) {
     const decoded = await authService.validateToken(token, 'access', request.server.db);
     
     if (!decoded) {
-        // Supprimer les cookies si le token n'est pas valide
+        const isLocal = request.headers.host.startsWith("localhost");
+        const cookieOptions = {
+            path: '/',
+            secure: !isLocal,
+            httpOnly: true,
+            sameSite: 'None'
+        };
+
+        // Utiliser les mêmes options que pour la création des cookies
         reply
-            .clearCookie('accessToken', {
-                path: '/',
-                secure: process.env.NODE_ENV === 'production',
-                httpOnly: true,
-                sameSite: 'strict'
-            })
-            .clearCookie('refreshToken', {
-                path: '/',
-                secure: process.env.NODE_ENV === 'production',
-                httpOnly: true,
-                sameSite: 'strict'
-            });
+            .clearCookie('accessToken', cookieOptions)
+            .clearCookie('refreshToken', cookieOptions);
             
         return reply.code(401).send({ error: 'Invalid token' });
     }

@@ -80,11 +80,14 @@
                 <input type="password" id="login-password" placeholder="Password" required>
                 <button type="submit">Login</button>
             </form>
+
+            <button id="verify-token-btn" style="margin-top: 1rem;">Verify Token</button>
         </div>
 
         <div id="welcome" class="hidden">
             <h2>Welcome, <span id="username"></span>!</h2>
-            <button id="verify-btn" style="margin-top: 1rem;">Verify Token</button>
+            <button id="verify-token-logged-btn" style="margin-top: 1rem;">Verify Token</button>
+            <button id="logout-btn" style="margin-top: 1rem;">Logout</button>
         </div>
     </div>
 
@@ -170,8 +173,8 @@
             }
         });
 
-        // Verify Token Button
-        document.getElementById('verify-btn').addEventListener('click', async () => {
+        // Fonction commune de vérification de token
+        async function verifyToken() {
             try {
                 const response = await fetch(`${API_URL}/verify_token`, {
                     method: 'POST',
@@ -191,6 +194,47 @@
             } catch (error) {
                 showMessage('Verification error', true);
                 console.error('Verify error:', error);
+            }
+        }
+
+        // Ajout des event listeners pour les boutons verify-token
+        document.getElementById('verify-token-btn').addEventListener('click', verifyToken);
+        document.getElementById('verify-token-logged-btn').addEventListener('click', verifyToken);
+
+        // Ajout de la gestion du bouton logout
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${API_URL}/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    // Vérifier si les cookies ont été supprimés
+                    const cookies = document.cookie.split(';');
+                    const hasTokens = cookies.some(cookie => 
+                        cookie.trim().startsWith('accessToken=') || 
+                        cookie.trim().startsWith('refreshToken=')
+                    );
+
+                    if (hasTokens) {
+                        console.warn('Cookies still present after logout');
+                    }
+
+                    showMessage('Logged out successfully', false);
+                    authForms.classList.remove('hidden');
+                    welcome.classList.add('hidden');
+
+                    // Nettoyer les formulaires
+                    document.getElementById('login-form').reset();
+                    document.getElementById('register-form').reset();
+                } else {
+                    const data = await response.json();
+                    showMessage(data.error || 'Logout failed', true);
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                showMessage('Server error during logout', true);
             }
         });
 

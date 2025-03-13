@@ -39,39 +39,8 @@ fastify.register(require('@fastify/cors'), {
 
 fastify.register(require('@fastify/cookie'));
 
-// ====== Middleware de gestion des requêtes ======
-// Gestion CORS et OPTIONS
-fastify.addHook('preHandler', (request, reply, done) => {
-    reply.header('Access-Control-Allow-Origin', request.headers.origin || 'http://localhost:8080')
-         .header('Access-Control-Allow-Credentials', 'true')
-         .header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-         .header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, Accept')
-         .header('Access-Control-Expose-Headers', 'Set-Cookie');
-
-    if (request.method === 'OPTIONS') {
-        reply.code(204).send();
-        return;
-    }
-    done();
-});
-
-// Configuration pour gérer les requêtes sans body
-fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body, done) {
-    if (body === '') {
-        done(null, {});
-        return;
-    }
-    try {
-        const json = JSON.parse(body);
-        done(null, json);
-    } catch (err) {
-        err.statusCode = 400;
-        done(err, undefined);
-    }
-});
-
 // Liste des routes publiques
-const publicRoutes = ['/login', '/register', '/refresh', '/verify_token', '/ws'];
+const publicRoutes = ['/login', '/register', '/refresh', '/verify_token', '/ws', '/logout'];
 
 // Middleware d'authentification
 fastify.addHook('onRequest', (request, reply, done) => {
@@ -152,5 +121,5 @@ fastify.listen({ port: 3000, host: '0.0.0.0' }, (err) => {
         console.error('Server start error:', err);
         process.exit(1);
     }
-    console.log('🚀 Server ready at http://0.0.0.0:3000');
+    console.log('🚀 Server ready at http://localhost:8080');
 });

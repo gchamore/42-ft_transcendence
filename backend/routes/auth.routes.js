@@ -198,22 +198,30 @@ async function routes(fastify, options) {
     
         const { accessToken, refreshToken } = await authService.generateTokens(user.id);
     
-        // Configuration des cookies avec attribut Partitioned explicite
-        const commonHeaders = {
-            'Set-Cookie': [
-                `accessToken=${accessToken}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${15 * 60}; Partitioned`,
-                `refreshToken=${refreshToken}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${7 * 24 * 60 * 60}; Partitioned`
-            ]
-        };
+
+        const isLocal = request.headers.host.startsWith("localhost");
 
         reply
-            .headers(commonHeaders)
-            .send({ 
-                success: true, 
-                message: "Login successful", 
-                username: user.username, 
-                id: user.id 
-            });
+        .setCookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: !isLocal,
+            sameSite: 'None',
+            path: '/',
+            maxAge: 15 * 60 // 15 minutes
+        })
+        .setCookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: !isLocal,
+            sameSite: 'None',
+            path: '/',
+            maxAge: 7 * 24 * 60 * 60 // 7 jours
+        })
+        .send({ 
+            success: true, 
+            message: "Login successful", 
+            username: user.username, 
+            id: user.id 
+        });
     });
 
     /*** 📌 Route: REFRESH TOKEN ***/
@@ -276,39 +284,58 @@ async function routes(fastify, options) {
     });
 
     /*** 📌 Route: LOGOUT ***/
-    fastify.post("/logout", async (request, reply) => {
-        const token = request.cookies.accessToken;
+    fastify.post("/logout", {
+        schema: {
+            body: { type: 'null' }
+        }
+    }, async (request, reply) => {
+        const token = request.cookies?.accessToken;
         
+        fastify.log.info('Logout attempt:', {
+            hasToken: !!token,
+            cookies: request.cookies,
+            headers: request.headers
+        });
+
         if (!token) {
+            fastify.log.warn('No access token found in cookies during logout');
             return reply.code(401).send({ error: 'No token provided' });
         }
 
-        // Blacklist du token reçu
-        await authService.blacklistToken(token);
-
-        // Décodage basique pour récupérer l'ID user
-        const decoded = require('jsonwebtoken').decode(token);
-        if (decoded?.userId) {
-            // Révocation de tous les tokens
-            await authService.revokeTokens(decoded.userId);
+        // Utiliser la même logique de validation que verify_token
+        const decoded = await authService.validateToken(token, 'access', db);
+        
+        if (!decoded) {
+            fastify.log.warn('Invalid or expired token during logout');
+            return reply.code(401).send({ error: 'Invalid token' });
         }
 
-        // Supprimer les cookies
-        reply
-            .clearCookie('accessToken', {
-                path: '/',
-                secure: process.env.NODE_ENV === 'production',
-                httpOnly: true,
-                sameSite: 'strict'
-            })
-            .clearCookie('refreshToken', {
-                path: '/',
-                secure: process.env.NODE_ENV === 'production',
-                httpOnly: true,
-                sameSite: 'strict'
-            });
+        // Si le token est valide, procéder au logout
+        try {
+            await authService.revokeTokens(decoded.userId);
+            await authService.blacklistToken(token);
 
-        return { success: true, message: "Logged out successfully" };
+            const isLocal = request.headers.host.startsWith("localhost");
+            const cookieOptions = {
+                path: '/',
+                secure: !isLocal,
+                httpOnly: true,
+                sameSite: 'None'
+            };
+
+            fastify.log.info('Logout successful for user:', decoded.userId);
+
+            return reply
+                .clearCookie('accessToken', cookieOptions)
+                .clearCookie('refreshToken', cookieOptions)
+                .header('Access-Control-Allow-Credentials', 'true')
+                .header('Access-Control-Allow-Origin', request.headers.origin || 'http://localhost:8080')
+                .send({ success: true, message: "Logged out successfully" });
+
+        } catch (error) {
+            fastify.log.error('Logout error:', error);
+            return reply.code(500).send({ error: 'Logout failed' });
+        }
     });
 
     /*** 📌 Route: REVOKE TOKEN ***/
