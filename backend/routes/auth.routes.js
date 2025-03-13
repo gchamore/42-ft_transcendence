@@ -24,23 +24,54 @@ async function routes(fastify, options) {
 			return reply.code(400).send({ error: "Username already taken" });
 		}
 
-		// Hashage du mot de passe
-		fastify.log.info(`Hashage du mot de passe pour l'utilisateur : ${username}`);
-		const hashedPassword = await bcrypt.hash(password, 10);
+		try {
+			// Hashage du mot de passe
+			fastify.log.info(`Hashage du mot de passe pour l'utilisateur : ${username}`);
+			const hashedPassword = await bcrypt.hash(password, 10);
 
-		// Insertion dans la base de données
-		const result = db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, hashedPassword);
-		fastify.log.info(`Nouvel utilisateur enregistré : ${username}`);
+			// Insertion dans la base de données
+			const result = db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, hashedPassword);
+			fastify.log.info(`Nouvel utilisateur enregistré : ${username}`);
 
-		// Récupérer l'utilisateur nouvellement créé
-		const newUser = db.prepare("SELECT id, username FROM users WHERE id = ?").get(result.lastInsertRowid);
+			// Récupérer l'utilisateur nouvellement créé
+			const newUser = db.prepare("SELECT id, username FROM users WHERE id = ?").get(result.lastInsertRowid);
 
-		return reply.code(201).send({
-			success: true,
-			message: "User registered successfully",
-			username: newUser.username,
-			id: newUser.id
-		});
+			// Générer les tokens d'authentification
+			const { accessToken, refreshToken } = await authService.generateTokens(newUser.id);
+
+			const isLocal = request.headers.host.startsWith("localhost");
+
+			// Envoyer la réponse avec les cookies
+			return reply
+				.code(201)
+				.setCookie('accessToken', accessToken, {
+					httpOnly: true,
+					secure: !isLocal,
+					sameSite: 'None',
+					path: '/',
+					maxAge: 15 * 60 // 15 minutes
+				})
+				.setCookie('refreshToken', refreshToken, {
+					httpOnly: true,
+					secure: !isLocal,
+					sameSite: 'None',
+					path: '/',
+					maxAge: 7 * 24 * 60 * 60 // 7 jours
+				})
+				.send({
+					success: true,
+					message: "User registered and logged in successfully",
+					username: newUser.username,
+					id: newUser.id
+				});
+
+		} catch (error) {
+			fastify.log.error(error, "Erreur lors de l'inscription");
+			return reply.code(500).send({
+				error: "Registration failed",
+				details: error.message
+			});
+		}
 	});
 
 	/*** 📌 Route: UNREGISTER ***/
@@ -201,7 +232,7 @@ async function routes(fastify, options) {
 
 		const isLocal = request.headers.host.startsWith("localhost");
 
-		reply
+		return reply
 			.setCookie('accessToken', accessToken, {
 				httpOnly: true,
 				secure: !isLocal,

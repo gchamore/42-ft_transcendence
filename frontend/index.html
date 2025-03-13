@@ -135,8 +135,10 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    showMessage('Registration successful! Please login.', false);
+                    showMessage('Registration and login successful!', false);
                     document.getElementById('register-form').reset();
+                    // Directement afficher le welcome puisque l'utilisateur est connecté
+                    showWelcome(data.username);
                 } else {
                     showMessage(data.error || 'Registration failed', true);
                 }
