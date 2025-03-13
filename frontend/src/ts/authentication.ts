@@ -6,6 +6,11 @@ function assign_username(new_username: string) {
 		.textContent = new_username;
 }
 
+async function initialisation() {
+	await verify_token();
+	go_section('home', true);
+}
+
 async function verify_token(): Promise<boolean> {
 	try {
 		const response = await fetch(`http://localhost:8080/verify_token`, {

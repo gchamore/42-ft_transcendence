@@ -13,6 +13,12 @@ function assign_username(new_username) {
     document.getElementById("profile-username")
         .textContent = new_username;
 }
+function initialisation() {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield verify_token();
+        go_section('home', true);
+    });
+}
 function verify_token() {
     return __awaiter(this, void 0, void 0, function* () {
         try {

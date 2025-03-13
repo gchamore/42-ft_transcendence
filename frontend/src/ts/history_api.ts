@@ -1,26 +1,27 @@
-function go_section(section: string) {
-	// Change URL without reloading
-	history.pushState({ section }, "", `/${section}`);
+let current_section: string = null;
+const modals = ['profile', 'friends', 'chat'];
 
-	// Update the view
+function go_section(section: string, is_default: boolean = false) {
+	if (current_section === section && modals.includes(section))
+		section = 'home';
+	current_section = section;
+
+	if (is_default) {
+		history.replaceState({ section }, "", `/${section}`);
+	}
+	else
+		history.pushState({ section }, "", `/${section}`);
 	updateView(section);
 }
 
 function updateView(section: string) {
-    console.log(section);
-
-	// Hide all sections
-    console.log(document.querySelectorAll('.section'));
 	document.querySelectorAll('.section').forEach(
         el => el.classList.add('hidden', 'hidden'));
 
-	// Show the selected section
-    console.log('.section.' + `${section}`);
     document.querySelectorAll('.section.' + `${section}`).forEach(
         el => el.classList.remove('hidden'));
 }
 
-// Handle back/forward buttons
 window.addEventListener("popstate", function(event) {
 	if (event.state && event.state.section) {
 		updateView(event.state.section);
@@ -29,10 +30,8 @@ window.addEventListener("popstate", function(event) {
 	}
 });
 
-// On page load, check the URL and show the correct section
 document.addEventListener("DOMContentLoaded", () => {
     let path: string;
-    console.log(window.location.pathname);
     if (window.location.pathname === "/frontend/src/")
         path = "home";
     else
