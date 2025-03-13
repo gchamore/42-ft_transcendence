@@ -394,6 +394,8 @@ async function routes(fastify, options) {
 
 		// Si un nouveau accessToken a été généré
 		if (result.newAccessToken) {
+			request.log.info('New access token generated, updating cookie');
+
             const isLocal = request.headers.host.startsWith("localhost");
 			reply.setCookie('accessToken', result.newAccessToken, {
 				path: '/',

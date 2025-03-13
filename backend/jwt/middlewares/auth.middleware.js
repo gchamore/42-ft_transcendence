@@ -19,10 +19,9 @@ async function authMiddleware(request, reply, done) {
     }
 
     try {
-        // ✅ Vérification et renouvellement potentiel du accessToken
-        const decoded = await authService.validateToken(accessToken, refreshToken, 'access', request.server.db);
+        const result = await authService.validateToken(accessToken, refreshToken, 'access', request.server.db);
 
-        if (!decoded) {
+        if (!result) {
             request.log.warn('Invalid or expired token');
 
             const isLocal = request.headers.host.startsWith("localhost");
@@ -40,27 +39,27 @@ async function authMiddleware(request, reply, done) {
                 .send({ error: 'Invalid token' });
         }
 
-        // ✅ Si un nouveau accessToken a été généré, mettre à jour le cookie
-        if (decoded.newAccessToken) {
-            request.log.info('New access token generated, updating cookie.');
+        // Si un nouveau accessToken a été généré
+        if (result.newAccessToken) {
+            request.log.info('New access token generated, updating cookie');
 
-            reply.setCookie('accessToken', decoded.newAccessToken, {
+            const isLocal = request.headers.host.startsWith("localhost");
+            reply.setCookie('accessToken', result.newAccessToken, {
                 path: '/',
                 secure: !isLocal,
                 httpOnly: true,
                 sameSite: !isLocal ? 'None' : 'Lax',
-                maxAge: 60 * 15 // Expire dans 15 minutes
+                maxAge: 60 * 15 // 15 minutes
             });
         }
 
-        // ✅ Si le token est valide, stocker les infos utilisateur
-        request.user = decoded;
-        request.log.debug({
-            userId: decoded.userId,
-            path: request.routerPath
-        }, 'Auth successful');
+        // Stocker l'ID utilisateur dans la requête
+        request.user = {
+            userId: result.userId
+        };
 
         done();
+
     } catch (error) {
         request.log.error(error, 'Auth middleware error');
         reply.code(500).send({ error: 'Internal authentication error' });
