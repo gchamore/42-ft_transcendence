@@ -289,30 +289,15 @@ async function routes(fastify, options) {
             body: { type: 'null' }
         }
     }, async (request, reply) => {
+        // Le middleware a déjà vérifié le token et mis request.user
+        const userId = request.user.userId;
         const token = request.cookies?.accessToken;
-        
-        fastify.log.info('Logout attempt:', {
-            hasToken: !!token,
-            cookies: request.cookies,
-            headers: request.headers
-        });
 
-        if (!token) {
-            fastify.log.warn('No access token found in cookies during logout');
-            return reply.code(401).send({ error: 'No token provided' });
-        }
+        fastify.log.info('Processing logout for user:', userId);
 
-        // Utiliser la même logique de validation que verify_token
-        const decoded = await authService.validateToken(token, 'access', db);
-        
-        if (!decoded) {
-            fastify.log.warn('Invalid or expired token during logout');
-            return reply.code(401).send({ error: 'Invalid token' });
-        }
-
-        // Si le token est valide, procéder au logout
         try {
-            await authService.revokeTokens(decoded.userId);
+            // Révoquer les tokens
+            await authService.revokeTokens(userId);
             await authService.blacklistToken(token);
 
             const isLocal = request.headers.host.startsWith("localhost");
@@ -323,7 +308,7 @@ async function routes(fastify, options) {
                 sameSite: 'None'
             };
 
-            fastify.log.info('Logout successful for user:', decoded.userId);
+            fastify.log.info('Logout successful for user:', userId);
 
             return reply
                 .clearCookie('accessToken', cookieOptions)

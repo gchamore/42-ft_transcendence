@@ -40,15 +40,24 @@ fastify.register(require('@fastify/cors'), {
 fastify.register(require('@fastify/cookie'));
 
 // Liste des routes publiques
-const publicRoutes = ['/login', '/register', '/refresh', '/verify_token', '/ws', '/logout'];
+const publicRoutes = ['/login', '/register', '/refresh', '/verify_token', '/ws'];
 
 // Middleware d'authentification
 fastify.addHook('onRequest', (request, reply, done) => {
+    // Log pour debug
+    fastify.log.debug({
+        path: request.routerPath,
+        method: request.method,
+        isPublic: publicRoutes.some(route => request.routerPath?.startsWith(route))
+    }, 'Route check');
+
     if (request.method === 'OPTIONS' || 
         publicRoutes.some(route => request.routerPath?.startsWith(route))) {
         return done();
     }
-    require('./jwt/middlewares/auth.middleware')(request, reply);
+
+    // Si route protégée, on passe par le middleware d'auth
+    require('./jwt/middlewares/auth.middleware')(request, reply, done);
 });
 
 // ====== Configuration WebSocket ======
