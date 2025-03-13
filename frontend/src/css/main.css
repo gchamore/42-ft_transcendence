@@ -16,18 +16,15 @@ body {
     line-height: 1.7;
 }
 
-.section:not(.active) {
-    display: none;
+input::-webkit-autofill {
+    display: none !important;
 }
 
-*.logged-in:not(.active) {
+.section:not(.active),
+*.logged-in:not(.active),
+*.logged-off:not(.active){
     display: none;
 }
-
-*.logged-off:not(.active) {
-    display: none;
-}
-
 /* --------- */
 
 
