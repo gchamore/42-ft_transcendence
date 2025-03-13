@@ -12,8 +12,8 @@ function go_section(section, is_default = false) {
     updateView(section);
 }
 function updateView(section) {
-    document.querySelectorAll('.section').forEach(el => el.classList.add('hidden', 'hidden'));
-    document.querySelectorAll('.section.' + `${section}`).forEach(el => el.classList.remove('hidden'));
+    document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.section.' + `${section}`).forEach(el => el.classList.add('active'));
 }
 window.addEventListener("popstate", function (event) {
     if (event.state && event.state.section) {

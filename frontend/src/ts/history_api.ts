@@ -16,10 +16,10 @@ function go_section(section: string, is_default: boolean = false) {
 
 function updateView(section: string) {
 	document.querySelectorAll('.section').forEach(
-        el => el.classList.add('hidden', 'hidden'));
+        el => el.classList.remove('active'));
 
     document.querySelectorAll('.section.' + `${section}`).forEach(
-        el => el.classList.remove('hidden'));
+        el => el.classList.add('active'));
 }
 
 window.addEventListener("popstate", function(event) {

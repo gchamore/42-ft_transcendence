@@ -16,9 +16,18 @@ body {
     line-height: 1.7;
 }
 
-.section.hidden {
+.section:not(.active) {
     display: none;
 }
+
+*.logged-in:not(.active) {
+    display: none;
+}
+
+*.logged-off:not(.active) {
+    display: none;
+}
+
 /* --------- */
 
 

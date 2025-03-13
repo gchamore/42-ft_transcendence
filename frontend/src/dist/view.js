@@ -7,13 +7,13 @@ function switch_logged_in() {
 function show_logged_in() {
     const list = document.querySelectorAll('.logged-in');
     list.forEach((elem) => {
-        elem.removeAttribute('hidden');
+        elem.classList.add('active');
     });
 }
 function hide_logged_in() {
     const list = document.querySelectorAll('.logged-in');
     list.forEach((elem) => {
-        elem.setAttribute('hidden', 'hidden');
+        elem.classList.remove('active');
     });
 }
 /* ---------*/
@@ -26,13 +26,13 @@ function switch_logged_off() {
 function show_logged_off() {
     const list = document.querySelectorAll('.logged-off');
     list.forEach((elem) => {
-        elem.removeAttribute('hidden');
+        elem.classList.add('active');
     });
 }
 function hide_logged_off() {
     const list = document.querySelectorAll('.logged-off');
     list.forEach((elem) => {
-        elem.setAttribute('hidden', 'hidden');
+        elem.classList.remove('active');
     });
 }
 /* ---------*/

@@ -39,14 +39,14 @@ ul.sidebar li button{
 
 /* Include assets */
 #profile-btn {
-    background: transparent url(../../assets/profile.png) no-repeat center;
+    background: transparent url(../assets/profile.png) no-repeat center;
 }
 
 #friends-btn {
-    background: transparent url(../../assets/friends.png) no-repeat center;
+    background: transparent url(../assets/friends.png) no-repeat center;
 }
 
 #chat-btn {
-    background: transparent url(../../assets/chat.png) no-repeat center;
+    background: transparent url(../assets/chat.png) no-repeat center;
 }
 /* --------- */
