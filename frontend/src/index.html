@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>  
   <head>
-    <title>Our spectacular Pong-game Website</title>
+    <title>Our Pong-game Website</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
@@ -10,54 +10,52 @@
     <link rel="stylesheet" href="css/sidebar.css">
   </head>
   
-  <body onload="verify_token()">
-    <section id="home">
+  <body onload="initialisation()">
+
+    <section class="section home profile friends">
       <aside id="sidebar">
         <nav>
-          <ul>
-            <li class="sidebar">
-              <button class="btn sidebar" id="profile-btn"
-                onclick="profile_clicked()"></button></li>
-            <li class="sidebar logged-in" hidden>
-              <button class="btn sidebar" id="friends-btn"
-                onclick="friends_clicked()"></button></li>
-            <li class="sidebar logged-in" hidden>
-              <button class="btn sidebar" id="chat-btn"
-                onclick="chat_clicked()"></button></li>
+          <ul class="sidebar">
+            <li><button id="profile-btn" onclick="go_section('profile')"></button></li>
+            <li class="logged-in"><button id="friends-btn" onclick="go_section('friends')"></button></li>
+            <li class="logged-in"><button id="chat-btn"></button></li>
           </ul>
         </nav>
       </aside>
-
+      
       <main id="game-overlay">
         <canvas id="game" title="pong-game"></canvas>
       </main>   
     </section>
     
     <div id="modals-container">
-      <article class="modal-item profile">
-        <section>
-          <img class="avatar profile logged-in" id="profile-avatar" src="../assets/avatar.png">
-
-          <label for="profile-username">Username:</label>
-          <input type="text" id="profile-username">
+      <article class="modal-item section profile">
+        <section class="modal content">
+          <img class="avatar logged-in" id="profile-avatar" src="../assets/avatar.png">
+          
+          <div>
+            <label class="logged-off" for="profile-username">Username:</label>
+            <input class="logged-off" type="text" id="profile-username-input">
+            <label class="logged-in" id="profile-username"></label>
+          </div>
           
           <div class="logged-off">
             <label for="profile-password">Password:</label>
             <input type="text" id="profile-password">
           </div>
         </section>
-
+        
         <section>
           <nav>
-            <ul>
-              <li class="modal l1"><button class="btn modal" id="profile-btn1">Btn1</button></li>
-              <li class="modal l2"><button class="btn modal" id="profile-btn2">Btn2</button></li>
+            <ul class="modal">
+              <li class="l1"><button id="profile-btn1">Btn1</button></li>
+              <li class="l2"><button id="profile-btn2">Btn2</button></li>
             </ul>
           </nav>
         </section>
       </article>
       
-      <article class="modal-item friends">
+      <article class="modal-item section friends">
         <section>
           <label for="friends-username">Search a user:</label>
           <input type="text" id="friends-username">
@@ -65,39 +63,44 @@
         </section>
         
         <section class="found">
-          <div id="avatar-status">
-            <img class="avatar friends">
-            <div class="avatar friends friend">
-              <img id="status-img"><span class="status-text">Status</span>
-            </div>
+          <div id="badge">
+            <img class="avatar" id="friend-avatar" src="../assets/avatar.png">
+            <span id="status">Status</span>
           </div>
-
+          
           <div id="friend-stats">
             <label id="friend-stat1">Stat1</label>
-            <label for="friend-stat2">Stat2</label>
-            <label for="friend-stat3">Stat3</label>
+            <label id="friend-stat2">Stat2</label>
+            <label id="friend-stat3">Stat3</label>
           </div>
         </section>
-
+        
         <section>
           <nav>
-            <ul>
-              <li class="modal l1"><button class="btn modal" id="friends-btn1">Btn1</button></li>
-              <li class="modal l2"><button class="btn modal" id="friends-btn2">Btn2</button></li>
-              <li class="modal l3"><button class="btn modal" id="friends-btn3">Btn3</button></li>
+            <ul class="modal">
+              <li class="l1"><button id="friends-btn1">Btn1</button></li>
+              <li class="l2"><button id="friends-btn2">Btn2</button></li>
+              <li class="l3"><button id="friends-btn3">Btn3</button></li>
             </ul>
           </nav>
         </section>
       </article>
-
+      
       <article class="chat">
         <!-- To be continued... -->
       </article>
     </div>
+    
+    <div id="pages-btns">
+      <button id="home-page" onclick="go_section('home')">HOME</button>
+      <button id="profile-page" onclick="go_section('profile')">PROFILE</button>
+      <button id="friends-page" onclick="go_section('friends')">FRIENDS</button>
+    </div>
 
     <script src="../dist/authentication.js"></script>
+    <script src="../dist/history_api.js"></script>
     <script src="../dist/modals.js"></script>
     <script src="../dist/sidebar.js"></script>
     <script src="../dist/view.js"></script>
   </body>
-</html>
+  </html>

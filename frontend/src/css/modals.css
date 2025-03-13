@@ -1,6 +1,5 @@
+/* Container and items */
 #modals-container {
-    /* background-color: rgb(65, 63, 63); */
-
     position: absolute;
 
     height: 400px;
@@ -13,7 +12,7 @@
 
 .modal-item {
     background-color: rgb(145, 83, 83);
-    border-radius: 10%;
+    border-radius: 4% / 5%;
     border-style: solid;
 
     position:absolute;
@@ -21,44 +20,48 @@
     height: 100%;
     width: 100%;
 }
-.modal-item:not(.active){
-    display: none;
+
+.modal.content  {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    margin: 15px;   
 }
+/* --------- */
 
-nav button.modal {
-    width: 120px;
-    height: 50px;
-    
-    border: none;
-}
 
-li.modal {
-    border-radius: 10%;
 
+/* Navigation */
+ul.modal li {
+    border-radius: 12% / 26%;
     position: absolute;
     bottom: 5%;
 }
-li.modal.l1 {
-    left: 5%;
-}
-li.modal.l2 {
-    right: 5%;
+
+ul.modal li:active {
+    transform: scale(0.85);
 }
 
-#profile-avatar {
-    background-color: rgb(0, 0, 0);
+li.l1 {
+    left: 5%;
+}
+
+li.l2 {
+    right: 5%;
+}
+li.l3 {
+    left: 185px;
+}
+
+ul.modal li button{
+    width: 120px;
+    height: 50px;
+}
+/* --------- */
+
+.avatar {
+    background-color: rgb(255, 255, 255);
     border-radius: 50%;
     border-width: 3px;
     border-style: solid;
-    
-    display: block;
-    position: absolute;
-    top: 20%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.btn.modal {
-    background-color: rgb(153, 29, 35);
-    border-radius: 20%;
 }

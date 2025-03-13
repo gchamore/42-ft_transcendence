@@ -8,6 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 let username = null;
+function assign_username(new_username) {
+    username = new_username;
+    document.getElementById("profile-username")
+        .textContent = new_username;
+}
+function initialisation() {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield verify_token();
+        go_section('home', true);
+    });
+}
 function verify_token() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -18,12 +29,13 @@ function verify_token() {
             const data = yield response.json();
             if (!response.ok) {
                 console.error("Verify token failed:", data.error);
+                switch_logged_off();
                 return;
             }
             if (data.valid) {
-                username = data.username;
-                console.log(username, "authenticated");
                 switch_logged_in();
+                assign_username(data.username);
+                console.log(username, "authenticated");
                 return true;
             }
             switch_logged_off();
@@ -34,9 +46,10 @@ function verify_token() {
             console.error("Error:", error);
         }
         switch_logged_off();
+        return false;
     });
 }
-function register(username, password) {
+function register(_username, _password) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const response = yield fetch(`http://localhost:8080/register`, {
@@ -44,7 +57,7 @@ function register(username, password) {
                 credentials: "include",
                 headers: { "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ username: username, password: password })
+                body: JSON.stringify({ username: _username, password: _password })
             });
             const data = yield response.json();
             if (!response.ok) {
@@ -52,9 +65,9 @@ function register(username, password) {
                 return;
             }
             if (data.success) {
-                username = username;
-                console.log(username, "register");
                 switch_logged_in();
+                assign_username(_username);
+                console.log(username, "register");
             }
             else
                 console.log("Not register");
@@ -64,7 +77,7 @@ function register(username, password) {
         }
     });
 }
-function login(username, password) {
+function login(_username, _password) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const response = yield fetch(`http://localhost:8080/login`, {
@@ -72,7 +85,7 @@ function login(username, password) {
                 credentials: "include",
                 headers: { "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ username: username, password: password })
+                body: JSON.stringify({ username: _username, password: _password })
             });
             const data = yield response.json();
             if (!response.ok) {
@@ -80,9 +93,9 @@ function login(username, password) {
                 return;
             }
             if (data.success) {
-                username = data.username;
-                console.log(username, "login");
                 switch_logged_in();
+                assign_username(_username);
+                console.log(_username, "login");
             }
             else
                 console.log("Not login");
@@ -105,9 +118,9 @@ function logout() {
                 return;
             }
             if (data.success) {
-                username = data.username;
-                console.log(username, "logout");
                 switch_logged_off();
+                console.log(username, "logout");
+                username = null;
             }
             else
                 console.log("Not logout");

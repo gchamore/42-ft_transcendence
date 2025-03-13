@@ -1,5 +1,16 @@
 let username : string = null;
 
+function assign_username(new_username: string) {
+	username = new_username;
+	(document.getElementById("profile-username") as HTMLLabelElement)
+		.textContent = new_username;
+}
+
+async function initialisation() {
+	await verify_token();
+	go_section('home', true);
+}
+
 async function verify_token(): Promise<boolean> {
 	try {
 		const response = await fetch(`/api/verify_token`, {
@@ -9,14 +20,14 @@ async function verify_token(): Promise<boolean> {
 		const data = await response.json();
 		if (!response.ok) {
 			console.error("Verify token failed:", data.error);
+			switch_logged_off();
 			return ;
 		}
 
 		if (data.valid) {
-			username = data.username;
-			console.log(username, "authenticated");
-
 			switch_logged_in();
+			assign_username(data.username);
+			console.log(username, "authenticated");
 			return true;
 		}
 		
@@ -27,16 +38,17 @@ async function verify_token(): Promise<boolean> {
 		console.error("Error:", error);
     }
 	switch_logged_off();
+	return false;
 }
 
-async function register(username: string, password: string) {
+async function register(_username: string, _password: string) {
 	try {
 		const response = await fetch(`/api/register`, {
 			method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json"
 			},
-			body: JSON.stringify({username: username, password: password})
+			body: JSON.stringify({username: _username, password: _password})
 		});
 		const data = await response.json();
 		if (!response.ok) {
@@ -45,10 +57,9 @@ async function register(username: string, password: string) {
 		}
         
 		if (data.success) {
-			username = username;
-			console.log(username, "register");
-
 			switch_logged_in();
+			assign_username(_username);
+			console.log(username, "register");
 		}
 		else
 			console.log("Not register");
@@ -57,14 +68,14 @@ async function register(username: string, password: string) {
     }
 }
 
-async function login(username: string, password: string) {
+async function login(_username: string, _password: string) {
 	try {
         const response = await fetch(`/api/login`, {
             method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json"
 			},
-			body: JSON.stringify({username: username, password: password})
+			body: JSON.stringify({username: _username, password: _password})
 		});
 		const data = await response.json();
 		if (!response.ok) {
@@ -73,10 +84,9 @@ async function login(username: string, password: string) {
 		}
 
 		if (data.success) {
-			username = data.username;
-			console.log(username, "login");
-
 			switch_logged_in();
+			assign_username(_username);
+			console.log(_username, "login");
 		}
 		else
 			console.log("Not login");
@@ -98,10 +108,9 @@ async function logout() {
 		}
 
 		if (data.success) {
-			username = data.username;
-			console.log(username, "logout");
-
 			switch_logged_off();
+			console.log(username, "logout");
+			username = null;
 		}
 		else
 			console.log("Not logout");
