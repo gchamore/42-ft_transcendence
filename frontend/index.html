@@ -236,6 +236,9 @@
                 const data = await response.json();
                 
                 if (response.ok) {
+                    // Ajouter cette ligne pour mettre à jour le localStorage lors du register
+                    localStorage.setItem('currentUser', username);
+                    
                     showMessage('Registration and login successful!', false);
                     document.getElementById('register-form').reset();
                     // Directement afficher le welcome puisque l'utilisateur est connecté
