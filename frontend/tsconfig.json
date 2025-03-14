@@ -2,10 +2,11 @@
   "compilerOptions": {
     "target": "es2016",
     "module": "commonjs",
-
-    "outDir": "src/dist",
-    "rootDir": "src/ts"
+    "outDir": "./src/dist",
+    "rootDir": "./src/ts",
+    "esModuleInterop": true,
+    "strict": true
   },
-  "include": ["src/ts/*.ts"],
-  "exclude": null
+  "include": ["src/ts/**/*.ts"],
+  "exclude": ["node_modules"]
 }

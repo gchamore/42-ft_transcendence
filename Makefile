@@ -23,7 +23,7 @@ check_deps:
 # Lancer l'infrastructure
 run: check_deps
 	@$(DOCKER_COMPOSE) up --build -d
-	@echo "$(GREEN)Application disponible sur : http://localhost$(RESET)"
+	@echo "$(GREEN)Application disponible sur : http://localhost:8080$(RESET)"
 
 # Arrêter les conteneurs et supprimer les volumes
 down:
