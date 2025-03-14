@@ -20,7 +20,7 @@
     "ws": "^8.13.0"
   },
   "devDependencies": {
-    "axios": "^1.8.3",
+    "axios": "^1.8.2",
     "chalk": "^4.1.2",
     "nodemon": "^3.1.9"
   }
