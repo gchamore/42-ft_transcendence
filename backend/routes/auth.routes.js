@@ -14,16 +14,19 @@ async function routes(fastify, options) {
 		const { username, password } = request.body;
 
 		fastify.log.info({ body: request.body }, "Tentative d'inscription");
+		// Vérification des champs requis
 		if (!username || !password) {
 			fastify.log.warn("Échec d'inscription : username ou password manquant");
 			return reply.code(400).send({ error: "Username and password are required" });
 		}
+		// Vérification de l'existence de l'utilisateur
 		const userExists = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
 		if (userExists) {
 			fastify.log.warn(`Échec d'inscription : Username déjà pris (${username})`);
 			return reply.code(400).send({ error: "Username already taken" });
 		}
 
+		// Inscription de l'utilisateur
 		try {
 			// Hashage du mot de passe
 			fastify.log.info(`Hashage du mot de passe pour l'utilisateur : ${username}`);
@@ -39,6 +42,7 @@ async function routes(fastify, options) {
 			// Générer les tokens d'authentification
 			const { accessToken, refreshToken } = await authService.generateTokens(newUser.id);
 
+			// Déterminer si l'application est en local ou en production
 			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Envoyer la réponse avec les cookies
@@ -268,14 +272,30 @@ async function routes(fastify, options) {
 				return reply.code(401).send({ error: "Invalid refresh token" });
 			}
 
-			// Utiliser le même format pour le refresh
-			reply
-				.headers({
-					'Set-Cookie': [
-						`accessToken=${newAccessToken}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${15 * 60}; Partitioned`
-					]
-				})
-				.send({ success: true });
+			// Décoder le token pour obtenir l'userId
+			const decoded = jwt.verify(newAccessToken, JWT_SECRET);
+			
+			// Récupérer les informations de l'utilisateur
+			const user = db.prepare("SELECT username FROM users WHERE id = ?").get(decoded.userId);
+			
+			const isLocal = request.headers.host.startsWith("localhost");
+			
+			// Définir le nouveau cookie avec le même format que verify_token
+			reply.setCookie('accessToken', newAccessToken, {
+				path: '/',
+				secure: !isLocal,
+				httpOnly: true,
+				sameSite: !isLocal ? 'None' : 'Lax',
+				maxAge: 60 * 15 // 15 minutes
+			});
+
+			fastify.log.info('Access token refreshed successfully for user:', user.username);
+
+			// Retourner la réponse avec le même format que verify_token
+			return reply.send({
+				valid: true,
+				username: user.username
+			});
 
 		} catch (error) {
 			fastify.log.error(error);
