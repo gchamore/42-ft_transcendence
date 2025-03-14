@@ -71,6 +71,7 @@ class App {
 		   this.setupRouting();
 		});
 	}
+	
 	// Generate a random gameId that doesn't already exist
 	private async generateGameId(): Promise<string> {
 		const maxAttempts = 10; // Prevent infinite loop

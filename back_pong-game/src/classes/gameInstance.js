@@ -9,15 +9,14 @@ export class GameInstance {
 		this.gameState = createDefaultGameState(gameId);
 		this.settings = existingSettings || {
 			ballSpeed: 4,
-			paddleSpeed: 10,
-			paddleLength: 150,
+			paddleSpeed: 5,
+			paddleLength: 100,
 			mapType: "default",
 			powerUpsEnabled: false,
 			maxScore: 3,
 		};
 		this.playerReadyStatus = new Set();
 		this.resetBall();
-		this.paddleMoved = false;
 		this.safeSend = safeSendFunction;
 	}
 
@@ -54,47 +53,22 @@ export class GameInstance {
 		this.gameState = createDefaultGameState();
 	}
 
-	update() {
-		const prevBallX = this.gameState.ball.x;
-		const prevBallY = this.gameState.ball.y;
+	update(deltaTime) {
+		const ball = this.gameState.ball;
 
-		const speedMultiplier = TEST_MODE ? 1.2 : 1.0; // Increase speed for testing
-		this.gameState.ball.x += this.gameState.ball.speedX;
-		this.gameState.ball.y += this.gameState.ball.speedY;
+		if (this.gameState.gameStarted) {
+			ball.x += ball.speedX * deltaTime;
+			ball.y += ball.speedY * deltaTime;
 
-		const wallHit = this.checkWallCollision();
-		const paddleHit = this.checkPaddleCollision(prevBallX, prevBallY);
-		const scoreResult = this.checkScoring();
+			this.checkWallCollision(ball);
 
-		if (wallHit) {
-			this.players.forEach((player) => {
-				this.safeSend(player, {
-					type: "wallHit",
-					position: { x: this.gameState.ball.x, y: this.gameState.ball.y }
-				});
-			});
+			this.checkPaddleCollision(ball);
+
+			const scoreResult = this.checkScoring(ball);
+
+			return scoreResult;
 		}
-
-		if (paddleHit) {
-			this.players.forEach((player) => {
-				this.safeSend(player, {
-					type: 'paddleHit',
-					paddleNumber: paddleHit.paddleHit,
-					position: paddleHit.position
-				});
-			});
-		}
-
-		if (scoreResult.scored) {
-			this.players.forEach((player) => {
-				this.safeSend(player, {
-					type: 'scoreEffect',
-					scorer: scoreResult.scorer,
-					position: { x: prevBallX, y: prevBallY }
-				});
-			});
-		}
-		return scoreResult;
+		return { scored: false };
 	}
 
 	checkWallCollision() {
@@ -109,67 +83,26 @@ export class GameInstance {
 		return false;
 	}
 
-	checkPaddleCollision(prevBallX, prevBallY) {
-		const ball = this.gameState.ball;
-		const paddle1 = this.gameState.paddle1;
-		const paddle2 = this.gameState.paddle2;
+	checkPaddleCollision(ball) {
+		[1, 2].forEach((playerNumber) => {
+			const paddle = this.gameState[`paddle${playerNumber}`];
+			if (
+				ball.x - ball.radius <= paddle.x + paddle.width &&
+				ball.x + ball.radius >= paddle.x &&
+				ball.y - ball.radius <= paddle.y + paddle.height &&
+				ball.y + ball.radius >= paddle.y
+			) {
+				ball.speedX *= -1;
+				const hitPoint = (ball.y - paddle.y) / paddle.height;
+				ball.speedY = (hitPoint - 0.5) * 10;
 
-		// Paddle 1 collision
-		if (
-			ball.speedX < 0 && // Ball moving left
-			ball.x - ball.radius <= paddle1.x + paddle1.width && //ball left edge reaches paddle right edge
-			prevBallX - ball.radius > paddle1.x + paddle1.width && // ball was right of paddle previously
-			ball.y + ball.radius >= paddle1.y && // ball bottom edge is below paddle top 
-			ball.y - ball.radius <= paddle1.y + paddle1.height // ball top edge is above paddle bottom 
-		) {
-			ball.speedX = -ball.speedX;
-			//add angle based on where the ball hits the paddle
-			const hitPosition = (ball.y - paddle1.y) / paddle1.height;
-			ball.speedY = (hitPosition - 0.5) * 10;
-			const speedIncrease = 0.25; // Slightly higher increase factor
-			const maxSpeed = 12; // Higher maximum speed
-
-			// Calculate current speed magnitude
-			const currentSpeed = Math.sqrt(ball.speedX * ball.speedX + ball.speedY * ball.speedY);
-
-			// Calculate new speed magnitude (capped at maxSpeed)
-			const newSpeed = Math.min(maxSpeed, currentSpeed + speedIncrease);
-
-			// Calculate scale factor to apply to both components
-			const scaleFactor = newSpeed / currentSpeed;
-
-			// Apply to both X and Y components to maintain angle
-			ball.speedX *= scaleFactor;
-			ball.speedY *= scaleFactor;
-
-			return { paddleHit: 1, position: { x: paddle1.x, y: paddle1.y } };
-		}
-		// Paddle 2 collision
-		if (
-			ball.speedX > 0 && // Ball moving right
-			ball.x + ball.radius >= paddle2.x && //ball right edge reaches paddle left edge
-			prevBallX + ball.radius < paddle2.x && // ball was left of paddle previously
-			ball.y + ball.radius >= paddle2.y && // ball bottom edge is below paddle top
-			ball.y - ball.radius <= paddle2.y + paddle2.height // ball top edge is above paddle bottom
-		) {
-			ball.speedX *= -1;
-			//add angle based on where the ball hits the paddle
-			const hitPosition = (ball.y - paddle2.y) / paddle2.height;
-			ball.speedY = (hitPosition - 0.5) * 10;
-
-			const speedIncrease = 0.25;
-			const maxSpeed = 12;
-
-			const currentSpeed = Math.sqrt(ball.speedX * ball.speedX + ball.speedY * ball.speedY);
-			const newSpeed = Math.min(maxSpeed, currentSpeed + speedIncrease);
-			const scaleFactor = newSpeed / currentSpeed;
-
-			ball.speedX *= scaleFactor;
-			ball.speedY *= scaleFactor;
-
-			return { paddleHit: 2, position: { x: paddle2.x, y: paddle2.y } };
-		}
-		return null;
+				const maxSpeed = 12;
+				const currentSpeed = Math.sqrt(ball.speedX ** 2 + ball.speedY ** 2);
+				const scaleFactor = Math.min(maxSpeed / currentSpeed, 1.05);
+				ball.speedX *= scaleFactor;
+				ball.speedY *= scaleFactor;
+			}
+		});	
 	}
 
 	checkScoring() {
@@ -228,25 +161,6 @@ export class GameInstance {
 		this.gameState.gameStarted = false;
 	}
 
-	updatePaddlePosition(playerNumber, y) {
-		this.paddleMoved = true;
-		// Get the correct paddle based on player number
-		const paddle =
-			playerNumber === 1
-				? this.gameState.paddle1
-				: this.gameState.paddle2;
-
-		paddle.y = y;
-		// Ensure paddle stays within bounds
-		if (paddle.y < 0) {
-			paddle.y = 0;
-		}
-		if (paddle.y + paddle.height > 600) {
-			paddle.y = 600 - paddle.height;
-		}
-		return paddle.y;
-	}
-
 	cleanup() {
 		this.players.forEach((player) => player.close());
 		this.players = [];
@@ -288,9 +202,6 @@ export class GameInstance {
 
 		// Mark both players as ready
 		this.playerReadyStatus = new Set([1, 2]);
-
-		// Reset ball position and speed
-		this.resetBall();
 
 		console.log(
 			`Game successfully transitioned from ${oldGameId} to ${newGameId} with ${this.players.length} players`

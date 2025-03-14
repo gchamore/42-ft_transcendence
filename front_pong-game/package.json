@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && mkdir -p ../back_pong-game/public/dist && cp public/index.html ../back_pong-game/public/ && cp -r ./public/dist/* ../back_pong-game/public/dist/",
+    "build": "tsc && mkdir -p ../back_pong-game/public/dist && cp -r public/* ../back_pong-game/public/  ",
     "clean": "rm -rf ./public/dist && rm -rf ../back_pong-game/public",
     "dev": "npm run build && cd ../back_pong-game && npm run dev",
     "start": "npm run build && cd ../back_pong-game && npm start",

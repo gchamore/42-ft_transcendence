@@ -5,12 +5,12 @@ export class Ball {
 	speedX: number;
 	speedY: number;
 
-	constructor(x: number, y: number, radius: number, speed: number) {
-		this.x = x;
-		this.y = y;
-		this.radius = radius;
-		this.speedX = speed;
-		this.speedY = speed;
+	constructor() {
+		this.x = 400;
+		this.y = 300;
+		this.radius = 10;
+		this.speedX = 4;
+		this.speedY = 4;
 	}
 
 	updatePosition(ballState:{x:number, y:number, speedX:number, speedY:number}): void {

@@ -1,10 +1,8 @@
 import WebSocket from 'ws';
-import { games, mainLobby, broadcastGameState, resetMainLobby} from '../controllers/gameController.js';
+import { games, broadcastGameState, resetMainLobby} from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleDisconnect } from './disconnectHandler.js';
-import { TEST_MODE } from '../utils/config.js';
 
-export const broadcastTimeout = {};
 
 export function handleNewPlayer(socket, game) {
 	// Verify socket is open
@@ -65,8 +63,6 @@ export function handleNewPlayer(socket, game) {
 
 export function handleGameMessage(socket, game, data) {
 	const playerNumber = socket.playerNumber;
-	const handlerResult = { shouldBroadcast: true };
-
 	switch (data.type) {
 		case 'playerReady':
 			handlePlayerReady(socket, game, playerNumber);
@@ -78,8 +74,7 @@ export function handleGameMessage(socket, game, data) {
 			handleStartGame(socket, game, playerNumber);
 			break;
 		case 'movePaddle':
-			const moveResult = handleMovePaddle(socket, game, playerNumber, data);
-			handlerResult.shouldBroadcast = moveResult.shouldBroadcast;
+			handleMovePaddle(socket, game, playerNumber, data);
 			break;
 		case 'updateSettings':
 			handleUpdateSettings(socket, game, playerNumber, data);
@@ -87,10 +82,6 @@ export function handleGameMessage(socket, game, data) {
 		case 'rematchRequest':
 			handleRematchRequest(socket, game, playerNumber);
 			break;
-	}
-
-	if (handlerResult.shouldBroadcast) {
-		broadcastGameState(game);
 	}
 }
 
@@ -167,7 +158,7 @@ function handleStartGame(socket, game, playerNumber) {
 }
 
 function handleMovePaddle(socket, game, playerNumber, data) {
-	if (data.player !== playerNumber) {
+	if (data.playerNumber !== playerNumber) {
 		safeSend(socket, {
 			type: 'error',
 			message: 'Player trying to move paddle that is not theirs'
@@ -175,49 +166,17 @@ function handleMovePaddle(socket, game, playerNumber, data) {
 		console.error('Player trying to move paddle that is not theirs');
 		return;
 	}
-	if (!TEST_MODE) {
-		validateAndUpdatePaddlePosition(socket, game, playerNumber, data);
-	} else {
-		game.updatePaddlePosition(data.player, data.y);
-	}
 
-	game.paddleMoved = true;
-
-	const now = Date.now();
-	if (!broadcastTimeout[game.gameId]) broadcastTimeout[game.gameId] = 0;
-
-	if (now - broadcastTimeout[game.gameId] > 66.7) { // 15 updates per second max
-		game.paddleMoved = false;
-		broadcastTimeout[game.gameId] = now;
-	}
-	return { shouldBroadcast: false };
-}
-
-function validateAndUpdatePaddlePosition(socket, game, playerNumber, data) {
-	const previousPosition = game.gameState[`paddle${playerNumber}`].y;
-	const newPosition = data.y;
-	const maxMove = game.gameState[`paddle${playerNumber}`].speed * 4;
-
-	if (Math.abs(newPosition - previousPosition) <= maxMove) {
-		game.updatePaddlePosition(data.player, data.y);
+	const paddle = game.gameState[`paddle${playerNumber}`];
+	// validate input sequence
+	if (data.inputSequence <= paddle.lastProcessedInput) {
 		return;
 	}
 
-	console.log(`Suspicious paddle movement detected: Player ${playerNumber} moved ${Math.abs(newPosition - previousPosition)}px (${previousPosition} to ${newPosition})`);
-
-	const absoluteMaxMove = maxMove * 2;
-	if (Math.abs(newPosition - previousPosition) > absoluteMaxMove) {
-		// Reject if beyond reasonable tolerance
-		safeSend(socket, {
-			type: 'syncPaddle',
-			position: previousPosition,
-			message: 'Movement rejected - too large'
-		});
-		game.updatePaddlePosition(data.player, previousPosition);
-	} else {
-		// Accept with larger tolerance
-		game.updatePaddlePosition(data.player, data.y);
-	}
+	console.log(`before moving Player ${playerNumber} moved paddle to ${paddle.y}`);
+	paddle.y = data.paddlePosition;
+	console.log(`after moving Player ${playerNumber} moved paddle to ${paddle.y}`);
+	paddle.lastProcessedInput = data.inputSequence;
 }
 
 function handleUpdateSettings(socket, game, playerNumber, data) {

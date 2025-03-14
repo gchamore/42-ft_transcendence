@@ -4,12 +4,15 @@ export class Paddle {
 	width: number = 0;
 	height: number = 0;
 	speed: number = 0;
+	velocity: number = 0;
+	lastProcessedInput: number = 0;
 
-	constructor(x: number, y: number, width: number, height: number, speed: number) {
+	constructor(x: number, y: number) {
 		this.x = x;
-		this.width = width;
-		this.height = height;
-		this.speed = speed;
+		this.width = 10;
+		this.height = 100;
+		this.speed = 5;
+		this.velocity = 0;
 		this.setY(y);
 	}
 
@@ -25,20 +28,10 @@ export class Paddle {
 		this.setY(centerY);
 	}
 
-	move(moveUp: boolean, moveDown: boolean, canvasHeight: number): void {
-		if (moveUp && this.y > 0) {
-			this.y -= this.speed;
+	move(): void {
+		if (this.velocity !== 0) {
+			this.y += this.velocity;
+			this.y = Math.max(this.height / 2, Math.min(this.y, 600 - this.height / 2));
 		}
-		if (moveDown && this.y + this.height < canvasHeight) {
-			this.y += this.speed;
-		}
-	}
-
-	updatePosition(paddleState: { x: number, y: number, height: number }): void {
-		this.x = paddleState.x;
-		this.y = paddleState.y;
-		console.log('updated position to', this.x, this.y);
-		if (paddleState.height !== this.height)
-			this.updateHeight(paddleState.height);
 	}
 }

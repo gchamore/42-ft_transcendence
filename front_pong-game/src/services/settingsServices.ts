@@ -6,7 +6,7 @@ export class SettingsService {
         const paddleSpeed = localStorage.getItem('paddleSpeed') || GameConfig.DEFAULT_PADDLE_SPEED.toString();
         const paddleLength = localStorage.getItem('paddleLength') || GameConfig.DEFAULT_PADDLE_LENGTH.toString();
         const mapType = localStorage.getItem('mapType') || GameConfig.DEFAULT_MAP;
-        const powerUpsEnabled = localStorage.getItem('powerUpsEnabled') === 'true';
+        const powerUpsEnabled = localStorage.getItem('powerUpsEnabled') === 'true' || GameConfig.DEFAULT_POWERUPS;
 
         return {
             ballSpeed: parseInt(ballSpeed),

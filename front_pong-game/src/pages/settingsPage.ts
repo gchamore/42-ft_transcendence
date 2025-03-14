@@ -287,7 +287,7 @@ export class SettingsPage {
 
 		const defaultSettings = {
 			ballSpeed: 4,
-			paddleSpeed: 4,
+			paddleSpeed: 5,
 			paddleLength: 100,
 			mapType: 'default',
 			powerUpsEnabled: false
@@ -313,11 +313,16 @@ export class SettingsPage {
 	}
 
 	public cleanup() {
-		if (this.ballSpeedSlider) this.ballSpeedSlider.removeEventListener('input', this.handleBallSpeedChange);
-		if (this.paddleSpeedSlider) this.paddleSpeedSlider.removeEventListener('input', this.handlePaddleSpeedChange);
-		if (this.paddleLengthSlider) this.paddleLengthSlider.removeEventListener('input', this.handlePaddleLengthChange);
-		if (this.mapSelect) this.mapSelect.removeEventListener('change', this.handleMapChange);
-		if (this.powerUpsToggle) this.powerUpsToggle.removeEventListener('change', this.handlePowerUpsChange);
+		if (this.ballSpeedSlider)
+			this.ballSpeedSlider.removeEventListener('input', this.handleBallSpeedChange);
+		if (this.paddleSpeedSlider)
+			this.paddleSpeedSlider.removeEventListener('input', this.handlePaddleSpeedChange);
+		if (this.paddleLengthSlider)
+			this.paddleLengthSlider.removeEventListener('input', this.handlePaddleLengthChange);
+		if (this.mapSelect)
+			this.mapSelect.removeEventListener('change', this.handleMapChange);
+		if (this.powerUpsToggle)
+			this.powerUpsToggle.removeEventListener('change', this.handlePowerUpsChange);
 		if (this.startButton && this.startButtonClickHandler)
 			this.startButton.removeEventListener('click', this.startButtonClickHandler);
 	}

@@ -1,8 +1,7 @@
-import WebSocket from "ws";
 import { GameInstance } from "../classes/gameInstance.js";
 import { handleNewPlayer } from '../handlers/messageHandlers.js';
 import { safeSend } from '../utils/socketUtils.js';
-import { TARGET_FPS } from '../utils/config.js';
+import { TARGET_FPS, BROADCAST_RATE } from '../utils/config.js';
 
 export const games = new Map();
 export let mainLobby = null;
@@ -60,42 +59,46 @@ function handleGameConnection(connection, request) {
 }
 
 function setupGameUpdateInterval() {
+	let lastUpdateTime = Date.now();
 	setInterval(() => {
 		const now = Date.now();
-		games.forEach((game, gameId) => {
-			if (gameId.startsWith('lobby-')) return;
-			if (game.players.length > 0) {
-				processGameUpdate(game);
-				// Broadcast state less frequently than physics updates
-				if (now - (broadcastTimeout[game.gameId] || 0) > 50) {
-					broadcastGameState(game);
-					broadcastTimeout[game.gameId] = now;
-				}
+		const deltaTime = (now - lastUpdateTime) / 1000;
+		lastUpdateTime = now;
+		games.forEach((game) => {
+			if (game.players.length === 0) return;
+
+			processGameUpdate(game, deltaTime);
+
+			if (!broadcastTimeout[game.gameId])
+				broadcastTimeout[game.gameId] = 0;
+
+			if (now - broadcastTimeout[game.gameId] >= 1000 / BROADCAST_RATE) {
+				broadcastGameState(game);
+				broadcastTimeout[game.gameId] = now;
 			}
 		});
 	}, 1000 / TARGET_FPS);
 }
 
-function processGameUpdate(game) {
-	if (!game.gameState.gameStarted || game.players.length !== 2) return;
+function processGameUpdate(game, deltaTime) {
+	if (game.players.length !== 2) return;
 
-	const result = game.update();
+	const result = game.update(deltaTime);
 
-	if (result.scored && result.winner) {
+	if (game.gameState.gameStarted && result.scored && result.winner) {
 		game.players.forEach((player) => {
 			safeSend(player, {
 				type: 'gameOver',
 				reason: 'scoreLimit',
 				winner: result.winner,
-				score1: game.gameState.score.player1Score,
-				score2: game.gameState.score.player2Score,
-				message: `Player ${result.winner} wins!`
+				finalScore: {
+					player1Score: game.gameState.score.player1Score,
+					player2Score: game.gameState.score.player2Score,
+				},
 			});
 		});
 		game.gameState.gameStarted = false;
 	}
-
-	broadcastGameState(game);
 }
 
 export function broadcastGameState(game) {
