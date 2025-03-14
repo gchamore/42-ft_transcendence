@@ -176,29 +176,6 @@ async function routes(fastify, options) {
 		return reply.send({ exists });
 	});
 
-	/*** 📌 Route: IS PASSWORD ***/
-	fastify.post("/isPassword", async (request, reply) => {
-		const { username, password } = request.body;
-		fastify.log.debug(`Vérification du mot de passe pour l'utilisateur : ${username}`);
-
-		const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-
-		if (!user) {
-			fastify.log.warn(`Échec de la vérification : utilisateur non trouvé (${username})`);
-			return reply.code(404).send({ error: "User not found" });
-		}
-
-		const validPassword = await bcrypt.compare(password, user.password);
-
-		if (validPassword) {
-			fastify.log.info(`Mot de passe correct pour l'utilisateur : ${username}\n`);
-		} else {
-			fastify.log.warn(`Mot de passe incorrect pour l'utilisateur : ${username}\n`);
-		}
-
-		return reply.send({ valid: validPassword });
-	});
-
 	/*** 📌 Route: GET USER ID ***/
 	fastify.post("/getUserId", async (request, reply) => {
 		const { username } = request.body;
