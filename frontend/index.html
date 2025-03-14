@@ -178,6 +178,7 @@
         const API_URL = 'http://localhost:8080/api';
         const WS_URL = 'ws://localhost:8080/api/ws';
         let ws = null;
+        let shouldReconnect = true; // Nouveau flag pour contrôler la reconnexion
         
         const message = document.getElementById('message');
         const authForms = document.getElementById('auth-forms');
@@ -219,6 +220,21 @@
             } catch (error) {
                 console.error('Auth check failed:', error);
                 localStorage.clear();
+            }
+        }
+
+        // Fonction pour vérifier si les tokens sont valides
+        async function areTokensValid() {
+            try {
+                const response = await fetch(`${API_URL}/verify_token`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                return data.valid;
+            } catch (error) {
+                console.error('Token validation error:', error);
+                return false;
             }
         }
 
@@ -431,6 +447,13 @@
             const username = document.getElementById('username').textContent;
             
             try {
+                shouldReconnect = false; // Désactiver les reconnexions avant la révocation
+                
+                if (ws) {
+                    ws.close();
+                    ws = null;
+                }
+
                 // D'abord récupérer l'ID de l'utilisateur
                 const getUserIdResponse = await fetch(`${API_URL}/getUserId`, {
                     method: 'POST',
@@ -457,9 +480,9 @@
                 
                 if (response.ok) {
                     showMessage('Tokens revoked successfully', false);
-                    // Rediriger vers la page de login
                     authForms.classList.remove('hidden');
                     welcome.classList.add('hidden');
+                    localStorage.clear();
                 } else {
                     showMessage(data.error || 'Failed to revoke tokens', true);
                 }
@@ -550,13 +573,24 @@
             document.getElementById('username').textContent = username;
             authForms.classList.add('hidden');
             welcome.classList.remove('hidden');
+            shouldReconnect = true; // Réactiver les reconnexions
             connectWebSocket();  // Établir la connexion WebSocket
         }
 
         // Fonction pour établir la connexion WebSocket avec reconnexion automatique
-        function connectWebSocket() {
+        async function connectWebSocket() {
+            if (!shouldReconnect) return;
+            
+            // Vérifier les tokens avant de tenter une connexion
+            const tokensValid = await areTokensValid();
+            if (!tokensValid) {
+                shouldReconnect = false;
+                return;
+            }
+
             if (ws) {
                 ws.close();
+                ws = null;
             }
 
             ws = new WebSocket(WS_URL);
@@ -584,9 +618,11 @@
             ws.onclose = () => {
                 console.log('WebSocket disconnected');
                 // Tentative de reconnexion après 5 secondes
-                reconnectTimeout = setTimeout(() => {
-                    connectWebSocket();
-                }, 5000);
+                if (shouldReconnect) {
+                    reconnectTimeout = setTimeout(() => {
+                        connectWebSocket();
+                    }, 5000);
+                }
             };
 
             ws.onerror = (error) => {

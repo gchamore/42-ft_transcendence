@@ -43,11 +43,12 @@ async function routes(fastify, options) {
             // Diffuser la mise à jour du statut
             broadcastUserStatus(fastify, userId, true);
 
-            // Configuration du ping-pong
+            // Configuration du ping-pong et vérification des tokens
             let lastPong = Date.now();
-            const pingInterval = setInterval(() => {
-                if (Date.now() - lastPong > 35000) {
-                    // Pas de pong depuis trop longtemps
+            const pingInterval = setInterval(async () => {
+                // Vérifier si les tokens sont toujours valides
+                const isTokenValid = await authService.validateToken(accessToken, null, 'access');
+                if (!isTokenValid || Date.now() - lastPong > 35000) {
                     clearInterval(pingInterval);
                     connection.socket.close();
                     return;
