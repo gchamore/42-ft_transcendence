@@ -59,6 +59,29 @@
         .error { background: #c62828; }
         .success { background: #2e7d32; }
         .hidden { display: none; }
+
+        .search-container {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        
+        .search-container input {
+            flex: 1;
+        }
+        
+        .search-container button {
+            width: auto;
+            padding: 0.5rem 1rem;
+        }
+
+        .search-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #2d2d2d;
+            border-radius: 4px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -86,6 +109,14 @@
 
         <div id="welcome" class="hidden">
             <h2>Welcome, <span id="username"></span>!</h2>
+            
+            <!-- Ajout du champ de recherche -->
+            <div class="search-container">
+                <input type="text" id="search-username" placeholder="Search username">
+                <button id="search-btn">Search</button>
+            </div>
+            <div id="search-result" class="search-result"></div>
+            
             <button id="verify-token-logged-btn" style="margin-top: 1rem;">Verify Token</button>
             <button id="logout-btn" style="margin-top: 1rem;">Logout</button>
         </div>
@@ -237,6 +268,38 @@
             } catch (error) {
                 console.error('Logout error:', error);
                 showMessage('Server error during logout', true);
+            }
+        });
+
+        // Ajouter la fonction de recherche d'utilisateur
+        document.getElementById('search-btn').addEventListener('click', async () => {
+            const searchUsername = document.getElementById('search-username').value;
+            const searchResult = document.getElementById('search-result');
+            
+            if (!searchUsername) {
+                showMessage('Please enter a username', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/isUser/${searchUsername}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                searchResult.style.display = 'block';
+                if (data.exists) {
+                    searchResult.textContent = `User '${searchUsername}' found!`;
+                    searchResult.style.color = '#2e7d32';
+                } else {
+                    searchResult.textContent = `User '${searchUsername}' not found.`;
+                    searchResult.style.color = '#c62828';
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                showMessage('Error during search', true);
             }
         });
 
