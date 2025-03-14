@@ -56,6 +56,7 @@ fastify.addHook('onRequest', (request, reply, done) => {
 // ====== Routes ======
 fastify.register(require('./routes/auth.routes'));
 fastify.register(require('./routes/game.routes'));
+fastify.register(require('./routes/user.routes'));
 
 // ====== Gestion de l'arrêt propre ======
 const cleanup = async (signal) => {

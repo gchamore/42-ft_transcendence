@@ -34,6 +34,19 @@ function initializeDatabase(dbPath)
         )
     `).run();
 
+    // table friendships : user_id, friend_id, date
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS friendships (
+            user_id INTEGER,
+            friend_id INTEGER,
+            date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, friend_id),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (friend_id) REFERENCES users(id),
+            CHECK (user_id != friend_id)
+        )
+    `).run();
+
     return db;
 }
 

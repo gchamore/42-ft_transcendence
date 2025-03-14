@@ -82,6 +82,52 @@
             border-radius: 4px;
             display: none;
         }
+
+        /* Styles pour la friendlist */
+        .friend-list {
+            margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .friend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: #2d2d2d;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+        }
+
+        .friend-info {
+            flex-grow: 1;
+            margin-right: 1rem; /* Ajouter de l'espace entre le nom et le bouton */
+        }
+
+        .friend-actions {
+            margin-left: 1rem;
+        }
+
+        .remove-friend-btn {
+            background: #c62828;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .add-friend-btn {
+            background: #2e7d32;
+            padding: 0.25rem 0.75rem; /* Réduire le padding */
+            font-size: 0.9rem; /* Réduire la taille de la police */
+            margin: 0; /* Supprimer la marge */
+            width: auto; /* Le bouton ne prendra que la largeur nécessaire */
+            white-space: nowrap; /* Empêcher le texte de passer à la ligne */
+        }
+
+        .friend-stats {
+            font-size: 0.8rem;
+            color: #888;
+        }
     </style>
 </head>
 <body>
@@ -110,7 +156,12 @@
         <div id="welcome" class="hidden">
             <h2>Welcome, <span id="username"></span>!</h2>
             
-            <!-- Ajout du champ de recherche -->
+            <!-- Ajout du bouton friendlist -->
+            <button id="show-friends-btn" style="margin: 1rem 0;">Show Friends</button>
+            
+            <!-- Container pour la liste d'amis -->
+            <div id="friend-list" class="friend-list hidden"></div>
+            
             <div class="search-container">
                 <input type="text" id="search-username" placeholder="Search username">
                 <button id="search-btn">Search</button>
@@ -132,6 +183,18 @@
         // Vérifier l'authentification au chargement
         checkAuth();
 
+        // Vérifier s'il y a un message stocké dans sessionStorage
+        window.addEventListener('load', () => {
+            const pendingMessage = sessionStorage.getItem('pendingMessage');
+            const messageType = sessionStorage.getItem('messageType');
+            if (pendingMessage) {
+                showMessage(pendingMessage, messageType === 'error');
+                sessionStorage.removeItem('pendingMessage');
+                sessionStorage.removeItem('messageType');
+            }
+        });
+
+        // Modifier checkAuth pour mettre à jour le localStorage
         async function checkAuth() {
             try {
                 const response = await fetch(`${API_URL}/verify_token`, {
@@ -142,11 +205,17 @@
                 if (response.ok) {
                     const data = await response.json();
                     if (data.valid) {
+                        // Mettre à jour le localStorage avec l'utilisateur actuel
+                        localStorage.setItem('currentUser', data.username);
                         showWelcome(data.username);
+                    } else {
+                        // Nettoyer le localStorage si le token n'est pas valide
+                        localStorage.clear();
                     }
                 }
             } catch (error) {
                 console.error('Auth check failed:', error);
+                localStorage.clear();
             }
         }
 
@@ -184,6 +253,9 @@
             e.preventDefault();
             const username = document.getElementById('login-username').value;
             const password = document.getElementById('login-password').value;
+
+            // Sauvegarder le nom d'utilisateur dans le localStorage
+            localStorage.setItem('currentUser', username);
 
             try {
                 const response = await fetch(`${API_URL}/login`, {
@@ -235,7 +307,7 @@
         document.getElementById('verify-token-btn').addEventListener('click', verifyToken);
         document.getElementById('verify-token-logged-btn').addEventListener('click', verifyToken);
 
-        // Ajout de la gestion du bouton logout
+        // fonction logout
         document.getElementById('logout-btn').addEventListener('click', async () => {
             try {
                 const response = await fetch(`${API_URL}/logout`, {
@@ -244,24 +316,11 @@
                 });
 
                 if (response.ok) {
-                    // Vérifier si les cookies ont été supprimés
-                    const cookies = document.cookie.split(';');
-                    const hasTokens = cookies.some(cookie => 
-                        cookie.trim().startsWith('accessToken=') || 
-                        cookie.trim().startsWith('refreshToken=')
-                    );
-
-                    if (hasTokens) {
-                        console.warn('Cookies still present after logout');
-                    }
-
+                    localStorage.clear();
                     showMessage('Logged out successfully', false);
-                    authForms.classList.remove('hidden');
-                    welcome.classList.add('hidden');
-
-                    // Nettoyer les formulaires
-                    document.getElementById('login-form').reset();
-                    document.getElementById('register-form').reset();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 } else {
                     const data = await response.json();
                     showMessage(data.error || 'Logout failed', true);
@@ -292,17 +351,63 @@
                 
                 searchResult.style.display = 'block';
                 if (data.exists) {
-                    searchResult.textContent = `User '${searchUsername}' found!`;
-                    searchResult.style.color = '#2e7d32';
+                    searchResult.innerHTML = `
+                        <div class="friend-item">
+                            <div class="friend-info">
+                                <strong>${searchUsername}</strong>
+                            </div>
+                            <button class="add-friend-btn" onclick="addFriend('${searchUsername}')">
+                                Add Friend
+                            </button>
+                        </div>
+                    `;
                 } else {
-                    searchResult.textContent = `User '${searchUsername}' not found.`;
-                    searchResult.style.color = '#c62828';
+                    searchResult.innerHTML = `<p>User '${searchUsername}' not found.</p>`;
                 }
             } catch (error) {
                 console.error('Search error:', error);
                 showMessage('Error during search', true);
             }
         });
+
+        // Fonction d'ajout d'ami
+        async function addFriend(friendUsername) {
+            const storedUsername = localStorage.getItem('currentUser');
+            const currentUsername = document.getElementById('username').textContent;
+            
+            if (storedUsername !== currentUsername) {
+                showMessage('Session invalid: Please refresh the page', true);
+                return;
+            }
+
+            if (friendUsername === currentUsername) {
+                showMessage('Cannot add yourself as friend', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/add_friend`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ friendUsername }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showMessage(data.message, false);
+                    // Rafraîchir la liste si elle est visible
+                    if (!document.getElementById('friend-list').classList.contains('hidden')) {
+                        document.getElementById('show-friends-btn').click();
+                    }
+                } else {
+                    showMessage(data.error || 'Failed to add friend', true);
+                }
+            } catch (error) {
+                console.error('Add friend error:', error);
+                showMessage('Failed to add friend', true);
+            }
+        }
 
         // Ajout de la gestion du bouton revoke-tokens
         document.getElementById('revoke-tokens-btn').addEventListener('click', async () => {
@@ -346,6 +451,77 @@
                 showMessage('Error during token revocation', true);
             }
         });
+
+        // Gestion de la liste d'amis
+        document.getElementById('show-friends-btn').addEventListener('click', async () => {
+            const friendList = document.getElementById('friend-list');
+            friendList.classList.toggle('hidden');
+
+            if (!friendList.classList.contains('hidden')) {
+                try {
+                    const response = await fetch(`${API_URL}/friends`, {
+                        credentials: 'include'
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        friendList.innerHTML = data.friends.map(friend => `
+                            <div class="friend-item">
+                                <div class="friend-info">
+                                    <strong>${friend.username}</strong>
+                                    <div class="friend-stats">
+                                        Wins: ${friend.wins} | Losses: ${friend.losses}
+                                        <br>Friends since: ${new Date(friend.friend_since).toLocaleDateString()}
+                                    </div>
+                                </div>
+                                <div class="friend-actions">
+                                    <button class="remove-friend-btn" onclick="removeFriend(${friend.id})">
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('') || '<p>No friends yet</p>';
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch friends:', error);
+                    showMessage('Failed to load friends', true);
+                }
+            }
+        });
+
+        // Fonction de suppression d'ami
+        async function removeFriend(friendId) {
+            try {
+                const response = await fetch(`${API_URL}/remove_friend/${friendId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showMessage('Friend removed successfully', false);
+                    // Rafraîchir la liste
+                    document.getElementById('show-friends-btn').click();
+                } else {
+                    showMessage(data.error || 'Failed to remove friend', true);
+                }
+            } catch (error) {
+                console.error('Remove friend error:', error);
+                showMessage('Failed to remove friend', true);
+            }
+        }
+
+        // Vérifier régulièrement si l'utilisateur actuel est toujours valide
+        setInterval(async () => {
+            const storedUsername = localStorage.getItem('currentUser');
+            const currentUsername = document.getElementById('username').textContent;
+            
+            if (storedUsername && currentUsername && storedUsername !== currentUsername) {
+                // L'utilisateur a changé dans un autre onglet
+                showMessage('Session expired: Another user logged in', true);
+                document.getElementById('logout-btn').click();
+            }
+        }, 1000);
 
         function showMessage(text, isError = false) {
             message.textContent = text;
