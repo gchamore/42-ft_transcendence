@@ -86,6 +86,14 @@ logs:
 	@echo "$(YELLOW)Logs de nginx:$(RESET)"
 	@$(DOCKER_COMPOSE) logs nginx
 
+# Voir les valeurs des clés Redis en continu
+check_redis:
+	@echo "$(YELLOW)Surveillance en temps réel des clés Redis... (Ctrl+C pour arrêter)$(RESET)"
+	@while true; do \
+		docker exec -it $(shell docker ps --format "{{.Names}}" | grep backend) redis-cli KEYS '*'; \
+		sleep 2; \
+	done
+
 # Redémarrer un service spécifique
 restart_service:
 	@read -p "Nom du service à redémarrer (backend/nginx) : " service; \
@@ -109,4 +117,4 @@ export HEADER
 first_header:
 	@echo "\n$$HEADER\n"
 
-.PHONY: all check_deps run down up clean status logs restart_service re first_header get_database
+.PHONY: all check_deps run down up clean status logs restart_service re first_header get_database check_redis

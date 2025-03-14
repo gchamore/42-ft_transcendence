@@ -351,19 +351,27 @@
             }
 
             try {
-                const response = await fetch(`${API_URL}/isUser/${searchUsername}`, {
-                    method: 'GET',
-                    credentials: 'include'
-                });
+                const [userResponse, statusResponse] = await Promise.all([
+                    fetch(`${API_URL}/isUser/${searchUsername}`, {
+                        credentials: 'include'
+                    }),
+                    fetch(`${API_URL}/online-status/${searchUsername}`, {
+                        credentials: 'include'
+                    })
+                ]);
 
-                const data = await response.json();
+                const userData = await userResponse.json();
+                const statusData = await statusResponse.json();
                 
                 searchResult.style.display = 'block';
-                if (data.exists) {
+                if (userData.exists) {
                     searchResult.innerHTML = `
-                        <div class="friend-item">
+                        <div class="friend-item" data-username="${searchUsername}">
                             <div class="friend-info">
                                 <strong>${searchUsername}</strong>
+                                <span class="status-badge ${statusData.online ? 'online' : 'offline'}">
+                                    ${statusData.online ? 'Online' : 'Offline'}
+                                </span>
                             </div>
                             <button class="add-friend-btn" onclick="addFriend('${searchUsername}')">
                                 Add Friend
@@ -545,27 +553,94 @@
             connectWebSocket();  // Établir la connexion WebSocket
         }
 
-        // Fonction pour établir la connexion WebSocket
+        // Fonction pour établir la connexion WebSocket avec reconnexion automatique
         function connectWebSocket() {
             if (ws) {
                 ws.close();
             }
 
             ws = new WebSocket(WS_URL);
+            let reconnectTimeout;
 
             ws.onopen = () => {
                 console.log('WebSocket connected');
+                clearTimeout(reconnectTimeout);
+                // Demander la liste des utilisateurs en ligne
+                ws.send(JSON.stringify({ type: 'get_online_users' }));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                switch (data.type) {
+                    case 'status_update':
+                        updateUserStatus(data);
+                        break;
+                    case 'online_users':
+                        updateOnlineUsers(data.users);
+                        break;
+                }
             };
 
             ws.onclose = () => {
                 console.log('WebSocket disconnected');
-                ws = null;
+                // Tentative de reconnexion après 5 secondes
+                reconnectTimeout = setTimeout(() => {
+                    connectWebSocket();
+                }, 5000);
             };
 
             ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
             };
         }
+
+        // Mise à jour du statut d'un utilisateur
+        function updateUserStatus(data) {
+            const searchResult = document.getElementById('search-result');
+            const userElement = searchResult.querySelector(`[data-username="${data.username}"]`);
+            
+            if (userElement) {
+                const statusBadge = userElement.querySelector('.status-badge');
+                statusBadge.textContent = data.online ? 'Online' : 'Offline';
+                statusBadge.className = `status-badge ${data.online ? 'online' : 'offline'}`;
+            }
+        }
+
+        // Mise à jour de la liste des utilisateurs en ligne
+        function updateOnlineUsers(onlineUsers) {
+            const friendList = document.getElementById('friend-list');
+            const friends = friendList.querySelectorAll('.friend-item');
+            
+            friends.forEach(friend => {
+                const userId = friend.dataset.userId;
+                const statusBadge = friend.querySelector('.status-badge');
+                if (statusBadge) {
+                    const isOnline = onlineUsers.includes(userId);
+                    statusBadge.textContent = isOnline ? 'Online' : 'Offline';
+                    statusBadge.className = `status-badge ${isOnline ? 'online' : 'offline'}`;
+                }
+            });
+        }
+
+        // Ajouter des styles pour les badges de statut
+        const style = document.createElement('style');
+        style.textContent = `
+            .status-badge {
+                padding: 2px 6px;
+                border-radius: 10px;
+                font-size: 0.8em;
+                margin-left: 8px;
+            }
+            .status-badge.online {
+                background-color: #2e7d32;
+                color: white;
+            }
+            .status-badge.offline {
+                background-color: #c62828;
+                color: white;
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
