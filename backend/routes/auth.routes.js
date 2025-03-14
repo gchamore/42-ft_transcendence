@@ -403,51 +403,45 @@ async function routes(fastify, options) {
 			cookies: request.cookies
 		});
 
+		// Si aucun token n'est fourni, retourner simplement valid: false
 		if (!accessToken && !refreshToken) {
-			fastify.log.warn('Aucun token fourni');
-			return reply.code(401).send({
+			fastify.log.info('Aucun token fourni');
+			return reply.send({
 				valid: false,
-				error: 'No token provided',
-				debug: { cookies: request.cookies }
+				message: 'No token provided'
 			});
 		}
 
 		const result = await authService.validateToken(accessToken, refreshToken, 'access', db);
 
+		// Si la validation échoue, nettoyer les cookies et retourner valid: false
 		if (!result) {
-			fastify.log.warn('Invalid or expired token');
+			fastify.log.info('Token invalide ou expiré');
 
-            const isLocal = request.headers.host.startsWith("localhost");
-			const clientOrigin = request.headers.origin || 'http://localhost:8080';
+			const isLocal = request.headers.host.startsWith("localhost");
+			const cookieOptions = {
+				path: '/',
+				secure: !isLocal,
+				httpOnly: true,
+				sameSite: !isLocal ? 'None' : 'Lax'
+			};
 
-			return reply
-				.clearCookie('accessToken', {
-					path: '/',
-					secure: !isLocal,
-					httpOnly: true,
-					sameSite: !isLocal ? 'None' : 'Lax'
-				})
-				.clearCookie('refreshToken', {
-					path: '/',
-					secure: !isLocal,
-					httpOnly: true,
-					sameSite: !isLocal ? 'None' : 'Lax'
-				})
-				.header('Access-Control-Allow-Credentials', 'true')
-				.header('Access-Control-Allow-Origin', clientOrigin)
-				.code(401)
-				.send({
-					valid: false,
-					error: 'Invalid or expired token',
-					debug: { tokenProvided: true }
-				});
+			// Nettoyer les cookies expirés
+			reply
+				.clearCookie('accessToken', cookieOptions)
+				.clearCookie('refreshToken', cookieOptions);
+
+			return reply.send({
+				valid: false,
+				message: 'Invalid or expired token'
+			});
 		}
 
 		// Si un nouveau accessToken a été généré
 		if (result.newAccessToken) {
-			request.log.info('New access token generated, updating cookie');
+			fastify.log.info('New access token generated, updating cookie');
 
-            const isLocal = request.headers.host.startsWith("localhost");
+			const isLocal = request.headers.host.startsWith("localhost");
 			reply.setCookie('accessToken', result.newAccessToken, {
 				path: '/',
 				secure: !isLocal,
