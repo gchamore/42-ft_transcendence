@@ -118,6 +118,7 @@
             <div id="search-result" class="search-result"></div>
             
             <button id="verify-token-logged-btn" style="margin-top: 1rem;">Verify Token</button>
+            <button id="revoke-tokens-btn" style="margin-top: 1rem;">Revoke Tokens</button>
             <button id="logout-btn" style="margin-top: 1rem;">Logout</button>
         </div>
     </div>
@@ -300,6 +301,49 @@
             } catch (error) {
                 console.error('Search error:', error);
                 showMessage('Error during search', true);
+            }
+        });
+
+        // Ajout de la gestion du bouton revoke-tokens
+        document.getElementById('revoke-tokens-btn').addEventListener('click', async () => {
+            const username = document.getElementById('username').textContent;
+            
+            try {
+                // D'abord récupérer l'ID de l'utilisateur
+                const getUserIdResponse = await fetch(`${API_URL}/getUserId`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username }),
+                    credentials: 'include'
+                });
+
+                const userIdData = await getUserIdResponse.json();
+
+                if (!userIdData.success) {
+                    throw new Error('Failed to get user ID');
+                }
+
+                // Ensuite révoquer les tokens
+                const response = await fetch(`${API_URL}/revoke`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userIdData.id }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage('Tokens revoked successfully', false);
+                    // Rediriger vers la page de login
+                    authForms.classList.remove('hidden');
+                    welcome.classList.add('hidden');
+                } else {
+                    showMessage(data.error || 'Failed to revoke tokens', true);
+                }
+            } catch (error) {
+                console.error('Revoke error:', error);
+                showMessage('Error during token revocation', true);
             }
         });
 

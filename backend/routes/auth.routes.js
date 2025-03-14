@@ -356,16 +356,47 @@ async function routes(fastify, options) {
 	});
 
 	/*** 📌 Route: REVOKE TOKEN ***/
-	fastify.post("/revoke", async (request, reply) => {
-		const { userId } = request.body;
+    fastify.post("/revoke", async (request, reply) => {
+        const { userId } = request.body;
 
-		if (!userId) {
-			return reply.code(400).send({ error: "User ID is required" });
-		}
+        if (!userId) {
+            fastify.log.warn("Tentative de révocation sans userId");
+            return reply.code(400).send({ error: "User ID is required" });
+        }
 
-		await authService.revokeTokens(userId);
-		return { success: true, message: "Tokens revoked successfully" };
-	});
+        try {
+            // Vérifier que l'utilisateur existe
+            const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+            if (!user) {
+                fastify.log.warn(`Utilisateur non trouvé pour la révocation: ID ${userId}`);
+                return reply.code(404).send({ error: "User not found" });
+            }
+
+            fastify.log.info(`Révocation des tokens pour l'utilisateur: ${user.username} (ID: ${userId})`);
+            
+            // Révoquer les tokens via le service
+            const success = await authService.revokeTokens(userId);
+            
+            if (success) {
+                fastify.log.info(`Tokens révoqués avec succès pour l'utilisateur: ${user.username}`);
+                return reply.send({ 
+                    success: true, 
+                    message: "Tokens revoked successfully" 
+                });
+            } else {
+                fastify.log.error(`Échec de la révocation des tokens pour l'utilisateur: ${user.username}`);
+                return reply.code(500).send({ 
+                    error: "Failed to revoke tokens" 
+                });
+            }
+        } catch (error) {
+            fastify.log.error(error, "Erreur lors de la révocation des tokens");
+            return reply.code(500).send({ 
+                error: "Internal error during token revocation",
+                details: error.message
+            });
+        }
+    });
 
 	/*** 📌 Route: VERIFY TOKEN ***/
 	fastify.post("/verify_token", {
