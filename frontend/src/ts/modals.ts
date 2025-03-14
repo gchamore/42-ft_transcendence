@@ -14,8 +14,8 @@ function set_modals(mode: string) {
 	const avatar = document.getElementById("profile-avatar");
 	const username = document.getElementById("profile-username-input") as HTMLInputElement;
 	const password = document.getElementById("profile-password") as HTMLInputElement;
-	const btn1 = document.getElementById("profile-btn1");
-	const btn2 = document.getElementById("profile-btn2");
+	const btn1 = document.getElementById("profile-btn1") as HTMLButtonElement;
+	const btn2 = document.getElementById("profile-btn2") as HTMLButtonElement;
 
 	if (mode === "logged-in") {
 		btn1.textContent = "Settings";

@@ -1,3 +1,4 @@
+"use strict";
 /* Logged-in */
 function switch_logged_in() {
     hide_logged_off();

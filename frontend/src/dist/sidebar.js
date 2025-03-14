@@ -1,3 +1,4 @@
+"use strict";
 function profile_click() {
     console.log("profile_click");
     select_modal("profile");

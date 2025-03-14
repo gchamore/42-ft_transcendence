@@ -1,4 +1,4 @@
-let current_section: string = null;
+let current_section: string | undefined = undefined;
 const modals = ['profile', 'friends', 'chat'];
 
 function go_section(section: string, is_default: boolean = false) {
@@ -31,10 +31,6 @@ window.addEventListener("popstate", function(event) {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-    let path: string;
-    if (window.location.pathname === "/frontend/src/")
-        path = "home";
-    else
-        path = window.location.pathname.replace("/", "") || "home";
+    let path = window.location.pathname.replace("/", "") || "home";
 	updateView(path);
 });

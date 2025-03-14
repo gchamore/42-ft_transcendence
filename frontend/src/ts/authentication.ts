@@ -1,9 +1,13 @@
-let username : string = null;
+let username : string | undefined = undefined;
 
-function assign_username(new_username: string) {
+function assign_username(new_username: string | undefined) {
 	username = new_username;
-	(document.getElementById("profile-username") as HTMLLabelElement)
-		.textContent = new_username;
+	if (username)
+		(document.getElementById("profile-username") as HTMLLabelElement)
+			.textContent = username;
+	else
+		(document.getElementById("profile-username") as HTMLLabelElement)
+			.textContent = "";
 }
 
 async function verify_token(): Promise<boolean> {
@@ -16,7 +20,8 @@ async function verify_token(): Promise<boolean> {
 		if (!response.ok) {
 			console.error("Verify token failed:", data.error);
 			switch_logged_off();
-			return ;
+			assign_username(undefined);
+			return false;
 		}
 
 		if (data.valid) {
@@ -25,13 +30,15 @@ async function verify_token(): Promise<boolean> {
 			console.log(username, "authenticated");
 			return true;
 		}
-		
+
+		assign_username(undefined);
 		switch_logged_off();
 		console.log("Not authenticated");
 		return false;
     } catch (error) {
 		console.error("Error:", error);
     }
+	assign_username(undefined);
 	switch_logged_off();
 	return false;
 }
@@ -103,9 +110,9 @@ async function logout() {
 		}
 
 		if (data.success) {
+			assign_username(undefined);
 			switch_logged_off();
 			console.log(username, "logout");
-			username = null;
 		}
 		else
 			console.log("Not logout");

@@ -1,3 +1,4 @@
+"use strict";
 function select_modal(name) {
     const modals = document.querySelectorAll(".modal-item");
     modals.forEach((modal) => {

@@ -1,3 +1,4 @@
+"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -7,11 +8,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-let username = null;
+let username = undefined;
 function assign_username(new_username) {
     username = new_username;
-    document.getElementById("profile-username")
-        .textContent = new_username;
+    if (username)
+        document.getElementById("profile-username")
+            .textContent = username;
+    else
+        document.getElementById("profile-username")
+            .textContent = "";
 }
 function verify_token() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -24,7 +29,8 @@ function verify_token() {
             if (!response.ok) {
                 console.error("Verify token failed:", data.error);
                 switch_logged_off();
-                return;
+                assign_username(undefined);
+                return false;
             }
             if (data.valid) {
                 switch_logged_in();
@@ -32,6 +38,7 @@ function verify_token() {
                 console.log(username, "authenticated");
                 return true;
             }
+            assign_username(undefined);
             switch_logged_off();
             console.log("Not authenticated");
             return false;
@@ -39,6 +46,7 @@ function verify_token() {
         catch (error) {
             console.error("Error:", error);
         }
+        assign_username(undefined);
         switch_logged_off();
         return false;
     });
@@ -112,9 +120,9 @@ function logout() {
                 return;
             }
             if (data.success) {
+                assign_username(undefined);
                 switch_logged_off();
                 console.log(username, "logout");
-                username = null;
             }
             else
                 console.log("Not logout");
