@@ -315,25 +315,6 @@ async function routes(fastify, options) {
 		};
 	});
 
-	/*** 📌 Route: ONLINE USERS (Protected) ***/
-	fastify.get("/online-users", async (request, reply) => {
-		// Le middleware auth vérifie déjà le token
-		if (!request.user) {
-			return reply.code(401).send({ error: "Unauthorized" });
-		}
-
-		const wsManager = fastify.wsManager;
-		const onlineUsers = Array.from(wsManager.onlineUsers.entries())
-			.map(([id, username]) => ({ id, username }));
-
-		fastify.log.info({
-			requestUser: request.user.userId,
-			onlineCount: onlineUsers.length
-		}, "Liste des utilisateurs en ligne envoyée");
-
-		return { users: onlineUsers, count: onlineUsers.length };
-	});
-
 	/*** 📌 Route: LOGOUT ***/
 	fastify.post("/logout", {
 		schema: {
