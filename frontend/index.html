@@ -176,6 +176,9 @@
 
     <script>
         const API_URL = 'http://localhost:8080/api';
+        const WS_URL = 'ws://localhost:8080/api/ws';
+        let ws = null;
+        
         const message = document.getElementById('message');
         const authForms = document.getElementById('auth-forms');
         const welcome = document.getElementById('welcome');
@@ -313,6 +316,9 @@
         // fonction logout
         document.getElementById('logout-btn').addEventListener('click', async () => {
             try {
+                if (ws) {
+                    ws.close();  // Fermer la connexion WebSocket
+                }
                 const response = await fetch(`${API_URL}/logout`, {
                     method: 'POST',
                     credentials: 'include'
@@ -536,6 +542,29 @@
             document.getElementById('username').textContent = username;
             authForms.classList.add('hidden');
             welcome.classList.remove('hidden');
+            connectWebSocket();  // Établir la connexion WebSocket
+        }
+
+        // Fonction pour établir la connexion WebSocket
+        function connectWebSocket() {
+            if (ws) {
+                ws.close();
+            }
+
+            ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                ws = null;
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
         }
     </script>
 </body>
