@@ -90,9 +90,13 @@ logs:
 check_redis:
 	@echo "$(YELLOW)Surveillance en temps réel des clés Redis... (Ctrl+C pour arrêter)$(RESET)"
 	@while true; do \
+		echo ""; \
+		echo "$(YELLOW)📡 Vérification des clés Redis :$(RESET)"; \
 		docker exec -it $(shell docker ps --format "{{.Names}}" | grep backend) redis-cli KEYS '*'; \
-		sleep 2; \
+		echo ""; \
+		sleep 15; \
 	done
+
 
 # Redémarrer un service spécifique
 restart_service:
