@@ -1,7 +1,7 @@
 import { GameInstance } from "../classes/gameInstance.js";
 import { handleNewPlayer } from '../handlers/messageHandlers.js';
 import { safeSend } from '../utils/socketUtils.js';
-import { TARGET_FPS, BROADCAST_RATE } from '../utils/config.js';
+import { GameConfig } from "../../public/dist/shared/config/gameConfig.js";
 
 export const games = new Map();
 export let mainLobby = null;
@@ -72,12 +72,12 @@ function setupGameUpdateInterval() {
 			if (!broadcastTimeout[game.gameId])
 				broadcastTimeout[game.gameId] = 0;
 
-			if (now - broadcastTimeout[game.gameId] >= 1000 / BROADCAST_RATE) {
+			if (now - broadcastTimeout[game.gameId] >= 1000 / GameConfig.BROADCAST_RATE) {
 				broadcastGameState(game);
 				broadcastTimeout[game.gameId] = now;
 			}
 		});
-	}, 1000 / TARGET_FPS);
+	}, 1000 / GameConfig.TARGET_FPS);
 }
 
 function processGameUpdate(game, deltaTime) {

@@ -215,12 +215,13 @@ export class Game {
 			}
 		}
 
+		if (this.babylonManager)
+			this.babylonManager.updateGameState(gameState);
+
 		if (gameState.paddle1 && gameState.paddle2) {
 			this.controls.updateServerPaddlePosition(gameState.paddle1, gameState.paddle2);
 		}
 	}
-
-
 
 	private gameLoop(timestamp: number): void {
 		
@@ -230,13 +231,12 @@ export class Game {
 		if (this.fpsManager) {
 			this.fpsManager.update(timestamp);
 		}
-		
-		if (!this.isLoading && this.babylonManager ) {
-			this.controls.updateRemotePaddlePosition();
-			this.babylonManager.render(timestamp);
-		}
-		
+
 		if (!this.isLoading) {
+			this.controls.update(timestamp);
+			if (this.babylonManager) {
+				this.babylonManager.render(timestamp);
+			}
 			this.scoreBoard.updateDisplay();
 			if (!this.gameStarted) {
 				this.uiManager.drawStartMessage(

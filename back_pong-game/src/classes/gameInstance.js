@@ -1,5 +1,5 @@
 import { createDefaultGameState } from "../../public/dist/shared/types/gameState.js";
-import { TEST_MODE } from "../utils/config.js";
+import { GameConfig } from "../../public/dist/shared/config/gameConfig.js";
 
 export class GameInstance {
 	constructor(gameId, existingSettings = null, safeSendFunction = null) {
@@ -8,12 +8,12 @@ export class GameInstance {
 		this.players = [];
 		this.gameState = createDefaultGameState(gameId);
 		this.settings = existingSettings || {
-			ballSpeed: 4,
-			paddleSpeed: 5,
-			paddleLength: 100,
-			mapType: "default",
-			powerUpsEnabled: false,
-			maxScore: 3,
+			ballSpeed: GameConfig.DEFAULT_BALL_SPEED,
+			paddleSpeed: GameConfig.DEFAULT_PADDLE_SPEED,
+			paddleLength: GameConfig.DEFAULT_PADDLE_LENGTH,
+			mapType: GameConfig.DEFAULT_MAP,
+			powerUpsEnabled: GameConfig.DEFAULT_POWERUPS,
+			maxScore: GameConfig.DEFAULT_MAX_SCORE,
 		};
 		this.playerReadyStatus = new Set();
 		this.resetBall();
@@ -73,11 +73,14 @@ export class GameInstance {
 
 	checkWallCollision() {
 		const ball = this.gameState.ball;
-		if (ball.y - ball.radius <= 0 || ball.y + ball.radius >= 600) {
+		if (
+			ball.y - ball.radius <= 0 ||
+			ball.y + ball.radius >= GameConfig.GAME_HEIGHT
+		) {
 			ball.speedY *= -1;
 			// Add small random factor to avoid loops (non-TEST mode only)
-			if (!TEST_MODE)
-				ball.speedY += (Math.random() - 0.5) * 0.5; 
+			if (!GameConfig.TEST_MODE)
+				ball.speedY += (Math.random() - 0.5) * 0.5;
 			return true;
 		}
 		return false;
@@ -94,15 +97,28 @@ export class GameInstance {
 			) {
 				ball.speedX *= -1;
 				const hitPoint = (ball.y - paddle.y) / paddle.height;
-				ball.speedY = (hitPoint - 0.5) * 10;
+				const currentSpeed = Math.sqrt(
+					ball.speedX ** 2 + ball.speedY ** 2
+				);
 
-				const maxSpeed = 12;
-				const currentSpeed = Math.sqrt(ball.speedX ** 2 + ball.speedY ** 2);
-				const scaleFactor = Math.min(maxSpeed / currentSpeed, 1.05);
-				ball.speedX *= scaleFactor;
-				ball.speedY *= scaleFactor;
+				// Set y velocity based on where the ball hit the paddle
+				ball.speedY = (hitPoint - 0.5) * currentSpeed;
+
+				//scale X velocity to maintain total speed
+				const newYSpeed = Math.abs(ball.speedY);
+				const newXSpeed = Math.sqrt(currentSpeed ** 2 - newYSpeed ** 2);
+				ball.speedX = Math.sign(ball.speedX) * newXSpeed;
+
+				const maxSpeed = GameConfig.MAX_BALL_SPEED;
+				const speedUpFactor = GameConfig.BALL_SPEEDUP_FACTOR;
+
+				const newSpeed = currentSpeed * speedUpFactor;
+				if (newSpeed <= maxSpeed) {
+					ball.speedX *= speedUpFactor;
+					ball.speedY *= speedUpFactor;
+				}
 			}
-		});	
+		});
 	}
 
 	checkScoring() {
@@ -119,7 +135,7 @@ export class GameInstance {
 			return { scored: true, scorer: 2 };
 		}
 		// Player 1 scores
-		else if (ball.x + ball.radius >= 840) {
+		else if (ball.x + ball.radius >= GameConfig.CANVAS_WIDTH + 40) {
 			this.gameState.score.player1Score++;
 			this.resetBall(1);
 			const winner = this.checkWin();
@@ -133,7 +149,7 @@ export class GameInstance {
 
 	checkWin() {
 		const { player1Score, player2Score } = this.gameState.score;
-		const maxScore = this.settings.maxScore || 3;
+		const maxScore = this.settings.maxScore || GameConfig.DEFAULT_MAX_SCORE;
 		if (player1Score >= maxScore || player2Score >= maxScore) {
 			return player1Score > player2Score ? 1 : 2;
 		}
@@ -142,10 +158,12 @@ export class GameInstance {
 
 	resetBall(scoringPlayer = null) {
 		const ball = this.gameState.ball;
-		ball.x = 400;
-		ball.y = 300;
-		const angle = (Math.random() * Math.PI) / 2 - Math.PI / 4;
-		const speed = parseInt(this.settings.ballSpeed) || 4;
+		ball.x = GameConfig.CANVAS_WIDTH / 2;
+		ball.y = GameConfig.CANVAS_HEIGHT / 2;
+		const angle = Math.random() * (GameConfig.MAX_ANGLE - GameConfig.MIN_ANGLE) + GameConfig.MIN_ANGLE;
+		const baseSpeed =
+			parseInt(this.settings.ballSpeed) || GameConfig.DEFAULT_BALL_SPEED;
+		const speed = baseSpeed * GameConfig.BASE_BALL_SPEED_FACTOR;
 		if (scoringPlayer) {
 			ball.speedX = scoringPlayer === 1 ? speed : -speed;
 			this.gameState.servingPlayer = scoringPlayer === 1 ? 2 : 1;
@@ -176,8 +194,10 @@ export class GameInstance {
 			...this.settings,
 			...newSettings,
 		};
-		this.gameState.ball.speedX = parseInt(newSettings.ballSpeed);
-		this.gameState.ball.speedY = parseInt(newSettings.ballSpeed);
+		this.gameState.ball.speedX =
+			parseInt(newSettings.ballSpeed) * GameConfig.BASE_BALL_SPEED_FACTOR;
+		this.gameState.ball.speedY =
+			parseInt(newSettings.ballSpeed) * GameConfig.BASE_BALL_SPEED_FACTOR;
 		this.gameState.paddle1.speed = parseInt(newSettings.paddleSpeed);
 		this.gameState.paddle2.speed = parseInt(newSettings.paddleSpeed);
 		this.gameState.paddle1.height = parseInt(newSettings.paddleLength);
@@ -206,8 +226,6 @@ export class GameInstance {
 		console.log(
 			`Game successfully transitioned from ${oldGameId} to ${newGameId} with ${this.players.length} players`
 		);
-
-		// Return the updated instance (this)
 		return this;
 	}
 

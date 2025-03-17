@@ -1,3 +1,5 @@
+import { GameConfig } from "../../../../shared/config/gameConfig.js";
+
 export class Ball {
 	x: number;
 	y: number;
@@ -6,14 +8,19 @@ export class Ball {
 	speedY: number;
 
 	constructor() {
-		this.x = 400;
-		this.y = 300;
-		this.radius = 10;
-		this.speedX = 4;
-		this.speedY = 4;
+		this.x = GameConfig.CANVAS_WIDTH / 2;
+		this.y = GameConfig.CANVAS_HEIGHT / 2;
+		this.radius = GameConfig.DEFAULT_BALL_RADIUS;
+		this.speedX = GameConfig.DEFAULT_BALL_SPEED;
+		this.speedY = GameConfig.DEFAULT_BALL_SPEED;
 	}
 
-	updatePosition(ballState:{x:number, y:number, speedX:number, speedY:number}): void {
+	updatePosition(ballState: {
+		x: number;
+		y: number;
+		speedX: number;
+		speedY: number;
+	}): void {
 		this.x = ballState.x;
 		this.y = ballState.y;
 		this.speedX = ballState.speedX;

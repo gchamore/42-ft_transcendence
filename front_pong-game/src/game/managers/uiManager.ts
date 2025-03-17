@@ -1,7 +1,9 @@
+import {GameConfig} from '../../../../shared/config/gameConfig.js';
+
 export class UIManager {
 	private lastBlink: number = 0;
 	private showStartMessage: boolean = true;
-	private readonly BLINK_INTERVAL: number = 500;
+	private readonly BLINK_INTERVAL: number = GameConfig.BLINK_INTERVAL;
 
 	constructor(
 		private context: CanvasRenderingContext2D,

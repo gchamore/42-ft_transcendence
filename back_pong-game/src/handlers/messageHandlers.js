@@ -173,9 +173,7 @@ function handleMovePaddle(socket, game, playerNumber, data) {
 		return;
 	}
 
-	console.log(`before moving Player ${playerNumber} moved paddle to ${paddle.y}`);
 	paddle.y = data.paddlePosition;
-	console.log(`after moving Player ${playerNumber} moved paddle to ${paddle.y}`);
 	paddle.lastProcessedInput = data.inputSequence;
 }
 

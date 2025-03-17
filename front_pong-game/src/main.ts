@@ -3,6 +3,10 @@ import { Game } from './pages/gamePage.js';
 import { WebSocketService } from './services/webSocketService.js';
 
 class App {
+	private readonly DEFAULT_ROUTE = '#settings';
+	private readonly GAME_ROUTE = '#game';
+	private readonly MAX_ID_ATTEMPTS = 10;
+
 	private currentSettingsPage: SettingsPage | null = null;
 	private currentGamePage: Game | null = null;
 	private hashChangeListener: () => void;
@@ -14,13 +18,13 @@ class App {
 		window.addEventListener('hashchange', this.hashChangeListener);
 		this.setupRouting().catch(error => {
 			console.error('Failed to setup routing:', error);
-			window.location.hash = '#settings';
+			window.location.hash = this.DEFAULT_ROUTE;
 		});
 	}
 
 
 	async setupRouting() {
-		const path = window.location.hash || '#settings';
+		const path = window.location.hash || this.DEFAULT_ROUTE;
 		const [page, gameId] = path.split('/');
 
 		const settingsPage = document.getElementById('settings-page');
@@ -41,7 +45,7 @@ class App {
 			this.currentGamePage = null;
 		}
 
-		if (page === '#game') {
+		if (page === this.GAME_ROUTE) {
 			try {
 				// Generate random gameId if none provided
 				const activeGameId = gameId || await this.generateGameId();
@@ -58,7 +62,7 @@ class App {
 			} catch (error) {
 				console.error('Failed to generate unique gameId:', error);
 				// Handle error (maybe redirect to error page or settings)
-				window.location.hash = '#settings';
+				window.location.hash = this.DEFAULT_ROUTE;
 			}
 		} else {
 			this.currentSettingsPage = new SettingsPage(); // store reference to settings page
@@ -74,10 +78,9 @@ class App {
 	
 	// Generate a random gameId that doesn't already exist
 	private async generateGameId(): Promise<string> {
-		const maxAttempts = 10; // Prevent infinite loop
 		let attempts = 0;
 		
-		while (attempts < maxAttempts) {
+		while (attempts < this.MAX_ID_ATTEMPTS) {
 			const gameId = Math.random().toString(36).substring(2, 8);
 			
 			try {
@@ -90,7 +93,6 @@ class App {
 			} catch (error) {
 				console.error('Error checking gameId:', error);
 			}
-			
 			attempts++;
 		}
 		
