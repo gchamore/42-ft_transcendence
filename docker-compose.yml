@@ -16,7 +16,7 @@ services:
     ports:
       - "8080:80"  # Exposer le port 8080 de l'hôte vers le port 80 du conteneur
     volumes:
-      - ./frontend:/usr/share/nginx/html  # Cette ligne est correcte, monte le dossier frontend vers le bon chemin
+      - ./frontend:/usr/share/nginx/html
     depends_on:
       - backend
     networks:
