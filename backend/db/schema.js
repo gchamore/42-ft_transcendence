@@ -4,7 +4,7 @@ const Database = require("better-sqlite3");
 function initializeDatabase(dbPath)
 {
     const db = new Database(dbPath);
-
+	// test
     // table users : id, username, password, avatar, settings, wins, losses
     db.prepare(`
         CREATE TABLE IF NOT EXISTS users (
