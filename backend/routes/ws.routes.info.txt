@@ -1,0 +1,28 @@
+ROUTES WEBSOCKET
+==============
+
+📌 Route: /online-status/:username (GET)
+-------------------------------------
+Vérifie si un utilisateur est en ligne.
+Params: username
+Response: { online: boolean }
+
+📌 Route: /ws (WebSocket)
+-----------------------
+Point d'entrée WebSocket pour la gestion des connexions en temps réel.
+Fonctionnalités:
+- Authentification par token
+- Gestion du statut en ligne
+- Système de ping/pong pour vérifier la connexion
+- Diffusion des changements de statut
+
+Messages WebSocket supportés:
+- get_online_users: Demande la liste des utilisateurs en ligne
+- status_update: Notification de changement de statut
+
+Sécurité:
+- Vérification des tokens toutes les 30 secondes
+- Déconnexion automatique après 35 secondes sans pong
+- Stockage des statuts dans Redis
+
+Note: Toutes les connexions WebSocket nécessitent un token d'accès valide via les cookies
