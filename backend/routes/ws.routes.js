@@ -64,6 +64,7 @@ async function routes(fastify, options) {
                 fastify.log.debug(`Pong received from user: ${user.username}`);
             });
 
+            // Gestion des messages
             connection.socket.on('message', async (message) => {
                 try {
                     const data = JSON.parse(message.toString());
