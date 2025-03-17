@@ -10,7 +10,7 @@ class User {
 /* --------- */
 const HOME_INDEX = 0;
 const doc = document;
-var user;
+var user = undefined;
 var sections = [new Home(), new Profile(), new Friends()];
 var section_index;
 /* --------- */

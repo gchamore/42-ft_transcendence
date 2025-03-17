@@ -16,7 +16,7 @@ class User {
 const HOME_INDEX = 0;
 const doc : Document = document;
 
-var user : User | undefined;
+var user : User | undefined = undefined;
 var sections: ASection[] = [new Home(), new Profile(), new Friends()];
 var section_index : number;
 /* --------- */

@@ -13,11 +13,9 @@ window.addEventListener("popstate", function (event) {
     console.log("popstate");
 });
 document.addEventListener("DOMContentLoaded", () => __awaiter(void 0, void 0, void 0, function* () {
-    sections.forEach(element => { element.switch_logged_off(); });
     user = yield verify_token();
     section_index = get_section_index(window.location.pathname.replace("/", ""));
-    if (section_index !== HOME_INDEX)
-        select_section(section_index);
+    select_section(section_index);
     history.pushState({}, "", sections[section_index].type);
 }));
 /* --------- */
