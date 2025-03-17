@@ -1,40 +1,23 @@
 "use strict";
-let current_section = undefined;
-const modals = ['profile', 'friends', 'chat'];
-function go_section(section, is_default = false) {
-    console.log("go_section");
-    current_section = section;
-    if (is_default) {
-        history.replaceState({ section }, "", `${section}`);
-    }
-    else {
-        console.log("go_section pushing:", section);
-        history.pushState({ section }, "", `${section}`);
-    }
-    updateView(section);
-}
-function updateView(section) {
-    console.log("updateView");
-    document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.section.' + `${section}`).forEach(el => el.classList.add('active'));
-}
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 /* Event listeners */
 window.addEventListener("popstate", function (event) {
     console.log("popstate");
-    if (event.state && event.state.section) {
-        updateView(event.state.section);
-    }
-    else {
-        updateView("home");
-    }
 });
-document.addEventListener("DOMContentLoaded", () => {
-    console.log("DOMContentLoaded :", window.location.pathname);
-    let path = window.location.pathname.replace("/", "");
-    if (!modals.includes(path) || (current_section === path && modals.includes(path)))
-        path = 'home';
-    console.log("DOMContentLoaded pushing:", path);
-    updateView(path);
-    history.pushState({ path }, "", `${path}`);
-});
+document.addEventListener("DOMContentLoaded", () => __awaiter(void 0, void 0, void 0, function* () {
+    sections.forEach(element => { element.switch_logged_off(); });
+    user = yield verify_token();
+    section_index = get_section_index(window.location.pathname.replace("/", ""));
+    if (section_index !== HOME_INDEX)
+        select_section(section_index);
+    history.pushState({}, "", sections[section_index].type);
+}));
 /* --------- */

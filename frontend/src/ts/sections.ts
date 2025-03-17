@@ -1,24 +1,4 @@
-var doc : Document = document;
-var user : User | undefined;
-var home : Home;
-
-
-
-/* User */
-class User {
-    readonly name: string;
-    readonly avatar_path: string;
-
-    constructor(username:string) {
-        this.name = username;
-        this.avatar_path = 'assets/avatar.png';
-    }
-}
-/* --------- */
-
-
-
-/* Sections */
+/* Classes */
 abstract class ASection {
     abstract readonly type: string;
     abstract readonly parent: HTMLElement;
@@ -72,7 +52,6 @@ class Home extends ASection {
 		this.chat_btn.setAttribute('onclick', "go_section('chat')");
 	}
 }
-home = new Home();
 
 class Profile extends ASection {
 	/* ASection */
@@ -189,4 +168,31 @@ class Friends extends ASection {
 		this.logged_in_view();
 	}
 }
+/* --------- */
+
+
+
+/* Utils */
+function get_section_index(url_path : string): number {
+	for (let i = 0; i < sections.length; i++) {
+		if (sections[i].type == url_path)
+			return i;
+	}
+	return HOME_INDEX;
+}
+
+function select_section(section_index: number): void {
+	for (let i = 0; i < sections.length; i++) {
+		if (sections[i].type !== 'home' && i !== section_index) {
+			let list = doc.querySelectorAll(".section." + sections[section_index].type);
+			list.forEach(element => {
+				element.classList.remove('active');
+			});
+		}
+	}
+	let section = doc.querySelectorAll(".section." + sections[section_index].type);
+	section.forEach(element => {
+		element.classList.add('active');
+	});
+};
 /* --------- */

@@ -11,8 +11,7 @@
     <link rel="stylesheet" href="css/sidebar.css">
   </head>
   
-  <body onload="verify_token()">
-
+  <body>
     <section class="section home profile friends active" id="home-parent">
       <aside id="sidebar">
         <nav>
@@ -93,15 +92,14 @@
     </div>
     
     <div id="pages-btns">
-      <button id="home-page" onclick="go_section('home')">HOME</button>
-      <button id="profile-page" onclick="go_section('profile')">PROFILE</button>
-      <button id="friends-page" onclick="go_section('friends')">FRIENDS</button>
+      <button id="home-page">HOME</button>
+      <button id="profile-page">PROFILE</button>
+      <button id="friends-page">FRIENDS</button>
     </div>
 
+    <script src="dist/sections.js?timestamp=<?= time() ?>"></script>
     <script src="dist/authentication.js?timestamp=<?= time() ?>"></script>
+    <script src="dist/globals.js?timestamp=<?= time() ?>"></script>
     <script src="dist/history_api.js?timestamp=<?= time() ?>"></script>
-    <script src="dist/modals.js?timestamp=<?= time() ?>"></script>
-    <script src="dist/sidebar.js?timestamp=<?= time() ?>"></script>
-    <script src="dist/view.js?timestamp=<?= time() ?>"></script>
   </body>
 </html>

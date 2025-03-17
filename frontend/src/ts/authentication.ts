@@ -10,7 +10,8 @@ function assign_username(new_username: string | undefined) {
 			.textContent = "";
 }
 
-async function verify_token(): Promise<boolean> {
+async function verify_token(): Promise<User| undefined> {
+	console.log('verify_token()');
 	try {
 		const response = await fetch(`/api/verify_token`, {
 			method: "POST",
@@ -19,28 +20,20 @@ async function verify_token(): Promise<boolean> {
 		const data = await response.json();
 		if (!response.ok) {
 			console.error("Verify token failed:", data.error);
-			switch_logged_off();
-			assign_username(undefined);
-			return false;
+			return undefined;
 		}
 
 		if (data.valid) {
-			switch_logged_in();
-			assign_username(data.username);
-			console.log(username, "authenticated");
-			return true;
+			console.log(data.username, "authenticated");
+			return new User(data.username);
 		}
 
-		assign_username(undefined);
-		switch_logged_off();
 		console.log("Not authenticated");
-		return false;
+		return undefined;
     } catch (error) {
 		console.error("Error:", error);
     }
-	assign_username(undefined);
-	switch_logged_off();
-	return false;
+	return undefined;
 }
 
 async function register(_username: string, _password: string) {
@@ -59,7 +52,6 @@ async function register(_username: string, _password: string) {
 		}
         
 		if (data.success) {
-			switch_logged_in();
 			assign_username(_username);
 			console.log(username, "register");
 		}
@@ -86,7 +78,6 @@ async function login(_username: string, _password: string) {
 		}
 
 		if (data.success) {
-			switch_logged_in();
 			assign_username(_username);
 			console.log(_username, "login");
 		}
@@ -111,7 +102,6 @@ async function logout() {
 
 		if (data.success) {
 			assign_username(undefined);
-			switch_logged_off();
 			console.log(username, "logout");
 		}
 		else
