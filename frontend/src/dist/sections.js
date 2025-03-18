@@ -237,7 +237,7 @@ function go_section(section) {
         section = 'home';
     set_new_section_index(section);
     update_sections();
-    history.pushState({}, "", sections[section_index].type);
+    history.pushState({ section: sections[section_index].type }, "", sections[section_index].type);
 }
 function activate(list) {
     list.forEach(element => {

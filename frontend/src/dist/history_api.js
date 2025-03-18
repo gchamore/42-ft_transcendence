@@ -10,12 +10,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 /* Event listeners */
 window.addEventListener("popstate", function (event) {
-    console.log("popstate");
+    return __awaiter(this, void 0, void 0, function* () {
+        yield verify_token();
+        if (event.state && event.state.section)
+            set_new_section_index(event.state.section);
+        else
+            set_new_section_index("home");
+        update_sections();
+    });
 });
 document.addEventListener("DOMContentLoaded", () => __awaiter(void 0, void 0, void 0, function* () {
     yield verify_token();
     set_new_section_index(window.location.pathname.replace("/", ""));
     update_sections();
-    history.replaceState({}, "", sections[section_index].type);
+    history.replaceState({ section: sections[section_index].type }, "", sections[section_index].type);
 }));
 /* --------- */
