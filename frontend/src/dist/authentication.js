@@ -8,16 +8,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-let username = undefined;
-function assign_username(new_username) {
-    username = new_username;
-    if (username)
-        document.getElementById("profile-username")
-            .textContent = username;
-    else
-        document.getElementById("profile-username")
-            .textContent = "";
-}
 function verify_token() {
     return __awaiter(this, void 0, void 0, function* () {
         console.log('verify_token()');
@@ -27,24 +17,21 @@ function verify_token() {
                 credentials: 'include'
             });
             const data = yield response.json();
-            if (!response.ok) {
-                console.error("Verify token failed:", data.error);
-                return undefined;
-            }
-            if (data.valid) {
+            if (!response.ok)
+                console.error("/api/verify_token failed:", data.error);
+            else if (data.valid) {
                 console.log(data.username, "authenticated");
-                return new User(data.username);
+                update_user(new User(data.username));
+                return;
             }
-            console.log("Not authenticated");
-            return undefined;
         }
         catch (error) {
-            console.error("Error:", error);
+            console.error("/api/verify_token error:", error);
         }
-        return undefined;
+        update_user(undefined);
     });
 }
-function register(_username, _password) {
+function register(username, password) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const response = yield fetch(`/api/register`, {
@@ -52,26 +39,22 @@ function register(_username, _password) {
                 credentials: "include",
                 headers: { "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ username: _username, password: _password })
+                body: JSON.stringify({ username: username, password: password })
             });
             const data = yield response.json();
-            if (!response.ok) {
-                console.error("Registration failed:", data.error);
-                return;
+            if (!response.ok)
+                console.error("/api/register failed:", data.error);
+            else if (data.success) {
+                update_user(new User(data.username));
+                console.log(username, "registered");
             }
-            if (data.success) {
-                assign_username(_username);
-                console.log(username, "register");
-            }
-            else
-                console.log("Not register");
         }
         catch (error) {
-            console.error("Error:", error);
+            console.error("/api/register error:", error);
         }
     });
 }
-function login(_username, _password) {
+function login(username, password) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const response = yield fetch(`/api/login`, {
@@ -79,22 +62,18 @@ function login(_username, _password) {
                 credentials: "include",
                 headers: { "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ username: _username, password: _password })
+                body: JSON.stringify({ username: username, password: password })
             });
             const data = yield response.json();
-            if (!response.ok) {
-                console.error("Login failed:", data.error);
-                return;
+            if (!response.ok)
+                console.error("/api/login failed:", data.error);
+            else if (data.success) {
+                update_user(new User(data.username));
+                console.log(username, "logged-in");
             }
-            if (data.success) {
-                assign_username(_username);
-                console.log(_username, "login");
-            }
-            else
-                console.log("Not login");
         }
         catch (error) {
-            console.error("Error:", error);
+            console.error("/api/login error:", error);
         }
     });
 }
@@ -106,19 +85,15 @@ function logout() {
                 credentials: 'include'
             });
             const data = yield response.json();
-            if (!response.ok) {
-                console.error("Logout failed:", data.error);
-                return;
+            if (!response.ok)
+                console.error("/api/logout failed:", data.error);
+            else if (data.success) {
+                console.log(user === null || user === void 0 ? void 0 : user.name, "logged-out");
+                update_user(undefined);
             }
-            if (data.success) {
-                assign_username(undefined);
-                console.log(username, "logout");
-            }
-            else
-                console.log("Not logout");
         }
         catch (error) {
-            console.error("Error:", error);
+            console.error("/api/logout error:", error);
         }
     });
 }

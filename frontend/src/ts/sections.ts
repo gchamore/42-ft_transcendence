@@ -105,8 +105,8 @@ class Profile extends ASection {
 			return ;
 		}
 		
-		this.avatar.setAttribute('src', user.avatar_path);
-		this.username.textContent = "";
+		this.avatar.src = user.avatar_path;
+		this.username.textContent = user.name;
 		this.username_i.value = "";
 		this.password_i.value = "";
 
@@ -156,20 +156,35 @@ class Friends extends ASection {
 
 
 /* Utils */
-function get_section_index(url_path : string): number {
+function get_section_index(type : string): number | undefined {
 	for (let i = 0; i < sections.length; i++) {
-		if (sections[i].type === url_path
-			&& !(user === undefined && sections[i].protected === true))
+		if (sections[i].type === type)
 			return i;
 	}
-	return HOME_INDEX;
+	return undefined;
 }
 
-function select_section(section_index: number): void {
+function set_new_section_index(type : string): void {
+	let index : number | undefined = get_section_index(type);
+	section_index = (index !== undefined && is_section_accessible(index)) ? index : HOME_INDEX;
+}
+
+function is_section_accessible(index : number): boolean {
+	return !(user === undefined && sections[index].protected === true);
+}
+
+function update_section(): void {
 	for (let i = 0; i < sections.length; i++) {
 		if (i !== section_index)
 			sections[i].leave();
 	}
 	sections[section_index].enter(user !== undefined);
 };
+
+function update_section_level(): void {
+	if (user === undefined)
+		sections[section_index].switch_logged_off();
+	else
+		sections[section_index].switch_logged_in();
+}
 /* --------- */

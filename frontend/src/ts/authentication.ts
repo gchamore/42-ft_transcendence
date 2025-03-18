@@ -1,16 +1,4 @@
-let username : string | undefined = undefined;
-
-function assign_username(new_username: string | undefined) {
-	username = new_username;
-	if (username)
-		(document.getElementById("profile-username") as HTMLLabelElement)
-			.textContent = username;
-	else
-		(document.getElementById("profile-username") as HTMLLabelElement)
-			.textContent = "";
-}
-
-async function verify_token(): Promise<User| undefined> {
+async function verify_token(): Promise<void> {
 	console.log('verify_token()');
 	try {
 		const response = await fetch(`/api/verify_token`, {
@@ -18,73 +6,66 @@ async function verify_token(): Promise<User| undefined> {
 			credentials: 'include'
 		});
 		const data = await response.json();
-		if (!response.ok) {
-			console.error("Verify token failed:", data.error);
-			return undefined;
-		}
 
-		if (data.valid) {
+		if (!response.ok)
+			console.error("/api/verify_token failed:", data.error);
+		else if (data.valid) {
 			console.log(data.username, "authenticated");
-			return new User(data.username);
+
+			update_user(new User(data.username));
+			return;
 		}
 
-		console.log("Not authenticated");
-		return undefined;
     } catch (error) {
-		console.error("Error:", error);
+		console.error("/api/verify_token error:", error);
     }
-	return undefined;
+
+	update_user(undefined);
 }
 
-async function register(_username: string, _password: string) {
+async function register(username: string, password: string) {
 	try {
 		const response = await fetch(`/api/register`, {
 			method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json"
 			},
-			body: JSON.stringify({username: _username, password: _password})
+			body: JSON.stringify({username: username, password: password})
 		});
 		const data = await response.json();
-		if (!response.ok) {
-			console.error("Registration failed:", data.error);
-			return ;
+		
+		if (!response.ok)
+			console.error("/api/register failed:", data.error);
+        else if (data.success) {
+			update_user(new User(data.username));
+			console.log(username, "registered");
 		}
-        
-		if (data.success) {
-			assign_username(_username);
-			console.log(username, "register");
-		}
-		else
-			console.log("Not register");
+
     } catch (error) {
-		console.error("Error:", error);
+		console.error("/api/register error:", error);
     }
 }
 
-async function login(_username: string, _password: string) {
+async function login(username: string, password: string) {
 	try {
         const response = await fetch(`/api/login`, {
             method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json"
 			},
-			body: JSON.stringify({username: _username, password: _password})
+			body: JSON.stringify({username: username, password: password})
 		});
 		const data = await response.json();
-		if (!response.ok) {
-            console.error("Login failed:", data.error);
-			return ;
+
+		if (!response.ok)
+			console.error("/api/login failed:", data.error);
+        else if (data.success) {
+			update_user(new User(data.username));
+			console.log(username, "logged-in");
 		}
 
-		if (data.success) {
-			assign_username(_username);
-			console.log(_username, "login");
-		}
-		else
-			console.log("Not login");
     } catch (error) {
-		console.error("Error:", error);
+		console.error("/api/login error:", error);
     }
 }
 
@@ -95,18 +76,15 @@ async function logout() {
 			credentials: 'include'
 		});
 		const data = await response.json();
-		if (!response.ok) {
-            console.error("Logout failed:", data.error);
-			return ;
+
+		if (!response.ok)
+			console.error("/api/logout failed:", data.error);
+        else if (data.success) {
+			console.log(user?.name, "logged-out");
+			update_user(undefined);
 		}
 
-		if (data.success) {
-			assign_username(undefined);
-			console.log(username, "logout");
-		}
-		else
-			console.log("Not logout");
     } catch (error) {
-		console.error("Error:", error);
+		console.error("/api/logout error:", error);
     }
 }

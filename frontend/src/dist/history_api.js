@@ -13,9 +13,9 @@ window.addEventListener("popstate", function (event) {
     console.log("popstate");
 });
 document.addEventListener("DOMContentLoaded", () => __awaiter(void 0, void 0, void 0, function* () {
-    user = yield verify_token();
-    section_index = get_section_index(window.location.pathname.replace("/", ""));
-    select_section(section_index);
-    history.pushState({}, "", sections[section_index].type);
+    yield verify_token();
+    set_new_section_index(window.location.pathname.replace("/", ""));
+    update_section();
+    history.replaceState({}, "", sections[section_index].type);
 }));
 /* --------- */
