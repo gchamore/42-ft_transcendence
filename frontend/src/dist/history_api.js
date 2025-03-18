@@ -15,7 +15,7 @@ window.addEventListener("popstate", function (event) {
 document.addEventListener("DOMContentLoaded", () => __awaiter(void 0, void 0, void 0, function* () {
     yield verify_token();
     set_new_section_index(window.location.pathname.replace("/", ""));
-    update_section();
+    update_sections();
     history.replaceState({}, "", sections[section_index].type);
 }));
 /* --------- */

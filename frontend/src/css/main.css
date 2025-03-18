@@ -22,7 +22,7 @@ input::-webkit-autofill {
 
 .section:not(.active),
 *.logged-in:not(.active),
-*.logged-off:not(.active){
+*.logged-off:not(.active) {
     display: none;
 }
 /* --------- */

@@ -11,7 +11,7 @@ class User {
 
 function update_user(new_user_value : User | undefined) {
     user = new_user_value;
-    update_section_level();
+    update_section();
 }
 /* --------- */
 

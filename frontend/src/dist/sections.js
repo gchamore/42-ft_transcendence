@@ -1,20 +1,38 @@
 "use strict";
 /* Classes */
 class ASection {
-    leave() {
+    activate_section() {
+        doc.querySelectorAll(".section." + this.type).forEach(container => {
+            container.classList.add('active');
+        });
+    }
+    deactivate_section() {
         doc.querySelectorAll(".section." + this.type).forEach(container => {
             container.classList.remove('active');
         });
+    }
+    leave() {
+        this.deactivate_section();
         this.switch_logged_off();
     }
     ;
     logged_off_view() {
         var _a, _b;
+        this.dependencies.forEach(dep => {
+            const index = get_section_index(dep);
+            if (index !== undefined)
+                sections[get_section_index(dep)].switch_logged_off();
+        });
         (_a = this.logged_off) === null || _a === void 0 ? void 0 : _a.forEach((element) => { element.classList.add('active'); });
         (_b = this.logged_in) === null || _b === void 0 ? void 0 : _b.forEach((element) => { element.classList.remove('active'); });
     }
     logged_in_view() {
         var _a, _b;
+        this.dependencies.forEach(dep => {
+            const index = get_section_index(dep);
+            if (index !== undefined)
+                sections[get_section_index(dep)].switch_logged_in();
+        });
         (_a = this.logged_off) === null || _a === void 0 ? void 0 : _a.forEach((element) => { element.classList.remove('active'); });
         (_b = this.logged_in) === null || _b === void 0 ? void 0 : _b.forEach((element) => { element.classList.add('active'); });
     }
@@ -28,6 +46,7 @@ class Home extends ASection {
         this.parent = doc.getElementById('home-parent');
         this.logged_off = this.parent.querySelectorAll('.logged-off');
         this.logged_in = this.parent.querySelectorAll('.logged-in');
+        this.dependencies = [];
         /* Properties */
         this.profile_btn = doc.getElementById('profile-btn');
         this.friends_btn = doc.getElementById('friends-btn');
@@ -39,9 +58,7 @@ class Home extends ASection {
             this.switch_logged_in();
         else
             this.switch_logged_off();
-        doc.querySelectorAll(".section." + this.type).forEach(container => {
-            container.classList.add('active');
-        });
+        this.activate_section();
     }
     switch_logged_off() {
         this.logged_off_view();
@@ -63,6 +80,7 @@ class Profile extends ASection {
         this.parent = doc.getElementById('profile-parent');
         this.logged_off = this.parent.querySelectorAll('.logged-off');
         this.logged_in = this.parent.querySelectorAll('.logged-in');
+        this.dependencies = ['home'];
         /* Properties */
         this.avatar = doc.getElementById('profile-avatar');
         this.username = doc.getElementById('profile-username');
@@ -77,9 +95,7 @@ class Profile extends ASection {
             this.switch_logged_in();
         else
             this.switch_logged_off();
-        doc.querySelectorAll(".section." + this.type).forEach(container => {
-            container.classList.add('active');
-        });
+        this.activate_section();
     }
     switch_logged_off() {
         this.logged_off_view();
@@ -117,6 +133,7 @@ class Friends extends ASection {
         this.parent = doc.getElementById('friends-parent');
         this.logged_off = this.parent.querySelectorAll('.logged-off');
         this.logged_in = this.parent.querySelectorAll('.logged-in');
+        this.dependencies = ['home'];
         /* Properties */
         this.avatar = doc.getElementById('profile-avatar');
         this.username = doc.getElementById('profile-username');
@@ -132,13 +149,15 @@ class Friends extends ASection {
             return;
         }
         this.switch_logged_in();
-        doc.querySelectorAll(".section." + this.type).forEach(container => {
-            container.classList.add('active');
-        });
+        this.activate_section();
         return true;
     }
-    switch_logged_off() { }
-    switch_logged_in() { }
+    switch_logged_off() {
+        this.logged_off_view();
+    }
+    switch_logged_in() {
+        this.logged_in_view();
+    }
 }
 /* --------- */
 /* Utils */
@@ -156,7 +175,7 @@ function set_new_section_index(type) {
 function is_section_accessible(index) {
     return !(user === undefined && sections[index].protected === true);
 }
-function update_section() {
+function update_sections() {
     for (let i = 0; i < sections.length; i++) {
         if (i !== section_index)
             sections[i].leave();
@@ -164,10 +183,17 @@ function update_section() {
     sections[section_index].enter(user !== undefined);
 }
 ;
-function update_section_level() {
+function update_section() {
     if (user === undefined)
         sections[section_index].switch_logged_off();
     else
         sections[section_index].switch_logged_in();
+}
+function go_section(section) {
+    if (section === sections[section_index].type)
+        section = 'home';
+    set_new_section_index(section);
+    update_sections();
+    history.pushState({}, "", sections[section_index].type);
 }
 /* --------- */

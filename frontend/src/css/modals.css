@@ -10,23 +10,51 @@
     transform: translate(-50%, -50%);
 }
 
-.modal-item {
+.modal.item.active {
     background-color: rgb(145, 83, 83);
     border-radius: 4% / 5%;
     border-style: solid;
 
     position:absolute;
+    display: block;
 
     height: 100%;
     width: 100%;
 }
 
-.modal.content  {
+.modal.content {
+    border: rgb(255, 255, 255) solid 3px;
+
     display: flex;
-    align-items: center;
-    flex-direction: column;
+    align-items: start;
     margin: 15px;   
 }
+
+.modal.content.column {
+    flex-direction: column;
+}
+.modal.content.row {
+    flex-direction: row;
+}
+.modal.content.center {
+    align-items: center;
+    justify-content: center;
+}
+
+#badge, #friend-stats{
+    border: rgb(72, 60, 60) solid 3px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 2px;  
+}
+
+
+/* .not-found:not(.active),
+.found:not(.active) {
+    display: none;
+} */
 /* --------- */
 
 
@@ -59,6 +87,8 @@ ul.modal li button{
 }
 /* --------- */
 
+
+/* Avatar */
 .avatar {
     background-color: rgb(255, 255, 255);
     border-radius: 50%;
