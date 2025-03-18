@@ -73,14 +73,10 @@ export class GameInstance {
 
 	checkWallCollision() {
 		const ball = this.gameState.ball;
-		if (
-			ball.y - ball.radius <= 0 ||
-			ball.y + ball.radius >= GameConfig.GAME_HEIGHT
-		) {
+		if (ball.y - ball.radius <= 0 || ball.y + ball.radius >= GameConfig.CANVAS_HEIGHT) {
 			ball.speedY *= -1;
 			// Add small random factor to avoid loops (non-TEST mode only)
-			if (!GameConfig.TEST_MODE)
-				ball.speedY += (Math.random() - 0.5) * 0.5;
+			ball.speedY += (Math.random() - 0.5) * 0.5;
 			return true;
 		}
 		return false;

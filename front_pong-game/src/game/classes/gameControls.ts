@@ -104,7 +104,6 @@ export class GameControls {
 		let needsUpdate = false;
 		let oldVelocity = this.localPaddle.velocity;
 
-		// Check for upward movement
 		if (
 			this.keysPressed["w"] ||
 			this.keysPressed["W"] ||
@@ -113,7 +112,6 @@ export class GameControls {
 			this.localPaddle.velocity = -this.localPaddle.speed;
 			needsUpdate = true;
 		}
-		// Check for downward movement (if no up keys are pressed)
 		else if (
 			this.keysPressed["s"] ||
 			this.keysPressed["S"] ||
@@ -123,7 +121,6 @@ export class GameControls {
 			needsUpdate = true;
 		}
 
-		// Only send updates if movement is happening
 		if (needsUpdate || oldVelocity !== 0) {
 			this.sendPaddleMovements(deltaTime);
 		}

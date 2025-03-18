@@ -32,6 +32,10 @@ export class BabylonManager {
 	private lastRenderTime: number = 0;
 	private lastServerUpdate: number = 0;
 
+	//debug
+	private paddleCollisionBox1: BABYLON.Mesh | null = null;
+	private paddleCollisionBox2: BABYLON.Mesh | null = null;
+
 	constructor(
 		private canvas: HTMLCanvasElement,
 		private paddle1: Paddle,
@@ -266,9 +270,9 @@ export class BabylonManager {
 		this.paddleMesh1.rotation.x = Math.PI / 2;
 		this.paddleMesh1.material = paddleMaterial;
 		this.paddleMesh1.position = new BABYLON.Vector3(
-			(this.paddle1.x + this.paddle1.width / 2 - (GameConfig.CANVAS_WIDTH / 2)) * scaleX, // Center of paddle
+			(this.paddle1.x + this.paddle1.width / 2 - GameConfig.CANVAS_WIDTH / 2) * scaleX, // Center of paddle
 			-0.25,
-			((GameConfig.CANVAS_HEIGHT / 2) - this.paddle1.y) * scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - (this.paddle1.y + this.paddle1.height / 2)) * scaleY
 		);
 
 		this.paddleMesh2 = BABYLON.MeshBuilder.CreateCylinder(
@@ -283,9 +287,9 @@ export class BabylonManager {
 		this.paddleMesh2.rotation.x = Math.PI / 2;
 		this.paddleMesh2.material = paddleMaterial;
 		this.paddleMesh2.position = new BABYLON.Vector3(
-			(this.paddle2.x + this.paddle2.width / 2 - (GameConfig.CANVAS_WIDTH / 2)) * scaleX, // Center of paddle
+			(this.paddle2.x + this.paddle2.width / 2 - GameConfig.CANVAS_WIDTH / 2) * scaleX, // Center of paddle
 			-0.25,
-			((GameConfig.CANVAS_HEIGHT / 2) - this.paddle2.y) * scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - (this.paddle2.y + this.paddle2.height / 2)) * scaleY
 		);
 
 		const ballMaterial = new BABYLON.StandardMaterial(
@@ -323,6 +327,10 @@ export class BabylonManager {
 			glowLayer.addIncludedOnlyMesh(this.paddleMesh1);
 			glowLayer.addIncludedOnlyMesh(this.paddleMesh2);
 		}
+
+		if (GameConfig.TEST_MODE) {
+			this.createCollisionBoxes();
+		}
 	}
 
 	public render(timestamp: number): void {
@@ -354,6 +362,9 @@ export class BabylonManager {
 
 	private updateMeshPositions(): void {
 		this.updatePaddleMeshPositions();
+		if (GameConfig.TEST_MODE) {
+			this.updateCollisionBoxPositions();
+		}
 		if (this.gameStarted) {
 			this.updateBallMeshPosition();
 		} else if (!this.ballCentered && !this.gameStarted) {
@@ -373,15 +384,15 @@ export class BabylonManager {
 		if (!this.paddleMesh1 || !this.paddleMesh2) return;
 
 		this.paddleMesh1.position = new BABYLON.Vector3(
-			(this.paddle1.x + this.paddle1.width / 2 - (GameConfig.CANVAS_WIDTH / 2)) * this.scaleX,
+			(this.paddle1.x + this.paddle1.width / 2 - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
 			-0.25,
-			((GameConfig.CANVAS_HEIGHT / 2) - this.paddle1.y) * this.scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - (this.paddle1.y + this.paddle1.height / 2)) * this.scaleY
 		);
 
 		this.paddleMesh2.position = new BABYLON.Vector3(
-			(this.paddle2.x + this.paddle2.width / 2 - (GameConfig.CANVAS_WIDTH / 2)) * this.scaleX,
+			(this.paddle2.x + this.paddle2.width / 2 - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
 			-0.25,
-			((GameConfig.CANVAS_HEIGHT / 2) - this.paddle2.y) * this.scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - (this.paddle2.y + this.paddle2.height / 2)) * this.scaleY
 		);
 	}
 
@@ -394,9 +405,9 @@ export class BabylonManager {
 		const predictedY = this.ball.y + this.ball.speedY * timeSinceLastUpdate;
 
 		const targetPosition = new BABYLON.Vector3(
-			(predictedX - (GameConfig.CANVAS_WIDTH / 2)) * this.scaleX,
+			(predictedX - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
 			-0.2,
-			((GameConfig.CANVAS_HEIGHT / 2) - predictedY) * this.scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - predictedY) * this.scaleY
 		);
 
 		const directionChanged =
@@ -513,6 +524,64 @@ export class BabylonManager {
 	// 	}, 1000);
 	// }
 
+	private createCollisionBoxes(): void {
+		if (!this.scene || !GameConfig.TEST_MODE) return;
+
+		// Create a semi-transparent material for collision boxes
+		const collisionMaterial = new BABYLON.StandardMaterial(
+			"collisionMaterial",
+			this.scene
+		);
+		collisionMaterial.diffuseColor = new BABYLON.Color3(0, 1, 0);
+		collisionMaterial.alpha = 0.3;
+		collisionMaterial.wireframe = true;
+
+		// Create collision box for paddle 1
+		this.paddleCollisionBox1 = BABYLON.MeshBuilder.CreateBox(
+			"paddle1Collision",
+			{
+				width: this.paddle1.width * this.scaleX,
+				height: 0.5,
+				depth: this.paddle1.height * this.scaleY,
+			},
+			this.scene
+		);
+		this.paddleCollisionBox1.material = collisionMaterial;
+
+		// Create collision box for paddle 2
+		this.paddleCollisionBox2 = BABYLON.MeshBuilder.CreateBox(
+			"paddle2Collision",
+			{
+				width: this.paddle2.width * this.scaleX,
+				height: 0.5,
+				depth: this.paddle2.height * this.scaleY,
+			},
+			this.scene
+		);
+		this.paddleCollisionBox2.material = collisionMaterial;
+
+		// Set initial positions
+		this.updateCollisionBoxPositions();
+	}
+
+	private updateCollisionBoxPositions(): void {
+		if (!this.paddleCollisionBox1 || !this.paddleCollisionBox2) return;
+
+		// Position collision box for paddle 1
+		this.paddleCollisionBox1.position = new BABYLON.Vector3(
+			(this.paddle1.x + this.paddle1.width / 2 - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
+			-0.25,
+			(GameConfig.CANVAS_HEIGHT / 2 -	(this.paddle1.y + this.paddle1.height / 2)) * this.scaleY
+		);
+
+		// Position collision box for paddle 2
+		this.paddleCollisionBox2.position = new BABYLON.Vector3(
+			(this.paddle2.x + this.paddle2.width / 2 - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
+			-0.25,
+			(GameConfig.CANVAS_HEIGHT / 2 - (this.paddle2.y + this.paddle2.height / 2)) * this.scaleY
+		);
+	}
+
 	dispose(): void {
 		this.hideLoadingScreen();
 		// Remove event listener using the bound method
@@ -533,5 +602,10 @@ export class BabylonManager {
 		this.paddleMesh2 = null;
 		this.ballMesh = null;
 		this.tableMesh = null;
+		this.topWall = null;
+		this.bottomWall = null;
+		this.loadingScreen = null;
+		this.paddleCollisionBox1 = null;
+		this.paddleCollisionBox2 = null;
 	}
 }
