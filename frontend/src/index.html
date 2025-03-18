@@ -78,9 +78,9 @@
         <section>
           <nav>
             <ul class="modal">
-              <li class="l1"><button id="friends-btn1"></button></li>
-              <li class="l2"><button id="friends-btn2"></button></li>
-              <li class="l3"><button id="friends-btn3"></button></li>
+              <li class="l1 friends active"><button id="friends-btn1"></button></li>
+              <li class="l2 friends"><button id="friends-btn2"></button></li>
+              <li class="l3 friends"><button id="friends-btn3"></button></li>
             </ul>
           </nav>
         </section>
@@ -97,8 +97,8 @@
       <button id="friends-page">FRIENDS</button>
     </div>
 
+    <script src="dist/api.js?timestamp=<?= time() ?>"></script>
     <script src="dist/sections.js?timestamp=<?= time() ?>"></script>
-    <script src="dist/authentication.js?timestamp=<?= time() ?>"></script>
     <script src="dist/globals.js?timestamp=<?= time() ?>"></script>
     <script src="dist/history_api.js?timestamp=<?= time() ?>"></script>
   </body>

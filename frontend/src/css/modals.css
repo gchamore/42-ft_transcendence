@@ -72,6 +72,10 @@ ul.modal li:active {
     transform: scale(0.85);
 }
 
+li.friends:not(.active) {
+    display: none;
+}
+
 li.l1 {
     left: 5%;
 }

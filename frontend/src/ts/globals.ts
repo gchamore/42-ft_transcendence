@@ -1,4 +1,4 @@
-/* --------- */
+/* User */
 class User {
     readonly name: string;
     readonly avatar_path: string;
@@ -17,11 +17,17 @@ function update_user(new_user_value : User | undefined) {
 
 
 
-/* --------- */
+/* Global variables */
 const HOME_INDEX = 0;
 const doc : Document = document;
 
 var user : User | undefined = undefined;
 var sections: ASection[] = [new Home(), new Profile(), new Friends()];
 var section_index : number = HOME_INDEX;
+/* --------- */
+
+
+
+/* Friend */
+// To be continued here...
 /* --------- */

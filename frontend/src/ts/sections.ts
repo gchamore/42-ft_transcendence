@@ -144,18 +144,20 @@ class Friends extends ASection {
 	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
 	dependencies = ['home'];
-
+	
 	/* Properties */
+	readonly founds = this.parent.querySelectorAll('.found') as NodeListOf<Element>;
+	readonly not_founds = this.parent.querySelectorAll('.not-found') as NodeListOf<Element>;
+
 	readonly username_i = doc.getElementById('friends-username') as HTMLInputElement;
-	readonly not_found = doc.getElementById('failed-research') as HTMLLabelElement;
 
 	readonly avatar = doc.getElementById('friend-avatar') as HTMLImageElement;
 	readonly status = doc.getElementById('status') as HTMLLabelElement;
-
+	
 	readonly stat1 = doc.getElementById('friend-stat1') as HTMLLabelElement;
 	readonly stat2 = doc.getElementById('friend-stat2') as HTMLLabelElement;
 	readonly stat3 = doc.getElementById('friend-stat3') as HTMLLabelElement;
-
+	
 	readonly btn1 = doc.getElementById('friends-btn1') as HTMLButtonElement;
 	readonly btn2 = doc.getElementById('friends-btn2') as HTMLButtonElement;
 	readonly btn3 = doc.getElementById('friends-btn3') as HTMLButtonElement;
@@ -166,15 +168,47 @@ class Friends extends ASection {
 			console.error("Try to enter Friends section as unauthenticated");
 			return;
 		}
-		this.switch_logged_in();
-		this.activate_section();
-		return true;
-	}
-	switch_logged_off() {
-		this.logged_off_view();
-	}
-	switch_logged_in() {
+		this.reset();
 		this.logged_in_view();
+		this.activate_section();
+	}
+	leave() {
+		this.reset();
+		this.deactivate_section();
+
+		this.btn1.removeAttribute('onclick');
+		this.btn2.removeAttribute('onclick');
+		this.btn3.removeAttribute('onclick');
+	}
+	switch_logged_off() {}
+	switch_logged_in() {}
+
+	reset() {
+		deactivate(this.founds);
+		deactivate(this.not_founds);
+
+		this.btn1.onclick = () => this.search();
+		this.btn1.textContent = 'Search';
+		this.btn2.removeAttribute('onclick');
+		this.btn2.textContent = '';
+		this.btn3.removeAttribute('onclick');
+		this.btn3.textContent = '';
+
+		this.stat1.textContent = '';
+		this.stat2.textContent = '';
+		this.stat3.textContent = '';
+
+		this.username_i.value = '';
+		this.avatar.src = '';
+		this.status.textContent = '';
+	}
+	async search() {
+		const username = this.username_i.value;
+		this.reset();
+		if (await search(username) === true) {
+			console.log(username, "found");
+		}
+		// To be continued...
 	}
 }
 /* --------- */
@@ -220,5 +254,21 @@ function go_section(section : string) {
 	set_new_section_index(section);
 	update_sections();
 		history.pushState({}, "", sections[section_index].type);
+}
+
+function activate(list : NodeListOf<Element>): void {
+	list.forEach(element => {
+		element.classList.add('activate');
+	});
+}
+
+function deactivate(list : NodeListOf<Element>): void {
+	list.forEach(element => {
+		element.classList.remove('activate');
+	});
+}
+
+function clear_friends(section : Friends): void {
+	
 }
 /* --------- */

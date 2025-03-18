@@ -88,3 +88,23 @@ async function logout() {
 		console.error("/api/logout error:", error);
     }
 }
+
+async function search(friend_username : string): Promise<boolean> {
+	try {
+        const response = await fetch(`/api/search/${friend_username}`, {
+            method: "GET",
+			credentials: 'include'
+		});
+		const data = await response.json();
+
+		if (!response.ok)
+			console.error(`/api/search/${friend_username} failed:`, data.error);
+        else if (data.success) {
+			return true;
+		}
+
+    } catch (error) {
+		console.error(`/api/search/${friend_username} error:`, error);
+    }
+	return false;
+}

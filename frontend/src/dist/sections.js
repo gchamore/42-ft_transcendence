@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 /* Classes */
 class ASection {
     activate_section() {
@@ -135,12 +144,17 @@ class Friends extends ASection {
         this.logged_in = this.parent.querySelectorAll('.logged-in');
         this.dependencies = ['home'];
         /* Properties */
-        this.avatar = doc.getElementById('profile-avatar');
-        this.username = doc.getElementById('profile-username');
-        this.username_i = doc.getElementById('profile-username-input');
-        this.password_i = doc.getElementById('profile-password');
-        this.btn1 = doc.getElementById('profile-btn1');
-        this.btn2 = doc.getElementById('profile-btn1');
+        this.founds = this.parent.querySelectorAll('.found');
+        this.not_founds = this.parent.querySelectorAll('.not-found');
+        this.username_i = doc.getElementById('friends-username');
+        this.avatar = doc.getElementById('friend-avatar');
+        this.status = doc.getElementById('status');
+        this.stat1 = doc.getElementById('friend-stat1');
+        this.stat2 = doc.getElementById('friend-stat2');
+        this.stat3 = doc.getElementById('friend-stat3');
+        this.btn1 = doc.getElementById('friends-btn1');
+        this.btn2 = doc.getElementById('friends-btn2');
+        this.btn3 = doc.getElementById('friends-btn3');
     }
     /* Methods */
     enter(verified) {
@@ -148,15 +162,44 @@ class Friends extends ASection {
             console.error("Try to enter Friends section as unauthenticated");
             return;
         }
-        this.switch_logged_in();
-        this.activate_section();
-        return true;
-    }
-    switch_logged_off() {
-        this.logged_off_view();
-    }
-    switch_logged_in() {
+        this.reset();
         this.logged_in_view();
+        this.activate_section();
+    }
+    leave() {
+        this.reset();
+        this.deactivate_section();
+        this.btn1.removeAttribute('onclick');
+        this.btn2.removeAttribute('onclick');
+        this.btn3.removeAttribute('onclick');
+    }
+    switch_logged_off() { }
+    switch_logged_in() { }
+    reset() {
+        deactivate(this.founds);
+        deactivate(this.not_founds);
+        this.btn1.onclick = () => this.search();
+        this.btn1.textContent = 'Search';
+        this.btn2.removeAttribute('onclick');
+        this.btn2.textContent = '';
+        this.btn3.removeAttribute('onclick');
+        this.btn3.textContent = '';
+        this.stat1.textContent = '';
+        this.stat2.textContent = '';
+        this.stat3.textContent = '';
+        this.username_i.value = '';
+        this.avatar.src = '';
+        this.status.textContent = '';
+    }
+    search() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const username = this.username_i.value;
+            this.reset();
+            if ((yield search(username)) === true) {
+                console.log(username, "found");
+            }
+            // To be continued...
+        });
     }
 }
 /* --------- */
@@ -195,5 +238,17 @@ function go_section(section) {
     set_new_section_index(section);
     update_sections();
     history.pushState({}, "", sections[section_index].type);
+}
+function activate(list) {
+    list.forEach(element => {
+        element.classList.add('activate');
+    });
+}
+function deactivate(list) {
+    list.forEach(element => {
+        element.classList.remove('activate');
+    });
+}
+function clear_friends(section) {
 }
 /* --------- */

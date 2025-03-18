@@ -97,3 +97,23 @@ function logout() {
         }
     });
 }
+function search(friend_username) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const response = yield fetch(`/api/search/${friend_username}`, {
+                method: "GET",
+                credentials: 'include'
+            });
+            const data = yield response.json();
+            if (!response.ok)
+                console.error(`/api/search/${friend_username} failed:`, data.error);
+            else if (data.success) {
+                return true;
+            }
+        }
+        catch (error) {
+            console.error(`/api/search/${friend_username} error:`, error);
+        }
+        return false;
+    });
+}
