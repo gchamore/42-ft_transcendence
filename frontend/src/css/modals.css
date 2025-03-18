@@ -23,7 +23,7 @@
 }
 
 .modal.content {
-    border: rgb(255, 255, 255) solid 3px;
+    /* border: rgb(255, 255, 255) solid 3px; */
 
     display: flex;
     align-items: start;
@@ -42,19 +42,19 @@
 }
 
 #badge, #friend-stats{
-    border: rgb(72, 60, 60) solid 3px;
+    /* border: rgb(72, 60, 60) solid 3px; */
 
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 2px;  
+    margin: 2px;
 }
 
 
-/* .not-found:not(.active),
+.not-found:not(.active),
 .found:not(.active) {
     display: none;
-} */
+}
 /* --------- */
 
 
@@ -62,6 +62,8 @@
 /* Navigation */
 ul.modal li {
     border-radius: 12% / 26%;
+    height: 125px;
+    height: 55px;
     position: absolute;
     bottom: 5%;
 }

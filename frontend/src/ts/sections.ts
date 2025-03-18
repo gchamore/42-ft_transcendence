@@ -146,12 +146,19 @@ class Friends extends ASection {
 	dependencies = ['home'];
 
 	/* Properties */
-	readonly avatar = doc.getElementById('profile-avatar') as HTMLImageElement;
-	readonly username = doc.getElementById('profile-username') as HTMLLabelElement;
-	readonly username_i = doc.getElementById('profile-username-input') as HTMLInputElement;
-	readonly password_i = doc.getElementById('profile-password') as HTMLInputElement;
-	readonly btn1 = doc.getElementById('profile-btn1') as HTMLButtonElement;
-	readonly btn2 = doc.getElementById('profile-btn1') as HTMLButtonElement;
+	readonly username_i = doc.getElementById('friends-username') as HTMLInputElement;
+	readonly not_found = doc.getElementById('failed-research') as HTMLLabelElement;
+
+	readonly avatar = doc.getElementById('friend-avatar') as HTMLImageElement;
+	readonly status = doc.getElementById('status') as HTMLLabelElement;
+
+	readonly stat1 = doc.getElementById('friend-stat1') as HTMLLabelElement;
+	readonly stat2 = doc.getElementById('friend-stat2') as HTMLLabelElement;
+	readonly stat3 = doc.getElementById('friend-stat3') as HTMLLabelElement;
+
+	readonly btn1 = doc.getElementById('friends-btn1') as HTMLButtonElement;
+	readonly btn2 = doc.getElementById('friends-btn2') as HTMLButtonElement;
+	readonly btn3 = doc.getElementById('friends-btn3') as HTMLButtonElement;
 
 	/* Methods */
 	enter(verified: boolean) {

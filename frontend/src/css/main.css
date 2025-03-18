@@ -21,6 +21,8 @@ input::-webkit-autofill {
 }
 
 .section:not(.active),
+.not-found:not(.active),
+.found:not(.active),
 *.logged-in:not(.active),
 *.logged-off:not(.active) {
     display: none;
