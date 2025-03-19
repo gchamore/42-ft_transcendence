@@ -128,6 +128,29 @@
             font-size: 0.8rem;
             color: #888;
         }
+
+        .user-stats {
+            margin-top: 0.5rem;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            margin-left: 8px;
+        }
+
+        .status-online {
+            background-color: #2e7d32;
+            color: white;
+        }
+
+        .status-offline {
+            background-color: #c62828;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -155,12 +178,6 @@
 
         <div id="welcome" class="hidden">
             <h2>Welcome, <span id="username"></span>!</h2>
-            
-            <!-- Ajout du bouton friendlist -->
-            <button id="show-friends-btn" style="margin: 1rem 0;">Show Friends</button>
-            
-            <!-- Container pour la liste d'amis -->
-            <div id="friend-list" class="friend-list hidden"></div>
             
             <div class="search-container">
                 <input type="text" id="search-username" placeholder="Search username">
@@ -356,7 +373,7 @@
             }
         });
 
-        // Ajouter la fonction de recherche d'utilisateur
+        // Remplacer les deux event listeners de recherche par celui-ci
         document.getElementById('search-btn').addEventListener('click', async () => {
             const searchUsername = document.getElementById('search-username').value;
             const searchResult = document.getElementById('search-result');
@@ -367,35 +384,68 @@
             }
 
             try {
-                const [userResponse, statusResponse] = await Promise.all([
-                    fetch(`${API_URL}/isUser/${searchUsername}`, {
-                        credentials: 'include'
-                    }),
-                    fetch(`${API_URL}/online-status/${searchUsername}`, {
-                        credentials: 'include'
-                    })
-                ]);
+                const response = await fetch(`${API_URL}/search/${searchUsername}`, {
+                    credentials: 'include'
+                });
 
-                const userData = await userResponse.json();
-                const statusData = await statusResponse.json();
-                
+                const data = await response.json();
+
+                if (response.status === 404) {
+                    searchResult.style.display = 'block';
+                    searchResult.innerHTML = `<p>User '${searchUsername}' not found.</p>`;
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Search failed');
+                }
+
                 searchResult.style.display = 'block';
-                if (userData.exists) {
-                    searchResult.innerHTML = `
-                        <div class="friend-item" data-username="${searchUsername}">
-                            <div class="friend-info">
-                                <strong>${searchUsername}</strong>
-                                <span class="status-badge ${statusData.online ? 'online' : 'offline'}">
-                                    ${statusData.online ? 'Online' : 'Offline'}
-                                </span>
+                if (data.success) {
+                    let statsHtml = '';
+                    
+                    if (data.isFriend) {
+                        // Affichage pour un ami
+                        statsHtml = `
+                            <div class="user-stats">
+                                <p>Friend since: ${data.user.friendSince}</p>
+                                <p>Games together: ${data.user.gamesTogether}</p>
+                                <p>Wins together: ${data.user.winsTogether}</p>
+                                <p>Total games: ${data.user.gamesPlayed}</p>
+                                <p>Win rate: ${data.user.winRate}%</p>
                             </div>
-                            <button class="add-friend-btn" onclick="addFriend('${searchUsername}')">
-                                Add Friend
-                            </button>
+                        `;
+                    } else {
+                        // Affichage pour un non-ami
+                        statsHtml = `
+                            <div class="user-stats">
+                                <p>Member since: ${data.user.createdAt}</p>
+                                <p>Total games: ${data.user.gamesPlayed}</p>
+                                <p>Win rate: ${data.user.winRate}%</p>
+                            </div>
+                        `;
+                    }
+
+                    const statusBadge = data.isFriend ? `
+                        <span class="status-badge ${data.user.isConnected ? 'status-online' : 'status-offline'}">
+                            ${data.user.isConnected ? 'Online' : 'Offline'}
+                        </span>
+                    ` : '';
+
+                    searchResult.innerHTML = `
+                        <div class="friend-item" data-username="${data.user.username}">
+                            <div class="friend-info">
+                                <strong>${data.user.username}</strong>
+                                ${statusBadge}
+                                ${statsHtml}
+                            </div>
+                            ${!data.isFriend ? `
+                                <button class="add-friend-btn" onclick="addFriend('${data.user.username}')">
+                                    Add Friend
+                                </button>
+                            ` : ''}
                         </div>
                     `;
-                } else {
-                    searchResult.innerHTML = `<p>User '${searchUsername}' not found.</p>`;
                 }
             } catch (error) {
                 console.error('Search error:', error);
@@ -429,10 +479,8 @@
                 const data = await response.json();
                 if (data.success) {
                     showMessage(data.message, false);
-                    // Rafraîchir la liste si elle est visible
-                    if (!document.getElementById('friend-list').classList.contains('hidden')) {
-                        document.getElementById('show-friends-btn').click();
-                    }
+                    // Rafraîchir la recherche pour mettre à jour l'affichage
+                    document.getElementById('search-btn').click();
                 } else {
                     showMessage(data.error || 'Failed to add friend', true);
                 }
@@ -492,64 +540,9 @@
             }
         });
 
-        // Gestion de la liste d'amis
-        document.getElementById('show-friends-btn').addEventListener('click', async () => {
-            const friendList = document.getElementById('friend-list');
-            friendList.classList.toggle('hidden');
-
-            if (!friendList.classList.contains('hidden')) {
-                try {
-                    const response = await fetch(`${API_URL}/friends`, {
-                        credentials: 'include'
-                    });
-                    const data = await response.json();
-
-                    if (data.success) {
-                        friendList.innerHTML = data.friends.map(friend => `
-                            <div class="friend-item">
-                                <div class="friend-info">
-                                    <strong>${friend.username}</strong>
-                                    <div class="friend-stats">
-                                        Wins: ${friend.wins} | Losses: ${friend.losses}
-                                        <br>Friends since: ${new Date(friend.friend_since).toLocaleDateString()}
-                                    </div>
-                                </div>
-                                <div class="friend-actions">
-                                    <button class="remove-friend-btn" onclick="removeFriend(${friend.id})">
-                                        Remove
-                                    </button>
-                                </div>
-                            </div>
-                        `).join('') || '<p>No friends yet</p>';
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch friends:', error);
-                    showMessage('Failed to load friends', true);
-                }
-            }
-        });
-
-        // Fonction de suppression d'ami
-        async function removeFriend(friendId) {
-            try {
-                const response = await fetch(`${API_URL}/remove_friend/${friendId}`, {
-                    method: 'DELETE',
-                    credentials: 'include'
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    showMessage('Friend removed successfully', false);
-                    // Rafraîchir la liste
-                    document.getElementById('show-friends-btn').click();
-                } else {
-                    showMessage(data.error || 'Failed to remove friend', true);
-                }
-            } catch (error) {
-                console.error('Remove friend error:', error);
-                showMessage('Failed to remove friend', true);
-            }
-        }
+        // Supprimer l'event listener du bouton show-friends et la fonction loadFriends
+        document.getElementById('show-friends-btn')?.remove();
+        
 
         // Vérifier régulièrement si l'utilisateur actuel est toujours valide
         setInterval(async () => {
@@ -644,18 +637,19 @@
 
         // Mise à jour de la liste des utilisateurs en ligne
         function updateOnlineUsers(onlineUsers) {
-            const friendList = document.getElementById('friend-list');
-            const friends = friendList.querySelectorAll('.friend-item');
-            
-            friends.forEach(friend => {
-                const userId = friend.dataset.userId;
-                const statusBadge = friend.querySelector('.status-badge');
-                if (statusBadge) {
-                    const isOnline = onlineUsers.includes(userId);
+            const searchResult = document.getElementById('search-result');
+            if (!searchResult) return;
+
+            const statusBadge = searchResult.querySelector('.status-badge');
+            if (statusBadge) {
+                const userElement = searchResult.querySelector('.friend-item');
+                if (userElement) {
+                    const username = userElement.dataset.username;
+                    const isOnline = onlineUsers.includes(username);
                     statusBadge.textContent = isOnline ? 'Online' : 'Offline';
-                    statusBadge.className = `status-badge ${isOnline ? 'online' : 'offline'}`;
+                    statusBadge.className = `status-badge ${isOnline ? 'status-online' : 'status-offline'}`;
                 }
-            });
+            }
         }
 
         // Ajouter des styles pour les badges de statut

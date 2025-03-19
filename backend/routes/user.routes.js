@@ -48,26 +48,6 @@ async function routes(fastify, options) {
         }
     });
 
-    fastify.get("/friends", async (request, reply) => {
-        const userId = request.user.userId;
-
-        try {
-            const friends = db.prepare(`
-                SELECT u.id, u.username, u.wins, u.losses, f.date as friend_since
-                FROM friendships f
-                JOIN users u ON u.id = f.friend_id
-                WHERE f.user_id = ?
-                ORDER BY f.date DESC
-            `).all(userId);
-
-            return { success: true, friends };
-
-        } catch (error) {
-            fastify.log.error(error);
-            return reply.code(500).send({ error: "Failed to fetch friends" });
-        }
-    });
-
     fastify.delete("/remove_friend/:friendId", async (request, reply) => {
         const { friendId } = request.params;
         const userId = request.user.userId;
@@ -86,6 +66,91 @@ async function routes(fastify, options) {
         } catch (error) {
             fastify.log.error(error);
             return reply.code(500).send({ error: "Failed to remove friend" });
+        }
+    });
+
+    fastify.get("/search/:username", async (request, reply) => {
+        const searchedUsername = request.params.username;
+        const userId = request.user.userId;
+
+        try {
+            // Rechercher l'utilisateur
+            const searchedUser = db.prepare(`
+                SELECT id, username, 
+                       strftime('%d-%m-%Y', created_at) as created_at,
+                       wins, losses
+                FROM users 
+                WHERE username = ?
+            `).get(searchedUsername);
+
+            if (!searchedUser) {
+                return reply.code(404).send({ 
+                    error: "User not found" 
+                });
+            }
+
+            // Vérifier si c'est un ami
+            const friendship = db.prepare(`
+                SELECT strftime('%d-%m-%Y', date) as friend_since
+                FROM friendships 
+                WHERE user_id = ? AND friend_id = ?
+            `).get(userId, searchedUser.id);
+
+            // Calculer les statistiques de jeu
+            const gameStats = db.prepare(`
+                SELECT 
+                    COUNT(*) as total_games,
+                    SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as wins
+                FROM games 
+                WHERE (player1_id = ? OR player2_id = ?)
+            `).get(searchedUser.id, searchedUser.id, searchedUser.id);
+
+            // Calculer le win rate
+            const winRate = gameStats.total_games > 0 
+                ? ((searchedUser.wins / gameStats.total_games) * 100).toFixed(1) 
+                : 0;
+
+            // Si c'est un ami, ajouter les stats communes
+            if (friendship) {
+                const commonGames = db.prepare(`
+                    SELECT 
+                        COUNT(*) as games_together,
+                        COALESCE(SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END), 0) as wins_together
+                    FROM games 
+                    WHERE (player1_id = ? AND player2_id = ?) 
+                       OR (player1_id = ? AND player2_id = ?)
+                `).get(userId, userId, searchedUser.id, searchedUser.id, userId);
+
+                return {
+                    success: true,
+                    isFriend: true,
+                    user: {
+                        username: searchedUser.username,
+                        friendSince: friendship.friend_since,
+                        gamesPlayed: gameStats.total_games,
+                        winRate: winRate,
+                        gamesTogether: commonGames.games_together || 0,
+                        winsTogether: commonGames.wins_together || 0,
+                        isConnected: fastify.connections.has(searchedUser.id)
+                    }
+                };
+            }
+
+            // Si ce n'est pas un ami
+            return {
+                success: true,
+                isFriend: false,
+                user: {
+                    username: searchedUser.username,
+                    createdAt: searchedUser.created_at,
+                    gamesPlayed: gameStats.total_games,
+                    winRate: winRate
+                }
+            };
+
+        } catch (error) {
+            fastify.log.error(error);
+            return reply.code(500).send({ error: "Failed to search user" });
         }
     });
 }
