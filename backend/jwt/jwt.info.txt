@@ -58,10 +58,17 @@ KEYS *
 connaitre leur type :
 TYPE refresh_1
 TYPE access_1
+TYPE online_user
 
 afficher la key :
 GET refresh_1
 GET access_1
+
+afficher les id des online_users
+SMEMBERS online_users
+
+chercher si connecter avec un user_id
+SISMEMBER online_users "user_id"
 
 ----------------
 

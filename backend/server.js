@@ -9,8 +9,20 @@ const fastify = require("fastify")({
 
 // Import des dépendances essentielles
 const initializeDatabase = require("./db/schema");
+const WebSocket = require('@fastify/websocket');
 
 // ====== Initialisation des services ======
+// Configurer WebSocket
+fastify.register(WebSocket, {
+    options: { 
+        maxPayload: 1048576,
+        clientTracking: true
+    }
+});
+
+// Stocker les connexions WebSocket actives
+fastify.decorate('connections', new Map());
+
 // Base de données SQLite
 try {
     const db = initializeDatabase(process.env.DATABASE_URL);
@@ -56,11 +68,19 @@ fastify.addHook('onRequest', (request, reply, done) => {
 // ====== Routes ======
 fastify.register(require('./routes/auth.routes'));
 fastify.register(require('./routes/game.routes'));
+fastify.register(require('./routes/user.routes'));
+fastify.register(require('./routes/ws.routes'));
 
 // ====== Gestion de l'arrêt propre ======
 const cleanup = async (signal) => {
     console.log(`\n${signal} received. Cleaning up...`);
     try {
+        // Fermer toutes les connexions WebSocket
+        for (const [userId, ws] of fastify.connections) {
+            ws.close();
+        }
+        fastify.connections.clear();
+        
         await fastify.close();
         fastify.db?.close();
         process.exit(0);
