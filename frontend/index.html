@@ -432,6 +432,7 @@
                         </span>
                     ` : '';
 
+                    // Dans la fonction de recherche, modifier l'affichage pour inclure le bouton de suppression si c'est un ami
                     searchResult.innerHTML = `
                         <div class="friend-item" data-username="${data.user.username}">
                             <div class="friend-info">
@@ -439,11 +440,15 @@
                                 ${statusBadge}
                                 ${statsHtml}
                             </div>
-                            ${!data.isFriend ? `
+                            ${data.isFriend ? `
+                                <button class="remove-friend-btn" onclick="removeFriend('${data.user.username}')">
+                                    Remove
+                                </button>
+                            ` : `
                                 <button class="add-friend-btn" onclick="addFriend('${data.user.username}')">
                                     Add Friend
                                 </button>
-                            ` : ''}
+                            `}
                         </div>
                     `;
                 }
@@ -469,17 +474,15 @@
             }
 
             try {
-                const response = await fetch(`${API_URL}/add_friend`, {
+                const response = await fetch(`${API_URL}/add/${friendUsername}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ friendUsername }),
                     credentials: 'include'
                 });
 
                 const data = await response.json();
                 if (data.success) {
-                    showMessage(data.message, false);
-                    // Rafraîchir la recherche pour mettre à jour l'affichage
+                    showMessage('Friend added successfully', false);
+                    // Rafraîchir la recherche
                     document.getElementById('search-btn').click();
                 } else {
                     showMessage(data.error || 'Failed to add friend', true);
@@ -487,6 +490,28 @@
             } catch (error) {
                 console.error('Add friend error:', error);
                 showMessage('Failed to add friend', true);
+            }
+        }
+
+        // Fonction de suppression d'ami
+        async function removeFriend(friendUsername) {
+            try {
+                const response = await fetch(`${API_URL}/remove/${friendUsername}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showMessage('Friend removed successfully', false);
+                    // Rafraîchir la recherche
+                    document.getElementById('search-btn').click();
+                } else {
+                    showMessage(data.error || 'Failed to remove friend', true);
+                }
+            } catch (error) {
+                console.error('Remove friend error:', error);
+                showMessage('Failed to remove friend', true);
             }
         }
 
