@@ -14,7 +14,8 @@ function initializeDatabase(dbPath)
             avatar TEXT DEFAULT NULL,
             settings TEXT DEFAULT '{}',
             wins INTEGER DEFAULT 0,
-            losses INTEGER DEFAULT 0
+            losses INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `).run();
 
