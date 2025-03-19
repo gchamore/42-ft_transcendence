@@ -93,8 +93,8 @@
         .friend-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem;
+            align-items: flex-start;
+            padding: 0.8rem;
             background: #2d2d2d;
             margin: 0.5rem 0;
             border-radius: 4px;
@@ -103,6 +103,22 @@
         .friend-info {
             flex-grow: 1;
             margin-right: 1rem; /* Ajouter de l'espace entre le nom et le bouton */
+        }
+
+        .user-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            flex-wrap: nowrap;
+        }
+
+        .username {
+            font-weight: bold;
+            margin-right: 0.5rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
         }
 
         .friend-actions {
@@ -436,8 +452,14 @@
                     searchResult.innerHTML = `
                         <div class="friend-item" data-username="${data.user.username}">
                             <div class="friend-info">
-                                <strong>${data.user.username}</strong>
-                                ${statusBadge}
+                                <div class="user-header">
+                                    <span class="username">${data.user.username}</span>
+                                    ${data.isFriend ? `
+                                        <span class="status-badge ${data.user.isConnected ? 'status-online' : 'status-offline'}">
+                                            ${data.user.isConnected ? 'Online' : 'Offline'}
+                                        </span>
+                                    ` : ''}
+                                </div>
                                 ${statsHtml}
                             </div>
                             ${data.isFriend ? `
@@ -446,7 +468,7 @@
                                 </button>
                             ` : `
                                 <button class="add-friend-btn" onclick="addFriend('${data.user.username}')">
-                                    Add Friend
+                                    Add
                                 </button>
                             `}
                         </div>
