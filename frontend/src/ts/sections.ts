@@ -161,6 +161,9 @@ class Friends extends ASection {
 	readonly btn1 = doc.getElementById('friends-btn1') as HTMLButtonElement;
 	readonly btn2 = doc.getElementById('friends-btn2') as HTMLButtonElement;
 	readonly btn3 = doc.getElementById('friends-btn3') as HTMLButtonElement;
+	readonly FriendsClass = sections[get_section_index('friends')!] as Friends;
+
+	user : OtherUser | undefined = undefined;
 
 	/* Methods */
 	enter(verified: boolean) {
@@ -187,6 +190,7 @@ class Friends extends ASection {
 		deactivate(this.founds);
 		deactivate(this.not_founds);
 
+		user = undefined;
 		this.btn1.onclick = () => this.search();
 		this.btn1.textContent = 'Search';
 		this.btn2.removeAttribute('onclick');
@@ -203,14 +207,45 @@ class Friends extends ASection {
 		this.status.textContent = '';
 	}
 	async search() {
-		const username = this.username_i.value;
+		console.log("search", user?.name, this.username_i.value);
+		this.user = await search(this.username_i.value);
 		this.reset();
-		if (await search(username) === true) {
-			console.log(username, "found");
+		if (this.user !== undefined) {
+			console.log("found");
+
+			this.btn2.onclick = () => this.message();
+			this.btn2.setAttribute('textContent', 'Message');
+			if (this.user.is_friend === true) {
+				this.btn3.onclick = () => this.remove();
+				this.btn3.setAttribute('textContent', 'Remove');
+			}
+			else {
+				this.btn3.setAttribute('onclick', '');
+				this.btn3.setAttribute('textContent', 'Add');
+			}
+
+			const stats : string[] = this.user.format_stats();
+			this.stat1.textContent = stats[0];
+			this.stat2.textContent = stats[1];
+			this.stat3.textContent = stats[2];
+
+			activate(this.founds);
 		}
-		// To be continued...
+		else {
+			console.log("not-found");
+			activate(this.not_founds);
+		}
+	}
+	message() {
+		console.log("message", user?.name, this.username_i.value);
+		this.reset();
+	}
+	remove() {
+		console.log("message", user?.name, this.username_i.value);
+		this.reset();
 	}
 }
+
 /* --------- */
 
 
@@ -267,9 +302,5 @@ function deactivate(list : NodeListOf<Element>): void {
 	list.forEach(element => {
 		element.classList.remove('activate');
 	});
-}
-
-function clear_friends(section : Friends): void {
-	
 }
 /* --------- */

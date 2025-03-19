@@ -155,6 +155,8 @@ class Friends extends ASection {
         this.btn1 = doc.getElementById('friends-btn1');
         this.btn2 = doc.getElementById('friends-btn2');
         this.btn3 = doc.getElementById('friends-btn3');
+        this.FriendsClass = sections[get_section_index('friends')];
+        this.user = undefined;
     }
     /* Methods */
     enter(verified) {
@@ -178,6 +180,7 @@ class Friends extends ASection {
     reset() {
         deactivate(this.founds);
         deactivate(this.not_founds);
+        user = undefined;
         this.btn1.onclick = () => this.search();
         this.btn1.textContent = 'Search';
         this.btn2.removeAttribute('onclick');
@@ -193,13 +196,40 @@ class Friends extends ASection {
     }
     search() {
         return __awaiter(this, void 0, void 0, function* () {
-            const username = this.username_i.value;
+            console.log("search", user === null || user === void 0 ? void 0 : user.name, this.username_i.value);
+            this.user = yield search(this.username_i.value);
             this.reset();
-            if ((yield search(username)) === true) {
-                console.log(username, "found");
+            if (this.user !== undefined) {
+                console.log("found");
+                this.btn2.onclick = () => this.message();
+                this.btn2.setAttribute('textContent', 'Message');
+                if (this.user.is_friend === true) {
+                    this.btn3.onclick = () => this.remove();
+                    this.btn3.setAttribute('textContent', 'Remove');
+                }
+                else {
+                    this.btn3.setAttribute('onclick', '');
+                    this.btn3.setAttribute('textContent', 'Add');
+                }
+                const stats = this.user.format_stats();
+                this.stat1.textContent = stats[0];
+                this.stat2.textContent = stats[1];
+                this.stat3.textContent = stats[2];
+                activate(this.founds);
             }
-            // To be continued...
+            else {
+                console.log("not-found");
+                activate(this.not_founds);
+            }
         });
+    }
+    message() {
+        console.log("message", user === null || user === void 0 ? void 0 : user.name, this.username_i.value);
+        this.reset();
+    }
+    remove() {
+        console.log("message", user === null || user === void 0 ? void 0 : user.name, this.username_i.value);
+        this.reset();
     }
 }
 /* --------- */
@@ -248,7 +278,5 @@ function deactivate(list) {
     list.forEach(element => {
         element.classList.remove('activate');
     });
-}
-function clear_friends(section) {
 }
 /* --------- */

@@ -89,7 +89,7 @@ async function logout() {
     }
 }
 
-async function search(friend_username : string): Promise<boolean> {
+async function search(friend_username : string): Promise<OtherUser | undefined> {
 	try {
         const response = await fetch(`/api/search/${friend_username}`, {
             method: "GET",
@@ -99,12 +99,13 @@ async function search(friend_username : string): Promise<boolean> {
 
 		if (!response.ok)
 			console.error(`/api/search/${friend_username} failed:`, data.error);
-        else if (data.success) {
-			return true;
-		}
+        else if (data.success)
+			return undefined;
+			// return new OtherUser(data.isFriend, data.stat1, data.stat2, data.stat3);
 
     } catch (error) {
 		console.error(`/api/search/${friend_username} error:`, error);
     }
-	return false;
+
+	return undefined;
 }
