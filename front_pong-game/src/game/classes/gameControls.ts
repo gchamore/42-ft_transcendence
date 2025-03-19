@@ -15,6 +15,9 @@ export class GameControls {
 
 	private babylonManager: BabylonManager;
 
+	private visibilityChangeHandler: () => void;
+	private windowBlurHandler: () => void;
+
 	constructor(
 		paddle1: Paddle,
 		paddle2: Paddle,
@@ -28,6 +31,10 @@ export class GameControls {
 		this.socket = socket;
 		this.babylonManager = babylonManager;
 		this.lastFrameTime = performance.now();
+		this.visibilityChangeHandler = this.handleVisibilityChange.bind(this);
+		this.windowBlurHandler = this.handleWindowBlur.bind(this);
+		document.addEventListener('visibilitychange', this.visibilityChangeHandler);
+		window.addEventListener('blur', this.windowBlurHandler.bind(this));
 	}
 
 	handleKeyDown(event: KeyboardEvent): void {
@@ -240,5 +247,26 @@ export class GameControls {
 				// Don't update lastProcessedInput here - that comes from the server
 			});
 		}
+	}
+
+	private handleVisibilityChange(): void {
+		if (document.visibilityState === 'hidden') {
+			this.resetKeyState();
+		}
+	}
+
+	private handleWindowBlur(): void {
+		this.resetKeyState();
+	}
+
+	private resetKeyState(): void {
+		this.keysPressed = {};
+		this.localPaddle.velocity = 0;
+		this.sendPaddleMovements();
+	}
+
+	public dispose(): void {
+		document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+		window.removeEventListener('blur', this.windowBlurHandler);
 	}
 }

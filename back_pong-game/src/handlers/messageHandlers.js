@@ -29,11 +29,19 @@ export function handleNewPlayer(socket, game) {
 		playerNumber: playerNumber
 	});
 
+
 	safeSend(socket, {
 		type: 'connected',
 		message: `Welcome Player ${playerNumber}!`,
 		gameId: game.gameId
 	});
+
+	if (playerNumber === 2 && game.isLobby) {
+		safeSend(socket, {
+			type: 'settingsUpdate',
+			settings: game.settings
+		});
+	}
 
 	// Set up socket message handler
 	socket.on('message', message => {

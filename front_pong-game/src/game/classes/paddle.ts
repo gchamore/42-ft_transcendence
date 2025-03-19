@@ -35,6 +35,9 @@ export class Paddle {
 			const scaledVelocity = this.velocity * (deltaTime / 1000) * GameConfig.PADDLE_SPEED_FACTOR;
 			this.y -= scaledVelocity;
 			this.y = Math.max(0, Math.min(this.y, GameConfig.CANVAS_HEIGHT - this.height));
+			if (this.y <= 0 || this.y >= GameConfig.CANVAS_HEIGHT - this.height) {
+				this.velocity = 0;
+			}
 		}
 	}
 }

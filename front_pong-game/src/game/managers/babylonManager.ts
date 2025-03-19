@@ -399,7 +399,10 @@ export class BabylonManager {
 	private updateBallMeshPosition(): void {
 		if (!this.ballMesh) return;
 		const now = performance.now();
-		const timeSinceLastUpdate = (now - this.lastServerUpdate) / 1000;
+		const timeSinceLastUpdate = Math.min((now - this.lastServerUpdate) / 1000, 0.1);
+
+		const ballSpeed = Math.sqrt(this.ball.speedX ** 2 + this.ball.speedY ** 2);
+		const speedFactor = ballSpeed / GameConfig.MAX_BALL_SPEED;
 
 		const predictedX = this.ball.x + this.ball.speedX * timeSinceLastUpdate;
 		const predictedY = this.ball.y + this.ball.speedY * timeSinceLastUpdate;
@@ -422,23 +425,61 @@ export class BabylonManager {
 			targetPosition
 		);
 
-		if (distance > 1 || directionChanged) {
-			this.ballMesh.position = targetPosition;
+		if (distance > 0.5 || directionChanged) {
+			this.ballMesh.position = targetPosition.clone();
+			if (directionChanged && !GameConfig.TEST_MODE) {
+				this.addBounceEffect(this.ballMesh.position.clone());
+			}
 		} else {
-			const interpolationFactor = 0.3;
+			const baseInterpolationFactor = 0.3;
+			const adaptiveInterpolationFactor = baseInterpolationFactor * (1 + speedFactor);
+			const clampedInterpolationFactor = Math.min(Math.max(adaptiveInterpolationFactor, 0.2), 0.8);
+
 			this.ballMesh.position = BABYLON.Vector3.Lerp(
 				this.ballMesh.position,
 				targetPosition,
-				interpolationFactor
+				clampedInterpolationFactor
 			);
 		}
 		if (this.ball.speedX !== 0) {
 			const rotationSpeed = 0.05;
-			this.ballMesh.rotation.x +=
-				rotationSpeed * Math.sign(this.ball.speedX);
-			this.ballMesh.rotation.z +=
-				rotationSpeed * Math.sign(this.ball.speedY);
+			this.ballMesh.rotation.x += rotationSpeed * Math.sign(this.ball.speedX);
+			this.ballMesh.rotation.z += rotationSpeed * Math.sign(this.ball.speedY);
 		}
+	}
+
+	private addBounceEffect(position: BABYLON.Vector3): void {
+		if (!this.scene) return;
+
+		const particleSystem = new BABYLON.ParticleSystem(
+			"particles",
+			200,
+			this.scene
+		);
+
+		particleSystem.particleTexture = new BABYLON.Texture(
+			GameConfig.PARTICLE_TEXTURE,
+			this.scene,
+		);
+
+		particleSystem.color1 = new BABYLON.Color4(1.0, 0.8, 0.3, 1.0);    // Bright gold
+		particleSystem.color2 = new BABYLON.Color4(1.0, 0.6, 0.1, 1.0);    // Copper
+		particleSystem.colorDead = new BABYLON.Color4(0.7, 0.3, 0.0, 0.0); // dark copper
+		particleSystem.emitter = position;
+		particleSystem.minSize = 0.3;
+		particleSystem.maxSize = 0.8;
+		particleSystem.minLifeTime = 0.2;
+		particleSystem.maxLifeTime = 0.5;
+		particleSystem.emitRate = 500;
+		particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+		particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+
+		particleSystem.start();
+
+		setTimeout(() => {
+			particleSystem.stop();
+			setTimeout(() => particleSystem.dispose(), 500);
+			}, 300);
 	}
 
 	public handlePaddleHit(paddle: BABYLON.Mesh): void {
@@ -457,72 +498,53 @@ export class BabylonManager {
 		}, 200);
 	}
 
-	// public handleWallHit(position: { x: number; y: number }): void {
-	// 	if (!this.scene) return;
-	// 	const flash = new BABYLON.PointLight(
-	// 		"wallHit",
-	// 		new BABYLON.Vector3(
-	// 			(position.x - (GameConfig.CANVAS_WIDTH / 2)) * (20 / GameConfig.CANVAS_WIDTH),
-	// 			0,
-	// 			((GameConfig.CANVAS_HEIGHT / 2) - position.y) * (15 / GameConfig.CANVAS_HEIGHT)
-	// 		),
-	// 		this.scene
-	// 	);
-	// 	flash.intensity = 2;
-	// 	flash.diffuseColor = new BABYLON.Color3(0.2, 0.2, 1);
+	public handleScoreEffect(scorer: number, position: { x: number; y: number }): void {
+		if (!this.scene) return;
+		const glowLayer = new BABYLON.GlowLayer("scoreGlow", this.scene);
+		const scoreMesh = BABYLON.MeshBuilder.CreateSphere(
+			"scoreEffect",
+			{ diameter: 2 },
+			this.scene
+		);
+		scoreMesh.position = new BABYLON.Vector3(
+			(position.x - (GameConfig.CANVAS_WIDTH / 2)) * (20 / GameConfig.CANVAS_WIDTH),
+			0,
+			((GameConfig.CANVAS_HEIGHT / 2) - position.y) * (15 / GameConfig.CANVAS_HEIGHT)
+		);
 
-	// 	setTimeout(() => {
-	// 		flash.dispose();
-	// 	}, 150);
-	// }
+		const material = new BABYLON.StandardMaterial("scoreMaterial", this.scene);
+		material.emissiveColor = scorer === 1 ?
+			new BABYLON.Color3(1, 0, 0) :
+			new BABYLON.Color3(0, 0, 1);
+			scoreMesh.material = material;
 
-	// public handleScoreEffect(scorer: number, position: { x: number; y: number }): void {
-	// 	if (!this.scene) return;
-	// 	const glowLayer = new BABYLON.GlowLayer("scoreGlow", this.scene);
-	// 	const scoreMesh = BABYLON.MeshBuilder.CreateSphere(
-	// 		"scoreEffect",
-	// 		{ diameter: 2 },
-	// 		this.scene
-	// 	);
-	// 	scoreMesh.position = new BABYLON.Vector3(
-	// 		(position.x - (GameConfig.CANVAS_WIDTH / 2)) * (20 / GameConfig.CANVAS_WIDTH),
-	// 		0,
-	// 		((GameConfig.CANVAS_HEIGHT / 2) - position.y) * (15 / GameConfig.CANVAS_HEIGHT)
-	// 	);
+		setTimeout(() => {
+			glowLayer.dispose();
+			scoreMesh.dispose();
+		}, 1000);
+	}
 
-	// 	const material = new BABYLON.StandardMaterial("scoreMaterial", this.scene);
-	// 	material.emissiveColor = scorer === 1 ?
-	// 		new BABYLON.Color3(1, 0, 0) :
-	// 		new BABYLON.Color3(0, 0, 1);
-	// 		scoreMesh.material = material;
-
-	// 	setTimeout(() => {
-	// 		glowLayer.dispose();
-	// 		scoreMesh.dispose();
-	// 	}, 1000);
-	// }
-
-	// public handleGameStartAnimation(): void {
-	// 	if (!this.scene) return;
-	// 	const numbers = ['3', '2', '1', 'GO!'];
-	// 	let i = 0;
-	// 	const interval = setInterval(() => {
-	// 		if (i >= numbers.length) {
-	// 			clearInterval(interval);
-	// 			return;
-	// 		}
-	// 		if (this.scene) {
-	// 			const text = BABYLON.MeshBuilder.CreateText(
-	// 				"countdown",
-	// 				numbers[i],
-	// 				null,
-	// 				this.scene
-	// 			);
-	// 			setTimeout(() => text.dispose(), 900);
-	// 		}
-	// 		i++;
-	// 	}, 1000);
-	// }
+	public handleGameStartAnimation(): void {
+		if (!this.scene) return;
+		const numbers = ['3', '2', '1', 'GO!'];
+		let i = 0;
+		const interval = setInterval(() => {
+			if (i >= numbers.length) {
+				clearInterval(interval);
+				return;
+			}
+			if (this.scene) {
+				const text = BABYLON.MeshBuilder.CreateText(
+					"countdown",
+					numbers[i],
+					null,
+					this.scene
+				);
+				setTimeout(() => text.dispose(), 900);
+			}
+			i++;
+		}, 1000);
+	}
 
 	private createCollisionBoxes(): void {
 		if (!this.scene || !GameConfig.TEST_MODE) return;

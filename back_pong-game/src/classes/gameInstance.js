@@ -2,7 +2,7 @@ import { createDefaultGameState } from "../../public/dist/shared/types/gameState
 import { GameConfig } from "../../public/dist/shared/config/gameConfig.js";
 
 export class GameInstance {
-	constructor(gameId, existingSettings = null, safeSendFunction = null) {
+	constructor(gameId, existingSettings = null) {
 		this.gameId = gameId;
 		this.isLobby = gameId.startsWith("lobby-");
 		this.players = [];
@@ -17,7 +17,6 @@ export class GameInstance {
 		};
 		this.playerReadyStatus = new Set();
 		this.resetBall();
-		this.safeSend = safeSendFunction;
 	}
 
 	setPlayerReady(playerNumber) {
@@ -75,7 +74,7 @@ export class GameInstance {
 		const ball = this.gameState.ball;
 		if (ball.y - ball.radius <= 0 || ball.y + ball.radius >= GameConfig.CANVAS_HEIGHT) {
 			ball.speedY *= -1;
-			// Add small random factor to avoid loops (non-TEST mode only)
+			// Add small random factor to avoid loops
 			ball.speedY += (Math.random() - 0.5) * 0.5;
 			return true;
 		}
@@ -227,8 +226,8 @@ export class GameInstance {
 
 	resetForRematch() {
 		this.gameState.score = { player1Score: 0, player2Score: 0 };
-		this.gameState.paddle1.y = (600 - this.gameState.paddle1.height) / 2;
-		this.gameState.paddle2.y = (600 - this.gameState.paddle2.height) / 2;
+		this.gameState.paddle1.y = (GameConfig.CANVAS_HEIGHT - this.gameState.paddle1.height) / 2;
+		this.gameState.paddle2.y = (GameConfig.CANVAS_HEIGHT - this.gameState.paddle2.height) / 2;
 		this.gameState.servingPlayer = Math.random() < 0.5 ? 1 : 2;
 		this.resetBall();
 		this.playerReadyStatus.clear();

@@ -147,28 +147,22 @@ export class Game {
 					console.error("Game error:", data.message);
 					this.uiManager.drawErrorMessage(data.message);
 					break;
-				case "wallHit":
-					// if (this.babylonManager) {
-					// 	this.babylonManager.handleWallHit(data.position);
-					// }
-					console.log("Wall hit at position", data.position);
-					break;
 				case "scoreEffect":
-					// if (this.babylonManager) {
-					// 	this.babylonManager.handleScoreEffect(data.scorer, data.position);
-					// }
+					if (this.babylonManager) {
+						this.babylonManager.handleScoreEffect(data.scorer, data.position);
+					}
 					console.log("Score effect at position", data.position);
 					break
 				case "gameStartAnimation":
-					// if (this.babylonManager) {
-					// 	this.babylonManager.handleGameStartAnimation();
-					// }
+					if (this.babylonManager) {
+						this.babylonManager.handleGameStartAnimation();
+					}
 					console.log("Game start animation");
 					break;
 				case "paddleHit":
-					// if (this.babylonManager) {
-					// 	this.babylonManager.handlePaddleHit(data.player);
-					// }
+					if (this.babylonManager) {
+						this.babylonManager.handlePaddleHit(data.player);
+					}
 					console.log("Paddle hit by player", data.player);
 					break;
 			}
@@ -261,6 +255,9 @@ export class Game {
 		}
 		this.inputManager.removeEventListeners();
 
+		if (this.controls) {
+			this.controls.dispose();
+		}
 		if (this.fpsManager) {
 			this.fpsManager.dispose();
 		}
@@ -269,6 +266,7 @@ export class Game {
 			this.babylonManager.dispose();
 			this.babylonManager = null;
 		}
+		
 	}
 
 	private updateSettings() {

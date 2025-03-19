@@ -42,7 +42,7 @@ function handleGameConnection(connection, request) {
 
 	if (gameId === 'lobby-main') {
 		if (!mainLobby) {
-			mainLobby = new GameInstance(gameId, null, safeSend);
+			mainLobby = new GameInstance(gameId);
 			console.log('Main lobby created');
 		}
 		handleNewPlayer(socket, mainLobby);
