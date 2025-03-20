@@ -7,7 +7,7 @@ class User {
     }
 }
 function update_user(new_user_value) {
-    user = new_user_value;
+    globalThis.user = new_user_value;
 }
 /* --------- */
 /* OtherUser */

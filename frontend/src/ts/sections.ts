@@ -171,6 +171,7 @@ class Friends extends ASection {
 			console.error("Try to enter Friends section as unauthenticated");
 			return;
 		}
+
 		this.reset();
 		this.logged_in_view();
 		this.activate_section();
@@ -245,9 +246,7 @@ class Friends extends ASection {
 		this.reset();
 	}
 }
-
 /* --------- */
-
 
 
 /* Utils */

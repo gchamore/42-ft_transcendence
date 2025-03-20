@@ -10,7 +10,7 @@ class User {
 }
 
 function update_user(new_user_value : User | undefined) {
-    user = new_user_value;
+    globalThis.user = new_user_value;
 }
 /* --------- */
 
