@@ -260,6 +260,8 @@
             // 🔥 2. Vérifie si Google OAuth a renvoyé un code dans l'URL
             const urlParams = new URLSearchParams(window.location.search);
             const googleCode = urlParams.get('code');
+            const loginSuccess = urlParams.get('login');
+            const username = urlParams.get('username');
 
             if (googleCode) {
                 try {
@@ -274,8 +276,8 @@
 
                     if (response.ok && data.success) {
                         showMessage('Google Login successful!', false);
-                        showWelcome(data.username); // Charge l'espace connecté
-                        window.history.replaceState({}, document.title, '/'); // Nettoie l'URL
+                        // Ne pas appeler showWelcome ici car il sera appelé par checkAuth
+                        window.history.replaceState({}, document.title, '/');
                     } else {
                         showMessage(data.error || 'Google Login failed', true);
                     }
@@ -283,16 +285,9 @@
                     console.error('Google OAuth callback error:', error);
                     showMessage('Google OAuth callback error', true);
                 }
-            }
-
-            // Check URL parameters for login success
-            const loginSuccess = urlParams.get('login');
-            const username = urlParams.get('username');
-            
-            if (loginSuccess === 'success' && username) {
+            } else if (loginSuccess === 'success' && username) {
                 showMessage('Google Login successful!', false);
-                showWelcome(username);
-                // Clean up URL
+                // Ne pas appeler showWelcome ici car il sera appelé par checkAuth
                 window.history.replaceState({}, document.title, '/');
             }
         };
