@@ -284,6 +284,17 @@
                     showMessage('Google OAuth callback error', true);
                 }
             }
+
+            // Check URL parameters for login success
+            const loginSuccess = urlParams.get('login');
+            const username = urlParams.get('username');
+            
+            if (loginSuccess === 'success' && username) {
+                showMessage('Google Login successful!', false);
+                showWelcome(username);
+                // Clean up URL
+                window.history.replaceState({}, document.title, '/');
+            }
         };
 
 
@@ -418,7 +429,17 @@
         document.getElementById('verify-token-btn').addEventListener('click', verifyToken);
         document.getElementById('verify-token-logged-btn').addEventListener('click', verifyToken);
         document.getElementById('google-login-btn').addEventListener('click', () => {
-            const googleAuthUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${GOOGLE_REDIRECT_URI}&response_type=code&scope=email profile&access_type=online`;
+            const googleAuthUrl = `https://accounts.google.com/o/oauth2/auth?` +
+                `client_id=${GOOGLE_CLIENT_ID}` +
+                `&redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT_URI)}` +
+                `&response_type=code` +
+                `&scope=${encodeURIComponent('email profile')}` +
+                `&access_type=offline` +
+                `&prompt=consent`;
+            
+            // Store current URL for redirect after login
+            sessionStorage.setItem('preLoginPage', window.location.href);
+            
             window.location.href = googleAuthUrl;
         });
 

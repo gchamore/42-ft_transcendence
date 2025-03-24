@@ -50,7 +50,10 @@ const publicRoutes = [
     '/register',
     '/refresh',
     '/verify_token',
-    '/api/auth/google/callback',
+    '/auth/google/callback',
+    '/oauth/callback',
+    '/auth/google',  // Add this new route
+    '/oauth'         // Add this new route
 ];
 
 // Middleware d'authentification
@@ -108,3 +111,30 @@ fastify.listen({ port: 3000, host: '0.0.0.0' }, (err) => {
     }
     console.log('🚀 Server ready at http://localhost:8080');
 });
+/* cote firefox : 
+J'arrive bien sur la fenetre de connexion google oauth. avec ces messages :
+Content-Security-Policy warnings 3
+WARNING! m=_b,_tp:424:253
+Using this console may allow attackers to impersonate you and steal your information using an attack called Self-XSS.
+Do not enter or paste code that you do not understand. m=_b,_tp:424:253
+Content-Security-Policy: Couldn’t process unknown directive ‘require-trusted-types-for’ bscframe
+Content-Security-Policy warnings 2
+This page is in Quirks Mode. Page layout may be impacted. For Standards Mode use “<!DOCTYPE html>”.
+CheckConnection
+unreachable code after return statement
+identifier:158:22906
+unreachable code after return statement
+identifier:158:23985
+unreachable code after return statement
+identifier:158:50830
+unreachable code after return statement
+identifier:158:23985
+unreachable code after return statement 
+Sur chrome :
+J'ai une erreur : {"error":"No token provided"}
+
+Avec ces messages d'erreur console :
+ 
+ GET http://localhost:8080/api/auth/google/callback?code=4%2F0AQSTgQHXmw_oL71QYa…A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile&authuser=0&prompt=none 401 (Unauthorized)
+(anonymous)	@	:8080/:422
+*/
