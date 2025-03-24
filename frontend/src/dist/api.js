@@ -21,6 +21,7 @@ function verify_token() {
                 console.error("/api/verify_token failed:", data.error);
             else if (data.valid) {
                 console.log(data.username, "authenticated");
+                console.log(user, "1");
                 update_user(new User(data.username));
                 return;
             }
@@ -107,13 +108,13 @@ function search(friend_username) {
             const data = yield response.json();
             if (!response.ok)
                 console.error(`/api/search/${friend_username} failed:`, data.error);
-            else if (data.success) {
-                return true;
-            }
+            else if (data.success)
+                return undefined;
+            // return new OtherUser(data.isFriend, data.stat1, data.stat2, data.stat3);
         }
         catch (error) {
             console.error(`/api/search/${friend_username} error:`, error);
         }
-        return false;
+        return undefined;
     });
 }
