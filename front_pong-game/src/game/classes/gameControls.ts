@@ -1,10 +1,12 @@
 import { Paddle } from './paddle';
+import { Ball } from './ball';
 import { PaddleInput, ServerPaddleState } from '../../types/gameTypes';
 import { BabylonManager } from '../managers/babylonManager';
 
 export class GameControls {
 	localPaddle: Paddle;
 	remotePaddle: Paddle;
+	ball: Ball;
 	private keysPressed: { [key: string]: boolean } = {};
 	private lastFrameTime: number = 0;
 	private socket!: WebSocket;
@@ -13,6 +15,8 @@ export class GameControls {
 	private inputHistory: PaddleInput[] = [];
 	private remotePaddleBuffer: { time: number; position: number }[] = [];
 	private interpolationDelay: number = 100;
+	private ballPositionBuffer: { time: number; position: { x: number, y: number}; speedX: number; speedY: number }[] = [];
+	private ballInterpolationDelay: number = 50;
 
 	private babylonManager: BabylonManager;
 
@@ -22,6 +26,7 @@ export class GameControls {
 	constructor(
 		paddle1: Paddle,
 		paddle2: Paddle,
+		ball: Ball,
 		playerNumber: number,
 		socket: WebSocket,
 		babylonManager: BabylonManager
@@ -29,6 +34,7 @@ export class GameControls {
 		this.playerNumber = playerNumber;
 		this.localPaddle = playerNumber === 1 ? paddle1 : paddle2;
 		this.remotePaddle = playerNumber === 1 ? paddle2 : paddle1;
+		this.ball = ball;
 		this.socket = socket;
 		this.babylonManager = babylonManager;
 		this.lastFrameTime = performance.now();
@@ -106,6 +112,7 @@ export class GameControls {
 		
 		this.processInput(deltaTime);
 		this.updateRemotePaddlePosition();
+		this.updateBallPosition();
 	}
 
 	private processInput(deltaTime: number): void {
@@ -237,11 +244,8 @@ export class GameControls {
 	}
 
 	private cubicEaseInOut(t: number): number {
-		// Clamp t between 0 and 1
 		t = Math.max(0, Math.min(1, t));
-
-		// Cubic easing function: smoother acceleration and deceleration
-		return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+		return 0.5 * (1 - Math.cos(t * Math.PI));
 	}
 
 	public updateServerPaddlePosition(
@@ -270,13 +274,13 @@ export class GameControls {
 			this.remotePaddleBuffer.shift();
 		}
 	}
-
+	
 	// Reconcile local paddle with server position to avoid Jitter (blocked movement, backward movement)
 	private reconcilePaddlePosition(
 		serverLocalPaddle: ServerPaddleState
 	): void {
 		this.localPaddle.lastProcessedInput =
-			serverLocalPaddle.lastProcessedInput;
+		serverLocalPaddle.lastProcessedInput;
 		// reset paddle position to authoritative server position
 		this.localPaddle.y = serverLocalPaddle.y;
 		// remove inputs that have already been processed by the server
@@ -288,7 +292,7 @@ export class GameControls {
 		if (this.inputHistory.length > 0) {
 			// Sort by sequence number to ensure proper order
 			this.inputHistory.sort((a, b) => a.inputSequence - b.inputSequence);
-
+			
 			// Apply each unprocessed input
 			this.inputHistory.forEach((input) => {
 				// Move the paddle directly to the cached position
@@ -297,6 +301,83 @@ export class GameControls {
 			});
 		}
 	}
+
+	public storeBallPosition(serverBall: { x: number, y: number, speedX: number, speedY: number, radius?: number }): void {
+		const now = performance.now();
+		this.ballPositionBuffer.push({
+			time: now,
+			position: { x: serverBall.x, y: serverBall.y },
+			speedX: serverBall.speedX,
+			speedY: serverBall.speedY,
+		});
+		while (this.ballPositionBuffer.length > 10) {
+			this.ballPositionBuffer.shift();
+		}
+	}
+
+	private updateBallPosition(): void {
+		const now = performance.now();
+
+		// Return if the buffer is empty or has only one entry
+		if (this.ballPositionBuffer.length < 2) {
+			return;
+		}
+
+		// Clean old positions from the buffer
+		while (this.ballPositionBuffer.length > 2 &&
+			now > this.ballPositionBuffer[1].time + this.ballInterpolationDelay) {
+			this.ballPositionBuffer.shift();
+		}
+
+		// Get the two positions to interpolate between
+		const targetTime = now - this.ballInterpolationDelay;
+
+		// Find the two buffer entries surrounding our target time
+		let prev = this.ballPositionBuffer[0];
+		let next = this.ballPositionBuffer[1];
+
+		// If we're still interpolating between these points
+		if (targetTime <= next.time && targetTime >= prev.time) {
+			// Calculate how far we are between the two positions (0 to 1)
+			const timeFactor = (targetTime - prev.time) / (next.time - prev.time);
+
+			// Use a smoothing function for interpolation
+			const t = this.cubicEaseInOut(timeFactor);
+
+			// Linear interpolation between actual positions 
+			this.ball.x = prev.position.x * (1 - t) + next.position.x * t;
+			this.ball.y = prev.position.y * (1 - t) + next.position.y * t;
+			return;
+		}
+		// If we're past the next position in our buffer
+		else if (targetTime > next.time) {
+			// Look ahead in the buffer if there are more positions
+			for (let i = 1; i < this.ballPositionBuffer.length - 1; i++) {
+				if (targetTime <= this.ballPositionBuffer[i + 1].time &&
+					targetTime >= this.ballPositionBuffer[i].time) {
+					prev = this.ballPositionBuffer[i];
+					next = this.ballPositionBuffer[i + 1];
+
+					const timeFactor = (targetTime - prev.time) / (next.time - prev.time);
+					const t = this.cubicEaseInOut(timeFactor);
+
+					this.ball.x  = prev.position.x * (1 - t) + next.position.x * t;
+					this.ball.y = prev.position.y * (1 - t) + next.position.y * t;
+					return;
+				}
+			}
+			// If we're past all buffer positions, use the latest + velocity projection
+			if (this.ballPositionBuffer.length > 0) {
+				const latest = this.ballPositionBuffer[this.ballPositionBuffer.length - 1];
+				const timeElapsed = (now - latest.time) / 1000;
+
+				// Use velocity to predict current position
+				this.ball.x = latest.position.x + latest.speedX * timeElapsed;
+				this.ball.y = latest.position.y + latest.speedY * timeElapsed;
+			}
+		}
+	}
+
 
 	private handleVisibilityChange(): void {
 		if (document.visibilityState === 'hidden') {

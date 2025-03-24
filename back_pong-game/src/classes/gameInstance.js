@@ -1,5 +1,6 @@
 import { createDefaultGameState } from "../../public/dist/shared/types/gameState.js";
 import { GameConfig } from "../../public/dist/shared/config/gameConfig.js";
+import { safeSend } from '../utils/socketUtils.js';
 
 export class GameInstance {
 	constructor(gameId, existingSettings = null) {
@@ -59,9 +60,9 @@ export class GameInstance {
 			ball.x += ball.speedX * deltaTime;
 			ball.y += ball.speedY * deltaTime;
 
-			this.checkWallCollision(ball);
+			this.checkWallCollision();
 
-			this.checkPaddleCollision(ball);
+			this.checkPaddleCollision();
 
 			const scoreResult = this.checkScoring(ball);
 
@@ -72,38 +73,103 @@ export class GameInstance {
 
 	checkWallCollision() {
 		const ball = this.gameState.ball;
-		if (ball.y - ball.radius <= 0 || ball.y + ball.radius >= GameConfig.CANVAS_HEIGHT) {
-			ball.speedY *= -1;
+		// Check top wall collision
+		if (ball.y - ball.radius <= 0) {
+			// Reverse direction
+			ball.speedY = Math.abs(ball.speedY);
+			// Ensure the ball is outside the wall
+			ball.y = ball.radius;
 			// Add small random factor to avoid loops
 			ball.speedY += (Math.random() - 0.5) * 0.5;
+			this.players.forEach((player) => {
+				safeSend(player, {
+					type: "wallBounce",
+					position: { x: ball.x, y: ball.y },
+				});
+			});
 			return true;
 		}
+		// Check bottom wall collision
+		else if (ball.y + ball.radius >= GameConfig.CANVAS_HEIGHT) {
+			// Reverse direction
+			ball.speedY = -Math.abs(ball.speedY);
+			// Ensure the ball is outside the wall
+			ball.y = GameConfig.CANVAS_HEIGHT - ball.radius;
+			// Add small random factor to avoid loops
+			ball.speedY += (Math.random() - 0.5) * 0.5;
+			this.players.forEach((player) => {
+				safeSend(player, {
+					type: "wallBounce",
+					position: { x: ball.x, y: ball.y },
+				});
+			});
+			return true;
+		}
+
 		return false;
 	}
 
-	checkPaddleCollision(ball) {
+	checkPaddleCollision() {
+		const ball = this.gameState.ball;
 		[1, 2].forEach((playerNumber) => {
 			const paddle = this.gameState[`paddle${playerNumber}`];
-			if (
-				ball.x - ball.radius <= paddle.x + paddle.width &&
-				ball.x + ball.radius >= paddle.x &&
-				ball.y - ball.radius <= paddle.y + paddle.height &&
-				ball.y + ball.radius >= paddle.y
-			) {
-				ball.speedX *= -1;
-				const hitPoint = (ball.y - paddle.y) / paddle.height;
-				const currentSpeed = Math.sqrt(
-					ball.speedX ** 2 + ball.speedY ** 2
-				);
 
-				// Set y velocity based on where the ball hit the paddle
-				ball.speedY = (hitPoint - 0.5) * currentSpeed;
+			// Calculate the closest point on the paddle to the ball
+			const closestX = Math.max(paddle.x, Math.min(ball.x, paddle.x + paddle.width));
+			const closestY = Math.max(paddle.y, Math.min(ball.y, paddle.y + paddle.height));
 
-				//scale X velocity to maintain total speed
+			// Calculate the distance between the ball and this closest point
+			const distanceX = ball.x - closestX;
+			const distanceY = ball.y - closestY;
+			const distanceSquared = distanceX * distanceX + distanceY * distanceY;
+
+			// Check if there's a collision (distance from center to closest point <= radius)
+			if (distanceSquared <= ball.radius * ball.radius) {
+				// Determine collision side (left/right vs top/bottom)
+				const isHorizontalCollision = Math.abs(distanceX) > Math.abs(distanceY);
+
+				// Calculate the current total speed before changes
+				const currentSpeed = Math.sqrt(ball.speedX * ball.speedX + ball.speedY * ball.speedY);
+
+				if (isHorizontalCollision) {
+					// LEFT/RIGHT COLLISION
+					// Flip X direction
+					ball.speedX *= -1;
+
+					// Calculate hit position along the paddle (0 = top, 1 = bottom)
+					const hitPoint = (ball.y - paddle.y) / paddle.height;
+
+					// Set Y velocity based on where the ball hit the paddle
+					ball.speedY = (hitPoint - 0.5) * currentSpeed * 2;
+
+					// Ensure the ball is outside the paddle
+					if (playerNumber === 1) {
+						ball.x = paddle.x + paddle.width + ball.radius;
+					} else {
+						ball.x = paddle.x - ball.radius;
+					}
+				} else {
+					// TOP/BOTTOM COLLISION
+					// Flip Y direction
+					ball.speedY *= -1;
+
+					// Add slight random angle for top/bottom hits to make game more interesting
+					ball.speedY += (Math.random() - 0.5) * 0.5;
+
+					// Ensure the ball is outside the paddle
+					if (ball.y < paddle.y + paddle.height / 2) {
+						ball.y = paddle.y - ball.radius;
+					} else {
+						ball.y = paddle.y + paddle.height + ball.radius;
+					}
+				}
+
+				// Scale X velocity to maintain total speed
 				const newYSpeed = Math.abs(ball.speedY);
-				const newXSpeed = Math.sqrt(currentSpeed ** 2 - newYSpeed ** 2);
+				const newXSpeed = Math.sqrt(currentSpeed * currentSpeed - newYSpeed * newYSpeed);
 				ball.speedX = Math.sign(ball.speedX) * newXSpeed;
 
+				// Speed up the ball if below max speed
 				const maxSpeed = GameConfig.MAX_BALL_SPEED;
 				const speedUpFactor = GameConfig.BALL_SPEEDUP_FACTOR;
 
@@ -112,6 +178,14 @@ export class GameInstance {
 					ball.speedX *= speedUpFactor;
 					ball.speedY *= speedUpFactor;
 				}
+				this.players.forEach((player) => {
+					safeSend(player, {
+						type: "paddleHit",
+						playerNumber,
+						ballPosition: { x: ball.x, y: ball.y },
+					});
+				});
+				return;
 			}
 		});
 	}

@@ -108,6 +108,7 @@ export class Game {
 			this.controls = new GameControls(
 				this.paddle1,
 				this.paddle2,
+				this.ball,
 				this.playerNumber,
 				this.socket,
 				this.babylonManager!
@@ -161,9 +162,14 @@ export class Game {
 					break;
 				case "paddleHit":
 					if (this.babylonManager) {
-						this.babylonManager.handlePaddleHit(data.player);
+						this.babylonManager.handlePaddleHit(data.playerNumber, data.ballPosition);
 					}
 					console.log("Paddle hit by player", data.player);
+					break;
+				case "wallBounce":
+					if (this.babylonManager) {
+						this.babylonManager.handleBounce(data.position);
+					}
 					break;
 			}
 		};
@@ -205,7 +211,7 @@ export class Game {
 
 		if (gameState.ball) {
 			if (gameState.ball.x !== null && gameState.ball.y !== null) {
-				this.ball.updatePosition(gameState.ball);
+				this.controls.storeBallPosition(gameState.ball);
 			}
 		}
 

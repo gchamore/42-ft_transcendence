@@ -75,6 +75,8 @@ declare namespace BABYLON {
 		emissiveColor: Color3;
 		alpha: number;
 		wireframe: boolean;
+		specularPower: number;
+		clone(name: string): StandardMaterial;
 	}
 
 	class ShadowGenerator {

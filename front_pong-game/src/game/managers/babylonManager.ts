@@ -2,7 +2,7 @@
 import { Ball } from "../classes/ball.js";
 import { Paddle } from "../classes/paddle.js";
 import { GameState } from "@shared/types/gameState";
-import { GameConfig } from "../../../../shared/config/gameConfig.js";
+import { GameConfig } from '../../../../shared/config/gameConfig.js';
 
 export class BabylonManager {
 	private engine: BABYLON.Engine | null = null;
@@ -24,13 +24,10 @@ export class BabylonManager {
 	private readonly scaleX: number = 20 / GameConfig.CANVAS_WIDTH;
 	private readonly scaleY: number = 15 / GameConfig.CANVAS_HEIGHT;
 
-	private previousSpeedX: number = 0;
-	private previousSpeedY: number = 0;
 	private gameStarted: boolean = false;
 	private ballCentered: boolean = false;
 
 	private lastRenderTime: number = 0;
-	private lastServerUpdate: number = 0;
 
 	//debug
 	private paddleCollisionBox1: BABYLON.Mesh | null = null;
@@ -353,7 +350,6 @@ export class BabylonManager {
 	}
 
 	public updateGameState(gameState: GameState) {
-		this.lastServerUpdate = performance.now();
 		this.gameStarted = gameState.gameStarted;
 		if (this.gameStarted && this.ballCentered) {
 			this.ballCentered = false;
@@ -376,8 +372,6 @@ export class BabylonManager {
 	private centerBallPosition(): void {
 		if (!this.ballMesh) return;
 		this.ballMesh.position = new BABYLON.Vector3(0, -0.2, 0);
-		this.previousSpeedX = 0;
-		this.previousSpeedY = 0;
 	}
 
 	private updatePaddleMeshPositions(): void {
@@ -398,54 +392,24 @@ export class BabylonManager {
 
 	private updateBallMeshPosition(): void {
 		if (!this.ballMesh) return;
-		const now = performance.now();
-		const timeSinceLastUpdate = Math.min((now - this.lastServerUpdate) / 1000, 0.1);
-
-		const ballSpeed = Math.sqrt(this.ball.speedX ** 2 + this.ball.speedY ** 2);
-		const speedFactor = ballSpeed / GameConfig.MAX_BALL_SPEED;
-
-		const predictedX = this.ball.x + this.ball.speedX * timeSinceLastUpdate;
-		const predictedY = this.ball.y + this.ball.speedY * timeSinceLastUpdate;
 
 		const targetPosition = new BABYLON.Vector3(
-			(predictedX - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
+			(this.ball.x - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
 			-0.2,
-			(GameConfig.CANVAS_HEIGHT / 2 - predictedY) * this.scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - this.ball.y) * this.scaleY
 		);
 
-		const directionChanged =
-			Math.sign(this.ball.speedX) !== Math.sign(this.previousSpeedX) ||
-			Math.sign(this.ball.speedY) !== Math.sign(this.previousSpeedY);
+		this.ballMesh.position = targetPosition;
+	}
 
-		this.previousSpeedX = this.ball.speedX;
-		this.previousSpeedY = this.ball.speedY;
-
-		const distance = BABYLON.Vector3.Distance(
-			this.ballMesh.position,
-			targetPosition
+	public handleBounce(position: { x: number, y: number }) { 
+		if (!this.scene) return;
+		const bouncePosition = new BABYLON.Vector3(
+			(position.x - (GameConfig.CANVAS_WIDTH / 2)) * (20 / GameConfig.CANVAS_WIDTH),
+			-0.2,
+			((GameConfig.CANVAS_HEIGHT / 2) - position.y) * (15 / GameConfig.CANVAS_HEIGHT)
 		);
-
-		if (distance > 0.5 || directionChanged) {
-			this.ballMesh.position = targetPosition.clone();
-			if (directionChanged && !GameConfig.TEST_MODE) {
-				this.addBounceEffect(this.ballMesh.position.clone());
-			}
-		} else {
-			const baseInterpolationFactor = 0.3;
-			const adaptiveInterpolationFactor = baseInterpolationFactor * (1 + speedFactor);
-			const clampedInterpolationFactor = Math.min(Math.max(adaptiveInterpolationFactor, 0.2), 0.8);
-
-			this.ballMesh.position = BABYLON.Vector3.Lerp(
-				this.ballMesh.position,
-				targetPosition,
-				clampedInterpolationFactor
-			);
-		}
-		if (this.ball.speedX !== 0) {
-			const rotationSpeed = 0.05;
-			this.ballMesh.rotation.x += rotationSpeed * Math.sign(this.ball.speedX);
-			this.ballMesh.rotation.z += rotationSpeed * Math.sign(this.ball.speedY);
-		}
+		this.addBounceEffect(bouncePosition);
 	}
 
 	private addBounceEffect(position: BABYLON.Vector3): void {
@@ -493,20 +457,26 @@ export class BabylonManager {
 			}, 300);
 	}
 
-	public handlePaddleHit(paddle: BABYLON.Mesh): void {
+	public handlePaddleHit(playerNumber: number, ballPosition: { x: number, y: number }): void {
 		if (!this.scene || GameConfig.TEST_MODE) return;
-		const flash = new BABYLON.PointLight(
-			"flash",
-			paddle.position,
-			this.scene
-		);
-		flash.intensity = 3;
-		flash.diffuseColor = new BABYLON.Color3(1, 0.5, 0);
+		const targetPaddleMesh = playerNumber === 1 ? this.paddleMesh1 : this.paddleMesh2;
+		if (targetPaddleMesh) {
+			const originalMaterial = targetPaddleMesh.material as BABYLON.StandardMaterial;
+			const hitMaterial = originalMaterial.clone("hitMaterial");
+			hitMaterial.emissiveColor = playerNumber === 1 ?
+				new BABYLON.Color3(1, 0.3, 0.3) :
+				new BABYLON.Color3(1, 0.3, 0.3);
+			hitMaterial.specularPower = 128;
+			targetPaddleMesh.material = hitMaterial;
 
-		setTimeout(() => {
-			flash.intensity = 0;
-			flash.dispose();
-		}, 200);
+			// 3. Add particles at the hit point
+			this.handleBounce(ballPosition);
+
+			// Reset everything after a short delay
+			setTimeout(() => {
+				targetPaddleMesh.material = originalMaterial;
+			}, 200);
+		}
 	}
 
 	public handleScoreEffect(scorer: number, position: { x: number; y: number }): void {
