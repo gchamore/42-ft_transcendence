@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +16,7 @@
             min-height: 100vh;
             margin: 0;
         }
+
         .container {
             background-color: #1e1e1e;
             padding: 2rem;
@@ -22,16 +24,19 @@
             width: 100%;
             max-width: 400px;
         }
+
         h1 {
             color: #00babc;
             text-align: center;
             margin-bottom: 2rem;
         }
+
         .forms {
             display: flex;
             flex-direction: column;
             gap: 1rem;
         }
+
         input {
             width: 100%;
             padding: 0.5rem;
@@ -41,6 +46,7 @@
             color: white;
             border-radius: 4px;
         }
+
         button {
             width: 100%;
             padding: 0.5rem;
@@ -50,26 +56,36 @@
             border-radius: 4px;
             cursor: pointer;
         }
+
         .message {
             padding: 1rem;
             margin: 1rem 0;
             border-radius: 4px;
             text-align: center;
         }
-        .error { background: #c62828; }
-        .success { background: #2e7d32; }
-        .hidden { display: none; }
+
+        .error {
+            background: #c62828;
+        }
+
+        .success {
+            background: #2e7d32;
+        }
+
+        .hidden {
+            display: none;
+        }
 
         .search-container {
             display: flex;
             gap: 0.5rem;
             margin: 1rem 0;
         }
-        
+
         .search-container input {
             flex: 1;
         }
-        
+
         .search-container button {
             width: auto;
             padding: 0.5rem 1rem;
@@ -102,7 +118,8 @@
 
         .friend-info {
             flex-grow: 1;
-            margin-right: 1rem; /* Ajouter de l'espace entre le nom et le bouton */
+            margin-right: 1rem;
+            /* Ajouter de l'espace entre le nom et le bouton */
         }
 
         .user-header {
@@ -133,11 +150,16 @@
 
         .add-friend-btn {
             background: #2e7d32;
-            padding: 0.25rem 0.75rem; /* Réduire le padding */
-            font-size: 0.9rem; /* Réduire la taille de la police */
-            margin: 0; /* Supprimer la marge */
-            width: auto; /* Le bouton ne prendra que la largeur nécessaire */
-            white-space: nowrap; /* Empêcher le texte de passer à la ligne */
+            padding: 0.25rem 0.75rem;
+            /* Réduire le padding */
+            font-size: 0.9rem;
+            /* Réduire la taille de la police */
+            margin: 0;
+            /* Supprimer la marge */
+            width: auto;
+            /* Le bouton ne prendra que la largeur nécessaire */
+            white-space: nowrap;
+            /* Empêcher le texte de passer à la ligne */
         }
 
         .friend-stats {
@@ -169,6 +191,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>42 Transcendence</h1>
@@ -190,17 +213,18 @@
             </form>
 
             <button id="verify-token-btn" style="margin-top: 1rem;">Verify Token</button>
+            <button id="google-login-btn">Login with Google</button>
         </div>
 
         <div id="welcome" class="hidden">
             <h2>Welcome, <span id="username"></span>!</h2>
-            
+
             <div class="search-container">
                 <input type="text" id="search-username" placeholder="Search username">
                 <button id="search-btn">Search</button>
             </div>
             <div id="search-result" class="search-result"></div>
-            
+
             <button id="verify-token-logged-btn" style="margin-top: 1rem;">Verify Token</button>
             <button id="revoke-tokens-btn" style="margin-top: 1rem;">Revoke Tokens</button>
             <button id="logout-btn" style="margin-top: 1rem;">Logout</button>
@@ -210,18 +234,21 @@
     <script>
         const API_URL = 'http://localhost:8080/api';
         const WS_URL = 'ws://localhost:8080/api/ws';
+        const GOOGLE_CLIENT_ID = '719179054785-mb2t4o5tddvfbmq7298bt49cgd7ob2c3.apps.googleusercontent.com';
+        const GOOGLE_REDIRECT_URI = 'http://localhost:8080/auth/callback';
         let ws = null;
         let shouldReconnect = true; // Nouveau flag pour contrôler la reconnexion
-        
+
         const message = document.getElementById('message');
         const authForms = document.getElementById('auth-forms');
         const welcome = document.getElementById('welcome');
-        
+
         // Vérifier l'authentification au chargement
         checkAuth();
 
         // Vérifier s'il y a un message stocké dans sessionStorage
-        window.addEventListener('load', () => {
+        window.onload = async () => {
+            // 🔥 1. Vérifie s'il y a un message en attente dans sessionStorage
             const pendingMessage = sessionStorage.getItem('pendingMessage');
             const messageType = sessionStorage.getItem('messageType');
             if (pendingMessage) {
@@ -229,7 +256,36 @@
                 sessionStorage.removeItem('pendingMessage');
                 sessionStorage.removeItem('messageType');
             }
-        });
+
+            // 🔥 2. Vérifie si Google OAuth a renvoyé un code dans l'URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const googleCode = urlParams.get('code');
+
+            if (googleCode) {
+                try {
+                    const response = await fetch(`${API_URL}/auth/google/callback`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: googleCode }),
+                        credentials: 'include'
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        showMessage('Google Login successful!', false);
+                        showWelcome(data.username); // Charge l'espace connecté
+                        window.history.replaceState({}, document.title, '/'); // Nettoie l'URL
+                    } else {
+                        showMessage(data.error || 'Google Login failed', true);
+                    }
+                } catch (error) {
+                    console.error('Google OAuth callback error:', error);
+                    showMessage('Google OAuth callback error', true);
+                }
+            }
+        };
+
 
         // Modifier checkAuth pour mettre à jour le localStorage
         async function checkAuth() {
@@ -286,11 +342,11 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     // Ajouter cette ligne pour mettre à jour le localStorage lors du register
                     localStorage.setItem('currentUser', username);
-                    
+
                     showMessage('Registration and login successful!', false);
                     document.getElementById('register-form').reset();
                     // Directement afficher le welcome puisque l'utilisateur est connecté
@@ -321,7 +377,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     showMessage('Login successful!', false);
                     showWelcome(data.username);
@@ -361,6 +417,10 @@
         // Ajout des event listeners pour les boutons verify-token
         document.getElementById('verify-token-btn').addEventListener('click', verifyToken);
         document.getElementById('verify-token-logged-btn').addEventListener('click', verifyToken);
+        document.getElementById('google-login-btn').addEventListener('click', () => {
+            const googleAuthUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${GOOGLE_REDIRECT_URI}&response_type=code&scope=email profile&access_type=online`;
+            window.location.href = googleAuthUrl;
+        });
 
         // fonction logout
         document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -393,7 +453,7 @@
         document.getElementById('search-btn').addEventListener('click', async () => {
             const searchUsername = document.getElementById('search-username').value;
             const searchResult = document.getElementById('search-result');
-            
+
             if (!searchUsername) {
                 showMessage('Please enter a username', true);
                 return;
@@ -419,7 +479,7 @@
                 searchResult.style.display = 'block';
                 if (data.success) {
                     let statsHtml = '';
-                    
+
                     if (data.isFriend) {
                         // Affichage pour un ami
                         statsHtml = `
@@ -484,7 +544,7 @@
         async function addFriend(friendUsername) {
             const storedUsername = localStorage.getItem('currentUser');
             const currentUsername = document.getElementById('username').textContent;
-            
+
             if (storedUsername !== currentUsername) {
                 showMessage('Session invalid: Please refresh the page', true);
                 return;
@@ -540,10 +600,10 @@
         // Ajout de la gestion du bouton revoke-tokens
         document.getElementById('revoke-tokens-btn').addEventListener('click', async () => {
             const username = document.getElementById('username').textContent;
-            
+
             try {
                 shouldReconnect = false; // Désactiver les reconnexions avant la révocation
-                
+
                 if (ws) {
                     ws.close();
                     ws = null;
@@ -572,7 +632,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     showMessage('Tokens revoked successfully', false);
                     authForms.classList.remove('hidden');
@@ -589,13 +649,13 @@
 
         // Supprimer l'event listener du bouton show-friends et la fonction loadFriends
         document.getElementById('show-friends-btn')?.remove();
-        
+
 
         // Vérifier régulièrement si l'utilisateur actuel est toujours valide
         setInterval(async () => {
             const storedUsername = localStorage.getItem('currentUser');
             const currentUsername = document.getElementById('username').textContent;
-            
+
             if (storedUsername && currentUsername && storedUsername !== currentUsername) {
                 // L'utilisateur a changé dans un autre onglet
                 showMessage('Session expired: Another user logged in', true);
@@ -620,7 +680,7 @@
         // Fonction pour établir la connexion WebSocket avec reconnexion automatique
         async function connectWebSocket() {
             if (!shouldReconnect) return;
-            
+
             // Vérifier les tokens avant de tenter une connexion
             const tokensValid = await areTokensValid();
             if (!tokensValid) {
@@ -674,7 +734,7 @@
         function updateUserStatus(data) {
             const searchResult = document.getElementById('search-result');
             const userElement = searchResult.querySelector(`[data-username="${data.username}"]`);
-            
+
             if (userElement) {
                 const statusBadge = userElement.querySelector('.status-badge');
                 statusBadge.textContent = data.online ? 'Online' : 'Offline';
@@ -720,4 +780,5 @@
         document.head.appendChild(style);
     </script>
 </body>
+
 </html>
