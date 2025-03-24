@@ -26,11 +26,8 @@ class ASection {
         });
     }
     leave() {
-        console.log(this.type, user);
         this.deactivate_section();
-        console.log(this.type, user);
         this.switch_logged_off();
-        console.log(this.type, user);
     }
     ;
     logged_off_view() {
@@ -256,12 +253,10 @@ function is_section_accessible(index) {
     return !(user === undefined && sections[index].protected === true);
 }
 function update_sections() {
-    console.log(user, "3.1");
     for (let i = 0; i < sections.length; i++) {
         if (i !== section_index)
             sections[i].leave();
     }
-    console.log(user, "3.2");
     sections[section_index].enter(user !== undefined);
 }
 ;

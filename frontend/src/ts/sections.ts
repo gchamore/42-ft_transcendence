@@ -29,11 +29,8 @@ abstract class ASection {
 		});
 	}
     leave() {
-		console.log(this.type, user);
 		this.deactivate_section();
-		console.log(this.type, user);
 		this.switch_logged_off();
-		console.log(this.type, user);
 	};
 	logged_off_view() {
 		this.dependencies.forEach(dep => {
@@ -224,7 +221,6 @@ class Friends extends ASection {
 		this.reset();
 		if (this.anotherUser !== undefined) {
 			console.log("found");
-
 			this.btn2.onclick = () => this.message();
 			this.btn2.setAttribute('textContent', 'Message');
 			if (this.anotherUser.is_friend === true) {
@@ -278,12 +274,10 @@ function is_section_accessible(index : number): boolean {
 }
 
 function update_sections(): void {
-	console.log(user, "3.1");
 	for (let i = 0; i < sections.length; i++) {
 		if (i !== section_index)
 			sections[i].leave();
 	}
-	console.log(user, "3.2");
 	sections[section_index].enter(user !== undefined);
 };
 
