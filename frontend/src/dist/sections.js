@@ -201,29 +201,40 @@ class Friends extends ASection {
     }
     search() {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log("Searching:", this.username_i.value);
-            this.anotherUser = yield search(this.username_i.value);
+            const searchUsername = this.username_i.value.trim();
+            if (!searchUsername) return;
+            
+            console.log("Searching:", searchUsername);
             this.reset();
-            if (this.anotherUser !== undefined) {
-                console.log("found");
-                this.btn2.onclick = () => this.message();
-                this.btn2.setAttribute('textContent', 'Message');
-                if (this.anotherUser.is_friend === true) {
-                    this.btn3.onclick = () => this.remove();
-                    this.btn3.setAttribute('textContent', 'Remove');
+            
+            try {
+                this.anotherUser = yield search(searchUsername);
+                
+                if (this.anotherUser) {
+                    console.log("User found");
+                    this.btn2.textContent = 'Message';
+                    this.btn2.onclick = () => this.message();
+                    
+                    if (this.anotherUser.is_friend) {
+                        this.btn3.textContent = 'Remove';
+                        this.btn3.onclick = () => this.remove();
+                    } else {
+                        this.btn3.textContent = 'Add';
+                        this.btn3.onclick = () => this.add();
+                    }
+                    
+                    const stats = this.anotherUser.format_stats();
+                    this.stat1.textContent = stats[0];
+                    this.stat2.textContent = stats[1];
+                    this.stat3.textContent = stats[2];
+                    
+                    activate(this.founds);
+                } else {
+                    console.log("User not found");
+                    activate(this.not_founds);
                 }
-                else {
-                    this.btn3.setAttribute('onclick', '');
-                    this.btn3.setAttribute('textContent', 'Add');
-                }
-                const stats = this.anotherUser.format_stats();
-                this.stat1.textContent = stats[0];
-                this.stat2.textContent = stats[1];
-                this.stat3.textContent = stats[2];
-                activate(this.founds);
-            }
-            else {
-                console.log("not-found");
+            } catch (error) {
+                console.error("Search error:", error);
                 activate(this.not_founds);
             }
         });

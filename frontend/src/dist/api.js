@@ -100,16 +100,34 @@ function logout() {
 function search(friend_username) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield fetch(`/api/search/${friend_username}`, {
+            // Ajout de console.log pour debug
+            console.log('Searching for:', friend_username);
+            
+            const response = yield fetch(`/api/search/${encodeURIComponent(friend_username)}`, {
                 method: "GET",
-                credentials: 'include'
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json'
+                }
             });
+            
+            // Ajout de console.log pour debug
+            console.log('Search response:', response.status);
+            
             const data = yield response.json();
-            if (!response.ok)
+            console.log('Search data:', data);
+
+            if (!response.ok) {
                 console.error(`/api/search/${friend_username} failed:`, data.error);
-            else if (data.success)
                 return undefined;
-            // return new OtherUser(data.isFriend, data.stat1, data.stat2, data.stat3);
+            }
+            
+            return new OtherUser(
+                data.isFriend,
+                new Date(data.user.friendSince || data.user.createdAt),
+                data.user.winRate,
+                data.user.gamesPlayed
+            );
         }
         catch (error) {
             console.error(`/api/search/${friend_username} error:`, error);
