@@ -1,6 +1,5 @@
+/* Container and items */
 #modals-container {
-    /* background-color: rgb(65, 63, 63); */
-
     position: absolute;
 
     height: 400px;
@@ -11,54 +10,94 @@
     transform: translate(-50%, -50%);
 }
 
-.modal-item {
+.modal.item.active {
     background-color: rgb(145, 83, 83);
-    border-radius: 10%;
+    border-radius: 4% / 5%;
     border-style: solid;
 
     position:absolute;
+    display: block;
 
     height: 100%;
     width: 100%;
 }
-.modal-item:not(.active){
+
+.modal.content {
+    /* border: rgb(255, 255, 255) solid 3px; */
+
+    display: flex;
+    align-items: start;
+    margin: 15px;   
+}
+
+.modal.content.column {
+    flex-direction: column;
+}
+.modal.content.row {
+    flex-direction: row;
+}
+.modal.content.center {
+    align-items: center;
+    justify-content: center;
+}
+
+#badge, #friend-stats{
+    /* border: rgb(72, 60, 60) solid 3px; */
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 2px;
+}
+
+
+.not-found:not(.active),
+.found:not(.active) {
     display: none;
 }
+/* --------- */
 
-nav button.modal {
-    width: 120px;
-    height: 50px;
-    
-    border: none;
-}
 
-li.modal {
-    border-radius: 10%;
 
+/* Navigation */
+ul.modal li {
+    border-radius: 12% / 26%;
+    height: 125px;
+    height: 55px;
     position: absolute;
     bottom: 5%;
 }
-li.modal.l1 {
-    left: 5%;
-}
-li.modal.l2 {
-    right: 5%;
+
+ul.modal li:active {
+    transform: scale(0.85);
 }
 
-#profile-avatar {
-    background-color: rgb(0, 0, 0);
+li.friends:not(.active) {
+    display: none;
+}
+
+li.l1 {
+    left: 5%;
+}
+
+li.l2 {
+    right: 5%;
+}
+li.l3 {
+    left: 185px;
+}
+
+ul.modal li button{
+    width: 120px;
+    height: 50px;
+}
+/* --------- */
+
+
+/* Avatar */
+.avatar {
+    background-color: rgb(255, 255, 255);
     border-radius: 50%;
     border-width: 3px;
     border-style: solid;
-    
-    display: block;
-    position: absolute;
-    top: 20%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.btn.modal {
-    background-color: rgb(153, 29, 35);
-    border-radius: 20%;
 }
