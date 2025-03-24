@@ -1,3 +1,11 @@
+/* Global variables */
+var sections : ASection[] = [];
+var HOME_INDEX : number = 0;
+var section_index : number = HOME_INDEX;
+/* --------- */
+
+
+
 /* Classes */
 abstract class ASection {
     abstract readonly type: string;
@@ -11,18 +19,21 @@ abstract class ASection {
 	abstract switch_logged_off(): void;
 	abstract switch_logged_in(): void;
 	activate_section() {
-		doc.querySelectorAll(".section." + this.type).forEach(container => {
+		document.querySelectorAll(".section." + this.type).forEach(container => {
 			container.classList.add('active');
 		});
 	}
 	deactivate_section() {
-		doc.querySelectorAll(".section." + this.type).forEach(container => {
+		document.querySelectorAll(".section." + this.type).forEach(container => {
 			container.classList.remove('active');
 		});
 	}
     leave() {
+		console.log(this.type, user);
 		this.deactivate_section();
+		console.log(this.type, user);
 		this.switch_logged_off();
+		console.log(this.type, user);
 	};
 	logged_off_view() {
 		this.dependencies.forEach(dep => {
@@ -48,15 +59,15 @@ class Home extends ASection {
 	/* ASection */
 	type = 'home';
 	protected = false;
-	parent = doc.getElementById('home-parent') as HTMLElement;
+	parent = document.getElementById('home-parent') as HTMLElement;
 	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
 	dependencies = [];
 
 	/* Properties */
-	readonly profile_btn = doc.getElementById('profile-btn') as HTMLButtonElement;
-	readonly friends_btn = doc.getElementById('friends-btn') as HTMLButtonElement;
-	readonly chat_btn = doc.getElementById('chat-btn') as HTMLButtonElement;
+	readonly profile_btn = document.getElementById('profile-btn') as HTMLButtonElement;
+	readonly friends_btn = document.getElementById('friends-btn') as HTMLButtonElement;
+	readonly chat_btn = document.getElementById('chat-btn') as HTMLButtonElement;
 
 	/* Methods */
 	enter(verified: boolean) {
@@ -82,18 +93,18 @@ class Profile extends ASection {
 	/* ASection */
 	type = 'profile';
 	protected = false;
-	parent = doc.getElementById('profile-parent') as HTMLElement;
+	parent = document.getElementById('profile-parent') as HTMLElement;
 	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
 	dependencies = ['home'];
 
 	/* Properties */
-	readonly avatar = doc.getElementById('profile-avatar') as HTMLImageElement;
-	readonly username = doc.getElementById('profile-username') as HTMLLabelElement;
-	readonly username_i = doc.getElementById('profile-username-input') as HTMLInputElement;
-	readonly password_i = doc.getElementById('profile-password') as HTMLInputElement;
-	readonly btn1 = doc.getElementById('profile-btn1') as HTMLButtonElement;
-	readonly btn2 = doc.getElementById('profile-btn2') as HTMLButtonElement;
+	readonly avatar = document.getElementById('profile-avatar') as HTMLImageElement;
+	readonly username = document.getElementById('profile-username') as HTMLLabelElement;
+	readonly username_i = document.getElementById('profile-username-input') as HTMLInputElement;
+	readonly password_i = document.getElementById('profile-password') as HTMLInputElement;
+	readonly btn1 = document.getElementById('profile-btn1') as HTMLButtonElement;
+	readonly btn2 = document.getElementById('profile-btn2') as HTMLButtonElement;
 
 	/* Methods */
 	enter(verified: boolean) {
@@ -140,7 +151,7 @@ class Friends extends ASection {
 	/* ASection */
 	type = 'friends';
 	protected = true;
-	parent = doc.getElementById('friends-parent') as HTMLElement;
+	parent = document.getElementById('friends-parent') as HTMLElement;
 	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
 	dependencies = ['home'];
@@ -149,21 +160,21 @@ class Friends extends ASection {
 	readonly founds = this.parent.querySelectorAll('.found') as NodeListOf<Element>;
 	readonly not_founds = this.parent.querySelectorAll('.not-found') as NodeListOf<Element>;
 
-	readonly username_i = doc.getElementById('friends-username') as HTMLInputElement;
+	readonly username_i = document.getElementById('friends-username') as HTMLInputElement;
 
-	readonly avatar = doc.getElementById('friend-avatar') as HTMLImageElement;
-	readonly status = doc.getElementById('status') as HTMLLabelElement;
+	readonly avatar = document.getElementById('friend-avatar') as HTMLImageElement;
+	readonly status = document.getElementById('status') as HTMLLabelElement;
 	
-	readonly stat1 = doc.getElementById('friend-stat1') as HTMLLabelElement;
-	readonly stat2 = doc.getElementById('friend-stat2') as HTMLLabelElement;
-	readonly stat3 = doc.getElementById('friend-stat3') as HTMLLabelElement;
+	readonly stat1 = document.getElementById('friend-stat1') as HTMLLabelElement;
+	readonly stat2 = document.getElementById('friend-stat2') as HTMLLabelElement;
+	readonly stat3 = document.getElementById('friend-stat3') as HTMLLabelElement;
 	
-	readonly btn1 = doc.getElementById('friends-btn1') as HTMLButtonElement;
-	readonly btn2 = doc.getElementById('friends-btn2') as HTMLButtonElement;
-	readonly btn3 = doc.getElementById('friends-btn3') as HTMLButtonElement;
+	readonly btn1 = document.getElementById('friends-btn1') as HTMLButtonElement;
+	readonly btn2 = document.getElementById('friends-btn2') as HTMLButtonElement;
+	readonly btn3 = document.getElementById('friends-btn3') as HTMLButtonElement;
 	readonly FriendsClass = sections[get_section_index('friends')!] as Friends;
 
-	user : OtherUser | undefined = undefined;
+	anotherUser : OtherUser | undefined = undefined;
 
 	/* Methods */
 	enter(verified: boolean) {
@@ -191,7 +202,7 @@ class Friends extends ASection {
 		deactivate(this.founds);
 		deactivate(this.not_founds);
 
-		user = undefined;
+		this.anotherUser = undefined;
 		this.btn1.onclick = () => this.search();
 		this.btn1.textContent = 'Search';
 		this.btn2.removeAttribute('onclick');
@@ -208,15 +219,15 @@ class Friends extends ASection {
 		this.status.textContent = '';
 	}
 	async search() {
-		console.log("search", user?.name, this.username_i.value);
-		this.user = await search(this.username_i.value);
+		console.log("Searching:", this.username_i.value);
+		this.anotherUser = await search(this.username_i.value);
 		this.reset();
-		if (this.user !== undefined) {
+		if (this.anotherUser !== undefined) {
 			console.log("found");
 
 			this.btn2.onclick = () => this.message();
 			this.btn2.setAttribute('textContent', 'Message');
-			if (this.user.is_friend === true) {
+			if (this.anotherUser.is_friend === true) {
 				this.btn3.onclick = () => this.remove();
 				this.btn3.setAttribute('textContent', 'Remove');
 			}
@@ -225,7 +236,7 @@ class Friends extends ASection {
 				this.btn3.setAttribute('textContent', 'Add');
 			}
 
-			const stats : string[] = this.user.format_stats();
+			const stats : string[] = this.anotherUser.format_stats();
 			this.stat1.textContent = stats[0];
 			this.stat2.textContent = stats[1];
 			this.stat3.textContent = stats[2];
@@ -238,14 +249,13 @@ class Friends extends ASection {
 		}
 	}
 	message() {
-		console.log("message", user?.name, this.username_i.value);
 		this.reset();
 	}
 	remove() {
-		console.log("message", user?.name, this.username_i.value);
 		this.reset();
 	}
 }
+sections = [new Home(), new Profile(), new Friends()];
 /* --------- */
 
 
@@ -268,10 +278,12 @@ function is_section_accessible(index : number): boolean {
 }
 
 function update_sections(): void {
+	console.log(user, "3.1");
 	for (let i = 0; i < sections.length; i++) {
 		if (i !== section_index)
 			sections[i].leave();
 	}
+	console.log(user, "3.2");
 	sections[section_index].enter(user !== undefined);
 };
 

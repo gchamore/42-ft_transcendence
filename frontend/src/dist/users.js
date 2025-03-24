@@ -1,4 +1,7 @@
 "use strict";
+/* Global variables */
+var user = undefined;
+/* --------- */
 /* User */
 class User {
     constructor(username) {
@@ -7,7 +10,11 @@ class User {
     }
 }
 function update_user(new_user_value) {
-    globalThis.user = new_user_value;
+    console.log(user, "2");
+    user = new_user_value;
+    console.log(user, "3");
+    update_sections();
+    console.log(user, "4");
 }
 /* --------- */
 /* OtherUser */

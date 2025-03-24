@@ -8,21 +8,29 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+/* Global variables */
+var sections = [];
+var HOME_INDEX = 0;
+var section_index = HOME_INDEX;
+/* --------- */
 /* Classes */
 class ASection {
     activate_section() {
-        doc.querySelectorAll(".section." + this.type).forEach(container => {
+        document.querySelectorAll(".section." + this.type).forEach(container => {
             container.classList.add('active');
         });
     }
     deactivate_section() {
-        doc.querySelectorAll(".section." + this.type).forEach(container => {
+        document.querySelectorAll(".section." + this.type).forEach(container => {
             container.classList.remove('active');
         });
     }
     leave() {
+        console.log(this.type, user);
         this.deactivate_section();
+        console.log(this.type, user);
         this.switch_logged_off();
+        console.log(this.type, user);
     }
     ;
     logged_off_view() {
@@ -52,14 +60,14 @@ class Home extends ASection {
         /* ASection */
         this.type = 'home';
         this.protected = false;
-        this.parent = doc.getElementById('home-parent');
+        this.parent = document.getElementById('home-parent');
         this.logged_off = this.parent.querySelectorAll('.logged-off');
         this.logged_in = this.parent.querySelectorAll('.logged-in');
         this.dependencies = [];
         /* Properties */
-        this.profile_btn = doc.getElementById('profile-btn');
-        this.friends_btn = doc.getElementById('friends-btn');
-        this.chat_btn = doc.getElementById('chat-btn');
+        this.profile_btn = document.getElementById('profile-btn');
+        this.friends_btn = document.getElementById('friends-btn');
+        this.chat_btn = document.getElementById('chat-btn');
     }
     /* Methods */
     enter(verified) {
@@ -86,17 +94,17 @@ class Profile extends ASection {
         /* ASection */
         this.type = 'profile';
         this.protected = false;
-        this.parent = doc.getElementById('profile-parent');
+        this.parent = document.getElementById('profile-parent');
         this.logged_off = this.parent.querySelectorAll('.logged-off');
         this.logged_in = this.parent.querySelectorAll('.logged-in');
         this.dependencies = ['home'];
         /* Properties */
-        this.avatar = doc.getElementById('profile-avatar');
-        this.username = doc.getElementById('profile-username');
-        this.username_i = doc.getElementById('profile-username-input');
-        this.password_i = doc.getElementById('profile-password');
-        this.btn1 = doc.getElementById('profile-btn1');
-        this.btn2 = doc.getElementById('profile-btn2');
+        this.avatar = document.getElementById('profile-avatar');
+        this.username = document.getElementById('profile-username');
+        this.username_i = document.getElementById('profile-username-input');
+        this.password_i = document.getElementById('profile-password');
+        this.btn1 = document.getElementById('profile-btn1');
+        this.btn2 = document.getElementById('profile-btn2');
     }
     /* Methods */
     enter(verified) {
@@ -139,24 +147,24 @@ class Friends extends ASection {
         /* ASection */
         this.type = 'friends';
         this.protected = true;
-        this.parent = doc.getElementById('friends-parent');
+        this.parent = document.getElementById('friends-parent');
         this.logged_off = this.parent.querySelectorAll('.logged-off');
         this.logged_in = this.parent.querySelectorAll('.logged-in');
         this.dependencies = ['home'];
         /* Properties */
         this.founds = this.parent.querySelectorAll('.found');
         this.not_founds = this.parent.querySelectorAll('.not-found');
-        this.username_i = doc.getElementById('friends-username');
-        this.avatar = doc.getElementById('friend-avatar');
-        this.status = doc.getElementById('status');
-        this.stat1 = doc.getElementById('friend-stat1');
-        this.stat2 = doc.getElementById('friend-stat2');
-        this.stat3 = doc.getElementById('friend-stat3');
-        this.btn1 = doc.getElementById('friends-btn1');
-        this.btn2 = doc.getElementById('friends-btn2');
-        this.btn3 = doc.getElementById('friends-btn3');
+        this.username_i = document.getElementById('friends-username');
+        this.avatar = document.getElementById('friend-avatar');
+        this.status = document.getElementById('status');
+        this.stat1 = document.getElementById('friend-stat1');
+        this.stat2 = document.getElementById('friend-stat2');
+        this.stat3 = document.getElementById('friend-stat3');
+        this.btn1 = document.getElementById('friends-btn1');
+        this.btn2 = document.getElementById('friends-btn2');
+        this.btn3 = document.getElementById('friends-btn3');
         this.FriendsClass = sections[get_section_index('friends')];
-        this.user = undefined;
+        this.anotherUser = undefined;
     }
     /* Methods */
     enter(verified) {
@@ -180,7 +188,7 @@ class Friends extends ASection {
     reset() {
         deactivate(this.founds);
         deactivate(this.not_founds);
-        user = undefined;
+        this.anotherUser = undefined;
         this.btn1.onclick = () => this.search();
         this.btn1.textContent = 'Search';
         this.btn2.removeAttribute('onclick');
@@ -196,14 +204,14 @@ class Friends extends ASection {
     }
     search() {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log("search", user === null || user === void 0 ? void 0 : user.name, this.username_i.value);
-            this.user = yield search(this.username_i.value);
+            console.log("Searching:", this.username_i.value);
+            this.anotherUser = yield search(this.username_i.value);
             this.reset();
-            if (this.user !== undefined) {
+            if (this.anotherUser !== undefined) {
                 console.log("found");
                 this.btn2.onclick = () => this.message();
                 this.btn2.setAttribute('textContent', 'Message');
-                if (this.user.is_friend === true) {
+                if (this.anotherUser.is_friend === true) {
                     this.btn3.onclick = () => this.remove();
                     this.btn3.setAttribute('textContent', 'Remove');
                 }
@@ -211,7 +219,7 @@ class Friends extends ASection {
                     this.btn3.setAttribute('onclick', '');
                     this.btn3.setAttribute('textContent', 'Add');
                 }
-                const stats = this.user.format_stats();
+                const stats = this.anotherUser.format_stats();
                 this.stat1.textContent = stats[0];
                 this.stat2.textContent = stats[1];
                 this.stat3.textContent = stats[2];
@@ -224,14 +232,13 @@ class Friends extends ASection {
         });
     }
     message() {
-        console.log("message", user === null || user === void 0 ? void 0 : user.name, this.username_i.value);
         this.reset();
     }
     remove() {
-        console.log("message", user === null || user === void 0 ? void 0 : user.name, this.username_i.value);
         this.reset();
     }
 }
+sections = [new Home(), new Profile(), new Friends()];
 /* --------- */
 /* Utils */
 function get_section_index(type) {
@@ -249,10 +256,12 @@ function is_section_accessible(index) {
     return !(user === undefined && sections[index].protected === true);
 }
 function update_sections() {
+    console.log(user, "3.1");
     for (let i = 0; i < sections.length; i++) {
         if (i !== section_index)
             sections[i].leave();
     }
+    console.log(user, "3.2");
     sections[section_index].enter(user !== undefined);
 }
 ;

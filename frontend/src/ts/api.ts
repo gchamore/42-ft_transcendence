@@ -11,7 +11,8 @@ async function verify_token(): Promise<void> {
 			console.error("/api/verify_token failed:", data.error);
 		else if (data.valid) {
 			console.log(data.username, "authenticated");
-
+			
+			console.log(user, "1");
 			update_user(new User(data.username));
 			return;
 		}
