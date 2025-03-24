@@ -1,6 +1,6 @@
 FROM node:16-alpine
 
-# Installer SQLite et Redis (redis-cli est inclus dans le package redis)
+# Installer SQLite et Redis
 RUN apk add --no-cache sqlite redis
 
 WORKDIR /app
@@ -8,7 +8,7 @@ WORKDIR /app
 # Copier package.json et package-lock.json
 COPY ./tools/package*.json ./
 
-# Installer les dépendances, y compris ws explicitement
+# Installer les dépendances
 RUN npm install --production && \
     npm install ws@8.13.0 --save
 
