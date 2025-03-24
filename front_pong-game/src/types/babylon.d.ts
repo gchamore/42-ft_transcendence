@@ -120,6 +120,19 @@ declare namespace BABYLON {
 		emitRate: number;
 		blendMode: number;
 		gravity: Vector3;
+		direction1: Vector3;
+		direction2: Vector3;
+		minAngularSpeed: number;
+		maxAngularSpeed: number;
+		minInitialRotation: number;
+		maxInitialRotation: number;
+		minEmitBox: Vector3;
+		maxEmitBox: Vector3;
+		minEmitPower: number;
+		maxEmitPower: number;
+		targetStopDuration: number;
+		updateSpeed: number;
+
 		start(): void;
 		stop(): void;
 		dispose(): void;

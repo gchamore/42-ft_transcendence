@@ -453,32 +453,43 @@ export class BabylonManager {
 
 		const particleSystem = new BABYLON.ParticleSystem(
 			"particles",
-			200,
+			300,
 			this.scene
 		);
 
 		particleSystem.particleTexture = new BABYLON.Texture(
-			GameConfig.PARTICLE_TEXTURE,
+			"/assets/textures/sparkle.png",
 			this.scene,
 		);
 
-		particleSystem.color1 = new BABYLON.Color4(1.0, 0.8, 0.3, 1.0);    // Bright gold
+		particleSystem.color1 = new BABYLON.Color4(1.0, 0.84, 0.0, 1.0);    // Bright gold
 		particleSystem.color2 = new BABYLON.Color4(1.0, 0.6, 0.1, 1.0);    // Copper
-		particleSystem.colorDead = new BABYLON.Color4(0.7, 0.3, 0.0, 0.0); // dark copper
+		particleSystem.colorDead = new BABYLON.Color4(1, 1, 1, 0); // dark copper
 		particleSystem.emitter = position;
-		particleSystem.minSize = 0.3;
-		particleSystem.maxSize = 0.8;
-		particleSystem.minLifeTime = 0.2;
+		particleSystem.minSize = 0.1;
+		particleSystem.maxSize = 0.6;
+		particleSystem.minLifeTime = 0.3;
 		particleSystem.maxLifeTime = 0.5;
-		particleSystem.emitRate = 500;
-		particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+		particleSystem.emitRate = 1000;
+		particleSystem.gravity = new BABYLON.Vector3(0, -15, 0);
+		particleSystem.direction1 = new BABYLON.Vector3(-3, -1, -3);
+		particleSystem.direction2 = new BABYLON.Vector3(3, 3, 3);
+		particleSystem.minAngularSpeed = -Math.PI * 2;
+		particleSystem.maxAngularSpeed = Math.PI * 2;
+		particleSystem.minEmitPower = 9;
+		particleSystem.maxEmitPower = 13;
+		particleSystem.minInitialRotation = 0;
+		particleSystem.maxInitialRotation = Math.PI * 2;
+		particleSystem.minEmitBox = new BABYLON.Vector3(-0.1, -0.1, -0.1);
+		particleSystem.maxEmitBox = new BABYLON.Vector3(0.1, 0.1, 0.1);
 		particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+		particleSystem.targetStopDuration = 0.3;
 
 		particleSystem.start();
 
 		setTimeout(() => {
 			particleSystem.stop();
-			setTimeout(() => particleSystem.dispose(), 500);
+			setTimeout(() => particleSystem.dispose(), 800);
 			}, 300);
 	}
 

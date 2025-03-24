@@ -12,6 +12,7 @@ export class GameControls {
 	private inputSequence: number = 1;
 	private inputHistory: PaddleInput[] = [];
 	private remotePaddleBuffer: { time: number; position: number }[] = [];
+	private interpolationDelay: number = 100;
 
 	private babylonManager: BabylonManager;
 
@@ -181,18 +182,66 @@ export class GameControls {
 
 	public updateRemotePaddlePosition(): void {
 		const now = performance.now();
-		if (this.remotePaddleBuffer.length < 2) return;
 
-		const [prev, next] = this.remotePaddleBuffer;
-
-		if (now >= next.time) {
-			this.remotePaddle.y = next.position;
-			this.remotePaddleBuffer.shift();
-		} else {
-			const timeDiff = (now - prev.time) / (next.time - prev.time);
-			this.remotePaddle.y =
-				prev.position * (1 - timeDiff) + next.position * timeDiff;
+		// Return if the buffer is empty or has only one entry
+		if (this.remotePaddleBuffer.length < 2) {
+			return;
 		}
+
+		// Clean old positions from the buffer
+		while (this.remotePaddleBuffer.length > 2 &&
+			now > this.remotePaddleBuffer[1].time + this.interpolationDelay) {
+			this.remotePaddleBuffer.shift();
+		}
+
+		// Get the two positions to interpolate between
+		const targetTime = now - this.interpolationDelay;
+
+		// Find the two buffer entries surrounding our target time
+		let prev = this.remotePaddleBuffer[0];
+		let next = this.remotePaddleBuffer[1];
+
+		// If we're still interpolating between these points
+		if (targetTime <= next.time && targetTime >= prev.time) {
+			// Calculate how far we are between the two positions (0 to 1)
+			const timeFactor = (targetTime - prev.time) / (next.time - prev.time);
+
+			// Use a smoothing function for interpolation
+			// Cubic ease-in-out gives smoother acceleration/deceleration
+			const t = this.cubicEaseInOut(timeFactor);
+
+			// Linear interpolation between positions with smoothing factor
+			this.remotePaddle.y = prev.position * (1 - t) + next.position * t;
+		}
+		// If we're past the next position in our buffer
+		else if (targetTime > next.time) {
+			// Look ahead in the buffer if there are more positions
+			for (let i = 1; i < this.remotePaddleBuffer.length - 1; i++) {
+				if (targetTime <= this.remotePaddleBuffer[i + 1].time &&
+					targetTime >= this.remotePaddleBuffer[i].time) {
+					prev = this.remotePaddleBuffer[i];
+					next = this.remotePaddleBuffer[i + 1];
+
+					const timeFactor = (targetTime - prev.time) / (next.time - prev.time);
+					const t = this.cubicEaseInOut(timeFactor);
+					this.remotePaddle.y = prev.position * (1 - t) + next.position * t;
+					return;
+				}
+			}
+
+			// If we're past all buffer positions, use the latest
+			if (this.remotePaddleBuffer.length > 0) {
+				this.remotePaddle.y = this.remotePaddleBuffer[this.remotePaddleBuffer.length - 1].position;
+			}
+		}
+	}
+
+	private cubicEaseInOut(t: number): number {
+		// Clamp t between 0 and 1
+		t = Math.max(0, Math.min(1, t));
+
+		// Cubic easing function: smoother acceleration and deceleration
+		return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 	}
 
 	public updateServerPaddlePosition(
@@ -217,7 +266,7 @@ export class GameControls {
 			time: now,
 			position: serverRemotePaddle.y,
 		});
-		if (this.remotePaddleBuffer.length > 3) {
+		while (this.remotePaddleBuffer.length > 10) {
 			this.remotePaddleBuffer.shift();
 		}
 	}
