@@ -694,61 +694,112 @@
             document.getElementById('username').textContent = username;
             authForms.classList.add('hidden');
             welcome.classList.remove('hidden');
-            shouldReconnect = true; // Réactiver les reconnexions
-            connectWebSocket();  // Établir la connexion WebSocket
+            shouldReconnect = true;
+            
+            // Add a small delay before connecting WebSocket
+            setTimeout(() => {
+                connectWebSocket();
+            }, 500);
         }
 
         // Fonction pour établir la connexion WebSocket avec reconnexion automatique
         async function connectWebSocket() {
-            if (!shouldReconnect) return;
-
-            // Vérifier les tokens avant de tenter une connexion
-            const tokensValid = await areTokensValid();
-            if (!tokensValid) {
-                shouldReconnect = false;
+            if (!shouldReconnect) {
+                console.log('WebSocket reconnection disabled');
                 return;
             }
 
-            if (ws) {
-                ws.close();
-                ws = null;
+            try {
+                // Vérifier les tokens avant de tenter une connexion
+                const tokensValid = await areTokensValid();
+                if (!tokensValid) {
+                    console.log('Tokens invalid, stopping WebSocket connection attempts');
+                    shouldReconnect = false;
+                    return;
+                }
+
+                // Si une connexion existe déjà et est ouverte ou en cours d'ouverture, ne pas en créer une nouvelle
+                if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+                    console.log('WebSocket connection already exists');
+                    return;
+                }
+
+                // Créer une nouvelle connexion
+                console.log('Creating new WebSocket connection');
+                ws = new WebSocket(WS_URL);
+                let reconnectTimeout;
+                let reconnectAttempt = 0;
+                const maxReconnectAttempts = 5;
+
+                ws.onopen = () => {
+                    console.log('WebSocket connected successfully');
+                    reconnectAttempt = 0;
+                    clearTimeout(reconnectTimeout);
+                    
+                    // Vérifier que la connexion est toujours valide avant d'envoyer
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        try {
+                            ws.send(JSON.stringify({ type: 'get_online_users' }));
+                        } catch (error) {
+                            console.error('Error sending initial message:', error);
+                        }
+                    }
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        switch (data.type) {
+                            case 'status_update':
+                                updateUserStatus(data);
+                                break;
+                            case 'online_users':
+                                updateOnlineUsers(data.users);
+                                break;
+                        }
+                    } catch (error) {
+                        console.error('WebSocket message parsing error:', error);
+                    }
+                };
+
+                ws.onclose = (event) => {
+                    console.log(`WebSocket disconnected with code: ${event.code}`);
+                    ws = null; // Clear the reference
+
+                    // Ne pas tenter de reconnexion si la fermeture était volontaire
+                    if (!shouldReconnect) {
+                        console.log('Reconnection disabled, not attempting to reconnect');
+                        return;
+                    }
+
+                    // Tentative de reconnexion avec backoff exponentiel
+                    if (reconnectAttempt < maxReconnectAttempts) {
+                        const timeout = Math.min(1000 * Math.pow(2, reconnectAttempt), 30000);
+                        reconnectAttempt++;
+                        console.log(`Scheduling reconnection attempt ${reconnectAttempt} in ${timeout}ms`);
+                        
+                        reconnectTimeout = setTimeout(() => {
+                            console.log(`Attempting reconnection ${reconnectAttempt}`);
+                            connectWebSocket();
+                        }, timeout);
+                    } else {
+                        console.log('Max reconnection attempts reached');
+                        shouldReconnect = false;
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    // Ne pas fermer la connexion ici, laisser onclose s'en occuper
+                };
+
+            } catch (error) {
+                console.error('WebSocket connection setup error:', error);
+                if (ws) {
+                    ws.close();
+                    ws = null;
+                }
             }
-
-            ws = new WebSocket(WS_URL);
-            let reconnectTimeout;
-
-            ws.onopen = () => {
-                console.log('WebSocket connected');
-                clearTimeout(reconnectTimeout);
-                // Demander la liste des utilisateurs en ligne
-                ws.send(JSON.stringify({ type: 'get_online_users' }));
-            };
-
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                switch (data.type) {
-                    case 'status_update':
-                        updateUserStatus(data);
-                        break;
-                    case 'online_users':
-                        updateOnlineUsers(data.users);
-                        break;
-                }
-            };
-
-            ws.onclose = () => {
-                console.log('WebSocket disconnected');
-                // Tentative de reconnexion après 5 secondes
-                if (shouldReconnect) {
-                    reconnectTimeout = setTimeout(() => {
-                        connectWebSocket();
-                    }, 5000);
-                }
-            };
-
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-            };
         }
 
         // Mise à jour du statut d'un utilisateur

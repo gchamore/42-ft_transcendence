@@ -14,34 +14,59 @@ async function routes(fastify, options) {
         return { online: isOnline };
     });
 
+    // Add new endpoint to check WebSocket status
+    fastify.get('/ws/status', async (request, reply) => {
+        const userId = request.user.userId;
+        const isConnected = fastify.connections.has(userId);
+        return { connected: isConnected };
+    });
+
     // Route WebSocket
     fastify.get('/ws', { websocket: true }, async (connection, req) => {
         try {
             const accessToken = req.cookies?.accessToken;
             if (!accessToken) {
-                connection.socket.close();
+                fastify.log.warn('WebSocket connection attempt without access token');
+                connection.socket.close(1008, 'No access token provided');
                 return;
             }
 
             const validation = await authService.validateToken(accessToken, null, 'access');
             if (!validation?.userId) {
-                connection.socket.close();
+                fastify.log.warn('WebSocket connection attempt with invalid token');
+                connection.socket.close(1008, 'Invalid access token');
                 return;
             }
 
             const userId = validation.userId;
             const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 
-            fastify.log.info(`WebSocket connection established for user: ${user.username}`);
-            
-            // Ajouter l'utilisateur aux connexions actives
+            // Gérer les connexions existantes
+            const existingConnection = fastify.connections.get(userId);
+            if (existingConnection) {
+                fastify.log.info(`Found existing connection for user ${user.username}`);
+                // Fermer l'ancienne connexion proprement
+                try {
+                    if (existingConnection.readyState === 1) {
+                        existingConnection.close(1000, 'New connection established');
+                    }
+                } catch (err) {
+                    fastify.log.error(`Error closing existing connection: ${err}`);
+                }
+                fastify.connections.delete(userId);
+            }
+
+            // Établir la nouvelle connexion
+            fastify.log.info(`Establishing new WebSocket connection for user: ${user.username}`);
             fastify.connections.set(userId, connection.socket);
-            
-            // Marquer l'utilisateur comme en ligne dans Redis
-            await redis.sadd('online_users', userId.toString());
-            
-            // Diffuser la mise à jour du statut
-            broadcastUserStatus(fastify, userId, true);
+
+            // Vérifier d'abord si l'utilisateur n'est pas déjà marqué comme en ligne
+            const isAlreadyOnline = await redis.sismember('online_users', userId.toString());
+            if (!isAlreadyOnline) {
+                await redis.sadd('online_users', userId.toString());
+                // Ne diffuser le statut que s'il y a un changement
+                broadcastUserStatus(fastify, userId, true);
+            }
 
             // Configuration du ping-pong et vérification des tokens
             let lastPong = Date.now();
@@ -91,7 +116,9 @@ async function routes(fastify, options) {
 
         } catch (error) {
             fastify.log.error('WebSocket connection error:', error);
-            connection.socket.close();
+            if (connection.socket.readyState === WebSocket.OPEN) {
+                connection.socket.close(1011, 'Internal server error');
+            }
         }
     });
 }
