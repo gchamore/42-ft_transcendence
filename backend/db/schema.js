@@ -11,6 +11,7 @@ function initializeDatabase(dbPath)
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE,
             password TEXT,
+            email TEXT,
             avatar TEXT DEFAULT NULL,
             settings TEXT DEFAULT '{}',
             wins INTEGER DEFAULT 0,

@@ -29,15 +29,33 @@ async function routes(fastify, options) {
                 const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
                 const { data } = await oauth2.userinfo.get();
 
-                // Find or create user
+                // Find or create user - Changement ici pour chercher par email
                 let user = fastify.db.prepare(
-                    "SELECT * FROM users WHERE username = ?"
-                ).get(`google_${data.email}`);
+                    "SELECT * FROM users WHERE email = ?"
+                ).get(data.email);
 
                 if (!user) {
+                    // Trouver un username unique
+                    let username = data.given_name;
+                    let counter = 1;
+                    let isUnique = false;
+
+                    while (!isUnique) {
+                        const exists = fastify.db.prepare(
+                            "SELECT username FROM users WHERE username = ?"
+                        ).get(username);
+
+                        if (!exists) {
+                            isUnique = true;
+                        } else {
+                            username = `${data.given_name}${counter}`;
+                            counter++;
+                        }
+                    }
+
                     const result = fastify.db.prepare(
-                        "INSERT INTO users (username, password, avatar) VALUES (?, ?, ?)"
-                    ).run(`google_${data.email}`, 'GOOGLE_OAUTH', data.picture);
+                        "INSERT INTO users (username, password, email, avatar) VALUES (?, ?, ?, ?)"
+                    ).run(username, 'GOOGLE_OAUTH', data.email, data.picture);
 
                     user = fastify.db.prepare(
                         "SELECT * FROM users WHERE id = ?"
