@@ -45,7 +45,16 @@ fastify.register(require('@fastify/cors'), {
 fastify.register(require('@fastify/cookie'));
 
 // Liste des routes publiques
-const publicRoutes = ['/login', '/register', '/refresh', '/verify_token'];
+const publicRoutes = [
+    '/login',
+    '/register',
+    '/refresh',
+    '/verify_token',
+    '/auth/google/callback',
+    '/oauth/callback',
+    '/auth/google',  // Add this new route
+    '/oauth'         // Add this new route
+];
 
 // Middleware d'authentification
 fastify.addHook('onRequest', (request, reply, done) => {
@@ -70,6 +79,7 @@ fastify.register(require('./routes/auth.routes'));
 fastify.register(require('./routes/game.routes'));
 fastify.register(require('./routes/user.routes'));
 fastify.register(require('./routes/ws.routes'));
+fastify.register(require('./routes/oauth.routes'));
 
 // ====== Gestion de l'arrêt propre ======
 const cleanup = async (signal) => {
