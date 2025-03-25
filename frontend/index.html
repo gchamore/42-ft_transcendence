@@ -450,11 +450,10 @@
                 });
 
                 if (response.ok) {
-                    localStorage.clear();
                     showMessage('Logged out successfully', false);
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+					authForms.classList.remove('hidden');
+                    welcome.classList.add('hidden');
+                    localStorage.clear();
                 } else {
                     const data = await response.json();
                     showMessage(data.error || 'Logout failed', true);
