@@ -45,9 +45,13 @@
     /* border: rgb(72, 60, 60) solid 3px; */
     display: flex;
     flex-direction: column;
-    align-items: center;
-    margin: 2px;
-    padding-top: 35px;
+    margin: 15px;
+}
+
+#status {
+    position: absolute;
+    bottom: 125px;
+    align-self: center;
 }
 
 #badge, #friend-stats, #failed-research {

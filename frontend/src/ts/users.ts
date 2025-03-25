@@ -25,14 +25,19 @@ function update_user(new_user_value : User | undefined) {
 
 /* OtherUser */
 class OtherUser {
+    readonly username: string;
     readonly is_friend: boolean;
+    readonly is_connected: boolean;
     readonly stat1: string;
     readonly stat2: number;
     readonly stat3: number;
     readonly avatar: string = 'assets/avatar.png';
 
-    constructor(is_friend: boolean, stat1: string, stat2: number, stat3: number) {
+    constructor(username: string, is_friend: boolean, is_connected: boolean = false,
+        stat1: string, stat2: number, stat3: number) {
+        this.username = username;
         this.is_friend = is_friend;
+        this.is_connected = is_connected;
         this.stat1 = stat1;
         this.stat2 = stat2;
         this.stat3 = stat3;
@@ -42,13 +47,15 @@ class OtherUser {
         let stats : string[];
 
         if (this.is_friend === true)
-            stats = ['Friends since: ', 'Wins percent: ', 'Games played with: '];
+            stats = [`Username: ${this.username}`,
+                'Friendship: ', 'Wins percent: ', 'Games played with: '];
         else
-            stats = ['Account creation: ', 'Wins percent: ', 'Games played: '];
+            stats = [`Username: ${this.username}`,
+                'Registered: ', 'Wins percent: ', 'Games played: '];
 
-        stats[0] += this.stat1;
-        stats[1] += this.stat2 + '%';
-        stats[2] += this.stat3 + '%';
+        stats[1] += this.stat1;
+        stats[2] += this.stat2 + '%';
+        stats[3] += this.stat3 + '%';
         return stats;
     }
 }

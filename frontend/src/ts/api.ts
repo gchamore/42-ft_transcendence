@@ -101,8 +101,10 @@ async function search(friend_username : string): Promise<OtherUser | undefined> 
 			console.error(`/api/search/${friend_username} failed:`, data.error);
         else if (data.success) {
 			if (data.isFriend)
-				return new OtherUser(data.isFriend, data.user.friendSince, data.user.winRate, data.user.gamesTogether);
-			return new OtherUser(data.isFriend, data.user.createdAt, data.user.winRate, data.user.gamesPlayed);
+				return new OtherUser(friend_username, data.isFriend, data.user.is_connected,
+									data.user.friendSince, data.user.winRate, data.user.gamesTogether);
+			return new OtherUser(friend_username, data.isFriend, false,
+								data.user.createdAt, data.user.winRate, data.user.gamesPlayed);
 		}
 
     } catch (error) {
@@ -110,4 +112,42 @@ async function search(friend_username : string): Promise<OtherUser | undefined> 
     }
 
 	return undefined;
+}
+
+async function add(friend_username : string): Promise<boolean> {
+	try {
+        const response = await fetch(`/api/add/${friend_username}`, {
+            method: "POST",
+			credentials: 'include'
+		});
+		const data = await response.json();
+
+		if (!response.ok)
+			console.error(`/api/add/${friend_username} failed:`, data.error);
+        return data.success;
+
+    } catch (error) {
+		console.error(`/api/add/${friend_username} error:`, error);
+    }
+
+	return false;
+}
+
+async function remove(friend_username : string): Promise<boolean> {
+	try {
+        const response = await fetch(`/api/remove/${friend_username}`, {
+            method: "DELETE",
+			credentials: 'include'
+		});
+		const data = await response.json();
+
+		if (!response.ok)
+			console.error(`/api/remove/${friend_username} failed:`, data.error);
+		return data.success;
+
+    } catch (error) {
+		console.error(`/api/remove/${friend_username} error:`, error);
+    }
+
+	return false;
 }
