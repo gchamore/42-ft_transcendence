@@ -13,6 +13,7 @@ function initializeDatabase(dbPath)
             password TEXT,
             email TEXT,
             avatar TEXT DEFAULT NULL,
+			twofa_secret TEXT DEFAULT NULL,
             settings TEXT DEFAULT '{}',
             wins INTEGER DEFAULT 0,
             losses INTEGER DEFAULT 0,
