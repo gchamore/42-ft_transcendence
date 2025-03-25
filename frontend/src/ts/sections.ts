@@ -165,6 +165,7 @@ class Friends extends ASection {
 	readonly stat1 = document.getElementById('friend-stat1') as HTMLLabelElement;
 	readonly stat2 = document.getElementById('friend-stat2') as HTMLLabelElement;
 	readonly stat3 = document.getElementById('friend-stat3') as HTMLLabelElement;
+	readonly stat4 = document.getElementById('friend-stat4') as HTMLLabelElement;
 	
 	readonly btn1 = document.getElementById('friends-btn1') as HTMLButtonElement;
 	readonly btn2 = document.getElementById('friends-btn2') as HTMLButtonElement;
@@ -210,48 +211,64 @@ class Friends extends ASection {
 		this.stat1.textContent = '';
 		this.stat2.textContent = '';
 		this.stat3.textContent = '';
+		this.stat4.textContent = '';
 
 		this.username_i.value = '';
 		this.avatar.src = '';
 		this.status.textContent = '';
+		this.status.style.color = 'black';
 	}
-	async search() {
-		let username = this.username_i.value;
-		this.reset();
-
-		this.anotherUser = await search(username);
+	async search(user : string = this.username_i.value) {
+		this.anotherUser = await search(user);
+		this.username_i.value = '';
 
 		if (this.anotherUser !== undefined) {
-			console.log("found here");
 			this.btn3.onclick = () => this.message();
 			this.btn3.textContent = 'Message';
 			this.avatar.src = this.anotherUser.avatar;
+			
 			if (this.anotherUser.is_friend === true) {
 				this.btn2.onclick = () => this.remove();
 				this.btn2.textContent = 'Remove';
+
+				this.status.textContent = (this.anotherUser.is_connected) ? 'Online' : 'Offline';
+				this.status.style.color = (this.anotherUser.is_connected) ? 'rgb(32, 96, 32)': 'rgb(153, 0, 0)';
 			}
 			else {
-				this.btn2.setAttribute('onclick', '');
+				this.btn2.onclick = () => this.add();
 				this.btn2.textContent = 'Add';
+				this.status.textContent = '';
 			}
 
 			const stats = this.anotherUser.format_stats();
 			this.stat1.textContent = stats[0];
 			this.stat2.textContent = stats[1];
 			this.stat3.textContent = stats[2];
+			this.stat4.textContent = stats[3];
 
 			activate(this.founds);
+			deactivate(this.not_founds);
 		}
 		else {
-			console.log("not-found");
+			this.reset();
 			activate(this.not_founds);
+			deactivate(this.founds);
 		}
 	}
 	message() {
 		this.reset();
 	}
-	remove() {
+	async add() {
+		await add(this.anotherUser!.username);
+		let user = this.anotherUser!.username;
+		this.anotherUser = undefined;
+		this.search(user);
+	}
+	async remove() {
+		await remove(this.anotherUser!.username);
+		let user = this.anotherUser!.username;
 		this.reset();
+		this.search(user);
 	}
 }
 sections = [new Home(), new Profile(), new Friends()];

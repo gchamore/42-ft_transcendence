@@ -109,13 +109,49 @@ function search(friend_username) {
                 console.error(`/api/search/${friend_username} failed:`, data.error);
             else if (data.success) {
                 if (data.isFriend)
-                    return new OtherUser(data.isFriend, data.user.friendSince, data.user.winRate, data.user.gamesTogether);
-                return new OtherUser(data.isFriend, data.user.createdAt, data.user.winRate, data.user.gamesPlayed);
+                    return new OtherUser(friend_username, data.isFriend, data.user.is_connected, data.user.friendSince, data.user.winRate, data.user.gamesTogether);
+                return new OtherUser(friend_username, data.isFriend, false, data.user.createdAt, data.user.winRate, data.user.gamesPlayed);
             }
         }
         catch (error) {
             console.error(`/api/search/${friend_username} error:`, error);
         }
         return undefined;
+    });
+}
+function add(friend_username) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const response = yield fetch(`/api/add/${friend_username}`, {
+                method: "POST",
+                credentials: 'include'
+            });
+            const data = yield response.json();
+            if (!response.ok)
+                console.error(`/api/add/${friend_username} failed:`, data.error);
+            return data.success;
+        }
+        catch (error) {
+            console.error(`/api/add/${friend_username} error:`, error);
+        }
+        return false;
+    });
+}
+function remove(friend_username) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const response = yield fetch(`/api/remove/${friend_username}`, {
+                method: "DELETE",
+                credentials: 'include'
+            });
+            const data = yield response.json();
+            if (!response.ok)
+                console.error(`/api/remove/${friend_username} failed:`, data.error);
+            return data.success;
+        }
+        catch (error) {
+            console.error(`/api/remove/${friend_username} error:`, error);
+        }
+        return false;
     });
 }
