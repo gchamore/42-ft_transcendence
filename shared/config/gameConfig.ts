@@ -5,8 +5,11 @@ export const GameConfig = {
 
 	BASE_BALL_SPEED_FACTOR: 100,
 	PADDLE_SPEED_FACTOR: 100,
+	MIN_PADDLE_LENGTH: 50,
 	BALL_SPEEDUP_FACTOR: 1.05,
 	MAX_BALL_SPEED: 800,
+	MAX_BALL_SIZE: 20,
+	MIN_BALL_SIZE: 5,
 
 	MIN_VERTICAL_SPEED: 2,
 	MAX_ANGLE: Math.PI / 4,
@@ -26,4 +29,17 @@ export const GameConfig = {
 	TEST_MODE: false,
 	TARGET_FPS: 60,
 	BROADCAST_RATE: 30,
+
+	POWERUP_DURATION: 10000,
+	POWERUP_SPAWN_CHANCE: 0.05,
+	MAX_ACTIVE_POWERUPS: 2,
+	POWERUP_SIZE: 20,
+};
+
+export const PowerUpTypes = {
+	PADDLE_GROW: 'paddle_grow',
+	PADDLE_SHRINK: 'paddle_shrink',
+	BALL_GROW: 'ball_grow',
+	BALL_SHRINK: 'ball_shrink',
+	PADDLE_SLOW: 'paddle_slow',
 };

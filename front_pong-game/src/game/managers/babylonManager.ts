@@ -2,7 +2,7 @@
 import { Ball } from "../classes/ball.js";
 import { Paddle } from "../classes/paddle.js";
 import { GameState } from "@shared/types/gameState";
-import { GameConfig } from '../../../../shared/config/gameConfig.js';
+import { GameConfig, PowerUpTypes  } from '../../../../shared/config/gameConfig.js';
 
 export class BabylonManager {
 	private engine: BABYLON.Engine | null = null;
@@ -28,6 +28,9 @@ export class BabylonManager {
 	private ballCentered: boolean = false;
 
 	private lastRenderTime: number = 0;
+
+	private powerupMeshes: Map<number, BABYLON.Mesh> = new Map();
+	private activePowerups: Map<number, any> = new Map();
 
 	//debug
 	private paddleCollisionBox1: BABYLON.Mesh | null = null;
@@ -330,6 +333,113 @@ export class BabylonManager {
 		}
 	}
 
+	public createPowerupMesh(powerup : any): void { 
+		if (!this.scene) return;
+		const powerupMesh = BABYLON.MeshBuilder.CreateSphere(
+			`powerup-${powerup.id}`,
+			{ diameter: GameConfig.POWERUP_SIZE * this.scaleX * 2 },
+			this.scene
+		);
+
+		powerupMesh.position = new BABYLON.Vector3(
+			(powerup.x - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
+			-0.2,
+			(GameConfig.CANVAS_HEIGHT / 2 - powerup.y) * this.scaleY
+		);
+
+		const material = new BABYLON.StandardMaterial(`powerupMaterial-${powerup.id}`, this.scene);
+
+		switch (powerup.type) {
+			case PowerUpTypes.PADDLE_GROW:
+				material.emissiveColor = new BABYLON.Color3(0, 1, 0); // Green
+				break;
+			case PowerUpTypes.PADDLE_SHRINK:
+				material.emissiveColor = new BABYLON.Color3(1, 0, 0); // Red
+				break;
+			case PowerUpTypes.BALL_GROW:
+				material.emissiveColor = new BABYLON.Color3(0, 0, 1); // Blue
+				break;
+			case PowerUpTypes.BALL_SHRINK:
+				material.emissiveColor = new BABYLON.Color3(1, 0, 1); // Purple
+				break;
+			case PowerUpTypes.PADDLE_SLOW:
+				material.emissiveColor = new BABYLON.Color3(1, 1, 0); // Yellow
+				break;
+		}
+
+		powerupMesh.material = material;
+
+		if (!GameConfig.TEST_MODE) {
+			const glowLayer = new BABYLON.GlowLayer(`powerup-glow-${powerup.id}`, this.scene);
+			glowLayer.intensity = 0.7;
+			glowLayer.addIncludedOnlyMesh(powerupMesh);
+			this.activePowerups.set(powerup.id, glowLayer);
+		}
+
+		this.powerupMeshes.set(powerup.id, powerupMesh);
+	}
+
+	public handlePowerupCollection(powerupId: number, playerNumber: number): void {
+		const powerupMesh = this.powerupMeshes.get(powerupId);
+		if (!powerupMesh || !this.scene) return;
+
+		const particleSystem = new BABYLON.ParticleSystem(`powerup-collected-${powerupId}`, 200, this.scene);
+		particleSystem.particleTexture = new BABYLON.Texture("/assets/textures/sparkle2.jpg", this.scene);
+		particleSystem.emitter = powerupMesh.position;
+		particleSystem.color1 = new BABYLON.Color4(1, 1, 1, 1);
+		particleSystem.color2 = new BABYLON.Color4(0.8, 0.8, 0.8, 1);
+		particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0);
+		particleSystem.minSize = 0.1;
+		particleSystem.maxSize = 0.5;
+		particleSystem.minLifeTime = 0.5;
+		particleSystem.maxLifeTime = 1;
+		particleSystem.emitRate = 500;
+		particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+		particleSystem.direction1 = new BABYLON.Vector3(-5, 5, -5);
+		particleSystem.direction2 = new BABYLON.Vector3(5, 5, 5);
+		particleSystem.minEmitPower = 1;
+		particleSystem.maxEmitPower = 3;
+		particleSystem.updateSpeed = 0.01;
+
+		particleSystem.start();
+
+		const targetPaddleMesh = playerNumber === 1 ? this.paddleMesh1 : this.paddleMesh2;
+		if (targetPaddleMesh) {
+			const paddleGlow = new BABYLON.GlowLayer(`paddle-powerup-glow-${playerNumber}`, this.scene)
+			paddleGlow.intensity = 1.0;
+			paddleGlow.addIncludedOnlyMesh(targetPaddleMesh);
+			setTimeout(() => paddleGlow.dispose(), 1000);
+
+			const glowLayer = this.activePowerups.get(powerupId);
+			if (glowLayer) {
+				glowLayer.dispose();
+				this.activePowerups.delete(powerupId);
+			}
+
+			powerupMesh.dispose();
+			this.powerupMeshes.delete(powerupId);
+
+			setTimeout(() => {
+				particleSystem.stop();
+				setTimeout(() => particleSystem.dispose(), 1000);
+			}, 500);
+		}
+	}
+
+	public handlePowerupDeactivation(powerupId: number): void {
+		const glowLayer = this.activePowerups.get(powerupId);
+		if (glowLayer) {
+			glowLayer.dispose();
+			this.activePowerups.delete(powerupId);
+		}
+
+		const powerupMesh = this.powerupMeshes.get(powerupId);
+		if (powerupMesh) {
+			powerupMesh.dispose();
+			this.powerupMeshes.delete(powerupId);
+		}
+	}
+
 	public render(timestamp: number): void {
 		if (!this.engine || !this.scene) return;
 		const elapsed = timestamp - this.lastRenderTime;
@@ -354,6 +464,33 @@ export class BabylonManager {
 		if (this.gameStarted && this.ballCentered) {
 			this.ballCentered = false;
 		}
+		if (this.paddleMesh1 && gameState.paddle1) {
+			const newHeight = gameState.paddle1.height * this.scaleY;
+			if (Math.abs(this.paddleMesh1.scaling.y - newHeight) > 0.001)
+				this.updatePaddleMeshDimension(this.paddleMesh1, gameState.paddle1);
+		}
+		if (this.paddleMesh2 && gameState.paddle2) {
+			const newHeight = gameState.paddle2.height * this.scaleY;
+			if (Math.abs(this.paddleMesh2.scaling.y - newHeight) > 0.001)
+				this.updatePaddleMeshDimension(this.paddleMesh2, gameState.paddle2);
+		}
+		if (this.ballMesh && gameState.ball) {
+			const newDiameter = gameState.ball.radius * 2 * this.scaleX;
+			if (Math.abs(this.ballMesh.scaling.x - newDiameter) > 0.001)
+				this.updateBallMeshDimension(gameState.ball);
+		}
+	}
+
+	private updatePaddleMeshDimension(paddleMesh: BABYLON.Mesh, paddleState: any): void {
+		if (!this.scene) return;
+		const newHeight = paddleState.height * this.scaleY;
+		paddleMesh.scaling.y = newHeight / paddleMesh.getBoundingInfo().boundingBox.extendSize.y / 2;
+	}
+
+	private updateBallMeshDimension(ballState: any): void {
+		if (!this.scene || !this.ballMesh) return;
+		const newScale = ballState.radius * this.scaleX / this.ballMesh.getBoundingInfo().boundingBox.extendSize.x;
+		this.ballMesh.scaling = new BABYLON.Vector3(newScale, newScale, newScale);
 	}
 
 	private updateMeshPositions(): void {
@@ -593,6 +730,35 @@ export class BabylonManager {
 		if (this.engine && !this.engine.isDisposed) {
 			this.engine.dispose();
 		}
+
+		// Dispose of all meshes
+		if (this.paddleMesh1) {
+			this.paddleMesh1.dispose();
+		}
+		if (this.paddleMesh2) {
+			this.paddleMesh2.dispose();
+		}
+		if (this.ballMesh) {
+			this.ballMesh.dispose();
+		}
+		if (this.tableMesh) {
+			this.tableMesh.dispose();
+		}
+		if (this.topWall) {
+			this.topWall.dispose();
+		}
+		if (this.bottomWall) {
+			this.bottomWall.dispose();
+		}
+		if (this.paddleCollisionBox1) {
+			this.paddleCollisionBox1.dispose();
+		}
+		if (this.paddleCollisionBox2) {
+			this.paddleCollisionBox2.dispose();
+		}
+		this.powerupMeshes.forEach((mesh) => mesh.dispose());
+		this.powerupMeshes.clear();
+		
 
 		// Nullify references to help garbage collection
 		this.engine = null;

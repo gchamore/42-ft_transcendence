@@ -171,6 +171,23 @@ export class Game {
 						this.babylonManager.handleBounce(data.position);
 					}
 					break;
+				case "powerupSpawn":
+					if (this.babylonManager) {
+						this.babylonManager.createPowerupMesh(data.powerup);
+					}
+					break;
+				case "powerupCollected":
+					if (this.babylonManager) {
+						this.babylonManager.handlePowerupCollection(data.powerupId, data.playerNumber);
+						this.uiManager.addActivePowerup(data.powerupId, data.powerupType, data.playerNumber);
+					}
+					break;
+				case "powerupDeactivated":
+					if (this.babylonManager) {
+						this.babylonManager.handlePowerupDeactivation(data.powerupId);
+						this.uiManager.removeActivePowerup(data.powerupId);
+					}
+					break;
 			}
 		};
 
@@ -213,13 +230,28 @@ export class Game {
 			if (gameState.ball.x !== null && gameState.ball.y !== null) {
 				this.controls.storeBallPosition(gameState.ball);
 			}
+			if (this.ball.radius !== gameState.ball.radius) {
+				this.ball.radius = gameState.ball.radius;
+			}
 		}
-
-		if (this.babylonManager)
-			this.babylonManager.updateGameState(gameState);
+		this.scoreBoard.updateScore(gameState.score);
 
 		if (gameState.paddle1 && gameState.paddle2) {
-			this.controls.updateServerPaddlePosition(gameState.paddle1, gameState.paddle2);
+			if (this.paddle1.height !== gameState.paddle1.height)
+				this.paddle1.updateHeight(gameState.paddle1.height);
+			if (this.paddle2.height !== gameState.paddle2.height)
+				this.paddle2.updateHeight(gameState.paddle2.height);
+			if (this.paddle1.speed !== gameState.paddle1.speed)
+				this.paddle1.speed = gameState.paddle1.speed;
+			if (this.paddle2.speed !== gameState.paddle2.speed)
+				this.paddle2.speed = gameState.paddle2.speed;
+
+
+			if (gameState.paddle1 && gameState.paddle2) {
+				this.controls.updateServerPaddlePosition(gameState.paddle1, gameState.paddle2);
+				if (this.babylonManager)
+					this.babylonManager.updateGameState(gameState);
+			}
 		}
 	}
 
@@ -237,7 +269,6 @@ export class Game {
 			if (this.babylonManager) {
 				this.babylonManager.render(timestamp);
 			}
-			this.scoreBoard.updateDisplay();
 			if (!this.gameStarted) {
 				this.uiManager.drawStartMessage(
 					timestamp,
@@ -246,6 +277,7 @@ export class Game {
 					this.servingPlayer
 				);
 			}
+			this.uiManager.drawPowerupStatus(timestamp);
 		}
 		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
 	}

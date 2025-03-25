@@ -1,6 +1,7 @@
 import { createDefaultGameState } from "../../public/dist/shared/types/gameState.js";
-import { GameConfig } from "../../public/dist/shared/config/gameConfig.js";
+import { GameConfig, PowerUpTypes } from "../../public/dist/shared/config/gameConfig.js";
 import { safeSend } from '../utils/socketUtils.js';
+import { PowerUp } from "./powerUp.js";
 
 export class GameInstance {
 	constructor(gameId, existingSettings = null) {
@@ -17,6 +18,9 @@ export class GameInstance {
 			maxScore: GameConfig.DEFAULT_MAX_SCORE,
 		};
 		this.playerReadyStatus = new Set();
+		this.powerups = [];
+		this.activePowerups = [];
+		this.nextPowerupId = 1;
 		this.resetBall();
 	}
 
@@ -60,15 +64,206 @@ export class GameInstance {
 			ball.x += ball.speedX * deltaTime;
 			ball.y += ball.speedY * deltaTime;
 
+			if (this.settings.powerUpsEnabled) {
+				this.updatePowerups(deltaTime);
+				this.checkPowerupCollision();
+			}
+
 			this.checkWallCollision();
-
 			this.checkPaddleCollision();
-
-			const scoreResult = this.checkScoring(ball);
-
-			return scoreResult;
+			return (this.checkScoring(ball));
 		}
 		return { scored: false };
+	}
+
+	updatePowerups(deltaTime) {
+		const currentTime = Date.now();
+		const expiredPowerups = this.activePowerups.filter((powerup) => powerup.isExpired(currentTime));
+
+		if (expiredPowerups.length > 0) {
+			expiredPowerups.forEach((powerup) => {
+				this.deactivatePowerup(powerup);
+			});
+			this.activePowerups = this.activePowerups.filter((powerup) => !powerup.isExpired(currentTime));
+		}
+
+		const scaledSpawnChance = GameConfig.POWERUP_SPAWN_CHANCE * deltaTime;
+
+		if (this.gameState.gameStarted && this.powerups.length < GameConfig.MAX_ACTIVE_POWERUPS && Math.random() < scaledSpawnChance) {
+			this.spawnPowerup();
+		}
+	}
+
+	spawnPowerup() {
+		const types = Object.values(PowerUpTypes);
+		const type = types[Math.floor(Math.random() * types.length)];
+		const x = Math.random() * (GameConfig.CANVAS_WIDTH - 200) + 100;
+		const y = Math.random() * (GameConfig.CANVAS_HEIGHT - 100) + 50;
+
+		const powerup = new PowerUp(this.nextPowerupId++, type, x, y);
+		this.powerups.push(powerup);
+		this.players.forEach((player) => {
+			safeSend(player, {
+				type: "powerupSpawn",
+				powerup: {
+					id: powerup.id,
+					type: powerup.type,
+					x: powerup.x,
+					y: powerup.y,
+				},
+			});
+		});
+	}
+
+	checkPowerupCollision() {
+		const ball = this.gameState.ball;
+
+		this.powerups.forEach((powerup, index) => {
+			const dx = ball.x - powerup.x;
+			const dy = ball.y - powerup.y;
+			const distance = Math.sqrt(dx * dx + dy * dy);
+
+			if (distance < ball.radius + powerup.radius) {
+				const hitByPlayer = ball.speedX > 0 ? 1 : 2;
+				this.powerups.splice(index, 1);
+				this.activatePowerup(powerup, hitByPlayer);
+				this.players.forEach((player) => {
+					safeSend(player, {
+						type: "powerupCollected",
+						powerupId: powerup.id,
+						playerNumber: hitByPlayer,
+					});
+				});
+			}
+		});
+	}
+
+	activatePowerup(powerup, playerNumber) {
+		powerup.active = true;
+		powerup.activatedBy = playerNumber;
+		powerup.activatedTime = Date.now();
+		this.activePowerups.push(powerup);
+		switch (powerup.type) {
+			case PowerUpTypes.PADDLE_GROW:
+				this.applyPaddleGrow(playerNumber);
+				break;
+			case PowerUpTypes.PADDLE_SHRINK:
+				this.applyPaddleShrink(playerNumber === 1? 2 : 1);
+				break;
+			case PowerUpTypes.BALL_GROW:
+				this.applyBallGrow();
+				break;
+			case PowerUpTypes.BALL_SHRINK:
+				this.applyBallShrink();
+				break;
+			case PowerUpTypes.PADDLE_SLOW:
+				this.applyPaddleSlow(playerNumber === 1 ? 2 : 1);
+				break;
+		}
+	}
+
+	deactivatePowerup(powerup) {
+		switch (powerup.type) {
+			case PowerUpTypes.PADDLE_GROW:
+				this.revertPaddleGrow(powerup.activatedBy);
+				break;
+			case PowerUpTypes.PADDLE_SHRINK:
+				this.revertPaddleShrink(powerup.activatedBy === 1 ? 2 : 1);
+				break;
+			case PowerUpTypes.BALL_GROW:
+			case PowerUpTypes.BALL_SHRINK:
+				this.revertBallSize();
+				break;
+			case PowerUpTypes.PADDLE_SLOW:
+				this.revertPaddleSlow(powerup.activatedBy === 1 ? 2 : 1);
+				break;
+		}
+
+		this.players.forEach((player) => {
+			safeSend(player, {
+				type: "powerupDeactivated",
+				powerupId: powerup.id,
+			});
+		});
+	}
+
+	applyPaddleGrow(playerNumber) {
+		const paddle = this.gameState[`paddle${playerNumber}`];
+		paddle.originalHeight = paddle.height;
+		const centerY = paddle.y + paddle.height / 2;
+		paddle.height = Math.min(GameConfig.CANVAS_HEIGHT, paddle.height * 1.5);
+		paddle.y = Math.max(0, Math.min(centerY - paddle.height / 2, GameConfig.CANVAS_HEIGHT - paddle.height));
+	}
+	
+	revertPaddleGrow(playerNumber) {
+		const paddle = this.gameState[`paddle${playerNumber}`];
+		if (paddle.originalHeight) {
+			paddle.height = paddle.originalHeight;
+			delete paddle.originalHeight;
+		}
+	}
+
+	applyPaddleShrink(playerNumber) {
+		const paddle = this.gameState[`paddle${playerNumber}`];
+		paddle.originalHeight = paddle.height;
+		paddle.height = Math.max(GameConfig.MIN_PADDLE_LENGTH, paddle.height * 0.5);
+	}
+
+	revertPaddleShrink(playerNumber) {
+		const paddle = this.gameState[`paddle${playerNumber}`];
+		if (paddle.originalHeight) {
+			paddle.height = paddle.originalHeight;
+			delete paddle.originalHeight;
+		}
+	}
+
+	applyBallGrow() {
+		const ball = this.gameState.ball;
+		ball.originalRadius = ball.radius;
+		ball.radius = Math.min(GameConfig.MAX_BALL_SIZE, ball.radius * 1.5);
+		this.adjustBallPosition();
+	}
+
+	applyBallShrink() {
+		const ball = this.gameState.ball;
+		ball.originalRadius = ball.radius;
+		ball.radius = Math.max(GameConfig.MIN_BALL_SIZE, ball.radius * 0.5);
+		this.adjustBallPosition();
+	}
+
+	adjustBallPosition() {
+		const ball = this.gameState.ball;
+
+		if (ball.y < ball.radius)
+			ball.y = ball.radius;
+		if (ball.y > GameConfig.CANVAS_HEIGHT - ball.radius)
+			ball.y = GameConfig.CANVAS_HEIGHT - ball.radius;
+		if (ball.x < ball.radius)
+			ball.x = ball.radius;
+		if (ball.x > GameConfig.CANVAS_WIDTH - ball.radius)
+			ball.x = GameConfig.CANVAS_WIDTH - ball.radius;
+	}
+
+	revertBallSize() {
+		const ball = this.gameState.ball;
+		if (ball.originalRadius) {
+			ball.radius = ball.originalRadius;
+			delete ball.originalRadius;
+		}
+	}
+
+	applyPaddleSlow(playerNumber) {
+		const paddle = this.gameState[`paddle${playerNumber}`];
+		paddle.originalSpeed = paddle.speed;
+		paddle.speed = Math.max(GameConfig.MIN_PADDLE_SPEED, paddle.speed * 0.5);
+	}
+
+	revertPaddleSlow(playerNumber) {
+		const paddle = this.gameState[`paddle${playerNumber}`];
+		if (paddle.originalSpeed) {
+			paddle.speed = paddle.originalSpeed;
+			delete paddle.originalSpeed;
+		}
 	}
 
 	checkWallCollision() {
@@ -166,7 +361,8 @@ export class GameInstance {
 
 				// Scale X velocity to maintain total speed
 				const newYSpeed = Math.abs(ball.speedY);
-				const newXSpeed = Math.sqrt(currentSpeed * currentSpeed - newYSpeed * newYSpeed);
+				const valueForSqrt = Math.max(0, currentSpeed * currentSpeed - newYSpeed * newYSpeed);
+				const newXSpeed = Math.sqrt(valueForSqrt);
 				ball.speedX = Math.sign(ball.speedX) * newXSpeed;
 
 				// Speed up the ball if below max speed
@@ -226,13 +422,55 @@ export class GameInstance {
 	}
 
 	resetBall(scoringPlayer = null) {
+		if (this.activePowerups.length > 0) {
+			const powerupsCopy = [...this.activePowerups];
+			powerupsCopy.forEach((powerup) => {
+				this.deactivatePowerup(powerup);
+			});
+			this.activePowerups = [];
+		}
+		if (this.powerups.length > 0) {
+			this.powerups.forEach((powerup) => {
+				this.players.forEach((player) => {
+					safeSend(player, {
+						type: "powerupDeactivated",
+						powerupId: powerup.id,
+					});
+				});
+			});
+			this.powerups = [];
+		}
+
 		const ball = this.gameState.ball;
+		if (ball.originalRadius) {
+			ball.radius = ball.originalRadius;
+			delete ball.originalRadius;
+		} else {
+			ball.radius = GameConfig.DEFAULT_BALL_RADIUS;
+		}
+
+		[1, 2].forEach(playerNumber => {
+			const paddle = this.gameState[`paddle${playerNumber}`];
+			
+			if (paddle.originalHeight) {
+				paddle.height = paddle.originalHeight;
+				delete paddle.originalHeight;
+			}
+			
+			if (paddle.originalSpeed) {
+				paddle.speed = paddle.originalSpeed;
+				delete paddle.originalSpeed;
+			}
+		});
+
 		ball.x = GameConfig.CANVAS_WIDTH / 2;
 		ball.y = GameConfig.CANVAS_HEIGHT / 2;
-		const angle = Math.random() * (GameConfig.MAX_ANGLE - GameConfig.MIN_ANGLE) + GameConfig.MIN_ANGLE;
-		const baseSpeed =
-			parseInt(this.settings.ballSpeed) || GameConfig.DEFAULT_BALL_SPEED;
+		
+		const baseSpeed = parseInt(this.settings.ballSpeed) || GameConfig.DEFAULT_BALL_SPEED;
 		const speed = baseSpeed * GameConfig.BASE_BALL_SPEED_FACTOR;
+
+		const angle = Math.random() * (GameConfig.MAX_ANGLE - GameConfig.MIN_ANGLE) + GameConfig.MIN_ANGLE;
+
 		if (scoringPlayer) {
 			ball.speedX = scoringPlayer === 1 ? speed : -speed;
 			this.gameState.servingPlayer = scoringPlayer === 1 ? 2 : 1;
@@ -263,10 +501,8 @@ export class GameInstance {
 			...this.settings,
 			...newSettings,
 		};
-		this.gameState.ball.speedX =
-			parseInt(newSettings.ballSpeed) * GameConfig.BASE_BALL_SPEED_FACTOR;
-		this.gameState.ball.speedY =
-			parseInt(newSettings.ballSpeed) * GameConfig.BASE_BALL_SPEED_FACTOR;
+		this.gameState.ball.speedX = parseInt(newSettings.ballSpeed) * GameConfig.BASE_BALL_SPEED_FACTOR;
+		this.gameState.ball.speedY = parseInt(newSettings.ballSpeed) * GameConfig.BASE_BALL_SPEED_FACTOR;
 		this.gameState.paddle1.speed = parseInt(newSettings.paddleSpeed);
 		this.gameState.paddle2.speed = parseInt(newSettings.paddleSpeed);
 		this.gameState.paddle1.height = parseInt(newSettings.paddleLength);

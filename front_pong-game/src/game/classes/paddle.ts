@@ -21,6 +21,7 @@ export class Paddle {
 	// Set the center of the paddle
 	setY(centerY: number) {
 		this.y = centerY - this.height / 2;
+		this.y = Math.max(0, Math.min(this.y, GameConfig.CANVAS_HEIGHT - this.height));
 	}
 
 	// Update the height of the paddle

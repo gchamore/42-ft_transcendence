@@ -105,7 +105,20 @@ declare namespace BABYLON {
 		material: StandardMaterial;
 		receiveShadows: boolean;
 		rotation: Vector3;
+		scaling: Vector3;
 		dispose(): void;
+		getBoundingInfo(): BoundingInfo;
+	}
+
+	class BoundingInfo {
+		boundingBox: BoundingBox;
+	}
+
+	class BoundingBox
+	{
+		extendSize: Vector3;
+		minimumWorld: Vector3;
+		maximumWorld: Vector3;
 	}
 
 	class ParticleSystem {

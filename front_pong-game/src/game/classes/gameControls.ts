@@ -14,7 +14,7 @@ export class GameControls {
 	private inputSequence: number = 1;
 	private inputHistory: PaddleInput[] = [];
 	private remotePaddleBuffer: { time: number; position: number }[] = [];
-	private interpolationDelay: number = 100;
+	private paddleInterpolationDelay: number = 100;
 	private ballPositionBuffer: { time: number; position: { x: number, y: number}; speedX: number; speedY: number }[] = [];
 	private ballInterpolationDelay: number = 50;
 
@@ -197,12 +197,12 @@ export class GameControls {
 
 		// Clean old positions from the buffer
 		while (this.remotePaddleBuffer.length > 2 &&
-			now > this.remotePaddleBuffer[1].time + this.interpolationDelay) {
+			now > this.remotePaddleBuffer[1].time + this.paddleInterpolationDelay) {
 			this.remotePaddleBuffer.shift();
 		}
 
 		// Get the two positions to interpolate between
-		const targetTime = now - this.interpolationDelay;
+		const targetTime = now - this.paddleInterpolationDelay;
 
 		// Find the two buffer entries surrounding our target time
 		let prev = this.remotePaddleBuffer[0];

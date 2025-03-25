@@ -1,9 +1,10 @@
-import {GameConfig} from '../../../../shared/config/gameConfig.js';
+import {GameConfig, PowerUpTypes} from '../../../../shared/config/gameConfig.js';
 
 export class UIManager {
 	private lastBlink: number = 0;
 	private showStartMessage: boolean = true;
 	private readonly BLINK_INTERVAL: number = GameConfig.BLINK_INTERVAL;
+	private activePowerups: Map<number, { id: number, type: string, expiresAt: number, player: number }> = new Map();
 
 	constructor(
 		private context: CanvasRenderingContext2D,
@@ -130,4 +131,69 @@ export class UIManager {
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 	}
 
+	public addActivePowerup(powerupId: number, type: string, player: number): void {
+		this.activePowerups.set(powerupId, {
+			id: powerupId,
+			type,
+			expiresAt: Date.now() + GameConfig.POWERUP_DURATION,
+			player
+		});
+	}
+
+	public removeActivePowerup(powerupId: number): void {
+		this.activePowerups.delete(powerupId);
+	}
+
+	public drawPowerupStatus(timestamp: number): void {
+		if (this.activePowerups.size === 0) return;
+
+		const startY = 50; 
+		let offsetY = 0;
+
+		this.context.save();
+
+		const powerupsToRemove: number [] = [];
+
+		this.activePowerups.forEach((powerup) => {
+			const timeLeft = (powerup.expiresAt - timestamp) / 1000;
+			if (timeLeft <= 0) {
+				powerupsToRemove.push(powerup.id);
+				return;
+			}
+
+			this.context.fillStyle = this.getPowerupColor(powerup.type);
+			this.context.fillRect(20, startY + offsetY, 15, 15);
+
+			this.context.fillStyle = 'white';
+			this.context.font = '12px Arial';
+			const label = `${this.getPowerupLabel(powerup.type)} (P${powerup.player}): ${timeLeft.toFixed(1)}s`;
+			this.context.fillText(label, 45, startY + offsetY + 12);
+
+			offsetY += 25;
+		});
+		powerupsToRemove.forEach((id) => this.activePowerups.delete(id));
+		this.context.restore();
+	}
+
+	private getPowerupColor(type: string): string {
+		switch (type) {
+			case PowerUpTypes.PADDLE_GROW: return "green";
+			case PowerUpTypes.PADDLE_SHRINK: return "red";
+			case PowerUpTypes.BALL_GROW: return "blue";
+			case PowerUpTypes.BALL_SHRINK: return "purple";
+			case PowerUpTypes.PADDLE_SLOW: return "yellow";
+			default: return "white";
+		}
+	}
+
+	private getPowerupLabel(type: string): string {
+		switch (type) {
+			case PowerUpTypes.PADDLE_GROW: return "Paddle Grow";
+			case PowerUpTypes.PADDLE_SHRINK: return "Paddle Shrink";
+			case PowerUpTypes.BALL_GROW: return "Ball Grow";
+			case PowerUpTypes.BALL_SHRINK: return "Ball Shrink";
+			case PowerUpTypes.PADDLE_SLOW: return "Paddle Slow";
+			default: return "Unknown";
+		}
+	}
 }
