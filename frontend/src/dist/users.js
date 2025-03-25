@@ -17,6 +17,7 @@ function update_user(new_user_value) {
 /* OtherUser */
 class OtherUser {
     constructor(is_friend, stat1, stat2, stat3) {
+        this.avatar = 'assets/avatar.png';
         this.is_friend = is_friend;
         this.stat1 = stat1;
         this.stat2 = stat2;
@@ -28,9 +29,7 @@ class OtherUser {
             stats = ['Friends since: ', 'Wins percent: ', 'Games played with: '];
         else
             stats = ['Account creation: ', 'Wins percent: ', 'Games played: '];
-        stats[0] += this.stat1.getFullYear() + '/' +
-            this.stat1.getMonth() + '/' +
-            this.stat1.getDay();
+        stats[0] += this.stat1;
         stats[1] += this.stat2 + '%';
         stats[2] += this.stat3 + '%';
         return stats;

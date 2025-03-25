@@ -26,11 +26,12 @@ function update_user(new_user_value : User | undefined) {
 /* OtherUser */
 class OtherUser {
     readonly is_friend: boolean;
-    readonly stat1: Date;
+    readonly stat1: string;
     readonly stat2: number;
     readonly stat3: number;
+    readonly avatar: string = 'assets/avatar.png';
 
-    constructor(is_friend: boolean, stat1: Date, stat2: number, stat3: number) {
+    constructor(is_friend: boolean, stat1: string, stat2: number, stat3: number) {
         this.is_friend = is_friend;
         this.stat1 = stat1;
         this.stat2 = stat2;
@@ -45,9 +46,7 @@ class OtherUser {
         else
             stats = ['Account creation: ', 'Wins percent: ', 'Games played: '];
 
-        stats[0] += this.stat1.getFullYear() + '/' +
-                    this.stat1.getMonth() + '/' +
-                    this.stat1.getDay();
+        stats[0] += this.stat1;
         stats[1] += this.stat2 + '%';
         stats[2] += this.stat3 + '%';
         return stats;

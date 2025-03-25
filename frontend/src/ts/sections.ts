@@ -216,23 +216,26 @@ class Friends extends ASection {
 		this.status.textContent = '';
 	}
 	async search() {
-		console.log("Searching:", this.username_i.value);
-		this.anotherUser = await search(this.username_i.value);
+		let username = this.username_i.value;
 		this.reset();
+
+		this.anotherUser = await search(username);
+
 		if (this.anotherUser !== undefined) {
-			console.log("found");
-			this.btn2.onclick = () => this.message();
-			this.btn2.setAttribute('textContent', 'Message');
+			console.log("found here");
+			this.btn3.onclick = () => this.message();
+			this.btn3.textContent = 'Message';
+			this.avatar.src = this.anotherUser.avatar;
 			if (this.anotherUser.is_friend === true) {
-				this.btn3.onclick = () => this.remove();
-				this.btn3.setAttribute('textContent', 'Remove');
+				this.btn2.onclick = () => this.remove();
+				this.btn2.textContent = 'Remove';
 			}
 			else {
-				this.btn3.setAttribute('onclick', '');
-				this.btn3.setAttribute('textContent', 'Add');
+				this.btn2.setAttribute('onclick', '');
+				this.btn2.textContent = 'Add';
 			}
 
-			const stats : string[] = this.anotherUser.format_stats();
+			const stats = this.anotherUser.format_stats();
 			this.stat1.textContent = stats[0];
 			this.stat2.textContent = stats[1];
 			this.stat3.textContent = stats[2];
@@ -299,13 +302,13 @@ function go_section(section : string) {
 
 function activate(list : NodeListOf<Element>): void {
 	list.forEach(element => {
-		element.classList.add('activate');
+		element.classList.add('active');
 	});
 }
 
 function deactivate(list : NodeListOf<Element>): void {
 	list.forEach(element => {
-		element.classList.remove('activate');
+		element.classList.remove('active');
 	});
 }
 /* --------- */

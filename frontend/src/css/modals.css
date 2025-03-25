@@ -43,13 +43,16 @@
 
 #badge, #friend-stats{
     /* border: rgb(72, 60, 60) solid 3px; */
-
     display: flex;
     flex-direction: column;
     align-items: center;
     margin: 2px;
+    padding-top: 35px;
 }
 
+#badge, #friend-stats, #failed-research {
+    font-size: 20px;
+}
 
 .not-found:not(.active),
 .found:not(.active) {
@@ -70,10 +73,6 @@ ul.modal li {
 
 ul.modal li:active {
     transform: scale(0.85);
-}
-
-li.friends:not(.active) {
-    display: none;
 }
 
 li.l1 {
