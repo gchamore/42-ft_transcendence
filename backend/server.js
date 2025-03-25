@@ -50,10 +50,7 @@ const publicRoutes = [
     '/register',
     '/refresh',
     '/verify_token',
-    '/auth/google/callback',
-    '/oauth/callback',
-    '/auth/google',  // Add this new route
-    '/oauth'         // Add this new route
+	'/auth/google/token'
 ];
 
 // Middleware d'authentification
