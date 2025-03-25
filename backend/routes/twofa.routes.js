@@ -1,7 +1,8 @@
+
+
 async function routes(fastify, options) {
     const { db } = fastify;
 
-    /*** 📌 Route: 2FA ***/
 	fastify.post("/2fa/setup", async (request, reply) => {
 		const userId = request.user.id; // Récupère l'id du user depuis le JWT
 		const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);

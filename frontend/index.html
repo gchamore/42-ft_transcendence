@@ -235,7 +235,7 @@
         const API_URL = 'http://localhost:8080/api';
         const WS_URL = 'ws://localhost:8080/api/ws';
         const GOOGLE_CLIENT_ID = '719179054785-2jaf8669fv3kj0qk6ib8cmtumlb23e8a.apps.googleusercontent.com';
-        const GOOGLE_REDIRECT_URI = 'http://localhost:8080/api/auth/google/callback';
+        const GOOGLE_REDIRECT_URI = 'http://localhost:8080/oauth-callback';
         let ws = null;
         let shouldReconnect = true; // Nouveau flag pour contrôler la reconnexion
 
@@ -263,20 +263,21 @@
             const loginSuccess = urlParams.get('login');
             const username = urlParams.get('username');
 
-            if (googleCode) {
-                try {
-                    const response = await fetch(`${API_URL}/auth/google/callback`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ code: googleCode }),
-                        credentials: 'include'
-                    });
+			if (googleCode) {
+				try {
+					const response = await fetch(`${API_URL}/auth/google/token`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ code: googleCode }),
+						credentials: 'include'
+					});
 
-                    const data = await response.json();
+					const data = await response.json();
 
-                    if (response.ok && data.success) {
-                        showMessage('Google Login successful!', false);
+					if (response.ok && data.success) {
+						showMessage('Google Login successful!', false);
                         // Ne pas appeler showWelcome ici car il sera appelé par checkAuth
+						await checkAuth();
                         window.history.replaceState({}, document.title, '/');
                     } else {
                         showMessage(data.error || 'Google Login failed', true);
