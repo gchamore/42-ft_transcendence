@@ -13,6 +13,7 @@ async function verify_token(): Promise<void> {
 			console.log(data.username, "authenticated");
 			
 			update_user(new User(data.username));
+			// connect_to_ws();
 			return;
 		}
 
@@ -38,6 +39,8 @@ async function register(username: string, password: string) {
 			console.error("/api/register failed:", data.error);
         else if (data.success) {
 			update_user(new User(data.username));
+			// connect_to_ws();
+
 			console.log(username, "registered");
 		}
 
@@ -61,6 +64,8 @@ async function login(username: string, password: string) {
 			console.error("/api/login failed:", data.error);
         else if (data.success) {
 			update_user(new User(data.username));
+			// connect_to_ws();
+
 			console.log(username, "logged-in");
 		}
 
@@ -151,3 +156,27 @@ async function remove(friend_username : string): Promise<boolean> {
 
 	return false;
 }
+
+// async function connect_to_ws() {
+// 	console.log("connect_to_ws");
+// 	const wsUrl = "/ws";
+// 	let socket : WebSocket | undefined = new WebSocket(wsUrl);
+	
+// 	socket.addEventListener("open", () => {
+// 		console.log("Connected to WebSocket");
+// 	});
+// 	socket.addEventListener("message", (event) => {
+// 		console.log("Message from server:", event.data.toString());
+// 	});
+// 	socket.addEventListener("close", (event) => {
+// 		console.log("Disconnected from WebSocket");
+// 		if (event.code === 1008) {
+// 			console.error("Unauthorized: ", event.reason); // Example for auth failure
+// 		} else if (event.code === 1000) {
+// 			console.log("Normal closure:", event.reason);
+// 		} else {
+// 			console.warn("Unexpected close:", event.reason);
+// 		}
+// 		socket = undefined;
+// 	});
+// }
