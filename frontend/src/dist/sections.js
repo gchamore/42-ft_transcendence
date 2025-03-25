@@ -201,20 +201,21 @@ class Friends extends ASection {
     }
     search() {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log("Searching:", this.username_i.value);
-            this.anotherUser = yield search(this.username_i.value);
+            let username = this.username_i.value;
             this.reset();
+            this.anotherUser = yield search(username);
             if (this.anotherUser !== undefined) {
-                console.log("found");
-                this.btn2.onclick = () => this.message();
-                this.btn2.setAttribute('textContent', 'Message');
+                console.log("found here");
+                this.btn3.onclick = () => this.message();
+                this.btn3.textContent = 'Message';
+                this.avatar.src = this.anotherUser.avatar;
                 if (this.anotherUser.is_friend === true) {
-                    this.btn3.onclick = () => this.remove();
-                    this.btn3.setAttribute('textContent', 'Remove');
+                    this.btn2.onclick = () => this.remove();
+                    this.btn2.textContent = 'Remove';
                 }
                 else {
-                    this.btn3.setAttribute('onclick', '');
-                    this.btn3.setAttribute('textContent', 'Add');
+                    this.btn2.setAttribute('onclick', '');
+                    this.btn2.textContent = 'Add';
                 }
                 const stats = this.anotherUser.format_stats();
                 this.stat1.textContent = stats[0];
@@ -275,12 +276,12 @@ function go_section(section) {
 }
 function activate(list) {
     list.forEach(element => {
-        element.classList.add('activate');
+        element.classList.add('active');
     });
 }
 function deactivate(list) {
     list.forEach(element => {
-        element.classList.remove('activate');
+        element.classList.remove('active');
     });
 }
 /* --------- */

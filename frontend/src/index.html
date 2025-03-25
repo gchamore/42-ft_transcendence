@@ -59,7 +59,7 @@
         <section class="modal content column">
           <label for="friends-username">Search a user :</label>
           <input type="text" id="friends-username">
-          <label class="not-found" id="failed-research"></label>
+          <label class="not-found" id="failed-research">User not found...</label>
         </section>
         
         <section class="modal content row center found">
@@ -78,9 +78,11 @@
         <section>
           <nav>
             <ul class="modal">
-              <li class="l1 friends active"><button id="friends-btn1"></button></li>
-              <li class="l2 friends"><button id="friends-btn2"></button></li>
-              <li class="l3 friends"><button id="friends-btn3"></button></li>
+              <li class="l1 friends"><button id="friends-btn1"></button></li>
+              <div class="found">
+                <li class="l2 friends"><button id="friends-btn2"></button></li>
+                <li class="l3 friends"><button id="friends-btn3"></button></li>
+              </div>
             </ul>
           </nav>
         </section>
