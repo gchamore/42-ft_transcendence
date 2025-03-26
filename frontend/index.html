@@ -248,7 +248,7 @@
 
         // Vérifier s'il y a un message stocké dans sessionStorage
         window.onload = async () => {
-            // 🔥 1. Vérifie s'il y a un message en attente dans sessionStorage
+            // 1. Vérifie s'il y a un message en attente dans sessionStorage
             const pendingMessage = sessionStorage.getItem('pendingMessage');
             const messageType = sessionStorage.getItem('messageType');
             if (pendingMessage) {
@@ -257,7 +257,7 @@
                 sessionStorage.removeItem('messageType');
             }
 
-            // 🔥 2. Vérifie si Google OAuth a renvoyé un code dans l'URL
+            // 2. Vérifie si Google OAuth a renvoyé un code dans l'URL
             const urlParams = new URLSearchParams(window.location.search);
             const googleCode = urlParams.get('code');
             const loginSuccess = urlParams.get('login');
