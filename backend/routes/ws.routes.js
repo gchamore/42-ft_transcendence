@@ -89,22 +89,6 @@ async function routes(fastify, options) {
                 fastify.log.debug(`Pong received from user: ${user.username}`);
             });
 
-			// Messages handling
-            connection.socket.on('message', async (message) => {
-                try {
-                    const data = JSON.parse(message.toString());
-                    if (data.type === 'get_online_users') {
-                        const onlineUsers = await redis.smembers('online_users');
-                        connection.socket.send(JSON.stringify({
-                            type: 'online_users',
-                            users: onlineUsers
-                        }));
-                    }
-                } catch (error) {
-                    fastify.log.error('WebSocket message error:', error);
-                }
-            });
-
 			// Close handling
             connection.socket.on('close', async () => {
                 clearInterval(pingInterval);

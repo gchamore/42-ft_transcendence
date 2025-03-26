@@ -730,15 +730,6 @@
                     console.log('WebSocket connected successfully');
                     reconnectAttempt = 0;
                     clearTimeout(reconnectTimeout);
-                    
-                    // Vérifier que la connexion est toujours valide avant d'envoyer
-                    if (ws && ws.readyState === WebSocket.OPEN) {
-                        try {
-                            ws.send(JSON.stringify({ type: 'get_online_users' }));
-                        } catch (error) {
-                            console.error('Error sending initial message:', error);
-                        }
-                    }
                 };
 
                 ws.onmessage = (event) => {
@@ -747,9 +738,6 @@
                         switch (data.type) {
                             case 'status_update':
                                 updateUserStatus(data);
-                                break;
-                            case 'online_users':
-                                updateOnlineUsers(data.users);
                                 break;
                         }
                     } catch (error) {
@@ -806,23 +794,6 @@
                 const statusBadge = userElement.querySelector('.status-badge');
                 statusBadge.textContent = data.online ? 'Online' : 'Offline';
                 statusBadge.className = `status-badge ${data.online ? 'online' : 'offline'}`;
-            }
-        }
-
-        // Mise à jour de la liste des utilisateurs en ligne
-        function updateOnlineUsers(onlineUsers) {
-            const searchResult = document.getElementById('search-result');
-            if (!searchResult) return;
-
-            const statusBadge = searchResult.querySelector('.status-badge');
-            if (statusBadge) {
-                const userElement = searchResult.querySelector('.friend-item');
-                if (userElement) {
-                    const username = userElement.dataset.username;
-                    const isOnline = onlineUsers.includes(username);
-                    statusBadge.textContent = isOnline ? 'Online' : 'Offline';
-                    statusBadge.className = `status-badge ${isOnline ? 'status-online' : 'status-offline'}`;
-                }
             }
         }
 
