@@ -26,3 +26,16 @@ Sécurité:
 - Stockage des statuts dans Redis
 
 Note: Toutes les connexions WebSocket nécessitent un token d'accès valide via les cookies
+
+
+
+📌 Live Chat :
+
+Route: /live_chat_message (POST)
+- envois le contenu du Message
+- broadcast a tout le monde via websocket, le username(auteur) + Message (data.type = livechat, data.user, data.message)
+
+
+Route : /direct_chat_message
+- envois le contenu du Message + destinataire
+- broadcast a destinataire via websocket, le username(auteur) + Message (data.type = direct_message, data.user, data.message)
