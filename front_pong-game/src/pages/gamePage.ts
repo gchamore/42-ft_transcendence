@@ -154,12 +154,6 @@ export class Game {
 					}
 					console.log("Score effect at position", data.position);
 					break
-				case "gameStartAnimation":
-					if (this.babylonManager) {
-						this.babylonManager.handleGameStartAnimation();
-					}
-					console.log("Game start animation");
-					break;
 				case "paddleHit":
 					if (this.babylonManager) {
 						this.babylonManager.handlePaddleHit(data.playerNumber, data.ballPosition);

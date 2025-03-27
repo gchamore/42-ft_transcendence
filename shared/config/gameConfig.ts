@@ -43,3 +43,14 @@ export const PowerUpTypes = {
 	BALL_SHRINK: 'ball_shrink',
 	PADDLE_SLOW: 'paddle_slow',
 };
+
+/*
+🍄 Mushroom: Paddle Growth
+
+🪓 Axe: Paddle Shrink
+
+🍉 Watermelon: Ball Growth
+
+🫐 Blueberry: Ball Shrink
+
+🐢 Turtle: Paddle Slow */

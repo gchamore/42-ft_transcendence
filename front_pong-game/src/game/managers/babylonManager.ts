@@ -4,6 +4,7 @@ import { Paddle } from "../classes/paddle.js";
 import { GameState } from "@shared/types/gameState";
 import { GameConfig, PowerUpTypes  } from '../../../../shared/config/gameConfig.js';
 
+
 export class BabylonManager {
 	private engine: BABYLON.Engine | null = null;
 	private scene: BABYLON.Scene | null = null;
@@ -317,8 +318,10 @@ export class BabylonManager {
 			this.shadowGenerator.addShadowCaster(this.paddleMesh1);
 			this.shadowGenerator.addShadowCaster(this.paddleMesh2);
 			this.shadowGenerator.addShadowCaster(this.ballMesh);
-			this.shadowGenerator.addShadowCaster(this.bottomWall);
-			this.shadowGenerator.addShadowCaster(this.topWall);
+			if (this.bottomWall)
+				this.shadowGenerator.addShadowCaster(this.bottomWall);
+			if (this.topWall)
+				this.shadowGenerator.addShadowCaster(this.topWall);
 		}
 
 		if (!GameConfig.TEST_MODE) {
@@ -333,50 +336,143 @@ export class BabylonManager {
 		}
 	}
 
+	public testPowerups(): void {
+		// Define test positions across the table
+		const testPositions = [
+			{ x: 200, y: 300 },  // Left side
+			{ x: 400, y: 300 },  // Center-left
+			{ x: 600, y: 300 },  // Center-right
+			{ x: 800, y: 300 },  // Right
+			{ x: 500, y: 500 }   // Center-bottom
+		];
+
+		// Create one of each powerup type
+		const powerupTypes = [
+			PowerUpTypes.PADDLE_GROW,
+			PowerUpTypes.PADDLE_SHRINK,
+			PowerUpTypes.BALL_GROW,
+			PowerUpTypes.BALL_SHRINK,
+			PowerUpTypes.PADDLE_SLOW
+		];
+
+		// Create each powerup at its test position
+		powerupTypes.forEach((type, index) => {
+			this.createPowerupMesh({
+				id: index + 1,
+				type: type,
+				x: testPositions[index].x,
+				y: testPositions[index].y
+			});
+		});
+	}
+
 	public createPowerupMesh(powerup : any): void { 
 		if (!this.scene) return;
-		const powerupMesh = BABYLON.MeshBuilder.CreateSphere(
-			`powerup-${powerup.id}`,
-			{ diameter: GameConfig.POWERUP_SIZE * this.scaleX * 2 },
-			this.scene
-		);
 
-		powerupMesh.position = new BABYLON.Vector3(
+		const position = new BABYLON.Vector3(
 			(powerup.x - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
 			-0.2,
 			(GameConfig.CANVAS_HEIGHT / 2 - powerup.y) * this.scaleY
 		);
 
-		const material = new BABYLON.StandardMaterial(`powerupMaterial-${powerup.id}`, this.scene);
+		let powerupPath = "";
+		let emissiveColor = new BABYLON.Color3(1, 1, 1);
 
 		switch (powerup.type) {
 			case PowerUpTypes.PADDLE_GROW:
-				material.emissiveColor = new BABYLON.Color3(0, 1, 0); // Green
+				powerupPath = "mushroom.glb";
+				emissiveColor = new BABYLON.Color3(1, 0, 0); // Red
 				break;
 			case PowerUpTypes.PADDLE_SHRINK:
-				material.emissiveColor = new BABYLON.Color3(1, 0, 0); // Red
+				powerupPath = "axe.glb";
+				emissiveColor = new BABYLON.Color3(1, 1, 0); // Yellow
 				break;
 			case PowerUpTypes.BALL_GROW:
-				material.emissiveColor = new BABYLON.Color3(0, 0, 1); // Blue
+				powerupPath = "watermelon.glb";
+				emissiveColor = new BABYLON.Color3(0, 0.5, 0); // Green
 				break;
 			case PowerUpTypes.BALL_SHRINK:
-				material.emissiveColor = new BABYLON.Color3(1, 0, 1); // Purple
+				powerupPath = "blueberry.glb";
+				emissiveColor = new BABYLON.Color3(1, 0, 1); // Purple
 				break;
 			case PowerUpTypes.PADDLE_SLOW:
-				material.emissiveColor = new BABYLON.Color3(1, 1, 0); // Yellow
+				powerupPath = "turtle.glb";
+				emissiveColor = new BABYLON.Color3(0, 0, 1); // Blue
 				break;
 		}
 
-		powerupMesh.material = material;
+		BABYLON.SceneLoader.ImportMesh("", "/assets/models/", powerupPath, this.scene, (meshes) => {
+			if (meshes.length > 0 && this.scene) {
+				const container = new BABYLON.Mesh(`powerup-${powerup.id}`, this.scene);
+				container.position = position;
 
-		if (!GameConfig.TEST_MODE) {
-			const glowLayer = new BABYLON.GlowLayer(`powerup-glow-${powerup.id}`, this.scene);
-			glowLayer.intensity = 0.7;
-			glowLayer.addIncludedOnlyMesh(powerupMesh);
-			this.activePowerups.set(powerup.id, glowLayer);
+				switch (powerup.type) {
+					case PowerUpTypes.PADDLE_SLOW: // Turtle
+						const randomDirection = Math.random() < 0.5 ? 1 : -1;
+						container.rotation.y = (Math.PI / 2) * randomDirection;
+						break;
+					case PowerUpTypes.PADDLE_SHRINK: // Axe
+						container.rotation.x = Math.PI / 2;
+						container.rotation.y =  Math.PI;
+						break;
+					case PowerUpTypes.BALL_SHRINK: // Blueberry
+						container.rotation.x = -Math.PI / 2;
+						break;
+					case PowerUpTypes.BALL_GROW: // Watermelon
+						container.rotation.z = Math.PI / 2;
+						break;
+					case PowerUpTypes.PADDLE_GROW: // Mushroom
+						container.position.y = 0.2;
+						container.rotation.x = -Math.PI / 2;
+						break;
+				}
+
+				for (const mesh of meshes) {
+					if (mesh instanceof BABYLON.Mesh) {
+						mesh.parent = container;
+						const scaleFactor = this.getScaleFactorForModel(powerup.type);
+						mesh.scaling.scaleInPlace(scaleFactor * GameConfig.POWERUP_SIZE * 0.5);
+					}
+					// Apply emissive color to materials
+					if (mesh.material) {
+						if (mesh.material instanceof BABYLON.StandardMaterial) {
+							mesh.material.emissiveColor = emissiveColor;
+							mesh.material.specularPower = 64;
+						} else if ((mesh.material as any) instanceof BABYLON.PBRMaterial) {
+							const pbrMaterial = mesh.material as BABYLON.PBRMaterial;
+							pbrMaterial.emissiveColor = emissiveColor;
+							pbrMaterial.emissiveIntensity = 0.6;
+						}
+					}
+				}
+				if (!GameConfig.TEST_MODE)
+				{
+					const glowLayer = new BABYLON.GlowLayer(`powerup-glow-${powerup.id}`, this.scene);
+					glowLayer.intensity = 0.7;
+					glowLayer.addIncludedOnlyMesh(container);
+					this.activePowerups.set(powerup.id, glowLayer);
+				}
+				this.powerupMeshes.set(powerup.id, container);
+			}
+		
+		});
+	}
+
+	private getScaleFactorForModel(powerupType: string): number {
+		switch (powerupType) {
+			case PowerUpTypes.PADDLE_GROW: // Mushroom
+				return 0.01; 
+			case PowerUpTypes.PADDLE_SHRINK: // Axe
+				return 0.0002; 
+			case PowerUpTypes.BALL_GROW: // Watermelon
+				return 0.2;
+			case PowerUpTypes.BALL_SHRINK: // Blueberry
+				return 0.05;
+			case PowerUpTypes.PADDLE_SLOW: // Turtle
+				return 0.03;
+			default:
+				return 1.0;
 		}
-
-		this.powerupMeshes.set(powerup.id, powerupMesh);
 	}
 
 	public handlePowerupCollection(powerupId: number, playerNumber: number): void {
@@ -642,28 +738,7 @@ export class BabylonManager {
 		}, 1000);
 	}
 
-	public handleGameStartAnimation(): void {
-		if (!this.scene) return;
-		const numbers = ['3', '2', '1', 'GO!'];
-		let i = 0;
-		const interval = setInterval(() => {
-			if (i >= numbers.length) {
-				clearInterval(interval);
-				return;
-			}
-			if (this.scene) {
-				const text = BABYLON.MeshBuilder.CreateText(
-					"countdown",
-					numbers[i],
-					null,
-					this.scene
-				);
-				setTimeout(() => text.dispose(), 900);
-			}
-			i++;
-		}, 1000);
-	}
-
+	
 	private createCollisionBoxes(): void {
 		if (!this.scene || !GameConfig.TEST_MODE) return;
 

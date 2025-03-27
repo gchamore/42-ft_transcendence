@@ -161,11 +161,11 @@ export class UIManager {
 				return;
 			}
 
-			this.context.fillStyle = this.getPowerupColor(powerup.type);
-			this.context.fillRect(20, startY + offsetY, 15, 15);
-
 			this.context.fillStyle = 'white';
-			this.context.font = '12px Arial';
+			this.context.font = '18px Arial';
+			const emoji = this.getPowerupEmoji(powerup.type);
+			this.context.fillText(emoji, 20, startY + offsetY + 12);
+			this.context.font = '14px Arial';
 			const label = `${this.getPowerupLabel(powerup.type)} (P${powerup.player}): ${timeLeft.toFixed(1)}s`;
 			this.context.fillText(label, 45, startY + offsetY + 12);
 
@@ -173,17 +173,6 @@ export class UIManager {
 		});
 		powerupsToRemove.forEach((id) => this.activePowerups.delete(id));
 		this.context.restore();
-	}
-
-	private getPowerupColor(type: string): string {
-		switch (type) {
-			case PowerUpTypes.PADDLE_GROW: return "green";
-			case PowerUpTypes.PADDLE_SHRINK: return "red";
-			case PowerUpTypes.BALL_GROW: return "blue";
-			case PowerUpTypes.BALL_SHRINK: return "purple";
-			case PowerUpTypes.PADDLE_SLOW: return "yellow";
-			default: return "white";
-		}
 	}
 
 	private getPowerupLabel(type: string): string {
@@ -194,6 +183,23 @@ export class UIManager {
 			case PowerUpTypes.BALL_SHRINK: return "Ball Shrink";
 			case PowerUpTypes.PADDLE_SLOW: return "Paddle Slow";
 			default: return "Unknown";
+		}
+	}
+
+	private getPowerupEmoji(type: string): string {
+		switch (type) {
+			case PowerUpTypes.PADDLE_GROW: 
+				return "⬆️"; 
+			case PowerUpTypes.PADDLE_SHRINK: 
+				return "⬇️"; 
+			case PowerUpTypes.BALL_GROW: 
+				return "🔵"; 
+			case PowerUpTypes.BALL_SHRINK: 
+				return "🔹"; 
+			case PowerUpTypes.PADDLE_SLOW: 
+				return "🐢"; 
+			default: 
+				return "❓";
 		}
 	}
 }
