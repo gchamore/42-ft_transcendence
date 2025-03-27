@@ -189,6 +189,60 @@
             background-color: #c62828;
             color: white;
         }
+
+        /* Styles pour le chat */
+        .chat-container {
+            margin-top: 2rem;
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 1rem;
+            max-width: 100%;
+        }
+
+        .chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background: #1e1e1e;
+            border-radius: 4px;
+        }
+
+        .chat-message {
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            background: #383838;
+            border-radius: 4px;
+        }
+
+        .chat-message .author {
+            color: #00babc;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #444;
+            background: #2d2d2d;
+            color: white;
+            border-radius: 4px;
+        }
+
+        .chat-send-btn {
+            padding: 0.5rem 1rem;
+            background: #00babc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -218,6 +272,16 @@
 
         <div id="welcome" class="hidden">
             <h2>Welcome, <span id="username"></span>!</h2>
+
+            <!-- Ajouter le chat ici -->
+            <div class="chat-container">
+                <h3>Global Chat</h3>
+                <div id="chat-messages" class="chat-messages"></div>
+                <div class="chat-input-container">
+                    <input type="text" id="chat-input" class="chat-input" placeholder="Type your message...">
+                    <button id="chat-send" class="chat-send-btn">Send</button>
+                </div>
+            </div>
 
             <div class="search-container">
                 <input type="text" id="search-username" placeholder="Search username">
@@ -691,10 +755,73 @@
             welcome.classList.remove('hidden');
             shouldReconnect = true;
             
+            // Initialize chat
+            initializeChat();
+            
             // Add a small delay before connecting WebSocket
             setTimeout(() => {
                 connectWebSocket();
             }, 500);
+        }
+
+        // Chat functionality
+        function initializeChat() {
+            const chatInput = document.getElementById('chat-input');
+            const chatSend = document.getElementById('chat-send');
+
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendChatMessage();
+                }
+            });
+
+            chatSend.addEventListener('click', sendChatMessage);
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            try {
+                const response = await fetch(`${API_URL}/live_chat_message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message }),
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    input.value = '';
+                } else {
+                    showMessage('Failed to send message', true);
+                }
+            } catch (error) {
+                console.error('Send message error:', error);
+                showMessage('Error sending message', true);
+            }
+        }
+
+        function addChatMessage(data) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+            messageDiv.innerHTML = `
+                <span class="author">${data.user}:</span>
+                <span class="message">${escapeHtml(data.message)}</span>
+            `;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
         }
 
         // Fonction pour établir la connexion WebSocket avec reconnexion automatique
@@ -738,6 +865,9 @@
                         switch (data.type) {
                             case 'status_update':
                                 updateUserStatus(data);
+                                break;
+                            case 'livechat':
+                                addChatMessage(data);
                                 break;
                         }
                     } catch (error) {

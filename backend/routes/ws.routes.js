@@ -21,6 +21,37 @@ async function routes(fastify, options) {
         return { connected: isConnected };
     });
 
+    // Route pour les messages du chat
+    fastify.post('/live_chat_message', async (request, reply) => {
+        const userId = request.user.userId;
+        const { message } = request.body;
+
+        if (!message || typeof message !== 'string' || message.trim().length === 0) {
+            return reply.code(400).send({ error: 'Invalid message' });
+        }
+
+        if (message.trim().length > 1000) {
+            return reply.code(400).send({ error: 'Message too long (max 1000 characters)' });
+        }
+
+        const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+        
+        // Broadcast le message à tous les clients connectés
+        const broadcastMessage = JSON.stringify({
+            type: 'livechat',
+            user: user.username,
+            message: message.trim()
+        });
+
+        for (const [, socket] of fastify.connections) {
+            if (socket.readyState === 1) { // 1 = WebSocket.OPEN
+                socket.send(broadcastMessage);
+            }
+        }
+
+        return { success: true };
+    });
+
     // Route WebSocket
     fastify.get('/ws', { websocket: true }, async (connection, req) => {
         try {
@@ -87,6 +118,29 @@ async function routes(fastify, options) {
             connection.socket.on('pong', () => {
                 lastPong = Date.now();
                 fastify.log.debug(`Pong received from user: ${user.username}`);
+            });
+
+            connection.socket.on('message', async (message) => {
+                try {
+                    const data = JSON.parse(message.toString());
+                    if (data.type === 'chat') {
+                        // Vous pouvez ajouter ici une validation supplémentaire si nécessaire
+                        const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+                        const broadcastMessage = JSON.stringify({
+                            type: 'livechat',
+                            user: user.username,
+                            message: data.message.trim()
+                        });
+
+                        for (const [, socket] of fastify.connections) {
+                            if (socket.readyState === 1) {
+                                socket.send(broadcastMessage);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    fastify.log.error('WebSocket message handling error:', error);
+                }
             });
 
 			// Close handling
