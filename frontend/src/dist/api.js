@@ -17,12 +17,16 @@ function verify_token() {
                 credentials: 'include'
             });
             const data = yield response.json();
+            if (response.status === 401) {
+                console.error("Unauthorized!");
+            }
             if (!response.ok)
                 console.error("/api/verify_token failed:", data.error);
             else if (data.valid) {
                 console.log(data.username, "authenticated");
+                if ((user === null || user === void 0 ? void 0 : user.web_socket) && (user === null || user === void 0 ? void 0 : user.web_socket.readyState) === WebSocket.OPEN)
+                    user.web_socket.close(1000);
                 update_user(new User(data.username));
-                // connect_to_ws();
                 return;
             }
         }
@@ -47,7 +51,6 @@ function register(username, password) {
                 console.error("/api/register failed:", data.error);
             else if (data.success) {
                 update_user(new User(data.username));
-                // connect_to_ws();
                 console.log(username, "registered");
             }
         }
@@ -71,7 +74,6 @@ function login(username, password) {
                 console.error("/api/login failed:", data.error);
             else if (data.success) {
                 update_user(new User(data.username));
-                // connect_to_ws();
                 console.log(username, "logged-in");
             }
         }
@@ -92,6 +94,8 @@ function logout() {
                 console.error("/api/logout failed:", data.error);
             else if (data.success) {
                 console.log(user === null || user === void 0 ? void 0 : user.name, "logged-out");
+                if ((user === null || user === void 0 ? void 0 : user.web_socket) && (user === null || user === void 0 ? void 0 : user.web_socket.readyState) === WebSocket.OPEN)
+                    user.web_socket.close(1000);
                 update_user(undefined);
             }
         }
@@ -108,11 +112,18 @@ function search(friend_username) {
                 credentials: 'include'
             });
             const data = yield response.json();
+            if (response.status === 401) {
+                console.error("Unauthorized!");
+                if ((user === null || user === void 0 ? void 0 : user.web_socket) && (user === null || user === void 0 ? void 0 : user.web_socket.readyState) === WebSocket.OPEN)
+                    user.web_socket.close(1000);
+                update_user(undefined);
+                return new Error();
+            }
             if (!response.ok)
                 console.error(`/api/search/${friend_username} failed:`, data.error);
             else if (data.success) {
                 if (data.isFriend)
-                    return new OtherUser(friend_username, data.isFriend, data.user.is_connected, data.user.friendSince, data.user.winRate, data.user.gamesTogether);
+                    return new OtherUser(friend_username, data.isFriend, data.user.isConnected, data.user.friendSince, data.user.winRate, data.user.gamesTogether);
                 return new OtherUser(friend_username, data.isFriend, false, data.user.createdAt, data.user.winRate, data.user.gamesPlayed);
             }
         }
@@ -130,6 +141,13 @@ function add(friend_username) {
                 credentials: 'include'
             });
             const data = yield response.json();
+            if (response.status === 401) {
+                console.error("Unauthorized!");
+                if ((user === null || user === void 0 ? void 0 : user.web_socket) && (user === null || user === void 0 ? void 0 : user.web_socket.readyState) === WebSocket.OPEN)
+                    user.web_socket.close(1000);
+                update_user(undefined);
+                return new Error();
+            }
             if (!response.ok)
                 console.error(`/api/add/${friend_username} failed:`, data.error);
             return data.success;
@@ -148,6 +166,13 @@ function remove(friend_username) {
                 credentials: 'include'
             });
             const data = yield response.json();
+            if (response.status === 401) {
+                console.error("Unauthorized!");
+                if ((user === null || user === void 0 ? void 0 : user.web_socket) && (user === null || user === void 0 ? void 0 : user.web_socket.readyState) === WebSocket.OPEN)
+                    user.web_socket.close(1000);
+                update_user(undefined);
+                return new Error();
+            }
             if (!response.ok)
                 console.error(`/api/remove/${friend_username} failed:`, data.error);
             return data.success;
@@ -158,25 +183,3 @@ function remove(friend_username) {
         return false;
     });
 }
-// async function connect_to_ws() {
-// 	console.log("connect_to_ws");
-// 	const wsUrl = "/ws";
-// 	let socket : WebSocket | undefined = new WebSocket(wsUrl);
-// 	socket.addEventListener("open", () => {
-// 		console.log("Connected to WebSocket");
-// 	});
-// 	socket.addEventListener("message", (event) => {
-// 		console.log("Message from server:", event.data.toString());
-// 	});
-// 	socket.addEventListener("close", (event) => {
-// 		console.log("Disconnected from WebSocket");
-// 		if (event.code === 1008) {
-// 			console.error("Unauthorized: ", event.reason); // Example for auth failure
-// 		} else if (event.code === 1000) {
-// 			console.log("Normal closure:", event.reason);
-// 		} else {
-// 			console.warn("Unexpected close:", event.reason);
-// 		}
-// 		socket = undefined;
-// 	});
-// }

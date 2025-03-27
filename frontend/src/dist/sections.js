@@ -167,7 +167,7 @@ class Friends extends ASection {
     /* Methods */
     enter(verified) {
         if (verified !== true) {
-            console.error("Try to enter Friends section as unauthenticated");
+            console.log("Try to enter Friends section as unauthenticated");
             return;
         }
         this.reset();
@@ -204,7 +204,10 @@ class Friends extends ASection {
     }
     search() {
         return __awaiter(this, arguments, void 0, function* (user = this.username_i.value) {
-            this.anotherUser = yield search(user);
+            let status = yield search(user);
+            if (status instanceof Error)
+                return;
+            this.anotherUser = status;
             this.username_i.value = '';
             if (this.anotherUser !== undefined) {
                 this.btn3.onclick = () => this.message();
@@ -213,8 +216,7 @@ class Friends extends ASection {
                 if (this.anotherUser.is_friend === true) {
                     this.btn2.onclick = () => this.remove();
                     this.btn2.textContent = 'Remove';
-                    this.status.textContent = (this.anotherUser.is_connected) ? 'Online' : 'Offline';
-                    this.status.style.color = (this.anotherUser.is_connected) ? 'rgb(32, 96, 32)' : 'rgb(153, 0, 0)';
+                    this.update_status(this.anotherUser.is_connected);
                 }
                 else {
                     this.btn2.onclick = () => this.add();
@@ -241,7 +243,8 @@ class Friends extends ASection {
     }
     add() {
         return __awaiter(this, void 0, void 0, function* () {
-            yield add(this.anotherUser.username);
+            if ((yield add(this.anotherUser.username)) instanceof Error)
+                return;
             let user = this.anotherUser.username;
             this.anotherUser = undefined;
             this.search(user);
@@ -249,11 +252,16 @@ class Friends extends ASection {
     }
     remove() {
         return __awaiter(this, void 0, void 0, function* () {
-            yield remove(this.anotherUser.username);
+            if ((yield remove(this.anotherUser.username)) instanceof Error)
+                return;
             let user = this.anotherUser.username;
             this.reset();
             this.search(user);
         });
+    }
+    update_status(online) {
+        this.status.textContent = (online) ? 'Online' : 'Offline';
+        this.status.style.color = (online) ? 'rgb(32, 96, 32)' : 'rgb(153, 0, 0)';
     }
 }
 sections = [new Home(), new Profile(), new Friends()];
@@ -303,5 +311,12 @@ function deactivate(list) {
     list.forEach(element => {
         element.classList.remove('active');
     });
+}
+function update_friends_status(username, online) {
+    var _a;
+    if (section_index == get_section_index('friends')
+        && ((_a = sections[section_index].anotherUser) === null || _a === void 0 ? void 0 : _a.username) === username) {
+        sections[section_index].update_status(online);
+    }
 }
 /* --------- */

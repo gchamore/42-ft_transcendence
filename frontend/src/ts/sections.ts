@@ -177,7 +177,7 @@ class Friends extends ASection {
 	/* Methods */
 	enter(verified: boolean) {
 		if (verified !== true) {
-			console.error("Try to enter Friends section as unauthenticated");
+			console.log("Try to enter Friends section as unauthenticated");
 			return;
 		}
 
@@ -219,7 +219,11 @@ class Friends extends ASection {
 		this.status.style.color = 'black';
 	}
 	async search(user : string = this.username_i.value) {
-		this.anotherUser = await search(user);
+		let status : OtherUser | Error | undefined = await search(user);
+		if (status instanceof Error)
+			return ;
+
+		this.anotherUser = (status as OtherUser | undefined);
 		this.username_i.value = '';
 
 		if (this.anotherUser !== undefined) {
@@ -231,21 +235,20 @@ class Friends extends ASection {
 				this.btn2.onclick = () => this.remove();
 				this.btn2.textContent = 'Remove';
 
-				this.status.textContent = (this.anotherUser.is_connected) ? 'Online' : 'Offline';
-				this.status.style.color = (this.anotherUser.is_connected) ? 'rgb(32, 96, 32)': 'rgb(153, 0, 0)';
+				this.update_status(this.anotherUser.is_connected);
 			}
 			else {
 				this.btn2.onclick = () => this.add();
 				this.btn2.textContent = 'Add';
 				this.status.textContent = '';
 			}
-
+			
 			const stats = this.anotherUser.format_stats();
 			this.stat1.textContent = stats[0];
 			this.stat2.textContent = stats[1];
 			this.stat3.textContent = stats[2];
 			this.stat4.textContent = stats[3];
-
+			
 			activate(this.founds);
 			deactivate(this.not_founds);
 		}
@@ -259,16 +262,22 @@ class Friends extends ASection {
 		this.reset();
 	}
 	async add() {
-		await add(this.anotherUser!.username);
+		if (await add(this.anotherUser!.username) instanceof Error)
+			return ;
 		let user = this.anotherUser!.username;
 		this.anotherUser = undefined;
 		this.search(user);
 	}
 	async remove() {
-		await remove(this.anotherUser!.username);
+		if (await remove(this.anotherUser!.username) instanceof Error)
+			return ;
 		let user = this.anotherUser!.username;
 		this.reset();
 		this.search(user);
+	}
+	update_status(online : boolean) {
+		this.status.textContent = (online) ? 'Online' : 'Offline';
+		this.status.style.color = (online) ? 'rgb(32, 96, 32)': 'rgb(153, 0, 0)';
 	}
 }
 sections = [new Home(), new Profile(), new Friends()];
@@ -327,5 +336,13 @@ function deactivate(list : NodeListOf<Element>): void {
 	list.forEach(element => {
 		element.classList.remove('active');
 	});
+}
+
+function update_friends_status(username : string, online : boolean) {
+
+	if (section_index == get_section_index('friends')
+		&& (sections[section_index] as Friends).anotherUser?.username === username) {
+		(sections[section_index] as Friends).update_status(online);
+	}
 }
 /* --------- */
