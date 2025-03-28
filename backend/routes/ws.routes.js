@@ -52,6 +52,57 @@ async function routes(fastify, options) {
         return { success: true };
     });
 
+    // Route pour les messages privés
+    fastify.post('/direct_chat_message', async (request, reply) => {
+        const senderId = request.user.userId;
+        const { message, recipient } = request.body;
+
+        if (!message || typeof message !== 'string' || message.trim().length === 0) {
+            return reply.code(400).send({ error: 'Invalid message' });
+        }
+
+        if (message.trim().length > 1000) {
+            return reply.code(400).send({ error: 'Message too long (max 1000 characters)' });
+        }
+
+        // Vérifier si le destinataire existe
+        const recipientUser = fastify.db.prepare("SELECT id, username FROM users WHERE username = ?").get(recipient);
+        if (!recipientUser) {
+            return reply.code(404).send({ error: 'Recipient not found' });
+        }
+
+        const sender = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(senderId);
+
+        // Vérifier si le destinataire est en ligne
+        const isOnline = await redis.sismember('online_users', recipientUser.id.toString());
+        if (!isOnline) {
+            return reply.code(400).send({ error: 'User is offline. Cannot send private message.' });
+        }
+
+        // Envoyer le message privé
+        const privateMessage = JSON.stringify({
+            type: 'direct_message',
+            user: sender.username,
+            recipient: recipientUser.username,
+            message: message.trim()
+        });
+
+        // Envoyer au destinataire
+        const recipientSocket = fastify.connections.get(recipientUser.id);
+        if (!recipientSocket || recipientSocket.readyState !== 1) {
+            return reply.code(400).send({ error: 'Recipient is not connected' });
+        }
+        recipientSocket.send(privateMessage);
+
+        // Envoyer une copie à l'expéditeur
+        const senderSocket = fastify.connections.get(senderId);
+        if (senderSocket && senderSocket.readyState === 1) {
+            senderSocket.send(privateMessage);
+        }
+
+        return { success: true };
+    });
+
     // Route WebSocket
     fastify.get('/ws', { websocket: true }, async (connection, req) => {
         try {

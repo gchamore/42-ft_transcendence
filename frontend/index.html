@@ -140,6 +140,8 @@
 
         .friend-actions {
             margin-left: 1rem;
+            display: flex;
+            gap: 0.5rem;
         }
 
         .remove-friend-btn {
@@ -237,13 +239,45 @@
 
         .chat-send-btn {
             padding: 0.5rem;
-            width: 60px; /* Ajout d'une largeur fixe */
+            width: 60px;
             min-width: fit-content;
             background: #00babc;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+        }
+
+        /* Styles pour les onglets de chat */
+        .chat-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .chat-tab {
+            padding: 0.5rem 1rem;
+            background: #2d2d2d;
+            border: none;
+            border-radius: 4px;
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .chat-tab.active {
+            background: #00babc;
+            color: white;
+        }
+
+        .message-btn {
+            background: #00babc;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.9rem;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            margin-left: 0.5rem;
         }
     </style>
 </head>
@@ -277,7 +311,9 @@
 
             <!-- Ajouter le chat ici -->
             <div class="chat-container">
-                <h3>Global Chat</h3>
+                <div class="chat-tabs">
+                    <button class="chat-tab active" data-tab="global">Global Chat</button>
+                </div>
                 <div id="chat-messages" class="chat-messages"></div>
                 <div class="chat-input-container">
                     <input type="text" id="chat-input" class="chat-input" placeholder="Type your message...">
@@ -590,7 +626,6 @@
                         </span>
                     ` : '';
 
-                    // Dans la fonction de recherche, modifier l'affichage pour inclure le bouton de suppression si c'est un ami
                     searchResult.innerHTML = `
                         <div class="friend-item" data-username="${data.user.username}">
                             <div class="friend-info">
@@ -604,15 +639,20 @@
                                 </div>
                                 ${statsHtml}
                             </div>
-                            ${data.isFriend ? `
-                                <button class="remove-friend-btn" onclick="removeFriend('${data.user.username}')">
-                                    Remove
+                            <div class="friend-actions">
+                                ${data.isFriend ? `
+                                    <button class="remove-friend-btn" onclick="removeFriend('${data.user.username}')">
+                                        Remove
+                                    </button>
+                                ` : `
+                                    <button class="add-friend-btn" onclick="addFriend('${data.user.username}')">
+                                        Add
+                                    </button>
+                                `}
+                                <button class="message-btn" onclick="openPrivateChat('${data.user.username}')">
+                                    Message
                                 </button>
-                            ` : `
-                                <button class="add-friend-btn" onclick="addFriend('${data.user.username}')">
-                                    Add
-                                </button>
-                            `}
+                            </div>
                         </div>
                     `;
                 }
@@ -783,21 +823,32 @@
         async function sendChatMessage() {
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
+            const activeTab = document.querySelector('.chat-tab.active');
+            const recipient = activeTab.getAttribute('data-tab');
 
             if (!message) return;
 
             try {
-                const response = await fetch(`${API_URL}/live_chat_message`, {
+                const endpoint = recipient === 'global' 
+                    ? `${API_URL}/live_chat_message`
+                    : `${API_URL}/direct_chat_message`;
+
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message }),
+                    body: JSON.stringify(
+                        recipient === 'global' 
+                            ? { message }
+                            : { message, recipient }
+                    ),
                     credentials: 'include'
                 });
 
+                const data = await response.json();
                 if (response.ok) {
                     input.value = '';
                 } else {
-                    showMessage('Failed to send message', true);
+                    showMessage(data.error || 'Failed to send message', true);
                 }
             } catch (error) {
                 console.error('Send message error:', error);
@@ -807,14 +858,55 @@
 
         function addChatMessage(data) {
             const chatMessages = document.getElementById('chat-messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'chat-message';
-            messageDiv.innerHTML = `
-                <span class="author">${data.user}:</span>
-                <span class="message">${escapeHtml(data.message)}</span>
-            `;
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            const activeTab = document.querySelector('.chat-tab.active');
+            const currentTab = activeTab.getAttribute('data-tab');
+            const currentUser = localStorage.getItem('currentUser');
+            
+            // Pour les messages privés
+            if (data.type === 'direct_message') {
+                // Créer ou obtenir l'onglet approprié
+                const otherUser = data.user === currentUser ? data.recipient : data.user;
+                const targetTab = document.querySelector(`[data-tab="${otherUser}"]`);
+                
+                if (!targetTab) {
+                    // Si l'onglet n'existe pas, le créer
+                    openPrivateChat(otherUser);
+                }
+
+                // Créer le message
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-message';
+                messageDiv.innerHTML = `
+                    <span class="author">${data.user}:</span>
+                    <span class="message">${escapeHtml(data.message)}</span>
+                `;
+
+                // Si nous sommes dans le bon onglet, afficher immédiatement
+                if (currentTab === otherUser) {
+                    chatMessages.appendChild(messageDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } else {
+                    // Stocker le message dans sessionStorage pour l'afficher plus tard
+                    const chatKey = `chat_${otherUser}`;
+                    const storedMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
+                    storedMessages.push({
+                        user: data.user,
+                        message: data.message
+                    });
+                    sessionStorage.setItem(chatKey, JSON.stringify(storedMessages));
+                }
+            } 
+            // Pour les messages du chat global
+            else if (data.type === 'livechat' && currentTab === 'global') {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-message';
+                messageDiv.innerHTML = `
+                    <span class="author">${data.user}:</span>
+                    <span class="message">${escapeHtml(data.message)}</span>
+                `;
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
         }
 
         function escapeHtml(unsafe) {
@@ -869,6 +961,7 @@
                                 updateUserStatus(data);
                                 break;
                             case 'livechat':
+                            case 'direct_message':
                                 addChatMessage(data);
                                 break;
                         }
@@ -924,8 +1017,10 @@
 
             if (userElement) {
                 const statusBadge = userElement.querySelector('.status-badge');
-                statusBadge.textContent = data.online ? 'Online' : 'Offline';
-                statusBadge.className = `status-badge ${data.online ? 'online' : 'offline'}`;
+                if (statusBadge) {  // Vérifier si le badge existe
+                    statusBadge.textContent = data.online ? 'Online' : 'Offline';
+                    statusBadge.className = `status-badge ${data.online ? 'status-online' : 'status-offline'}`;
+                }
             }
         }
 
@@ -948,6 +1043,56 @@
             }
         `;
         document.head.appendChild(style);
+
+        // Ajout des fonctions pour le chat privé
+        function openPrivateChat(username) {
+            const chatTabs = document.querySelector('.chat-tabs');
+            let tab = document.querySelector(`[data-tab="${username}"]`);
+            
+            if (!tab) {
+                tab = document.createElement('button');
+                tab.className = 'chat-tab';
+                tab.setAttribute('data-tab', username);
+                tab.textContent = username;
+                tab.onclick = () => switchChatTab(username);
+                chatTabs.appendChild(tab);
+            }
+            
+            // Activer l'onglet et afficher les messages
+            switchChatTab(username);
+        }
+
+        function switchChatTab(tabName) {
+            const tabs = document.querySelectorAll('.chat-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+            if (!activeTab) return;
+            
+            activeTab.classList.add('active');
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML = '';
+            
+            // Mettre à jour le placeholder de l'input
+            const chatInput = document.getElementById('chat-input');
+            chatInput.placeholder = tabName === 'global' ? 'Type your message...' : `Message to ${tabName}...`;
+
+            // Si ce n'est pas l'onglet global, charger les messages stockés
+            if (tabName !== 'global') {
+                const chatKey = `chat_${tabName}`;
+                const storedMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
+                storedMessages.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'chat-message';
+                    messageDiv.innerHTML = `
+                        <span class="author">${msg.user}:</span>
+                        <span class="message">${escapeHtml(msg.message)}</span>
+                    `;
+                    chatMessages.appendChild(messageDiv);
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
     </script>
 </body>
 
