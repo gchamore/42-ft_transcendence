@@ -21,7 +21,7 @@ async function routes(fastify, options) {
         return { connected: isConnected };
     });
 
-    // Route pour les messages du chat
+	// Route for live chat messages
     fastify.post('/live_chat_message', async (request, reply) => {
 		const userId = request.user.userId;
 		const { message } = request.body;
@@ -48,7 +48,7 @@ async function routes(fastify, options) {
 	});
 	
 
-    // Route pour les messages privés
+	// route for private messages
     fastify.post('/direct_chat_message', async (request, reply) => {
 		const senderId = request.user.userId;
 		const { to, message } = request.body;
