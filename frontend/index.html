@@ -892,68 +892,59 @@
 
 
 		async function sendChatMessage() {
-			const input = document.getElementById('chat-input');
-			const message = input.value.trim();
-			const activeTab = document.querySelector('.chat-tab.active');
-			const recipient = activeTab.getAttribute('data-tab');
+	const input = document.getElementById('chat-input');
+	const message = input.value.trim();
+	const activeTab = document.querySelector('.chat-tab.active');
+	const recipient = activeTab.getAttribute('data-tab');
 
-			if (!message) return;
+	if (!message) return;
 
-			try {
-				const endpoint = recipient === 'global'
-					? `${API_URL}/live_chat_message`
-					: `${API_URL}/direct_chat_message`;
+	try {
+		const endpoint = recipient === 'global'
+			? `${API_URL}/live_chat_message`
+			: `${API_URL}/direct_chat_message`;
 
-				const response = await fetch(endpoint, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(
-						recipient === 'global'
-							? { message }
-							: { message, to: recipient }
-					),
-					credentials: 'include'
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(
+				recipient === 'global'
+					? { message }
+					: { message, to: recipient }
+			),
+			credentials: 'include'
+		});
+
+		const data = await response.json();
+		if (response.ok) {
+			input.value = '';
+			const currentUser = localStorage.getItem('currentUser');
+
+			// 🧠 Uniformisation via WebSocket simulation
+			if (recipient === 'global') {
+				addChatMessage({
+					type: 'livechat',
+					user: currentUser,
+					message
 				});
-
-				const data = await response.json();
-				if (response.ok) {
-					input.value = '';
-
-					if (recipient !== 'global') {
-						const currentUser = localStorage.getItem('currentUser');
-
-						// Ajout du message dans le chat privé de l’expéditeur
-						const chatKey = `chat_${recipient}`;
-						const storedMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
-						storedMessages.push({
-							user: currentUser,
-							message
-						});
-						sessionStorage.setItem(chatKey, JSON.stringify(storedMessages));
-
-						// Si l'onglet est actif, afficher tout de suite
-						const activeTab = document.querySelector('.chat-tab.active');
-						if (activeTab && activeTab.getAttribute('data-tab') === recipient) {
-							const chatMessages = document.getElementById('chat-messages');
-							const messageDiv = document.createElement('div');
-							messageDiv.className = 'chat-message';
-							messageDiv.innerHTML = `
-                <span class="author">${currentUser}:</span>
-                <span class="message">${escapeHtml(message)}</span>
-            `;
-							chatMessages.appendChild(messageDiv);
-							chatMessages.scrollTop = chatMessages.scrollHeight;
-						}
-					}
-
-				} else {
-					showMessage(data.error || 'Failed to send message', true);
-				}
-			} catch (error) {
-				console.error('Send message error:', error);
-				showMessage('Error sending message', true);
+			} else {
+				addChatMessage({
+					type: 'direct_message',
+					user: currentUser,
+					recipient,
+					message
+				});
 			}
+
+		} else {
+			showMessage(data.error || 'Failed to send message', true);
 		}
+	} catch (error) {
+		console.error('Send message error:', error);
+		showMessage('Error sending message', true);
+	}
+}
+
 
 		function addChatMessage(data) {
 			const chatMessages = document.getElementById('chat-messages');
@@ -996,17 +987,26 @@
 				const chatKey = 'chat_global';
 				const storedGlobalMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
 
+				// 🧠 Toujours stocker le message reçu
+				storedGlobalMessages.push({
+					user: data.user,
+					message: data.message
+				});
+				sessionStorage.setItem(chatKey, JSON.stringify(storedGlobalMessages));
+
+				// Affichage immédiat uniquement si on est déjà dans l'onglet global
 				if (currentTab === 'global') {
 					const messageDiv = document.createElement('div');
 					messageDiv.className = 'chat-message';
 					messageDiv.innerHTML = `
-				<span class="author">${data.user}:</span>
-				<span class="message">${escapeHtml(data.message)}</span>
-			`;
+			<span class="author">${data.user}:</span>
+			<span class="message">${escapeHtml(data.message)}</span>
+		`;
 					chatMessages.appendChild(messageDiv);
 					chatMessages.scrollTop = chatMessages.scrollHeight;
 				}
 			}
+
 		}
 
 
