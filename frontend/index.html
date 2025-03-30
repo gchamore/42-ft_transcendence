@@ -818,6 +818,18 @@
             });
 
             chatSend.addEventListener('click', sendChatMessage);
+            
+            // Add click handler for ALL chat tabs including the global chat tab
+            const chatTabs = document.querySelectorAll('.chat-tab');
+            chatTabs.forEach(tab => {
+                const tabName = tab.getAttribute('data-tab');
+                tab.addEventListener('click', function() {
+                    switchChatTab(tabName);
+                });
+            });
+            
+            // Log initialization for debugging
+            console.log('Chat initialized, tabs setup complete');
         }
 
         async function sendChatMessage() {
@@ -885,27 +897,40 @@
                 if (currentTab === otherUser) {
                     chatMessages.appendChild(messageDiv);
                     chatMessages.scrollTop = chatMessages.scrollHeight;
-                } else {
-                    // Stocker le message dans sessionStorage pour l'afficher plus tard
-                    const chatKey = `chat_${otherUser}`;
-                    const storedMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
-                    storedMessages.push({
-                        user: data.user,
-                        message: data.message
-                    });
-                    sessionStorage.setItem(chatKey, JSON.stringify(storedMessages));
                 }
+                
+                // Stocker le message dans sessionStorage
+                const chatKey = `chat_${otherUser}`;
+                const storedMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
+                storedMessages.push({
+                    user: data.user,
+                    message: data.message
+                });
+                sessionStorage.setItem(chatKey, JSON.stringify(storedMessages));
             } 
             // Pour les messages du chat global
-            else if (data.type === 'livechat' && currentTab === 'global') {
+            else if (data.type === 'livechat') {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'chat-message';
                 messageDiv.innerHTML = `
                     <span class="author">${data.user}:</span>
                     <span class="message">${escapeHtml(data.message)}</span>
                 `;
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // Si nous sommes actuellement sur l'onglet global, afficher immédiatement
+                if (currentTab === 'global') {
+                    chatMessages.appendChild(messageDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+                
+                // Stocker le message dans sessionStorage pour le chat global
+                const globalChatKey = 'chat_global';
+                const storedGlobalMessages = JSON.parse(sessionStorage.getItem(globalChatKey) || '[]');
+                storedGlobalMessages.push({
+                    user: data.user,
+                    message: data.message
+                });
+                sessionStorage.setItem(globalChatKey, JSON.stringify(storedGlobalMessages));
             }
         }
 
@@ -1054,7 +1079,12 @@
                 tab.className = 'chat-tab';
                 tab.setAttribute('data-tab', username);
                 tab.textContent = username;
-                tab.onclick = () => switchChatTab(username);
+                
+                // Use addEventListener instead of onclick
+                tab.addEventListener('click', function() {
+                    switchChatTab(username);
+                });
+                
                 chatTabs.appendChild(tab);
             }
             
@@ -1063,11 +1093,16 @@
         }
 
         function switchChatTab(tabName) {
+            console.log(`Switching to tab: ${tabName}`); // Debug log
+            
             const tabs = document.querySelectorAll('.chat-tab');
             tabs.forEach(tab => tab.classList.remove('active'));
             
             const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
-            if (!activeTab) return;
+            if (!activeTab) {
+                console.error(`Tab ${tabName} not found`);
+                return;
+            }
             
             activeTab.classList.add('active');
             const chatMessages = document.getElementById('chat-messages');
@@ -1077,7 +1112,7 @@
             const chatInput = document.getElementById('chat-input');
             chatInput.placeholder = tabName === 'global' ? 'Type your message...' : `Message to ${tabName}...`;
 
-            // Si ce n'est pas l'onglet global, charger les messages stockés
+            // Si ce n'est pas l'onglet global, charger les messages stockés du chat privé
             if (tabName !== 'global') {
                 const chatKey = `chat_${tabName}`;
                 const storedMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
@@ -1090,8 +1125,24 @@
                     `;
                     chatMessages.appendChild(messageDiv);
                 });
-                chatMessages.scrollTop = chatMessages.scrollHeight;
             }
+            // Si c'est l'onglet global, charger les messages du chat global
+            else {
+                const globalChatKey = 'chat_global';
+                const storedGlobalMessages = JSON.parse(sessionStorage.getItem(globalChatKey) || '[]');
+                storedGlobalMessages.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'chat-message';
+                    messageDiv.innerHTML = `
+                        <span class="author">${msg.user}:</span>
+                        <span class="message">${escapeHtml(msg.message)}</span>
+                    `;
+                    chatMessages.appendChild(messageDiv);
+                });
+            }
+            
+            // Faire défiler jusqu'en bas
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     </script>
 </body>
