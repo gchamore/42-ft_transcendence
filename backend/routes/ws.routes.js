@@ -122,33 +122,46 @@ async function routes(fastify, options) {
 
             const userId = validation.userId;
             const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+            
+            // Use a unique connection ID for tracking this connection
+            const connectionId = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7);
+            fastify.log.info(`New WebSocket connection [ID: ${connectionId}] for user: ${user.username} (${userId})`);
 
-            // Handle existing connections
+            // Handle existing connections very aggressively
             const existingConnection = fastify.connections.get(userId);
             if (existingConnection) {
-                fastify.log.info(`Found existing connection for user ${user.username}`);
-                // Close the existing connection if it's still open
+                fastify.log.warn(`Found existing connection for user ${user.username} (${userId}), forcing close`);
                 try {
-                    if (existingConnection.readyState === 1) {
-                        existingConnection.close(1000, 'New connection established');
+                    // Add a close reason to track in logs
+                    if (existingConnection.readyState < 2) { // 0 = CONNECTING, 1 = OPEN
+                        existingConnection.close(1000, `Replaced by new connection ${connectionId}`);
                     }
                 } catch (err) {
                     fastify.log.error(`Error closing existing connection: ${err}`);
                 }
+                
+                // Force remove the connection from the map
+                fastify.connections.delete(userId);
+                
+                // Short delay to ensure cleanup
+                await new Promise(resolve => setTimeout(resolve, 150));
+            }
+
+            // Double-check to ensure the previous connection was actually removed
+            if (fastify.connections.has(userId)) {
+                fastify.log.warn(`Previous connection for user ${userId} still exists after cleanup attempt, removing forcefully`);
                 fastify.connections.delete(userId);
             }
 
             // Establish new connection
-            fastify.log.info(`Establishing new WebSocket connection for user: ${user.username}`);
+            fastify.log.info(`Storing WebSocket connection [ID: ${connectionId}] for user: ${user.username} (${userId})`);
+            // Tag this connection with the connection ID for debugging
+            connection.socket.connectionId = connectionId;
             fastify.connections.set(userId, connection.socket);
 
-			// First check if the user is not already marked as online
-            const isAlreadyOnline = await redis.sismember('online_users', userId.toString());
-            if (!isAlreadyOnline) {
-                await redis.sadd('online_users', userId.toString());
-				// Broadcast the status only if there is a change
-                broadcastUserStatus(fastify, userId, true);
-            }
+            // Update online status
+            await redis.sadd('online_users', userId.toString());
+            broadcastUserStatus(fastify, userId, true);
 
 			// Setting up ping-pong and token validation
             let lastPong = Date.now();
@@ -157,9 +170,16 @@ async function routes(fastify, options) {
                 const isTokenValid = await authService.validateToken(accessToken, null, 'access');
                 if (!isTokenValid || Date.now() - lastPong > 35000) {
                     clearInterval(pingInterval);
-                    connection.socket.close();
+                    try {
+                        if (connection.socket.readyState < 2) {
+                            connection.socket.close(1001, "Token invalid or ping timeout");
+                        }
+                    } catch (err) {
+                        fastify.log.error(`Error closing connection on token check: ${err}`);
+                    }
                     return;
                 }
+                
                 if (connection.socket.readyState === 1) {
                     connection.socket.ping();
                 }
@@ -168,9 +188,10 @@ async function routes(fastify, options) {
 			// WebSocket events handling
             connection.socket.on('pong', () => {
                 lastPong = Date.now();
-                fastify.log.debug(`Pong received from user: ${user.username}`);
+                fastify.log.debug(`Pong received from user: ${user.username} [ID: ${connectionId}]`);
             });
 
+            // Message handling
             connection.socket.on('message', async (message) => {
                 try {
                     const data = JSON.parse(message.toString());
@@ -194,19 +215,33 @@ async function routes(fastify, options) {
                 }
             });
 
-			// Close handling
-            connection.socket.on('close', async () => {
+			// Close handling with improved cleanup
+            connection.socket.on('close', async (code, reason) => {
                 clearInterval(pingInterval);
-                fastify.connections.delete(userId);
-                await redis.srem('online_users', userId.toString());
-                broadcastUserStatus(fastify, userId, false);
-                fastify.log.info(`WebSocket connection closed for user: ${user.username}`);
+                fastify.log.info(`WebSocket connection [ID: ${connectionId}] closed for user: ${user.username} (${userId}) with code ${code}${reason ? ` and reason: ${reason}` : ''}`);
+                
+                // Make sure this connection is still the active one before removing
+                const currentConnection = fastify.connections.get(userId);
+                if (currentConnection === connection.socket) {
+                    fastify.log.info(`Removing connection [ID: ${connectionId}] for user: ${user.username}`);
+                    fastify.connections.delete(userId);
+                    await redis.srem('online_users', userId.toString());
+                    broadcastUserStatus(fastify, userId, false);
+                } else if (currentConnection) {
+                    fastify.log.info(`Connection [ID: ${connectionId}] was replaced by a newer one for user: ${user.username}, skipping cleanup`);
+                } else {
+                    fastify.log.info(`Connection [ID: ${connectionId}] was already removed for user: ${user.username}`);
+                }
             });
 
         } catch (error) {
             fastify.log.error('WebSocket connection error:', error);
-            if (connection.socket.readyState === WebSocket.OPEN) {
-                connection.socket.close(1011, 'Internal server error');
+            if (connection.socket.readyState === 1) {
+                try {
+                    connection.socket.close(1011, 'Internal server error');
+                } catch (err) {
+                    fastify.log.error(`Error closing connection after error: ${err}`);
+                }
             }
         }
     });

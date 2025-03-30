@@ -544,17 +544,42 @@
         // fonction logout
         document.getElementById('logout-btn').addEventListener('click', async () => {
             try {
+                // Immediately set shouldReconnect to false to prevent reconnection attempts
+                shouldReconnect = false;
+                console.log('WebSocket reconnection disabled for logout');
+                
+                // Close WebSocket connection if it exists
                 if (ws) {
-                    ws.close();  // Fermer la connexion WebSocket
+                    console.log('Closing WebSocket connection for logout');
+                    
+                    // Set onclose handler to null to prevent any reconnection logic
+                    ws.onclose = null;
+                    ws.onmessage = null;
+                    ws.onerror = null;
+                    
+                    // Close the connection with a normal closure code
+                    ws.close(1000, "User logout");
+                    ws = null;
+                    
+                    // Wait a moment to ensure the connection is closed
+                    await new Promise(resolve => setTimeout(resolve, 200));
                 }
+
                 const response = await fetch(`${API_URL}/logout`, {
                     method: 'POST',
                     credentials: 'include'
                 });
 
                 if (response.ok) {
+                    // Clear session storage for chat messages
+                    Object.keys(sessionStorage).forEach(key => {
+                        if (key.startsWith('chat_')) {
+                            sessionStorage.removeItem(key);
+                        }
+                    });
+                    
                     showMessage('Logged out successfully', false);
-					authForms.classList.remove('hidden');
+                    authForms.classList.remove('hidden');
                     welcome.classList.add('hidden');
                     localStorage.clear();
                 } else {
@@ -795,12 +820,36 @@
             document.getElementById('username').textContent = username;
             authForms.classList.add('hidden');
             welcome.classList.remove('hidden');
-            shouldReconnect = true;
             
-            // Initialize chat
+            // Reset WebSocket state and clear chat history
+            shouldReconnect = true;
+            document.getElementById('chat-messages').innerHTML = '';
+            
+            // Clear any existing WebSocket connection before starting
+            if (ws) {
+                console.log('Closing existing WebSocket for new login');
+                ws.onclose = null; // Prevent reconnection logic
+                ws.onmessage = null;
+                ws.onerror = null;
+                try {
+                    ws.close(1000, "New login");
+                } catch (e) {
+                    console.error('Error closing WebSocket for new login:', e);
+                }
+                ws = null;
+            }
+            
+            // Clear all chat history from sessionStorage
+            Object.keys(sessionStorage).forEach(key => {
+                if (key.startsWith('chat_')) {
+                    sessionStorage.removeItem(key);
+                }
+            });
+            
+            // Initialize chat UI
             initializeChat();
             
-            // Add a small delay before connecting WebSocket
+            // Add a delay before connecting WebSocket to ensure cleanup is complete
             setTimeout(() => {
                 connectWebSocket();
             }, 500);
@@ -951,6 +1000,29 @@
             }
 
             try {
+                // Close any existing connection first
+                if (ws) {
+                    console.log('Closing existing WebSocket before creating new connection');
+                    
+                    // Remove all event listeners to prevent memory leaks
+                    ws.onopen = null;
+                    ws.onclose = null;
+                    ws.onmessage = null;
+                    ws.onerror = null;
+                    
+                    try {
+                        ws.close(1000, "New connection initialization");
+                    } catch (e) {
+                        console.error('Error closing existing WebSocket:', e);
+                    }
+                    
+                    // Ensure the reference is cleared
+                    ws = null;
+                    
+                    // Small delay to ensure the connection is properly closed
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+                
                 // Vérifier les tokens avant de tenter une connexion
                 const tokensValid = await areTokensValid();
                 if (!tokensValid) {
@@ -959,9 +1031,9 @@
                     return;
                 }
 
-                // Si une connexion existe déjà et est ouverte ou en cours d'ouverture, ne pas en créer une nouvelle
-                if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-                    console.log('WebSocket connection already exists');
+                // Si une connexion existe déjà (sanity check), ne pas en créer une nouvelle
+                if (ws) {
+                    console.log('WebSocket connection still exists after cleanup, aborting new connection');
                     return;
                 }
 
@@ -971,16 +1043,23 @@
                 let reconnectTimeout;
                 let reconnectAttempt = 0;
                 const maxReconnectAttempts = 5;
+                const connectionId = Date.now(); // Unique ID for this connection attempt
+                console.log(`Connection ID: ${connectionId}`);
 
                 ws.onopen = () => {
-                    console.log('WebSocket connected successfully');
+                    console.log(`WebSocket connected successfully [ID: ${connectionId}]`);
                     reconnectAttempt = 0;
-                    clearTimeout(reconnectTimeout);
+                    if (reconnectTimeout) {
+                        clearTimeout(reconnectTimeout);
+                        reconnectTimeout = null;
+                    }
                 };
 
                 ws.onmessage = (event) => {
                     try {
                         const data = JSON.parse(event.data);
+                        console.log(`Received ${data.type} message [Connection ID: ${connectionId}]`);
+                        
                         switch (data.type) {
                             case 'status_update':
                                 updateUserStatus(data);
@@ -989,6 +1068,8 @@
                             case 'direct_message':
                                 addChatMessage(data);
                                 break;
+                            default:
+                                console.log(`Unknown message type: ${data.type}`);
                         }
                     } catch (error) {
                         console.error('WebSocket message parsing error:', error);
@@ -996,12 +1077,20 @@
                 };
 
                 ws.onclose = (event) => {
-                    console.log(`WebSocket disconnected with code: ${event.code}`);
-                    ws = null; // Clear the reference
+                    console.log(`WebSocket disconnected with code: ${event.code} [ID: ${connectionId}]`);
+                    
+                    // Reference cleanup
+                    ws = null;
 
-                    // Ne pas tenter de reconnexion si la fermeture était volontaire
+                    // Check if reconnection should be attempted
                     if (!shouldReconnect) {
                         console.log('Reconnection disabled, not attempting to reconnect');
+                        return;
+                    }
+
+                    // Don't attempt to reconnect on a proper closure from server or client
+                    if (event.code === 1000 || event.code === 1001) {
+                        console.log('Clean closure, not reconnecting');
                         return;
                     }
 
@@ -1011,8 +1100,21 @@
                         reconnectAttempt++;
                         console.log(`Scheduling reconnection attempt ${reconnectAttempt} in ${timeout}ms`);
                         
-                        reconnectTimeout = setTimeout(() => {
+                        reconnectTimeout = setTimeout(async () => {
                             console.log(`Attempting reconnection ${reconnectAttempt}`);
+                            
+                            // Double-check token validity before attempting reconnection
+                            const stillValid = await areTokensValid();
+                            if (!stillValid) {
+                                console.log('Tokens no longer valid, canceling reconnection');
+                                shouldReconnect = false;
+                                if (reconnectTimeout) {
+                                    clearTimeout(reconnectTimeout);
+                                    reconnectTimeout = null;
+                                }
+                                return;
+                            }
+                            
                             connectWebSocket();
                         }, timeout);
                     } else {
@@ -1022,14 +1124,17 @@
                 };
 
                 ws.onerror = (error) => {
-                    console.error('WebSocket error:', error);
-                    // Ne pas fermer la connexion ici, laisser onclose s'en occuper
+                    console.error(`WebSocket error on connection [ID: ${connectionId}]:`, error);
                 };
 
             } catch (error) {
                 console.error('WebSocket connection setup error:', error);
                 if (ws) {
-                    ws.close();
+                    try {
+                        ws.close(1011, "Setup error");
+                    } catch (e) {
+                        console.error('Error closing WebSocket after setup error:', e);
+                    }
                     ws = null;
                 }
             }
