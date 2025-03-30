@@ -2,368 +2,373 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>42 Transcendence</title>
-    <style>
-        body {
-            background-color: #121212;
-            color: #eee;
-            font-family: 'Segoe UI', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>42 Transcendence</title>
+	<style>
+		body {
+			background-color: #121212;
+			color: #eee;
+			font-family: 'Segoe UI', sans-serif;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			min-height: 100vh;
+			margin: 0;
+		}
 
-        .container {
-            background-color: #1e1e1e;
-            padding: 2rem;
-            border-radius: 8px;
-            width: 100%;
-            max-width: 600px; /* Augmenté de 400px à 600px */
-        }
+		.container {
+			background-color: #1e1e1e;
+			padding: 2rem;
+			border-radius: 8px;
+			width: 100%;
+			max-width: 600px;
+			/* Augmenté de 400px à 600px */
+		}
 
-        h1 {
-            color: #00babc;
-            text-align: center;
-            margin-bottom: 2rem;
-        }
+		h1 {
+			color: #00babc;
+			text-align: center;
+			margin-bottom: 2rem;
+		}
 
-        .forms {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
+		.forms {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
 
-        input {
-            width: 100%;
-            padding: 0.5rem;
-            margin: 0.5rem 0;
-            border: 1px solid #444;
-            background: #2d2d2d;
-            color: white;
-            border-radius: 4px;
-        }
+		input {
+			width: 100%;
+			padding: 0.5rem;
+			margin: 0.5rem 0;
+			border: 1px solid #444;
+			background: #2d2d2d;
+			color: white;
+			border-radius: 4px;
+		}
 
-        button {
-            width: 100%;
-            padding: 0.5rem;
-            background: #00babc;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
+		button {
+			width: 100%;
+			padding: 0.5rem;
+			background: #00babc;
+			color: white;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+		}
 
-        .message {
-            padding: 1rem;
-            margin: 1rem 0;
-            border-radius: 4px;
-            text-align: center;
-        }
+		.message {
+			padding: 1rem;
+			margin: 1rem 0;
+			border-radius: 4px;
+			text-align: center;
+		}
 
-        .error {
-            background: #c62828;
-        }
+		.error {
+			background: #c62828;
+		}
 
-        .success {
-            background: #2e7d32;
-        }
+		.success {
+			background: #2e7d32;
+		}
 
-        .hidden {
-            display: none;
-        }
+		.hidden {
+			display: none;
+		}
 
-        .search-container {
-            display: flex;
-            gap: 0.5rem;
-            margin: 1rem 0;
-        }
+		.search-container {
+			display: flex;
+			gap: 0.5rem;
+			margin: 1rem 0;
+		}
 
-        .search-container input {
-            flex: 1;
-        }
+		.search-container input {
+			flex: 1;
+		}
 
-        .search-container button {
-            width: auto;
-            padding: 0.5rem 1rem;
-        }
+		.search-container button {
+			width: auto;
+			padding: 0.5rem 1rem;
+		}
 
-        .search-result {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: #2d2d2d;
-            border-radius: 4px;
-            display: none;
-        }
+		.search-result {
+			margin-top: 1rem;
+			padding: 1rem;
+			background: #2d2d2d;
+			border-radius: 4px;
+			display: none;
+		}
 
-        /* Styles pour la friendlist */
-        .friend-list {
-            margin-top: 1rem;
-            max-height: 300px;
-            overflow-y: auto;
-        }
+		/* Styles pour la friendlist */
+		.friend-list {
+			margin-top: 1rem;
+			max-height: 300px;
+			overflow-y: auto;
+		}
 
-        .friend-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding: 0.8rem;
-            background: #2d2d2d;
-            margin: 0.5rem 0;
-            border-radius: 4px;
-        }
+		.friend-item {
+			display: flex;
+			justify-content: space-between;
+			align-items: flex-start;
+			padding: 0.8rem;
+			background: #2d2d2d;
+			margin: 0.5rem 0;
+			border-radius: 4px;
+		}
 
-        .friend-info {
-            flex-grow: 1;
-            margin-right: 1rem;
-            /* Ajouter de l'espace entre le nom et le bouton */
-        }
+		.friend-info {
+			flex-grow: 1;
+			margin-right: 1rem;
+			/* Ajouter de l'espace entre le nom et le bouton */
+		}
 
-        .user-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 0.5rem;
-            flex-wrap: nowrap;
-        }
+		.user-header {
+			display: flex;
+			align-items: center;
+			margin-bottom: 0.5rem;
+			flex-wrap: nowrap;
+		}
 
-        .username {
-            font-weight: bold;
-            margin-right: 0.5rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 150px;
-        }
+		.username {
+			font-weight: bold;
+			margin-right: 0.5rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 150px;
+		}
 
-        .friend-actions {
-            margin-left: 1rem;
-            display: flex;
-            gap: 0.5rem;
-        }
+		.friend-actions {
+			margin-left: 1rem;
+			display: flex;
+			gap: 0.5rem;
+		}
 
-        .remove-friend-btn {
-            background: #c62828;
-            padding: 0.25rem 0.5rem;
-            font-size: 0.8rem;
-        }
+		.remove-friend-btn {
+			background: #c62828;
+			padding: 0.25rem 0.5rem;
+			font-size: 0.8rem;
+		}
 
-        .add-friend-btn {
-            background: #2e7d32;
-            padding: 0.25rem 0.75rem;
-            /* Réduire le padding */
-            font-size: 0.9rem;
-            /* Réduire la taille de la police */
-            margin: 0;
-            /* Supprimer la marge */
-            width: auto;
-            /* Le bouton ne prendra que la largeur nécessaire */
-            white-space: nowrap;
-            /* Empêcher le texte de passer à la ligne */
-        }
+		.add-friend-btn {
+			background: #2e7d32;
+			padding: 0.25rem 0.75rem;
+			/* Réduire le padding */
+			font-size: 0.9rem;
+			/* Réduire la taille de la police */
+			margin: 0;
+			/* Supprimer la marge */
+			width: auto;
+			/* Le bouton ne prendra que la largeur nécessaire */
+			white-space: nowrap;
+			/* Empêcher le texte de passer à la ligne */
+		}
 
-        .friend-stats {
-            font-size: 0.8rem;
-            color: #888;
-        }
+		.friend-stats {
+			font-size: 0.8rem;
+			color: #888;
+		}
 
-        .user-stats {
-            margin-top: 0.5rem;
-            font-size: 0.9em;
-            color: #aaa;
-        }
+		.user-stats {
+			margin-top: 0.5rem;
+			font-size: 0.9em;
+			color: #aaa;
+		}
 
-        .status-badge {
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 0.8em;
-            margin-left: 8px;
-        }
+		.status-badge {
+			padding: 2px 6px;
+			border-radius: 10px;
+			font-size: 0.8em;
+			margin-left: 8px;
+		}
 
-        .status-online {
-            background-color: #2e7d32;
-            color: white;
-        }
+		.status-online {
+			background-color: #2e7d32;
+			color: white;
+		}
 
-        .status-offline {
-            background-color: #c62828;
-            color: white;
-        }
+		.status-offline {
+			background-color: #c62828;
+			color: white;
+		}
 
-        /* Styles pour le chat */
-        .chat-container {
-            margin-top: 2rem;
-            background: #2d2d2d;
-            border-radius: 8px;
-            padding: 1rem;
-            max-width: 100%;
-        }
+		/* Styles pour le chat */
+		.chat-container {
+			margin-top: 2rem;
+			background: #2d2d2d;
+			border-radius: 8px;
+			padding: 1rem;
+			max-width: 100%;
+		}
 
-        .chat-messages {
-            height: 300px;
-            overflow-y: auto;
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            background: #1e1e1e;
-            border-radius: 4px;
-        }
+		.chat-messages {
+			height: 300px;
+			overflow-y: auto;
+			margin-bottom: 1rem;
+			padding: 0.5rem;
+			background: #1e1e1e;
+			border-radius: 4px;
+		}
 
-        .chat-message {
-            margin: 0.5rem 0;
-            padding: 0.5rem;
-            background: #383838;
-            border-radius: 4px;
-        }
+		.chat-message {
+			margin: 0.5rem 0;
+			padding: 0.5rem;
+			background: #383838;
+			border-radius: 4px;
+		}
 
-        .chat-message .author {
-            color: #00babc;
-            font-weight: bold;
-            margin-right: 0.5rem;
-        }
+		.chat-message .author {
+			color: #00babc;
+			font-weight: bold;
+			margin-right: 0.5rem;
+		}
 
-        .chat-input-container {
-            display: flex;
-            gap: 0.5rem;
-        }
+		.chat-input-container {
+			display: flex;
+			gap: 0.5rem;
+		}
 
-        .chat-input {
-            flex: 1;
-            padding: 0.5rem;
-            border: 1px solid #444;
-            background: #2d2d2d;
-            color: white;
-            border-radius: 4px;
-        }
+		.chat-input {
+			flex: 1;
+			padding: 0.5rem;
+			border: 1px solid #444;
+			background: #2d2d2d;
+			color: white;
+			border-radius: 4px;
+		}
 
-        .chat-send-btn {
-            padding: 0.5rem;
-            width: 60px;
-            min-width: fit-content;
-            background: #00babc;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
+		.chat-send-btn {
+			padding: 0.5rem;
+			width: 60px;
+			min-width: fit-content;
+			background: #00babc;
+			color: white;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+		}
 
-        /* Styles pour les onglets de chat */
-        .chat-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
+		/* Styles pour les onglets de chat */
+		.chat-tabs {
+			display: flex;
+			gap: 0.5rem;
+			margin-bottom: 1rem;
+		}
 
-        .chat-tab {
-            padding: 0.5rem 1rem;
-            background: #2d2d2d;
-            border: none;
-            border-radius: 4px;
-            color: #aaa;
-            cursor: pointer;
-        }
+		.chat-tab {
+			padding: 0.5rem 1rem;
+			background: #2d2d2d;
+			border: none;
+			border-radius: 4px;
+			color: #aaa;
+			cursor: pointer;
+		}
 
-        .chat-tab.active {
-            background: #00babc;
-            color: white;
-        }
+		.chat-tab.active {
+			background: #00babc;
+			color: white;
+		}
 
-        .message-btn {
-            background: #00babc;
-            padding: 0.25rem 0.75rem;
-            font-size: 0.9rem;
-            border: none;
-            border-radius: 4px;
-            color: white;
-            cursor: pointer;
-            margin-left: 0.5rem;
-        }
-    </style>
+		.message-btn {
+			background: #00babc;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.9rem;
+			border: none;
+			border-radius: 4px;
+			color: white;
+			cursor: pointer;
+			margin-left: 0.5rem;
+		}
+	</style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>42 Transcendence</h1>
-        <div id="message" class="message hidden"></div>
+	<div class="container">
+		<h1>42 Transcendence</h1>
+		<div id="message" class="message hidden"></div>
 
-        <div id="auth-forms" class="forms">
-            <form id="register-form">
-                <h2>Register</h2>
-                <input type="text" id="register-username" placeholder="Username" required>
-                <input type="password" id="register-password" placeholder="Password" required>
-                <button type="submit">Register</button>
-            </form>
+		<div id="auth-forms" class="forms">
+			<form id="register-form">
+				<h2>Register</h2>
+				<input type="text" id="register-username" placeholder="Username" required>
+				<input type="password" id="register-password" placeholder="Password" required>
+				<button type="submit">Register</button>
+			</form>
 
-            <form id="login-form">
-                <h2>Login</h2>
-                <input type="text" id="login-username" placeholder="Username" required>
-                <input type="password" id="login-password" placeholder="Password" required>
-                <button type="submit">Login</button>
-            </form>
+			<form id="login-form">
+				<h2>Login</h2>
+				<input type="text" id="login-username" placeholder="Username" required>
+				<input type="password" id="login-password" placeholder="Password" required>
+				<button type="submit">Login</button>
+			</form>
 
-            <button id="verify-token-btn" style="margin-top: 1rem;">Verify Token</button>
-            <button id="google-login-btn">Login with Google</button>
-        </div>
+			<button id="verify-token-btn" style="margin-top: 1rem;">Verify Token</button>
+			<button id="google-login-btn">Login with Google</button>
+		</div>
 
-        <div id="welcome" class="hidden">
-            <h2>Welcome, <span id="username"></span>!</h2>
+		<div id="welcome" class="hidden">
+			<h2>Welcome, <span id="username"></span>!</h2>
 
-            <!-- Ajouter le chat ici -->
-            <div class="chat-container">
-                <div class="chat-tabs">
-                    <button class="chat-tab active" data-tab="global">Global Chat</button>
-                </div>
-                <div id="chat-messages" class="chat-messages"></div>
-                <div class="chat-input-container">
-                    <input type="text" id="chat-input" class="chat-input" placeholder="Type your message...">
-                    <button id="chat-send" class="chat-send-btn">Send</button>
-                </div>
-            </div>
+			<!-- Ajouter le chat ici -->
+			<div class="chat-container">
+				<div class="chat-tabs">
+					<button class="chat-tab active" data-tab="global">Global Chat</button>
+				</div>
+				<div id="chat-messages" class="chat-messages"></div>
+				<div class="chat-input-container">
+					<input type="text" id="chat-input" class="chat-input" placeholder="Type your message...">
+					<button id="chat-send" class="chat-send-btn">Send</button>
+				</div>
+			</div>
 
-            <div class="search-container">
-                <input type="text" id="search-username" placeholder="Search username">
-                <button id="search-btn">Search</button>
-            </div>
-            <div id="search-result" class="search-result"></div>
+			<div class="search-container">
+				<input type="text" id="search-username" placeholder="Search username">
+				<button id="search-btn">Search</button>
+			</div>
+			<div id="search-result" class="search-result"></div>
 
-            <button id="verify-token-logged-btn" style="margin-top: 1rem;">Verify Token</button>
-            <button id="revoke-tokens-btn" style="margin-top: 1rem;">Revoke Tokens</button>
-            <button id="logout-btn" style="margin-top: 1rem;">Logout</button>
-        </div>
-    </div>
+			<button id="verify-token-logged-btn" style="margin-top: 1rem;">Verify Token</button>
+			<button id="revoke-tokens-btn" style="margin-top: 1rem;">Revoke Tokens</button>
+			<button id="logout-btn" style="margin-top: 1rem;">Logout</button>
+		</div>
+	</div>
 
-    <script>
-        const API_URL = 'http://localhost:8080/api';
-        const WS_URL = 'ws://localhost:8080/api/ws';
-        const GOOGLE_CLIENT_ID = '719179054785-2jaf8669fv3kj0qk6ib8cmtumlb23e8a.apps.googleusercontent.com';
-        const GOOGLE_REDIRECT_URI = 'http://localhost:8080/oauth-callback';
-        let ws = null;
-        let shouldReconnect = true; // Nouveau flag pour contrôler la reconnexion
+	<script>
+		const API_URL = 'http://localhost:8080/api';
+		const WS_URL = 'ws://localhost:8080/api/ws';
+		const GOOGLE_CLIENT_ID = '719179054785-2jaf8669fv3kj0qk6ib8cmtumlb23e8a.apps.googleusercontent.com';
+		const GOOGLE_REDIRECT_URI = 'http://localhost:8080/oauth-callback';
+		let ws = null;
+		let shouldReconnect = true; // Nouveau flag pour contrôler la reconnexion
+		let reconnectTimeout = null;
+		let reconnectAttempt = 0;
+		let chatInitialized = false;
 
-        const message = document.getElementById('message');
-        const authForms = document.getElementById('auth-forms');
-        const welcome = document.getElementById('welcome');
 
-        // Vérifier l'authentification au chargement
-        checkAuth();
+		const message = document.getElementById('message');
+		const authForms = document.getElementById('auth-forms');
+		const welcome = document.getElementById('welcome');
 
-        // Vérifier s'il y a un message stocké dans sessionStorage
-        window.onload = async () => {
-            // 1. Vérifie s'il y a un message en attente dans sessionStorage
-            const pendingMessage = sessionStorage.getItem('pendingMessage');
-            const messageType = sessionStorage.getItem('messageType');
-            if (pendingMessage) {
-                showMessage(pendingMessage, messageType === 'error');
-                sessionStorage.removeItem('pendingMessage');
-                sessionStorage.removeItem('messageType');
-            }
+		// Vérifier l'authentification au chargement
+		checkAuth();
 
-            // 2. Vérifie si Google OAuth a renvoyé un code dans l'URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const googleCode = urlParams.get('code');
-            const loginSuccess = urlParams.get('login');
-            const username = urlParams.get('username');
+		// Vérifier s'il y a un message stocké dans sessionStorage
+		window.onload = async () => {
+			// 1. Vérifie s'il y a un message en attente dans sessionStorage
+			const pendingMessage = sessionStorage.getItem('pendingMessage');
+			const messageType = sessionStorage.getItem('messageType');
+			if (pendingMessage) {
+				showMessage(pendingMessage, messageType === 'error');
+				sessionStorage.removeItem('pendingMessage');
+				sessionStorage.removeItem('messageType');
+			}
+
+			// 2. Vérifie si Google OAuth a renvoyé un code dans l'URL
+			const urlParams = new URLSearchParams(window.location.search);
+			const googleCode = urlParams.get('code');
+			const loginSuccess = urlParams.get('login');
+			const username = urlParams.get('username');
 
 			if (googleCode) {
 				try {
@@ -378,254 +383,254 @@
 
 					if (response.ok && data.success) {
 						showMessage('Google Login successful!', false);
-                        // Ne pas appeler showWelcome ici car il sera appelé par checkAuth
+						// Ne pas appeler showWelcome ici car il sera appelé par checkAuth
 						await checkAuth();
-                        window.history.replaceState({}, document.title, '/');
-                    } else {
-                        showMessage(data.error || 'Google Login failed', true);
-                    }
-                } catch (error) {
-                    console.error('Google OAuth callback error:', error);
-                    showMessage('Google OAuth callback error', true);
-                }
-            } else if (loginSuccess === 'success' && username) {
-                showMessage('Google Login successful!', false);
-                // Ne pas appeler showWelcome ici car il sera appelé par checkAuth
-                window.history.replaceState({}, document.title, '/');
-            }
-        };
+						window.history.replaceState({}, document.title, '/');
+					} else {
+						showMessage(data.error || 'Google Login failed', true);
+					}
+				} catch (error) {
+					console.error('Google OAuth callback error:', error);
+					showMessage('Google OAuth callback error', true);
+				}
+			} else if (loginSuccess === 'success' && username) {
+				showMessage('Google Login successful!', false);
+				// Ne pas appeler showWelcome ici car il sera appelé par checkAuth
+				window.history.replaceState({}, document.title, '/');
+			}
+		};
 
 
-        // Modifier checkAuth pour mettre à jour le localStorage
-        async function checkAuth() {
-            try {
-                const response = await fetch(`${API_URL}/verify_token`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
+		// Modifier checkAuth pour mettre à jour le localStorage
+		async function checkAuth() {
+			try {
+				const response = await fetch(`${API_URL}/verify_token`, {
+					method: 'POST',
+					credentials: 'include'
+				});
 
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.valid) {
-                        // Mettre à jour le localStorage avec l'utilisateur actuel
-                        localStorage.setItem('currentUser', data.username);
-                        showWelcome(data.username);
-                    } else {
-                        // Nettoyer le localStorage si le token n'est pas valide
-                        localStorage.clear();
-                    }
-                }
-            } catch (error) {
-                console.error('Auth check failed:', error);
-                localStorage.clear();
-            }
-        }
+				if (response.ok) {
+					const data = await response.json();
+					if (data.valid) {
+						// Mettre à jour le localStorage avec l'utilisateur actuel
+						localStorage.setItem('currentUser', data.username);
+						showWelcome(data.username);
+					} else {
+						// Nettoyer le localStorage si le token n'est pas valide
+						localStorage.clear();
+					}
+				}
+			} catch (error) {
+				console.error('Auth check failed:', error);
+				localStorage.clear();
+			}
+		}
 
-        // Fonction pour vérifier si les tokens sont valides
-        async function areTokensValid() {
-            try {
-                const response = await fetch(`${API_URL}/verify_token`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                return data.valid;
-            } catch (error) {
-                console.error('Token validation error:', error);
-                return false;
-            }
-        }
+		// Fonction pour vérifier si les tokens sont valides
+		async function areTokensValid() {
+			try {
+				const response = await fetch(`${API_URL}/verify_token`, {
+					method: 'POST',
+					credentials: 'include'
+				});
+				const data = await response.json();
+				return data.valid;
+			} catch (error) {
+				console.error('Token validation error:', error);
+				return false;
+			}
+		}
 
-        // Register
-        document.getElementById('register-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('register-username').value;
-            const password = document.getElementById('register-password').value;
+		// Register
+		document.getElementById('register-form').addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const username = document.getElementById('register-username').value;
+			const password = document.getElementById('register-password').value;
 
-            try {
-                const response = await fetch(`${API_URL}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password }),
-                    credentials: 'include'
-                });
+			try {
+				const response = await fetch(`${API_URL}/register`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ username, password }),
+					credentials: 'include'
+				});
 
-                const data = await response.json();
+				const data = await response.json();
 
-                if (response.ok) {
-                    // Ajouter cette ligne pour mettre à jour le localStorage lors du register
-                    localStorage.setItem('currentUser', username);
+				if (response.ok) {
+					// Ajouter cette ligne pour mettre à jour le localStorage lors du register
+					localStorage.setItem('currentUser', username);
 
-                    showMessage('Registration and login successful!', false);
-                    document.getElementById('register-form').reset();
-                    // Directement afficher le welcome puisque l'utilisateur est connecté
-                    showWelcome(data.username);
-                } else {
-                    showMessage(data.error || 'Registration failed', true);
-                }
-            } catch (error) {
-                showMessage('Server error', true);
-            }
-        });
+					showMessage('Registration and login successful!', false);
+					document.getElementById('register-form').reset();
+					// Directement afficher le welcome puisque l'utilisateur est connecté
+					showWelcome(data.username);
+				} else {
+					showMessage(data.error || 'Registration failed', true);
+				}
+			} catch (error) {
+				showMessage('Server error', true);
+			}
+		});
 
-        // Login
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('login-username').value;
-            const password = document.getElementById('login-password').value;
+		// Login
+		document.getElementById('login-form').addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const username = document.getElementById('login-username').value;
+			const password = document.getElementById('login-password').value;
 
-            // Sauvegarder le nom d'utilisateur dans le localStorage
-            localStorage.setItem('currentUser', username);
+			// Sauvegarder le nom d'utilisateur dans le localStorage
+			localStorage.setItem('currentUser', username);
 
-            try {
-                const response = await fetch(`${API_URL}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password }),
-                    credentials: 'include'
-                });
+			try {
+				const response = await fetch(`${API_URL}/login`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ username, password }),
+					credentials: 'include'
+				});
 
-                const data = await response.json();
+				const data = await response.json();
 
-                if (response.ok) {
-                    showMessage('Login successful!', false);
-                    showWelcome(data.username);
-                } else {
-                    showMessage(data.error || 'Login failed', true);
-                }
-            } catch (error) {
-                showMessage('Server error', true);
-                console.error('Login error:', error);
-            }
-        });
+				if (response.ok) {
+					showMessage('Login successful!', false);
+					showWelcome(data.username);
+				} else {
+					showMessage(data.error || 'Login failed', true);
+				}
+			} catch (error) {
+				showMessage('Server error', true);
+				console.error('Login error:', error);
+			}
+		});
 
-        // Fonction commune de vérification de token
-        async function verifyToken() {
-            try {
-                const response = await fetch(`${API_URL}/verify_token`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
+		// Fonction commune de vérification de token
+		async function verifyToken() {
+			try {
+				const response = await fetch(`${API_URL}/verify_token`, {
+					method: 'POST',
+					credentials: 'include'
+				});
 
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.valid) {
-                        showMessage('Token is valid! User: ' + data.username, false);
-                    } else {
-                        showMessage('Token is invalid', true);
-                    }
-                } else {
-                    showMessage('Token verification failed', true);
-                }
-            } catch (error) {
-                showMessage('Verification error', true);
-                console.error('Verify error:', error);
-            }
-        }
+				if (response.ok) {
+					const data = await response.json();
+					if (data.valid) {
+						showMessage('Token is valid! User: ' + data.username, false);
+					} else {
+						showMessage('Token is invalid', true);
+					}
+				} else {
+					showMessage('Token verification failed', true);
+				}
+			} catch (error) {
+				showMessage('Verification error', true);
+				console.error('Verify error:', error);
+			}
+		}
 
-        // Ajout des event listeners pour les boutons verify-token
-        document.getElementById('verify-token-btn').addEventListener('click', verifyToken);
-        document.getElementById('verify-token-logged-btn').addEventListener('click', verifyToken);
-        document.getElementById('google-login-btn').addEventListener('click', () => {
-            const googleAuthUrl = `https://accounts.google.com/o/oauth2/auth?` +
-                `client_id=${GOOGLE_CLIENT_ID}` +
-                `&redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT_URI)}` +
-                `&response_type=code` +
-                `&scope=${encodeURIComponent('email profile')}` +
-                `&access_type=offline` +
-                `&prompt=consent`;
-            
-            // Store current URL for redirect after login
-            sessionStorage.setItem('preLoginPage', window.location.href);
-            
-            window.location.href = googleAuthUrl;
-        });
+		// Ajout des event listeners pour les boutons verify-token
+		document.getElementById('verify-token-btn').addEventListener('click', verifyToken);
+		document.getElementById('verify-token-logged-btn').addEventListener('click', verifyToken);
+		document.getElementById('google-login-btn').addEventListener('click', () => {
+			const googleAuthUrl = `https://accounts.google.com/o/oauth2/auth?` +
+				`client_id=${GOOGLE_CLIENT_ID}` +
+				`&redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT_URI)}` +
+				`&response_type=code` +
+				`&scope=${encodeURIComponent('email profile')}` +
+				`&access_type=offline` +
+				`&prompt=consent`;
 
-        // fonction logout
-        document.getElementById('logout-btn').addEventListener('click', async () => {
-            try {
-                // Immediately set shouldReconnect to false to prevent reconnection attempts
-                shouldReconnect = false;
-                console.log('WebSocket reconnection disabled for logout');
-                
-                // Close WebSocket connection if it exists
-                if (ws) {
-                    console.log('Closing WebSocket connection for logout');
-                    
-                    // Set onclose handler to null to prevent any reconnection logic
-                    ws.onclose = null;
-                    ws.onmessage = null;
-                    ws.onerror = null;
-                    
-                    // Close the connection with a normal closure code
-                    ws.close(1000, "User logout");
-                    ws = null;
-                    
-                    // Wait a moment to ensure the connection is closed
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                }
+			// Store current URL for redirect after login
+			sessionStorage.setItem('preLoginPage', window.location.href);
 
-                const response = await fetch(`${API_URL}/logout`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
+			window.location.href = googleAuthUrl;
+		});
 
-                if (response.ok) {
-                    // Clear session storage for chat messages
-                    Object.keys(sessionStorage).forEach(key => {
-                        if (key.startsWith('chat_')) {
-                            sessionStorage.removeItem(key);
-                        }
-                    });
-                    
-                    showMessage('Logged out successfully', false);
-                    authForms.classList.remove('hidden');
-                    welcome.classList.add('hidden');
-                    localStorage.clear();
-                } else {
-                    const data = await response.json();
-                    showMessage(data.error || 'Logout failed', true);
-                }
-            } catch (error) {
-                console.error('Logout error:', error);
-                showMessage('Server error during logout', true);
-            }
-        });
+		// fonction logout
+		document.getElementById('logout-btn').addEventListener('click', async () => {
+			try {
+				// Immediately set shouldReconnect to false to prevent reconnection attempts
+				shouldReconnect = false;
+				console.log('WebSocket reconnection disabled for logout');
 
-        // Remplacer les deux event listeners de recherche par celui-ci
-        document.getElementById('search-btn').addEventListener('click', async () => {
-            const searchUsername = document.getElementById('search-username').value;
-            const searchResult = document.getElementById('search-result');
+				// Close WebSocket connection if it exists
+				if (ws) {
+					console.log('Closing WebSocket connection for logout');
 
-            if (!searchUsername) {
-                showMessage('Please enter a username', true);
-                return;
-            }
+					// Set onclose handler to null to prevent any reconnection logic
+					ws.onclose = null;
+					ws.onmessage = null;
+					ws.onerror = null;
 
-            try {
-                const response = await fetch(`${API_URL}/search/${searchUsername}`, {
-                    credentials: 'include'
-                });
+					// Close the connection with a normal closure code
+					ws.close(1000, "User logout");
+					ws = null;
 
-                const data = await response.json();
+					// Wait a moment to ensure the connection is closed
+					await new Promise(resolve => setTimeout(resolve, 200));
+				}
 
-                if (response.status === 404) {
-                    searchResult.style.display = 'block';
-                    searchResult.innerHTML = `<p>User '${searchUsername}' not found.</p>`;
-                    return;
-                }
+				const response = await fetch(`${API_URL}/logout`, {
+					method: 'POST',
+					credentials: 'include'
+				});
 
-                if (!response.ok) {
-                    throw new Error(data.error || 'Search failed');
-                }
+				if (response.ok) {
+					// Clear session storage for chat messages
+					Object.keys(sessionStorage).forEach(key => {
+						if (key.startsWith('chat_')) {
+							sessionStorage.removeItem(key);
+						}
+					});
 
-                searchResult.style.display = 'block';
-                if (data.success) {
-                    let statsHtml = '';
+					showMessage('Logged out successfully', false);
+					authForms.classList.remove('hidden');
+					welcome.classList.add('hidden');
+					localStorage.clear();
+				} else {
+					const data = await response.json();
+					showMessage(data.error || 'Logout failed', true);
+				}
+			} catch (error) {
+				console.error('Logout error:', error);
+				showMessage('Server error during logout', true);
+			}
+		});
 
-                    if (data.isFriend) {
-                        // Affichage pour un ami
-                        statsHtml = `
+		// Remplacer les deux event listeners de recherche par celui-ci
+		document.getElementById('search-btn').addEventListener('click', async () => {
+			const searchUsername = document.getElementById('search-username').value;
+			const searchResult = document.getElementById('search-result');
+
+			if (!searchUsername) {
+				showMessage('Please enter a username', true);
+				return;
+			}
+
+			try {
+				const response = await fetch(`${API_URL}/search/${searchUsername}`, {
+					credentials: 'include'
+				});
+
+				const data = await response.json();
+
+				if (response.status === 404) {
+					searchResult.style.display = 'block';
+					searchResult.innerHTML = `<p>User '${searchUsername}' not found.</p>`;
+					return;
+				}
+
+				if (!response.ok) {
+					throw new Error(data.error || 'Search failed');
+				}
+
+				searchResult.style.display = 'block';
+				if (data.success) {
+					let statsHtml = '';
+
+					if (data.isFriend) {
+						// Affichage pour un ami
+						statsHtml = `
                             <div class="user-stats">
                                 <p>Friend since: ${data.user.friendSince}</p>
                                 <p>Games together: ${data.user.gamesTogether}</p>
@@ -634,24 +639,24 @@
                                 <p>Win rate: ${data.user.winRate}%</p>
                             </div>
                         `;
-                    } else {
-                        // Affichage pour un non-ami
-                        statsHtml = `
+					} else {
+						// Affichage pour un non-ami
+						statsHtml = `
                             <div class="user-stats">
                                 <p>Member since: ${data.user.createdAt}</p>
                                 <p>Total games: ${data.user.gamesPlayed}</p>
                                 <p>Win rate: ${data.user.winRate}%</p>
                             </div>
                         `;
-                    }
+					}
 
-                    const statusBadge = data.isFriend ? `
+					const statusBadge = data.isFriend ? `
                         <span class="status-badge ${data.user.isConnected ? 'status-online' : 'status-offline'}">
                             ${data.user.isConnected ? 'Online' : 'Offline'}
                         </span>
                     ` : '';
 
-                    searchResult.innerHTML = `
+					searchResult.innerHTML = `
                         <div class="friend-item" data-username="${data.user.username}">
                             <div class="friend-info">
                                 <div class="user-header">
@@ -680,483 +685,503 @@
                             </div>
                         </div>
                     `;
-                }
-            } catch (error) {
-                console.error('Search error:', error);
-                showMessage('Error during search', true);
-            }
-        });
+				}
+			} catch (error) {
+				console.error('Search error:', error);
+				showMessage('Error during search', true);
+			}
+		});
 
-        // Fonction d'ajout d'ami
-        async function addFriend(friendUsername) {
-            const storedUsername = localStorage.getItem('currentUser');
-            const currentUsername = document.getElementById('username').textContent;
+		// Fonction d'ajout d'ami
+		async function addFriend(friendUsername) {
+			const storedUsername = localStorage.getItem('currentUser');
+			const currentUsername = document.getElementById('username').textContent;
 
-            if (storedUsername !== currentUsername) {
-                showMessage('Session invalid: Please refresh the page', true);
-                return;
-            }
+			if (storedUsername !== currentUsername) {
+				showMessage('Session invalid: Please refresh the page', true);
+				return;
+			}
 
-            if (friendUsername === currentUsername) {
-                showMessage('Cannot add yourself as friend', true);
-                return;
-            }
+			if (friendUsername === currentUsername) {
+				showMessage('Cannot add yourself as friend', true);
+				return;
+			}
 
-            try {
-                const response = await fetch(`${API_URL}/add/${friendUsername}`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
+			try {
+				const response = await fetch(`${API_URL}/add/${friendUsername}`, {
+					method: 'POST',
+					credentials: 'include'
+				});
 
-                const data = await response.json();
-                if (data.success) {
-                    showMessage('Friend added successfully', false);
-                    // Rafraîchir la recherche
-                    document.getElementById('search-btn').click();
-                } else {
-                    showMessage(data.error || 'Failed to add friend', true);
-                }
-            } catch (error) {
-                console.error('Add friend error:', error);
-                showMessage('Failed to add friend', true);
-            }
-        }
+				const data = await response.json();
+				if (data.success) {
+					showMessage('Friend added successfully', false);
+					// Rafraîchir la recherche
+					document.getElementById('search-btn').click();
+				} else {
+					showMessage(data.error || 'Failed to add friend', true);
+				}
+			} catch (error) {
+				console.error('Add friend error:', error);
+				showMessage('Failed to add friend', true);
+			}
+		}
 
-        // Fonction de suppression d'ami
-        async function removeFriend(friendUsername) {
-            try {
-                const response = await fetch(`${API_URL}/remove/${friendUsername}`, {
-                    method: 'DELETE',
-                    credentials: 'include'
-                });
+		// Fonction de suppression d'ami
+		async function removeFriend(friendUsername) {
+			try {
+				const response = await fetch(`${API_URL}/remove/${friendUsername}`, {
+					method: 'DELETE',
+					credentials: 'include'
+				});
 
-                const data = await response.json();
-                if (data.success) {
-                    showMessage('Friend removed successfully', false);
-                    // Rafraîchir la recherche
-                    document.getElementById('search-btn').click();
-                } else {
-                    showMessage(data.error || 'Failed to remove friend', true);
-                }
-            } catch (error) {
-                console.error('Remove friend error:', error);
-                showMessage('Failed to remove friend', true);
-            }
-        }
+				const data = await response.json();
+				if (data.success) {
+					showMessage('Friend removed successfully', false);
+					// Rafraîchir la recherche
+					document.getElementById('search-btn').click();
+				} else {
+					showMessage(data.error || 'Failed to remove friend', true);
+				}
+			} catch (error) {
+				console.error('Remove friend error:', error);
+				showMessage('Failed to remove friend', true);
+			}
+		}
 
-        // Ajout de la gestion du bouton revoke-tokens
-        document.getElementById('revoke-tokens-btn').addEventListener('click', async () => {
-            const username = document.getElementById('username').textContent;
+		// Ajout de la gestion du bouton revoke-tokens
+		document.getElementById('revoke-tokens-btn').addEventListener('click', async () => {
+			const username = document.getElementById('username').textContent;
 
-            try {
-                shouldReconnect = false; // Désactiver les reconnexions avant la révocation
+			try {
+				shouldReconnect = false; // Désactiver les reconnexions avant la révocation
 
-                if (ws) {
-                    ws.close();
-                    ws = null;
-                }
+				if (ws) {
+					ws.close();
+					ws = null;
+				}
 
-                // D'abord récupérer l'ID de l'utilisateur
-                const getUserIdResponse = await fetch(`${API_URL}/getUserId`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username }),
-                    credentials: 'include'
-                });
+				// D'abord récupérer l'ID de l'utilisateur
+				const getUserIdResponse = await fetch(`${API_URL}/getUserId`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ username }),
+					credentials: 'include'
+				});
 
-                const userIdData = await getUserIdResponse.json();
+				const userIdData = await getUserIdResponse.json();
 
-                if (!userIdData.success) {
-                    throw new Error('Failed to get user ID');
-                }
+				if (!userIdData.success) {
+					throw new Error('Failed to get user ID');
+				}
 
-                // Ensuite révoquer les tokens
-                const response = await fetch(`${API_URL}/revoke`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: userIdData.id }),
-                    credentials: 'include'
-                });
+				// Ensuite révoquer les tokens
+				const response = await fetch(`${API_URL}/revoke`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ userId: userIdData.id }),
+					credentials: 'include'
+				});
 
-                const data = await response.json();
+				const data = await response.json();
 
-                if (response.ok) {
-                    showMessage('Tokens revoked successfully', false);
-                    authForms.classList.remove('hidden');
-                    welcome.classList.add('hidden');
-                    localStorage.clear();
-                } else {
-                    showMessage(data.error || 'Failed to revoke tokens', true);
-                }
-            } catch (error) {
-                console.error('Revoke error:', error);
-                showMessage('Error during token revocation', true);
-            }
-        });
+				if (response.ok) {
+					showMessage('Tokens revoked successfully', false);
+					authForms.classList.remove('hidden');
+					welcome.classList.add('hidden');
+					localStorage.clear();
+				} else {
+					showMessage(data.error || 'Failed to revoke tokens', true);
+				}
+			} catch (error) {
+				console.error('Revoke error:', error);
+				showMessage('Error during token revocation', true);
+			}
+		});
 
-        // Supprimer l'event listener du bouton show-friends et la fonction loadFriends
-        document.getElementById('show-friends-btn')?.remove();
+		// Supprimer l'event listener du bouton show-friends et la fonction loadFriends
+		document.getElementById('show-friends-btn')?.remove();
 
 
-        // Vérifier régulièrement si l'utilisateur actuel est toujours valide
-        setInterval(async () => {
-            const storedUsername = localStorage.getItem('currentUser');
-            const currentUsername = document.getElementById('username').textContent;
+		// Vérifier régulièrement si l'utilisateur actuel est toujours valide
+		setInterval(async () => {
+			const storedUsername = localStorage.getItem('currentUser');
+			const currentUsername = document.getElementById('username').textContent;
 
-            if (storedUsername && currentUsername && storedUsername !== currentUsername) {
-                // L'utilisateur a changé dans un autre onglet
-                showMessage('Session expired: Another user logged in', true);
-                document.getElementById('logout-btn').click();
-            }
-        }, 1000);
+			if (storedUsername && currentUsername && storedUsername !== currentUsername) {
+				// L'utilisateur a changé dans un autre onglet
+				showMessage('Session expired: Another user logged in', true);
+				document.getElementById('logout-btn').click();
+			}
+		}, 1000);
 
-        function showMessage(text, isError = false) {
-            message.textContent = text;
-            message.className = `message ${isError ? 'error' : 'success'}`;
-            setTimeout(() => message.className = 'message hidden', 5000);
-        }
+		function showMessage(text, isError = false) {
+			message.textContent = text;
+			message.className = `message ${isError ? 'error' : 'success'}`;
+			setTimeout(() => message.className = 'message hidden', 5000);
+		}
 
-        function showWelcome(username) {
-            document.getElementById('username').textContent = username;
-            authForms.classList.add('hidden');
-            welcome.classList.remove('hidden');
-            
-            // Reset WebSocket state and clear chat history
-            shouldReconnect = true;
-            document.getElementById('chat-messages').innerHTML = '';
-            
-            // Clear any existing WebSocket connection before starting
-            if (ws) {
-                console.log('Closing existing WebSocket for new login');
-                ws.onclose = null; // Prevent reconnection logic
-                ws.onmessage = null;
-                ws.onerror = null;
-                try {
-                    ws.close(1000, "New login");
-                } catch (e) {
-                    console.error('Error closing WebSocket for new login:', e);
-                }
-                ws = null;
-            }
-            
-            // Clear all chat history from sessionStorage
-            Object.keys(sessionStorage).forEach(key => {
-                if (key.startsWith('chat_')) {
-                    sessionStorage.removeItem(key);
-                }
-            });
-            
-            // Initialize chat UI
-            initializeChat();
-            
-            // Add a delay before connecting WebSocket to ensure cleanup is complete
-            setTimeout(() => {
-                connectWebSocket();
-            }, 500);
-        }
+		function showWelcome(username) {
+			document.getElementById('username').textContent = username;
+			authForms.classList.add('hidden');
+			welcome.classList.remove('hidden');
 
-        // Chat functionality
-        function initializeChat() {
-            const chatInput = document.getElementById('chat-input');
-            const chatSend = document.getElementById('chat-send');
+			// Reset WebSocket state and clear chat history
+			shouldReconnect = true;
+			document.getElementById('chat-messages').innerHTML = '';
 
-            chatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    sendChatMessage();
-                }
-            });
+			// Clear any existing WebSocket connection before starting
+			if (ws) {
+				console.log('Closing existing WebSocket for new login');
+				ws.onclose = null; // Prevent reconnection logic
+				ws.onmessage = null;
+				ws.onerror = null;
+				try {
+					ws.close(1000, "New login");
+				} catch (e) {
+					console.error('Error closing WebSocket for new login:', e);
+				}
+				ws = null;
+			}
 
-            chatSend.addEventListener('click', sendChatMessage);
-            
-            // Add click handler for ALL chat tabs including the global chat tab
-            const chatTabs = document.querySelectorAll('.chat-tab');
-            chatTabs.forEach(tab => {
-                const tabName = tab.getAttribute('data-tab');
-                tab.addEventListener('click', function() {
-                    switchChatTab(tabName);
-                });
-            });
-            
-            // Log initialization for debugging
-            console.log('Chat initialized, tabs setup complete');
-        }
+			// Clear all chat history from sessionStorage
+			Object.keys(sessionStorage).forEach(key => {
+				if (key.startsWith('chat_')) {
+					sessionStorage.removeItem(key);
+				}
+			});
 
-        async function sendChatMessage() {
-            const input = document.getElementById('chat-input');
-            const message = input.value.trim();
-            const activeTab = document.querySelector('.chat-tab.active');
-            const recipient = activeTab.getAttribute('data-tab');
+			// Initialize chat UI
+			initializeChat();
 
-            if (!message) return;
+			// Add a delay before connecting WebSocket to ensure cleanup is complete
+			setTimeout(() => {
+				connectWebSocket();
+			}, 500);
+		}
 
-            try {
-                const endpoint = recipient === 'global' 
-                    ? `${API_URL}/live_chat_message`
-                    : `${API_URL}/direct_chat_message`;
+		// Chat functionality
+		function initializeChat() {
+			if (chatInitialized) {
+				console.log('🔁 Chat already initialized, skipping duplicate listeners');
+				return;
+			}
+			chatInitialized = true;
 
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(
-                        recipient === 'global' 
-                            ? { message }
-                            : { message, recipient }
-                    ),
-                    credentials: 'include'
-                });
+			const chatInput = document.getElementById('chat-input');
+			const chatSend = document.getElementById('chat-send');
 
-                const data = await response.json();
-                if (response.ok) {
-                    input.value = '';
-                } else {
-                    showMessage(data.error || 'Failed to send message', true);
-                }
-            } catch (error) {
-                console.error('Send message error:', error);
-                showMessage('Error sending message', true);
-            }
-        }
+			chatInput.addEventListener('keypress', (e) => {
+				if (e.key === 'Enter') {
+					sendChatMessage();
+				}
+			});
 
-        function addChatMessage(data) {
-            const chatMessages = document.getElementById('chat-messages');
-            const activeTab = document.querySelector('.chat-tab.active');
-            const currentTab = activeTab.getAttribute('data-tab');
-            const currentUser = localStorage.getItem('currentUser');
-            
-            // Pour les messages privés
-            if (data.type === 'direct_message') {
-                // Créer ou obtenir l'onglet approprié
-                const otherUser = data.user === currentUser ? data.recipient : data.user;
-                const targetTab = document.querySelector(`[data-tab="${otherUser}"]`);
-                
-                if (!targetTab) {
-                    // Si l'onglet n'existe pas, le créer
-                    openPrivateChat(otherUser);
-                }
+			chatSend.addEventListener('click', sendChatMessage);
 
-                // Créer le message
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'chat-message';
-                messageDiv.innerHTML = `
-                    <span class="author">${data.user}:</span>
-                    <span class="message">${escapeHtml(data.message)}</span>
-                `;
+			const chatTabs = document.querySelectorAll('.chat-tab');
+			chatTabs.forEach(tab => {
+				const tabName = tab.getAttribute('data-tab');
+				tab.addEventListener('click', function () {
+					switchChatTab(tabName);
+				});
+			});
 
-                // Si nous sommes dans le bon onglet, afficher immédiatement
-                if (currentTab === otherUser) {
-                    chatMessages.appendChild(messageDiv);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                }
-                
-                // Stocker le message dans sessionStorage
-                const chatKey = `chat_${otherUser}`;
-                const storedMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
-                storedMessages.push({
-                    user: data.user,
-                    message: data.message
-                });
-                sessionStorage.setItem(chatKey, JSON.stringify(storedMessages));
-            } 
-            // Pour les messages du chat global
-            else if (data.type === 'livechat') {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'chat-message';
-                messageDiv.innerHTML = `
-                    <span class="author">${data.user}:</span>
-                    <span class="message">${escapeHtml(data.message)}</span>
-                `;
-                
-                // Si nous sommes actuellement sur l'onglet global, afficher immédiatement
-                if (currentTab === 'global') {
-                    chatMessages.appendChild(messageDiv);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                }
-                
-                // Stocker le message dans sessionStorage pour le chat global
-                const globalChatKey = 'chat_global';
-                const storedGlobalMessages = JSON.parse(sessionStorage.getItem(globalChatKey) || '[]');
-                storedGlobalMessages.push({
-                    user: data.user,
-                    message: data.message
-                });
-                sessionStorage.setItem(globalChatKey, JSON.stringify(storedGlobalMessages));
-            }
-        }
+			console.log('✅ Chat initialized with 1 set of listeners');
+		}
 
-        function escapeHtml(unsafe) {
-            return unsafe
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
 
-        // Fonction pour établir la connexion WebSocket avec reconnexion automatique
-        async function connectWebSocket() {
-            if (!shouldReconnect) {
-                console.log('WebSocket reconnection disabled');
-                return;
-            }
+		async function sendChatMessage() {
+			const input = document.getElementById('chat-input');
+			const message = input.value.trim();
+			const activeTab = document.querySelector('.chat-tab.active');
+			const recipient = activeTab.getAttribute('data-tab');
 
-            try {
-                // Close any existing connection first
-                if (ws) {
-                    console.log('Closing existing WebSocket before creating new connection');
-                    
-                    // Remove all event listeners to prevent memory leaks
-                    ws.onopen = null;
-                    ws.onclose = null;
-                    ws.onmessage = null;
-                    ws.onerror = null;
-                    
-                    try {
-                        ws.close(1000, "New connection initialization");
-                    } catch (e) {
-                        console.error('Error closing existing WebSocket:', e);
-                    }
-                    
-                    // Ensure the reference is cleared
-                    ws = null;
-                    
-                    // Small delay to ensure the connection is properly closed
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                }
-                
-                // Vérifier les tokens avant de tenter une connexion
-                const tokensValid = await areTokensValid();
-                if (!tokensValid) {
-                    console.log('Tokens invalid, stopping WebSocket connection attempts');
-                    shouldReconnect = false;
-                    return;
-                }
+			if (!message) return;
 
-                // Si une connexion existe déjà (sanity check), ne pas en créer une nouvelle
-                if (ws) {
-                    console.log('WebSocket connection still exists after cleanup, aborting new connection');
-                    return;
-                }
+			try {
+				const endpoint = recipient === 'global'
+					? `${API_URL}/live_chat_message`
+					: `${API_URL}/direct_chat_message`;
 
-                // Créer une nouvelle connexion
-                console.log('Creating new WebSocket connection');
-                ws = new WebSocket(WS_URL);
-                let reconnectTimeout;
-                let reconnectAttempt = 0;
-                const maxReconnectAttempts = 5;
-                const connectionId = Date.now(); // Unique ID for this connection attempt
-                console.log(`Connection ID: ${connectionId}`);
+				const response = await fetch(endpoint, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(
+						recipient === 'global'
+							? { message }
+							: { message, to: recipient }
+					),
+					credentials: 'include'
+				});
 
-                ws.onopen = () => {
-                    console.log(`WebSocket connected successfully [ID: ${connectionId}]`);
-                    reconnectAttempt = 0;
-                    if (reconnectTimeout) {
-                        clearTimeout(reconnectTimeout);
-                        reconnectTimeout = null;
-                    }
-                };
+				const data = await response.json();
+				if (response.ok) {
+					input.value = '';
 
-                ws.onmessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        console.log(`Received ${data.type} message [Connection ID: ${connectionId}]`);
-                        
-                        switch (data.type) {
-                            case 'status_update':
-                                updateUserStatus(data);
-                                break;
-                            case 'livechat':
-                            case 'direct_message':
-                                addChatMessage(data);
-                                break;
-                            default:
-                                console.log(`Unknown message type: ${data.type}`);
-                        }
-                    } catch (error) {
-                        console.error('WebSocket message parsing error:', error);
-                    }
-                };
+					if (recipient !== 'global') {
+						const currentUser = localStorage.getItem('currentUser');
 
-                ws.onclose = (event) => {
-                    console.log(`WebSocket disconnected with code: ${event.code} [ID: ${connectionId}]`);
-                    
-                    // Reference cleanup
-                    ws = null;
+						// Ajout du message dans le chat privé de l’expéditeur
+						const chatKey = `chat_${recipient}`;
+						const storedMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
+						storedMessages.push({
+							user: currentUser,
+							message
+						});
+						sessionStorage.setItem(chatKey, JSON.stringify(storedMessages));
 
-                    // Check if reconnection should be attempted
-                    if (!shouldReconnect) {
-                        console.log('Reconnection disabled, not attempting to reconnect');
-                        return;
-                    }
+						// Si l'onglet est actif, afficher tout de suite
+						const activeTab = document.querySelector('.chat-tab.active');
+						if (activeTab && activeTab.getAttribute('data-tab') === recipient) {
+							const chatMessages = document.getElementById('chat-messages');
+							const messageDiv = document.createElement('div');
+							messageDiv.className = 'chat-message';
+							messageDiv.innerHTML = `
+                <span class="author">${currentUser}:</span>
+                <span class="message">${escapeHtml(message)}</span>
+            `;
+							chatMessages.appendChild(messageDiv);
+							chatMessages.scrollTop = chatMessages.scrollHeight;
+						}
+					}
 
-                    // Don't attempt to reconnect on a proper closure from server or client
-                    if (event.code === 1000 || event.code === 1001) {
-                        console.log('Clean closure, not reconnecting');
-                        return;
-                    }
+				} else {
+					showMessage(data.error || 'Failed to send message', true);
+				}
+			} catch (error) {
+				console.error('Send message error:', error);
+				showMessage('Error sending message', true);
+			}
+		}
 
-                    // Tentative de reconnexion avec backoff exponentiel
-                    if (reconnectAttempt < maxReconnectAttempts) {
-                        const timeout = Math.min(1000 * Math.pow(2, reconnectAttempt), 30000);
-                        reconnectAttempt++;
-                        console.log(`Scheduling reconnection attempt ${reconnectAttempt} in ${timeout}ms`);
-                        
-                        reconnectTimeout = setTimeout(async () => {
-                            console.log(`Attempting reconnection ${reconnectAttempt}`);
-                            
-                            // Double-check token validity before attempting reconnection
-                            const stillValid = await areTokensValid();
-                            if (!stillValid) {
-                                console.log('Tokens no longer valid, canceling reconnection');
-                                shouldReconnect = false;
-                                if (reconnectTimeout) {
-                                    clearTimeout(reconnectTimeout);
-                                    reconnectTimeout = null;
-                                }
-                                return;
-                            }
-                            
-                            connectWebSocket();
-                        }, timeout);
-                    } else {
-                        console.log('Max reconnection attempts reached');
-                        shouldReconnect = false;
-                    }
-                };
+		function addChatMessage(data) {
+			const chatMessages = document.getElementById('chat-messages');
+			const activeTab = document.querySelector('.chat-tab.active');
+			const currentTab = activeTab?.getAttribute('data-tab') || 'global';
+			const currentUser = localStorage.getItem('currentUser');
 
-                ws.onerror = (error) => {
-                    console.error(`WebSocket error on connection [ID: ${connectionId}]:`, error);
-                };
+			// === 🔐 Messagerie privée ===
+			if (data.type === 'direct_message') {
+				const otherUser = data.user === currentUser ? data.recipient : data.user;
+				const chatKey = `chat_${otherUser}`;
+				const storedMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
 
-            } catch (error) {
-                console.error('WebSocket connection setup error:', error);
-                if (ws) {
-                    try {
-                        ws.close(1011, "Setup error");
-                    } catch (e) {
-                        console.error('Error closing WebSocket after setup error:', e);
-                    }
-                    ws = null;
-                }
-            }
-        }
+				storedMessages.push({ user: data.user, message: data.message });
+				sessionStorage.setItem(chatKey, JSON.stringify(storedMessages));
 
-        // Mise à jour du statut d'un utilisateur
-        function updateUserStatus(data) {
-            const searchResult = document.getElementById('search-result');
-            const userElement = searchResult.querySelector(`[data-username="${data.username}"]`);
 
-            if (userElement) {
-                const statusBadge = userElement.querySelector('.status-badge');
-                if (statusBadge) {  // Vérifier si le badge existe
-                    statusBadge.textContent = data.online ? 'Online' : 'Offline';
-                    statusBadge.className = `status-badge ${data.online ? 'status-online' : 'status-offline'}`;
-                }
-            }
-        }
+				// 📌 Si le chat privé n'existe pas encore → on le crée maintenant
+				let targetTab = document.querySelector(`[data-tab="${otherUser}"]`);
+				if (!targetTab) {
+					openPrivateChat(otherUser);
+					return; // on ne continue pas, car openPrivateChat() va charger les messages
+				}
 
-        // Ajouter des styles pour les badges de statut
-        const style = document.createElement('style');
-        style.textContent = `
+				// ✨ Affichage immédiat uniquement si on est déjà dans le bon onglet
+				if (currentTab === otherUser) {
+					const messageDiv = document.createElement('div');
+					messageDiv.className = 'chat-message';
+					messageDiv.innerHTML = `
+				<span class="author">${data.user}:</span>
+				<span class="message">${escapeHtml(data.message)}</span>
+			`;
+					chatMessages.appendChild(messageDiv);
+					chatMessages.scrollTop = chatMessages.scrollHeight;
+				}
+			}
+
+			// === 💬 Chat global ===
+			else if (data.type === 'livechat') {
+				const chatKey = 'chat_global';
+				const storedGlobalMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
+
+				if (currentTab === 'global') {
+					const messageDiv = document.createElement('div');
+					messageDiv.className = 'chat-message';
+					messageDiv.innerHTML = `
+				<span class="author">${data.user}:</span>
+				<span class="message">${escapeHtml(data.message)}</span>
+			`;
+					chatMessages.appendChild(messageDiv);
+					chatMessages.scrollTop = chatMessages.scrollHeight;
+				}
+			}
+		}
+
+
+		function escapeHtml(unsafe) {
+			return unsafe
+				.replace(/&/g, "&amp;")
+				.replace(/</g, "&lt;")
+				.replace(/>/g, "&gt;")
+				.replace(/"/g, "&quot;")
+				.replace(/'/g, "&#039;");
+		}
+
+		// Fonction pour établir la connexion WebSocket avec reconnexion automatique
+		async function connectWebSocket() {
+			if (!shouldReconnect) {
+				console.log('WebSocket reconnection disabled');
+				return;
+			}
+
+			try {
+				// Close any existing connection first
+				if (ws) {
+					console.log('Closing existing WebSocket before creating new connection');
+
+					// Remove all event listeners to prevent memory leaks
+					ws.onopen = null;
+					ws.onclose = null;
+					ws.onmessage = null;
+					ws.onerror = null;
+
+					try {
+						ws.close(1000, "New connection initialization");
+					} catch (e) {
+						console.error('Error closing existing WebSocket:', e);
+					}
+
+					// Ensure the reference is cleared
+					ws = null;
+
+					// Small delay to ensure the connection is properly closed
+					await new Promise(resolve => setTimeout(resolve, 200));
+				}
+
+				// Vérifier les tokens avant de tenter une connexion
+				const tokensValid = await areTokensValid();
+				if (!tokensValid) {
+					console.log('Tokens invalid, stopping WebSocket connection attempts');
+					shouldReconnect = false;
+					return;
+				}
+
+				// Si une connexion existe déjà (sanity check), ne pas en créer une nouvelle
+				if (ws) {
+					console.log('WebSocket connection still exists after cleanup, aborting new connection');
+					return;
+				}
+
+				// Créer une nouvelle connexion
+				console.log('Creating new WebSocket connection');
+				ws = new WebSocket(WS_URL);
+				const maxReconnectAttempts = 5;
+				const connectionId = Date.now(); // Unique ID for this connection attempt
+				console.log(`Connection ID: ${connectionId}`);
+
+				ws.onopen = () => {
+					console.log(`WebSocket connected successfully [ID: ${connectionId}]`);
+					reconnectAttempt = 0;
+					if (reconnectTimeout) {
+						clearTimeout(reconnectTimeout);
+						reconnectTimeout = null;
+					}
+				};
+
+				ws.onmessage = (event) => {
+					try {
+						const data = JSON.parse(event.data);
+						console.log(`Received ${data.type} message [Connection ID: ${connectionId}]`);
+
+						switch (data.type) {
+							case 'status_update':
+								updateUserStatus(data);
+								break;
+							case 'livechat':
+							case 'direct_message':
+								addChatMessage(data);
+								break;
+							default:
+								console.log(`Unknown message type: ${data.type}`);
+						}
+					} catch (error) {
+						console.error('WebSocket message parsing error:', error);
+					}
+				};
+
+				ws.onclose = (event) => {
+					console.log(`WebSocket disconnected with code: ${event.code} [ID: ${connectionId}]`);
+
+					// Reference cleanup
+					ws = null;
+
+					// Check if reconnection should be attempted
+					if (!shouldReconnect) {
+						console.log('Reconnection disabled, not attempting to reconnect');
+						return;
+					}
+
+					// Don't attempt to reconnect on a proper closure from server or client
+					if (event.code === 1000 || event.code === 1001) {
+						console.log('Clean closure, not reconnecting');
+						return;
+					}
+
+					// Tentative de reconnexion avec backoff exponentiel
+					if (reconnectAttempt < maxReconnectAttempts) {
+						const timeout = Math.min(1000 * Math.pow(2, reconnectAttempt), 30000);
+						reconnectAttempt++;
+						console.log(`Scheduling reconnection attempt ${reconnectAttempt} in ${timeout}ms`);
+
+						reconnectTimeout = setTimeout(async () => {
+							console.log(`Attempting reconnection ${reconnectAttempt}`);
+
+							// Double-check token validity before attempting reconnection
+							const stillValid = await areTokensValid();
+							if (!stillValid) {
+								console.log('Tokens no longer valid, canceling reconnection');
+								shouldReconnect = false;
+								if (reconnectTimeout) {
+									clearTimeout(reconnectTimeout);
+									reconnectTimeout = null;
+								}
+								return;
+							}
+
+							connectWebSocket();
+						}, timeout);
+					} else {
+						console.log('Max reconnection attempts reached');
+						shouldReconnect = false;
+					}
+				};
+
+				ws.onerror = (error) => {
+					console.error(`WebSocket error on connection [ID: ${connectionId}]:`, error);
+				};
+
+			} catch (error) {
+				console.error('WebSocket connection setup error:', error);
+				if (ws) {
+					try {
+						ws.close(1011, "Setup error");
+					} catch (e) {
+						console.error('Error closing WebSocket after setup error:', e);
+					}
+					ws = null;
+				}
+			}
+		}
+
+		// Mise à jour du statut d'un utilisateur
+		function updateUserStatus(data) {
+			const searchResult = document.getElementById('search-result');
+			const userElement = searchResult.querySelector(`[data-username="${data.username}"]`);
+
+			if (userElement) {
+				const statusBadge = userElement.querySelector('.status-badge');
+				if (statusBadge) {  // Vérifier si le badge existe
+					statusBadge.textContent = data.online ? 'Online' : 'Offline';
+					statusBadge.className = `status-badge ${data.online ? 'status-online' : 'status-offline'}`;
+				}
+			}
+		}
+
+		// Ajouter des styles pour les badges de statut
+		const style = document.createElement('style');
+		style.textContent = `
             .status-badge {
                 padding: 2px 6px;
                 border-radius: 10px;
@@ -1172,84 +1197,64 @@
                 color: white;
             }
         `;
-        document.head.appendChild(style);
+		document.head.appendChild(style);
 
-        // Ajout des fonctions pour le chat privé
-        function openPrivateChat(username) {
-            const chatTabs = document.querySelector('.chat-tabs');
-            let tab = document.querySelector(`[data-tab="${username}"]`);
-            
-            if (!tab) {
-                tab = document.createElement('button');
-                tab.className = 'chat-tab';
-                tab.setAttribute('data-tab', username);
-                tab.textContent = username;
-                
-                // Use addEventListener instead of onclick
-                tab.addEventListener('click', function() {
-                    switchChatTab(username);
-                });
-                
-                chatTabs.appendChild(tab);
-            }
-            
-            // Activer l'onglet et afficher les messages
-            switchChatTab(username);
-        }
+		// Ajout des fonctions pour le chat privé
+		function openPrivateChat(username) {
+			const chatTabs = document.querySelector('.chat-tabs');
+			let tab = document.querySelector(`[data-tab="${username}"]`);
 
-        function switchChatTab(tabName) {
-            console.log(`Switching to tab: ${tabName}`); // Debug log
-            
-            const tabs = document.querySelectorAll('.chat-tab');
-            tabs.forEach(tab => tab.classList.remove('active'));
-            
-            const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
-            if (!activeTab) {
-                console.error(`Tab ${tabName} not found`);
-                return;
-            }
-            
-            activeTab.classList.add('active');
-            const chatMessages = document.getElementById('chat-messages');
-            chatMessages.innerHTML = '';
-            
-            // Mettre à jour le placeholder de l'input
-            const chatInput = document.getElementById('chat-input');
-            chatInput.placeholder = tabName === 'global' ? 'Type your message...' : `Message to ${tabName}...`;
+			if (!tab) {
+				tab = document.createElement('button');
+				tab.className = 'chat-tab';
+				tab.setAttribute('data-tab', username);
+				tab.textContent = username;
 
-            // Si ce n'est pas l'onglet global, charger les messages stockés du chat privé
-            if (tabName !== 'global') {
-                const chatKey = `chat_${tabName}`;
-                const storedMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
-                storedMessages.forEach(msg => {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = 'chat-message';
-                    messageDiv.innerHTML = `
-                        <span class="author">${msg.user}:</span>
-                        <span class="message">${escapeHtml(msg.message)}</span>
-                    `;
-                    chatMessages.appendChild(messageDiv);
-                });
-            }
-            // Si c'est l'onglet global, charger les messages du chat global
-            else {
-                const globalChatKey = 'chat_global';
-                const storedGlobalMessages = JSON.parse(sessionStorage.getItem(globalChatKey) || '[]');
-                storedGlobalMessages.forEach(msg => {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = 'chat-message';
-                    messageDiv.innerHTML = `
-                        <span class="author">${msg.user}:</span>
-                        <span class="message">${escapeHtml(msg.message)}</span>
-                    `;
-                    chatMessages.appendChild(messageDiv);
-                });
-            }
-            
-            // Faire défiler jusqu'en bas
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-    </script>
+				// Use addEventListener instead of onclick
+				tab.addEventListener('click', function () {
+					switchChatTab(username);
+				});
+
+				chatTabs.appendChild(tab);
+			}
+
+			// Activer l'onglet et afficher les messages
+			switchChatTab(username);
+		}
+
+		function switchChatTab(tabName) {
+			console.log(`Switching to tab: ${tabName}`); // Debug log
+
+			const tabs = document.querySelectorAll('.chat-tab');
+			tabs.forEach(tab => tab.classList.remove('active'));
+
+			const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+			if (!activeTab) {
+				console.error(`Tab ${tabName} not found`);
+				return;
+			}
+
+			activeTab.classList.add('active');
+			const chatMessages = document.getElementById('chat-messages');
+			chatMessages.innerHTML = ''; // Clear previous messages
+
+			const chatKey = tabName === 'global' ? 'chat_global' : `chat_${tabName}`;
+			const storedMessages = JSON.parse(sessionStorage.getItem(chatKey) || '[]');
+
+			storedMessages.forEach(msg => {
+				const messageDiv = document.createElement('div');
+				messageDiv.className = 'chat-message';
+				messageDiv.innerHTML = `
+			<span class="author">${msg.user}:</span>
+			<span class="message">${escapeHtml(msg.message)}</span>
+		`;
+				chatMessages.appendChild(messageDiv);
+			});
+
+			// Auto scroll to bottom
+			chatMessages.scrollTop = chatMessages.scrollHeight;
+		}
+	</script>
 </body>
 
 </html>

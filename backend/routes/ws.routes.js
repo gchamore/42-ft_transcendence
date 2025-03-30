@@ -23,85 +23,70 @@ async function routes(fastify, options) {
 
     // Route pour les messages du chat
     fastify.post('/live_chat_message', async (request, reply) => {
-        const userId = request.user.userId;
-        const { message } = request.body;
-
-        if (!message || typeof message !== 'string' || message.trim().length === 0) {
-            return reply.code(400).send({ error: 'Invalid message' });
-        }
-
-        if (message.trim().length > 1000) {
-            return reply.code(400).send({ error: 'Message too long (max 1000 characters)' });
-        }
-
-        const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-        
-        // Broadcast le message à tous les clients connectés
-        const broadcastMessage = JSON.stringify({
-            type: 'livechat',
-            user: user.username,
-            message: message.trim()
-        });
-
-        for (const [, socket] of fastify.connections) {
-            if (socket.readyState === 1) { // 1 = WebSocket.OPEN
-                socket.send(broadcastMessage);
-            }
-        }
-
-        return { success: true };
-    });
+		const userId = request.user.userId;
+		const { message } = request.body;
+	
+		if (!message || typeof message !== 'string' || message.trim().length === 0) {
+			return reply.code(400).send({ error: 'Invalid message' });
+		}
+	
+		if (message.trim().length > 1000) {
+			return reply.code(400).send({ error: 'Message too long (max 1000 characters)' });
+		}
+	
+		const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+	
+		const payload = {
+			type: 'livechat',
+			user: user.username,
+			message: message.trim()
+		};
+	
+		broadcastToAllClients(fastify, payload);
+	
+		return { success: true };
+	});
+	
 
     // Route pour les messages privés
     fastify.post('/direct_chat_message', async (request, reply) => {
-        const senderId = request.user.userId;
-        const { message, recipient } = request.body;
-
-        if (!message || typeof message !== 'string' || message.trim().length === 0) {
-            return reply.code(400).send({ error: 'Invalid message' });
-        }
-
-        if (message.trim().length > 1000) {
-            return reply.code(400).send({ error: 'Message too long (max 1000 characters)' });
-        }
-
-        // Vérifier si le destinataire existe
-        const recipientUser = fastify.db.prepare("SELECT id, username FROM users WHERE username = ?").get(recipient);
-        if (!recipientUser) {
-            return reply.code(404).send({ error: 'Recipient not found' });
-        }
-
-        const sender = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(senderId);
-
-        // Vérifier si le destinataire est en ligne
-        const isOnline = await redis.sismember('online_users', recipientUser.id.toString());
-        if (!isOnline) {
-            return reply.code(400).send({ error: 'User is offline. Cannot send private message.' });
-        }
-
-        // Envoyer le message privé
-        const privateMessage = JSON.stringify({
-            type: 'direct_message',
-            user: sender.username,
-            recipient: recipientUser.username,
-            message: message.trim()
-        });
-
-        // Envoyer au destinataire
-        const recipientSocket = fastify.connections.get(recipientUser.id);
-        if (!recipientSocket || recipientSocket.readyState !== 1) {
-            return reply.code(400).send({ error: 'Recipient is not connected' });
-        }
-        recipientSocket.send(privateMessage);
-
-        // Envoyer une copie à l'expéditeur
-        const senderSocket = fastify.connections.get(senderId);
-        if (senderSocket && senderSocket.readyState === 1) {
-            senderSocket.send(privateMessage);
-        }
-
-        return { success: true };
-    });
+		const senderId = request.user.userId;
+		const { to, message } = request.body;
+	
+		if (!message || typeof message !== 'string' || message.trim().length === 0) {
+			return reply.code(400).send({ error: 'Invalid message' });
+		}
+	
+		if (!to || typeof to !== 'string') {
+			return reply.code(400).send({ error: 'Invalid recipient' });
+		}
+	
+		if (message.trim().length > 1000) {
+			return reply.code(400).send({ error: 'Message too long (max 1000 characters)' });
+		}
+	
+		const sender = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(senderId);
+		const recipientUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(to);
+	
+		if (!recipientUser) {
+			return reply.code(404).send({ error: 'Recipient not found' });
+		}
+	
+		const payload = {
+			type: 'direct_message',
+			user: sender.username,
+			message: message.trim()
+		};
+	
+		const delivered = sendPrivateMessage(fastify, recipientUser.id, payload);
+	
+		if (!delivered) {
+			return reply.code(200).send({ warning: 'Recipient is offline. Message not delivered in real-time.' });
+		}
+	
+		return { success: true };
+	});
+	
 
     // Route WebSocket
     fastify.get('/ws', { websocket: true }, async (connection, req) => {
@@ -147,12 +132,6 @@ async function routes(fastify, options) {
                 await new Promise(resolve => setTimeout(resolve, 150));
             }
 
-            // Double-check to ensure the previous connection was actually removed
-            if (fastify.connections.has(userId)) {
-                fastify.log.warn(`Previous connection for user ${userId} still exists after cleanup attempt, removing forcefully`);
-                fastify.connections.delete(userId);
-            }
-
             // Establish new connection
             fastify.log.info(`Storing WebSocket connection [ID: ${connectionId}] for user: ${user.username} (${userId})`);
             // Tag this connection with the connection ID for debugging
@@ -160,7 +139,9 @@ async function routes(fastify, options) {
             fastify.connections.set(userId, connection.socket);
 
             // Update online status
-            await redis.sadd('online_users', userId.toString());
+            if (!await redis.sismember('online_users', userId.toString())) {
+				await redis.sadd('online_users', userId.toString());
+			}
             broadcastUserStatus(fastify, userId, true);
 
 			// Setting up ping-pong and token validation
@@ -189,30 +170,6 @@ async function routes(fastify, options) {
             connection.socket.on('pong', () => {
                 lastPong = Date.now();
                 fastify.log.debug(`Pong received from user: ${user.username} [ID: ${connectionId}]`);
-            });
-
-            // Message handling
-            connection.socket.on('message', async (message) => {
-                try {
-                    const data = JSON.parse(message.toString());
-                    if (data.type === 'chat') {
-                        // Vous pouvez ajouter ici une validation supplémentaire si nécessaire
-                        const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-                        const broadcastMessage = JSON.stringify({
-                            type: 'livechat',
-                            user: user.username,
-                            message: data.message.trim()
-                        });
-
-                        for (const [, socket] of fastify.connections) {
-                            if (socket.readyState === 1) {
-                                socket.send(broadcastMessage);
-                            }
-                        }
-                    }
-                } catch (error) {
-                    fastify.log.error('WebSocket message handling error:', error);
-                }
             });
 
 			// Close handling with improved cleanup
@@ -246,6 +203,27 @@ async function routes(fastify, options) {
         }
     });
 }
+
+function sendPrivateMessage(fastify, toUserId, payload) {
+	const recipientSocket = fastify.connections.get(toUserId);
+
+	if (recipientSocket && recipientSocket.readyState === 1) {
+		recipientSocket.send(JSON.stringify(payload));
+		return true;
+	}
+
+	return false; // utilisateur non connecté
+}
+
+
+function broadcastToAllClients(fastify, payload) {
+	for (const [, socket] of fastify.connections) {
+		if (socket.readyState === 1) { // WebSocket.OPEN === 1
+			socket.send(JSON.stringify(payload));
+		}
+	}
+}
+
 
 // Function to broadcast status changes
 async function broadcastUserStatus(fastify, userId, isOnline) {
