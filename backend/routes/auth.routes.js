@@ -291,18 +291,6 @@ async function routes(fastify, options) {
 		}
 	});
 
-	/*** 📌 Route: PROTECTED EXAMPLE ***/
-	fastify.get("/protected", async (request, reply) => {
-		// Le middleware auth vérifie déjà le token
-		const userId = request.user.userId;
-		const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-
-		return {
-			message: "protected information",
-			user: user.username
-		};
-	});
-
 	/*** 📌 Route: LOGOUT ***/
 	fastify.post("/logout", {
 		schema: {
