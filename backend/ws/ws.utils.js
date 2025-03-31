@@ -8,9 +8,10 @@ const authService = require('../jwt/services/auth.service');
  * @param {number|string} userId - User ID
  * @param {number} code - WebSocket close code (default: 1000)
  * @param {string} reason - Reason for closing (default: "Connection closed")
+ * @param {boolean} updateStatus - Whether to update user online status (default: false)
  * @returns {boolean} - True if connection was closed, false if no connection found
  */
-async function closeUserWebSocket(fastify, userId, code = 1000, reason = "Connection closed") {
+async function closeUserWebSocket(fastify, userId, code = 1000, reason = "Connection closed", updateStatus = false) {
     const wsConnection = fastify.connections.get(userId);
     if (wsConnection) {
         fastify.log.info(`Closing WebSocket connection for user: ${userId} with reason: ${reason}`);
@@ -21,9 +22,13 @@ async function closeUserWebSocket(fastify, userId, code = 1000, reason = "Connec
             }
             fastify.connections.delete(userId);
             
-            // Update Redis
-            await redis.srem('online_users', userId.toString());
-            fastify.log.info(`Removed user ${userId} from online_users in Redis`);
+            // Update Redis and broadcast status only if requested
+            // (This allows the logout route to broadcast status first)
+            if (updateStatus) {
+                await redis.srem('online_users', userId.toString());
+                fastify.log.info(`Removed user ${userId} from online_users in Redis`);
+                broadcastUserStatus(fastify, userId, false);
+            }
             
             return true;
         } catch (error) {
@@ -174,7 +179,13 @@ async function validateWebSocketToken(accessToken) {
  * @param {string} message - Message content
  * @returns {Object} - Result object with success status and error if any
  */
-function handleLiveChatMessage(fastify, userId, message) {
+async function handleLiveChatMessage(fastify, userId, message) {
+    // Vérifier d'abord si l'utilisateur est bien connecté
+    const isConnected = fastify.connections.has(userId);
+    if (!isConnected) {
+        return { success: false, error: 'You must be connected to send messages' };
+    }
+
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
         return { success: false, error: 'Invalid message' };
     }
@@ -206,7 +217,13 @@ function handleLiveChatMessage(fastify, userId, message) {
  * @param {string} message - Message content
  * @returns {Object} - Result object with success status and warnings/errors
  */
-function handleDirectMessage(fastify, senderId, recipientUsername, message) {
+async function handleDirectMessage(fastify, senderId, recipientUsername, message) {
+    // Vérifier d'abord si l'expéditeur est bien connecté
+    const isSenderConnected = fastify.connections.has(senderId);
+    if (!isSenderConnected) {
+        return { success: false, error: 'You must be connected to send messages' };
+    }
+
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
         return { success: false, error: 'Invalid message' };
     }
@@ -234,6 +251,12 @@ function handleDirectMessage(fastify, senderId, recipientUsername, message) {
         return { success: false, error: 'Recipient not found' };
     }
 
+    // Vérifier si le destinataire est connecté
+    const isRecipientConnected = fastify.connections.has(recipientUser.id);
+    if (!isRecipientConnected) {
+        return { success: false, error: 'Recipient is offline. Cannot send message to offline users.' };
+    }
+
     const payload = {
         type: 'direct_message',
         user: sender.username,
@@ -244,10 +267,7 @@ function handleDirectMessage(fastify, senderId, recipientUsername, message) {
     const delivered = sendToUser(fastify, recipientUser.id, payload);
     
     if (!delivered) {
-        return { 
-            success: true, 
-            warning: 'Recipient is offline. Message not delivered in real-time.' 
-        };
+        return { success: false, error: 'Failed to deliver message. Recipient may have disconnected.' };
     }
 
     return { success: true };

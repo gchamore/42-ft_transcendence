@@ -309,6 +309,10 @@ async function routes(fastify, options) {
 		fastify.log.info('Processing logout for user:', userId);
 
 		try {
+			// Diffuser le changement de statut AVANT de fermer la connexion WebSocket
+			await wsUtils.updateUserOnlineStatus(userId, false);
+			await wsUtils.broadcastUserStatus(fastify, userId, false);
+			
 			// Fermer la connexion WebSocket de l'utilisateur
 			await wsUtils.closeUserWebSocket(fastify, userId, 1000, "User logged out");
 
