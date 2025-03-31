@@ -549,44 +549,20 @@
 		// fonction logout
 		document.getElementById('logout-btn').addEventListener('click', async () => {
 			try {
-				// Immediately set shouldReconnect to false to prevent reconnection attempts
+				// Désactive la reconnexion auto
 				shouldReconnect = false;
-				console.log('WebSocket reconnection disabled for logout');
-
-				// Close WebSocket connection if it exists
-				if (ws) {
-					console.log('Closing WebSocket connection for logout');
-
-					// Set onclose handler to null to prevent any reconnection logic
-					ws.onclose = null;
-					ws.onmessage = null;
-					ws.onerror = null;
-
-					// Close the connection with a normal closure code
-					ws.close(1000, "User logout");
-					ws = null;
-
-					// Wait a moment to ensure the connection is closed
-					await new Promise(resolve => setTimeout(resolve, 200));
-				}
-
+				// Suppression des cookies côté serveur
 				const response = await fetch(`${API_URL}/logout`, {
 					method: 'POST',
 					credentials: 'include'
 				});
-
 				if (response.ok) {
-					// Clear session storage for chat messages
-					Object.keys(sessionStorage).forEach(key => {
-						if (key.startsWith('chat_')) {
-							sessionStorage.removeItem(key);
-						}
-					});
-
+					// Nettoyage local
+					localStorage.clear();
+					sessionStorage.clear();
 					showMessage('Logged out successfully', false);
 					authForms.classList.remove('hidden');
 					welcome.classList.add('hidden');
-					localStorage.clear();
 				} else {
 					const data = await response.json();
 					showMessage(data.error || 'Logout failed', true);
@@ -596,6 +572,7 @@
 				showMessage('Server error during logout', true);
 			}
 		});
+
 
 		// Remplacer les deux event listeners de recherche par celui-ci
 		document.getElementById('search-btn').addEventListener('click', async () => {

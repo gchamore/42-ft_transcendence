@@ -1,110 +1,53 @@
 const Redis = require('ioredis');
 const redis = new Redis();
 const authService = require('../jwt/services/auth.service');
+const wsUtils = require('../ws/ws.utils');
 
 async function routes(fastify, options) {
-	// Route to get online status of users
-    fastify.get('/online-status/:username', async (request, reply) => {
-        const { username } = request.params;
-        const user = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(username);
-        
-        if (!user) return { online: false };
-        
-        const isOnline = await redis.sismember('online_users', user.id.toString());
-        return { online: isOnline };
-    });
-
-    // Add new endpoint to check WebSocket status
-    fastify.get('/ws/status', async (request, reply) => {
-        const userId = request.user.userId;
-        const isConnected = fastify.connections.has(userId);
-        return { connected: isConnected };
-    });
-
 	// Route for live chat messages
     fastify.post('/live_chat_message', async (request, reply) => {
 		const userId = request.user.userId;
 		const { message } = request.body;
-	
-		if (!message || typeof message !== 'string' || message.trim().length === 0) {
-			return reply.code(400).send({ error: 'Invalid message' });
-		}
-	
-		if (message.trim().length > 1000) {
-			return reply.code(400).send({ error: 'Message too long (max 1000 characters)' });
-		}
-	
-		const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-	
-		const payload = {
-			type: 'livechat',
-			user: user.username,
-			message: message.trim()
-		};
-	
-		broadcastToAllClients(fastify, payload);
+		
+        const result = wsUtils.handleLiveChatMessage(fastify, userId, message);
+        
+        if (!result.success) {
+            return reply.code(400).send({ error: result.error });
+        }
 	
 		return { success: true };
 	});
 	
-
 	// route for private messages
     fastify.post('/direct_chat_message', async (request, reply) => {
 		const senderId = request.user.userId;
 		const { to, message } = request.body;
-	
-		if (!message || typeof message !== 'string' || message.trim().length === 0) {
-			return reply.code(400).send({ error: 'Invalid message' });
-		}
-	
-		if (!to || typeof to !== 'string') {
-			return reply.code(400).send({ error: 'Invalid recipient' });
-		}
-	
-		if (message.trim().length > 1000) {
-			return reply.code(400).send({ error: 'Message too long (max 1000 characters)' });
-		}
-	
-		const sender = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(senderId);
 		
-		// Vérification pour empêcher l'envoi de messages à soi-même
-		if (to === sender.username) {
-			return reply.code(400).send({ error: 'Cannot send messages to yourself' });
-		}
-		
-		const recipientUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(to);
-	
-		if (!recipientUser) {
-			return reply.code(404).send({ error: 'Recipient not found' });
-		}
-	
-		const payload = {
-			type: 'direct_message',
-			user: sender.username,
-			message: message.trim()
-		};
-	
-		const delivered = sendPrivateMessage(fastify, recipientUser.id, payload);
-	
-		if (!delivered) {
-			return reply.code(200).send({ warning: 'Recipient is offline. Message not delivered in real-time.' });
-		}
+        const result = wsUtils.handleDirectMessage(fastify, senderId, to, message);
+        
+        if (!result.success) {
+            return reply.code(400).send({ error: result.error });
+        }
+        
+        if (result.warning) {
+            return reply.code(200).send({ warning: result.warning });
+        }
 	
 		return { success: true };
 	});
-	
 
     // Route WebSocket
     fastify.get('/ws', { websocket: true }, async (connection, req) => {
         try {
             const accessToken = req.cookies?.accessToken;
+            const validation = await wsUtils.validateWebSocketToken(accessToken);
+            
             if (!accessToken) {
                 fastify.log.warn('WebSocket connection attempt without access token');
                 connection.socket.close(1008, 'No access token provided');
                 return;
             }
 
-            const validation = await authService.validateToken(accessToken, null, 'access');
             if (!validation?.userId) {
                 fastify.log.warn('WebSocket connection attempt with invalid token');
                 connection.socket.close(1008, 'Invalid access token');
@@ -145,10 +88,8 @@ async function routes(fastify, options) {
             fastify.connections.set(userId, connection.socket);
 
             // Update online status
-            if (!await redis.sismember('online_users', userId.toString())) {
-				await redis.sadd('online_users', userId.toString());
-			}
-            broadcastUserStatus(fastify, userId, true);
+            await wsUtils.updateUserOnlineStatus(userId, true);
+            wsUtils.broadcastUserStatus(fastify, userId, true);
 
 			// Setting up ping-pong and token validation
             let lastPong = Date.now();
@@ -188,8 +129,8 @@ async function routes(fastify, options) {
                 if (currentConnection === connection.socket) {
                     fastify.log.info(`Removing connection [ID: ${connectionId}] for user: ${user.username}`);
                     fastify.connections.delete(userId);
-                    await redis.srem('online_users', userId.toString());
-                    broadcastUserStatus(fastify, userId, false);
+                    await wsUtils.updateUserOnlineStatus(userId, false);
+                    wsUtils.broadcastUserStatus(fastify, userId, false);
                 } else if (currentConnection) {
                     fastify.log.info(`Connection [ID: ${connectionId}] was replaced by a newer one for user: ${user.username}, skipping cleanup`);
                 } else {
@@ -208,44 +149,6 @@ async function routes(fastify, options) {
             }
         }
     });
-}
-
-function sendPrivateMessage(fastify, toUserId, payload) {
-	const recipientSocket = fastify.connections.get(toUserId);
-
-	if (recipientSocket && recipientSocket.readyState === 1) {
-		recipientSocket.send(JSON.stringify(payload));
-		return true;
-	}
-
-	return false; // utilisateur non connecté
-}
-
-
-function broadcastToAllClients(fastify, payload) {
-	for (const [, socket] of fastify.connections) {
-		if (socket.readyState === 1) { // WebSocket.OPEN === 1
-			socket.send(JSON.stringify(payload));
-		}
-	}
-}
-
-
-// Function to broadcast status changes
-async function broadcastUserStatus(fastify, userId, isOnline) {
-    const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-    const message = JSON.stringify({
-        type: 'status_update',
-        userId: userId,
-        username: user.username,
-        online: isOnline
-    });
-
-    for (const [, socket] of fastify.connections) {
-        if (socket.readyState === 1) {
-            socket.send(message);
-        }
-    }
 }
 
 module.exports = routes;

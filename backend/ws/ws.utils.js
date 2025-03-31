@@ -1,0 +1,267 @@
+const Redis = require('ioredis');
+const redis = new Redis();
+const authService = require('../jwt/services/auth.service');
+
+/**
+ * Close a WebSocket connection for a specific user
+ * @param {Object} fastify - Fastify instance
+ * @param {number|string} userId - User ID
+ * @param {number} code - WebSocket close code (default: 1000)
+ * @param {string} reason - Reason for closing (default: "Connection closed")
+ * @returns {boolean} - True if connection was closed, false if no connection found
+ */
+async function closeUserWebSocket(fastify, userId, code = 1000, reason = "Connection closed") {
+    const wsConnection = fastify.connections.get(userId);
+    if (wsConnection) {
+        fastify.log.info(`Closing WebSocket connection for user: ${userId} with reason: ${reason}`);
+        try {
+            // Only close if connection is open or connecting
+            if (wsConnection.readyState < 2) { // 0 = CONNECTING, 1 = OPEN
+                wsConnection.close(code, reason);
+            }
+            fastify.connections.delete(userId);
+            
+            // Update Redis
+            await redis.srem('online_users', userId.toString());
+            fastify.log.info(`Removed user ${userId} from online_users in Redis`);
+            
+            return true;
+        } catch (error) {
+            fastify.log.error(`Error closing WebSocket connection: ${error.message}`);
+            return false;
+        }
+    }
+    return false;
+}
+
+/**
+ * Close all WebSocket connections
+ * @param {Object} fastify - Fastify instance
+ * @param {number} code - WebSocket close code (default: 1000)
+ * @param {string} reason - Reason for closing (default: "Server shutdown")
+ */
+async function closeAllWebSockets(fastify, code = 1000, reason = "Server shutdown") {
+    fastify.log.info(`Closing all WebSocket connections with reason: ${reason}`);
+    
+    const closedConnections = [];
+    let errorCount = 0;
+    
+    // Close all connections
+    for (const [userId, ws] of fastify.connections) {
+        try {
+            if (ws.readyState < 2) { // Only if CONNECTING or OPEN
+                ws.close(code, reason);
+                closedConnections.push(userId);
+            }
+        } catch (error) {
+            fastify.log.error(`Error closing WebSocket for user ${userId}: ${error.message}`);
+            errorCount++;
+        }
+    }
+    
+    // Clear the connections map
+    fastify.connections.clear();
+    
+    // Clear Redis online users set
+    const onlineUsers = await redis.smembers('online_users');
+    if (onlineUsers.length > 0) {
+        await redis.del('online_users');
+    }
+    
+    fastify.log.info(`Closed ${closedConnections.length} WebSocket connections with ${errorCount} errors`);
+    return closedConnections.length;
+}
+
+/**
+ * Broadcast a message to all connected WebSocket clients
+ * @param {Object} fastify - Fastify instance
+ * @param {Object} payload - Message payload to broadcast
+ */
+function broadcastToAllClients(fastify, payload) {
+    const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    let sentCount = 0;
+    
+    for (const [, socket] of fastify.connections) {
+        if (socket.readyState === 1) { // WebSocket.OPEN === 1
+            socket.send(message);
+            sentCount++;
+        }
+    }
+    
+    return sentCount;
+}
+
+/**
+ * Send a message to a specific user
+ * @param {Object} fastify - Fastify instance
+ * @param {number|string} userId - User ID to send message to
+ * @param {Object} payload - Message payload
+ * @returns {boolean} - True if message was sent, false if user not connected
+ */
+function sendToUser(fastify, userId, payload) {
+    const socket = fastify.connections.get(userId);
+    
+    if (socket && socket.readyState === 1) {
+        const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
+        socket.send(message);
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Broadcast user status change to all connected clients
+ * @param {Object} fastify - Fastify instance
+ * @param {number|string} userId - User ID whose status changed
+ * @param {boolean} isOnline - Whether the user is now online
+ */
+async function broadcastUserStatus(fastify, userId, isOnline) {
+    const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+    if (!user) return false;
+    
+    const payload = {
+        type: 'status_update',
+        userId: userId,
+        username: user.username,
+        online: isOnline
+    };
+    
+    return broadcastToAllClients(fastify, payload);
+}
+
+/**
+ * Update user's online status in Redis
+ * @param {number|string} userId - User ID
+ * @param {boolean} isOnline - Whether the user is online
+ */
+async function updateUserOnlineStatus(userId, isOnline) {
+    if (isOnline) {
+        if (!await redis.sismember('online_users', userId.toString())) {
+            await redis.sadd('online_users', userId.toString());
+            return true;
+        }
+    } else {
+        await redis.srem('online_users', userId.toString());
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Check if a user is online
+ * @param {number|string} userId - User ID to check
+ * @returns {Promise<boolean>} - True if user is online
+ */
+async function isUserOnline(userId) {
+    return await redis.sismember('online_users', userId.toString());
+}
+
+/**
+ * Validate WebSocket connection token
+ * @param {string} accessToken - JWT access token
+ * @returns {Promise<Object|null>} - User validation object or null if invalid
+ */
+async function validateWebSocketToken(accessToken) {
+    if (!accessToken) return null;
+    return await authService.validateToken(accessToken, null, 'access');
+}
+
+/**
+ * Handle live chat message broadcasting
+ * @param {Object} fastify - Fastify instance
+ * @param {number|string} userId - User ID sending the message
+ * @param {string} message - Message content
+ * @returns {Object} - Result object with success status and error if any
+ */
+function handleLiveChatMessage(fastify, userId, message) {
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+        return { success: false, error: 'Invalid message' };
+    }
+
+    if (message.trim().length > 1000) {
+        return { success: false, error: 'Message too long (max 1000 characters)' };
+    }
+
+    const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+    if (!user) {
+        return { success: false, error: 'User not found' };
+    }
+
+    const payload = {
+        type: 'livechat',
+        user: user.username,
+        message: message.trim()
+    };
+
+    broadcastToAllClients(fastify, payload);
+    return { success: true };
+}
+
+/**
+ * Handle direct message between users
+ * @param {Object} fastify - Fastify instance
+ * @param {number|string} senderId - Sender's user ID
+ * @param {string} recipientUsername - Username of message recipient
+ * @param {string} message - Message content
+ * @returns {Object} - Result object with success status and warnings/errors
+ */
+function handleDirectMessage(fastify, senderId, recipientUsername, message) {
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+        return { success: false, error: 'Invalid message' };
+    }
+
+    if (!recipientUsername || typeof recipientUsername !== 'string') {
+        return { success: false, error: 'Invalid recipient' };
+    }
+
+    if (message.trim().length > 1000) {
+        return { success: false, error: 'Message too long (max 1000 characters)' };
+    }
+
+    const sender = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(senderId);
+    if (!sender) {
+        return { success: false, error: 'Sender not found' };
+    }
+    
+    // Check if sending to self
+    if (recipientUsername === sender.username) {
+        return { success: false, error: 'Cannot send messages to yourself' };
+    }
+    
+    const recipientUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(recipientUsername);
+    if (!recipientUser) {
+        return { success: false, error: 'Recipient not found' };
+    }
+
+    const payload = {
+        type: 'direct_message',
+        user: sender.username,
+        recipient: recipientUsername,
+        message: message.trim()
+    };
+
+    const delivered = sendToUser(fastify, recipientUser.id, payload);
+    
+    if (!delivered) {
+        return { 
+            success: true, 
+            warning: 'Recipient is offline. Message not delivered in real-time.' 
+        };
+    }
+
+    return { success: true };
+}
+
+module.exports = {
+    closeUserWebSocket,
+    closeAllWebSockets,
+    broadcastToAllClients,
+    sendToUser,
+    broadcastUserStatus,
+    updateUserOnlineStatus,
+    isUserOnline,
+    validateWebSocketToken,
+    handleLiveChatMessage,
+    handleDirectMessage
+};
