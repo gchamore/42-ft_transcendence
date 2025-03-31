@@ -66,6 +66,12 @@ async function routes(fastify, options) {
 		}
 	
 		const sender = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(senderId);
+		
+		// Vérification pour empêcher l'envoi de messages à soi-même
+		if (to === sender.username) {
+			return reply.code(400).send({ error: 'Cannot send messages to yourself' });
+		}
+		
 		const recipientUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(to);
 	
 		if (!recipientUser) {
