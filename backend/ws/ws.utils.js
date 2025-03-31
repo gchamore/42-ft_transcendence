@@ -97,6 +97,26 @@ function broadcastToAllClients(fastify, payload) {
 }
 
 /**
+ * Broadcast a message to all connected WebSocket clients except the sender
+ * @param {Object} fastify - Fastify instance
+ * @param {Object} payload - Message payload to broadcast
+ * @param {number|string} excludeUserId - User ID to exclude from broadcast
+ */
+function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
+    const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    let sentCount = 0;
+    
+    for (const [userId, socket] of fastify.connections) {
+        if (userId.toString() !== excludeUserId.toString() && socket.readyState === 1) {
+            socket.send(message);
+            sentCount++;
+        }
+    }
+    
+    return sentCount;
+}
+
+/**
  * Send a message to a specific user
  * @param {Object} fastify - Fastify instance
  * @param {number|string} userId - User ID to send message to
@@ -205,7 +225,8 @@ async function handleLiveChatMessage(fastify, userId, message) {
         message: message.trim()
     };
 
-    broadcastToAllClients(fastify, payload);
+    broadcastToAllExceptSender(fastify, payload, userId);
+    
     return { success: true };
 }
 
@@ -277,6 +298,7 @@ module.exports = {
     closeUserWebSocket,
     closeAllWebSockets,
     broadcastToAllClients,
+    broadcastToAllExceptSender,
     sendToUser,
     broadcastUserStatus,
     updateUserOnlineStatus,

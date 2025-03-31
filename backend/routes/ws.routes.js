@@ -1,6 +1,3 @@
-const Redis = require('ioredis');
-const redis = new Redis();
-const authService = require('../jwt/services/auth.service');
 const wsUtils = require('../ws/ws.utils');
 const wsService = require('../ws/ws.service');
 
@@ -15,8 +12,8 @@ async function routes(fastify, options) {
         if (!result.success) {
             return reply.code(400).send({ error: result.error });
         }
-	
-		return { success: true };
+
+        return { success: true };
 	});
 	
 	// route for private messages
