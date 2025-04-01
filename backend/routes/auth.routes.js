@@ -1,5 +1,10 @@
 const bcrypt = require("bcrypt");
 const authService = require('../jwt/services/auth.service');
+const Redis = require('ioredis');
+const redis = new Redis();
+const jwt = require('jsonwebtoken');
+const wsUtils = require('../ws/ws.utils');
+const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret_key';
 
 async function routes(fastify, options) {
 	const { db } = fastify;
@@ -304,6 +309,13 @@ async function routes(fastify, options) {
 		fastify.log.info('Processing logout for user:', userId);
 
 		try {
+			// Diffuser le changement de statut AVANT de fermer la connexion WebSocket
+			await wsUtils.updateUserOnlineStatus(userId, false);
+			await wsUtils.broadcastUserStatus(fastify, userId, false);
+			
+			// Fermer la connexion WebSocket de l'utilisateur
+			await wsUtils.closeUserWebSocket(fastify, userId, 1000, "User logged out");
+
 			// Révoquer les tokens
 			await authService.revokeTokens(userId);
 			await authService.blacklistToken(token);
@@ -349,6 +361,9 @@ async function routes(fastify, options) {
             }
 
             fastify.log.info(`Révocation des tokens pour l'utilisateur: ${user.username} (ID: ${userId})`);
+            
+            // Fermer la connexion WebSocket de l'utilisateur
+            await wsUtils.closeUserWebSocket(fastify, userId, 1000, "Tokens revoked");
             
             // Révoquer les tokens via le service
             const success = await authService.revokeTokens(userId);
