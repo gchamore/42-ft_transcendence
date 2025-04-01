@@ -141,7 +141,8 @@ async function routes(fastify, options) {
                     username: searchedUser.username,
                     createdAt: searchedUser.created_at,
                     gamesPlayed: gameStats.total_games,
-                    winRate: winRate
+                    winRate: winRate,
+					isConnected: fastify.connections.has(searchedUser.id)
                 }
             };
 
