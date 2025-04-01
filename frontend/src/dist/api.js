@@ -124,7 +124,7 @@ function search(friend_username) {
             else if (data.success) {
                 if (data.isFriend)
                     return new OtherUser(friend_username, data.isFriend, data.user.isConnected, data.user.friendSince, data.user.winRate, data.user.gamesTogether);
-                return new OtherUser(friend_username, data.isFriend, false, data.user.createdAt, data.user.winRate, data.user.gamesPlayed);
+                return new OtherUser(friend_username, data.isFriend, data.user.isConnected, data.user.createdAt, data.user.winRate, data.user.gamesPlayed);
             }
         }
         catch (error) {

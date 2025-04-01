@@ -210,18 +210,14 @@ class Friends extends ASection {
             this.anotherUser = status;
             this.username_i.value = '';
             if (this.anotherUser !== undefined) {
-                this.btn3.onclick = () => this.message();
-                this.btn3.textContent = 'Message';
                 this.avatar.src = this.anotherUser.avatar;
                 if (this.anotherUser.is_friend === true) {
                     this.btn2.onclick = () => this.remove();
                     this.btn2.textContent = 'Remove';
-                    this.update_status(this.anotherUser.is_connected);
                 }
                 else {
                     this.btn2.onclick = () => this.add();
                     this.btn2.textContent = 'Add';
-                    this.status.textContent = '';
                 }
                 const stats = this.anotherUser.format_stats();
                 this.stat1.textContent = stats[0];
@@ -230,6 +226,7 @@ class Friends extends ASection {
                 this.stat4.textContent = stats[3];
                 activate(this.founds);
                 deactivate(this.not_founds);
+                this.update_status(this.anotherUser.is_connected);
             }
             else {
                 this.reset();
@@ -262,6 +259,16 @@ class Friends extends ASection {
     update_status(online) {
         this.status.textContent = (online) ? 'Online' : 'Offline';
         this.status.style.color = (online) ? 'rgb(32, 96, 32)' : 'rgb(153, 0, 0)';
+        if (online) {
+            this.btn3.onclick = () => this.message();
+            this.btn3.textContent = 'Message';
+            this.btn3.parentElement.classList.add('active');
+        }
+        else {
+            this.btn3.removeAttribute('onclick');
+            this.btn3.textContent = '';
+            this.btn3.parentElement.classList.remove('active');
+        }
     }
 }
 sections = [new Home(), new Profile(), new Friends()];

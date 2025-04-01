@@ -124,7 +124,7 @@ async function search(friend_username : string): Promise<OtherUser | Error | und
 			if (data.isFriend)
 				return new OtherUser(friend_username, data.isFriend, data.user.isConnected,
 									data.user.friendSince, data.user.winRate, data.user.gamesTogether);
-			return new OtherUser(friend_username, data.isFriend, false,
+			return new OtherUser(friend_username, data.isFriend, data.user.isConnected,
 								data.user.createdAt, data.user.winRate, data.user.gamesPlayed);
 		}
 
