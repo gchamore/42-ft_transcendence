@@ -82,11 +82,9 @@ fastify.register(require('./routes/oauth.routes'));
 const cleanup = async (signal) => {
     console.log(`\n${signal} received. Cleaning up...`);
     try {
-        // Fermer toutes les connexions WebSocket
-        for (const [userId, ws] of fastify.connections) {
-            ws.close();
-        }
-        fastify.connections.clear();
+        // Utiliser la fonction utilitaire pour fermer toutes les connexions WebSocket
+        const wsUtils = require('./ws/ws.utils');
+        await wsUtils.closeAllWebSockets(fastify, 1000, "Server shutting down");
         
         await fastify.close();
         fastify.db?.close();
