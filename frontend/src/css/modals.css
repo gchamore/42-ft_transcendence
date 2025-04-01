@@ -62,7 +62,7 @@
 .found:not(.active),
 .found li.online:not(.active){
     display: none;
-}1
+}
 
 /* --------- */
 
