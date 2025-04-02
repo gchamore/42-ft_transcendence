@@ -289,6 +289,66 @@ class Friends extends ASection {
 		}
 	}
 }
+
+class Chat extends ASection {
+	/* ASection */
+	type = 'chat';
+	protected = true;
+	parent = document.getElementById('chat-parent') as HTMLElement;
+	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
+	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
+	dependencies = ['home'];
+	
+	/* Properties */
+	readonly chat_box = document.getElementById('chat-box') as HTMLUListElement;
+	readonly msg_input = document.getElementById('msg-input') as HTMLButtonElement;
+	readonly btn1 = document.getElementById('chat-btn1') as HTMLButtonElement;
+	readonly btn2 = document.getElementById('chat-btn2') as HTMLButtonElement;
+	readonly btn3 = document.getElementById('chat-btn3') as HTMLButtonElement;
+
+	/* Methods */
+	enter(verified: boolean) {
+		if (verified !== true) {
+			console.log("Try to enter Chat section as unauthenticated");
+			return;
+		}
+		this.btn1.onclick = () => history.back();
+		this.btn1.textContent = 'Back';
+
+		this.btn2.onclick = () => this.send();
+		this.btn2.textContent = 'Send';
+	
+		this.btn3.onclick = () => this.actions();
+		this.btn3.textContent = 'Actions';
+		
+		this.load_messages(get_user_messages());
+		this.msg_input.value = '';
+		this.activate_section();
+	}
+	leave() {
+		this.deactivate_section();
+
+		this.btn1.removeAttribute('onclick');
+		this.btn2.removeAttribute('onclick');
+		this.btn3.removeAttribute('onclick');
+		this.chat_box.childNodes.forEach((childNode) => {
+			childNode.remove();
+		});
+		this.msg_input.value = '';
+	}
+	switch_logged_off() {}
+	switch_logged_in() {}
+	load_messages(messages : Array<Message> | undefined) {
+		if (messages == undefined)
+			return;
+
+		messages.forEach(msg => {
+			let element = document.createElement('label');
+			element.textContent = msg.username + ':'
+			this.chat_box.appendChild(Node())
+		});
+	}
+}
 sections = [new Home(), new Profile(), new Friends()];
 /* --------- */
 

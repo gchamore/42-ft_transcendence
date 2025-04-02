@@ -12,7 +12,32 @@ class Message {
         this.username = username;
         this.message = message;
     }
+    format_message() : string {
+        let message = '';
+        let days = nb_to_str(this.date.getDay());
+        let months = nb_to_str(this.date.getMonth());
+        let hours = nb_to_str(this.date.getHours());
+        let minutes = nb_to_str(this.date.getMinutes());
+        message += days + '/' + months + ' ';
+        message += hours + ':' + minutes + ' ';
+        message += this.username + ': ';
+        message += this.message;
+        return message;
+    }
 }
+
+function nb_to_str(nb : number) : string {
+    let message : string;
+    if (nb < 10 && nb > 0)
+        message = "0" + nb;
+    else if (nb < 100 && nb >= 10)
+        message = "" + nb;
+    else
+        message = "00";
+    return message;
+}
+
+
 
 /* User */
 class User {
@@ -82,6 +107,10 @@ function update_user(new_user_value : User | undefined) {
         section_index = HOME_INDEX;
     }
     update_sections();
+}
+
+function get_user_messages() : Array<Message> | undefined {
+    return user?.livechat;
 }
 /* --------- */
 
