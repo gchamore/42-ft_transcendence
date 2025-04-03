@@ -231,15 +231,6 @@ export class Game {
 		this.scoreBoard.updateScore(gameState.score);
 
 		if (gameState.paddle1 && gameState.paddle2) {
-			if (this.paddle1.height !== gameState.paddle1.height)
-				this.paddle1.updateHeight(gameState.paddle1.height);
-			if (this.paddle2.height !== gameState.paddle2.height)
-				this.paddle2.updateHeight(gameState.paddle2.height);
-			if (this.paddle1.speed !== gameState.paddle1.speed)
-				this.paddle1.speed = gameState.paddle1.speed;
-			if (this.paddle2.speed !== gameState.paddle2.speed)
-				this.paddle2.speed = gameState.paddle2.speed;
-
 
 			if (gameState.paddle1 && gameState.paddle2) {
 				this.controls.updateServerPaddlePosition(gameState.paddle1, gameState.paddle2);

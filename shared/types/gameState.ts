@@ -10,6 +10,7 @@ export interface GameState {
 		speed: number;
 		velocity: number;
 		lastProcessedInput: number;
+		originalHeight?: number;
 	};
 	paddle2: {
 		x: number;
@@ -19,6 +20,7 @@ export interface GameState {
 		speed: number;
 		velocity: number;
 		lastProcessedInput: number;
+		originalHeight?: number;
 	};
 	ball: {
 		x: number;
@@ -26,6 +28,7 @@ export interface GameState {
 		radius: number;
 		speedX: number;
 		speedY: number;
+		originalRadius?: number;
 	};
 	score: {
 		player1Score: number;

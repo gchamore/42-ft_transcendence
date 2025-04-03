@@ -132,12 +132,18 @@ export class UIManager {
 	}
 
 	public addActivePowerup(powerupId: number, type: string, player: number): void {
-		this.activePowerups.set(powerupId, {
-			id: powerupId,
-			type,
-			expiresAt: Date.now() + GameConfig.POWERUP_DURATION,
-			player
-		});
+		const existingPowerup = Array.from(this.activePowerups.values()).find(
+			(powerup) => powerup.type === type && powerup.player === player);
+		if (existingPowerup) {
+			existingPowerup.expiresAt = GameConfig.POWERUP_DURATION;
+		} else {
+			this.activePowerups.set(powerupId, {
+				id: powerupId,
+				type,
+				expiresAt: Date.now() + GameConfig.POWERUP_DURATION,
+				player
+			});
+		}
 	}
 
 	public removeActivePowerup(powerupId: number): void {
@@ -155,7 +161,7 @@ export class UIManager {
 		const powerupsToRemove: number [] = [];
 
 		this.activePowerups.forEach((powerup) => {
-			const timeLeft = (powerup.expiresAt - timestamp) / 1000;
+			const timeLeft = Math.max(0, (powerup.expiresAt - timestamp) / 1000);
 			if (timeLeft <= 0) {
 				powerupsToRemove.push(powerup.id);
 				return;
@@ -170,6 +176,10 @@ export class UIManager {
 			this.context.fillText(label, 45, startY + offsetY + 12);
 
 			offsetY += 25;
+
+			if (startY + offsetY > this.canvas.height - 20) {
+				offsetY = 0;
+			}
 		});
 		powerupsToRemove.forEach((id) => this.activePowerups.delete(id));
 		this.context.restore();

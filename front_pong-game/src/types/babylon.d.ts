@@ -42,6 +42,7 @@ declare namespace BABYLON {
 			clone(): Vector3;
 			static Distance(value1: Vector3, value2: Vector3): number;
 			scaleInPlace(scale: number): Vector3;
+			subtractInPlace(otherVector: Vector3): Vector3;
 		}
 
 		class Color3 {
@@ -104,6 +105,7 @@ declare namespace BABYLON {
 		usePoissonSampling: boolean;
 		blurScale: number;
 		addShadowCaster(mesh: any): void;
+		removeShadowCaster(mesh: any): void;
 	}
 
 	class RenderTargetTexture {
@@ -129,6 +131,8 @@ declare namespace BABYLON {
 		dispose(): void;
 		getBoundingInfo(): BoundingInfo;
 		scaleInPlace(scale: number): Mesh;
+		setPivotPoint(point: Vector3): void;
+		computeWorldMatrix(force?: boolean): any;
 	}
 
 	class BoundingInfo {
@@ -140,6 +144,7 @@ declare namespace BABYLON {
 		extendSize: Vector3;
 		minimumWorld: Vector3;
 		maximumWorld: Vector3;
+		centerWorld: Vector3;
 	}
 
 	class ParticleSystem {

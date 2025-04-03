@@ -2,7 +2,7 @@
 import { Ball } from "../classes/ball.js";
 import { Paddle } from "../classes/paddle.js";
 import { GameState } from "@shared/types/gameState";
-import { GameConfig, PowerUpTypes  } from '../../../../shared/config/gameConfig.js';
+import { GameConfig, PowerUpTypes, PowerUpType } from '../../../../shared/config/gameConfig.js';
 
 
 export class BabylonManager {
@@ -195,7 +195,7 @@ export class BabylonManager {
 			this.scene
 		);
 		wallMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.3);
-		wallMaterial.alpha = 0.7;
+		wallMaterial.alpha = 1;
 
 		this.topWall = BABYLON.MeshBuilder.CreateBox(
 			"topWall",
@@ -255,15 +255,13 @@ export class BabylonManager {
 			paddleMaterial.alpha = 0.6;
 		}
 
-		const scaleX = 20 / GameConfig.CANVAS_WIDTH;
-		const scaleY = 15 / GameConfig.CANVAS_HEIGHT;
 		const tessellation = GameConfig.TEST_MODE ? 8 : 16;
 
 		this.paddleMesh1 = BABYLON.MeshBuilder.CreateCylinder(
 			"paddle1",
 			{
-				diameter: this.paddle1.width * scaleX,
-				height: this.paddle1.height * scaleY,
+				diameter: this.paddle1.width * this.scaleX,
+				height: this.paddle1.height * this.scaleY,
 				tessellation: tessellation,
 			},
 			this.scene
@@ -271,16 +269,16 @@ export class BabylonManager {
 		this.paddleMesh1.rotation.x = Math.PI / 2;
 		this.paddleMesh1.material = paddleMaterial;
 		this.paddleMesh1.position = new BABYLON.Vector3(
-			(this.paddle1.x + this.paddle1.width / 2 - GameConfig.CANVAS_WIDTH / 2) * scaleX, // Center of paddle
+			(this.paddle1.x + this.paddle1.width / 2 - GameConfig.CANVAS_WIDTH / 2) * this.scaleX, // Center of paddle
 			-0.25,
-			(GameConfig.CANVAS_HEIGHT / 2 - (this.paddle1.y + this.paddle1.height / 2)) * scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - this.paddle1.y) * this.scaleY
 		);
 
 		this.paddleMesh2 = BABYLON.MeshBuilder.CreateCylinder(
 			"paddle2",
 			{
-				diameter: this.paddle2.width * scaleX,
-				height: this.paddle2.height * scaleY,
+				diameter: this.paddle2.width * this.scaleX,
+				height: this.paddle2.height * this.scaleY,
 				tessellation: tessellation,
 			},
 			this.scene
@@ -288,9 +286,9 @@ export class BabylonManager {
 		this.paddleMesh2.rotation.x = Math.PI / 2;
 		this.paddleMesh2.material = paddleMaterial;
 		this.paddleMesh2.position = new BABYLON.Vector3(
-			(this.paddle2.x + this.paddle2.width / 2 - GameConfig.CANVAS_WIDTH / 2) * scaleX, // Center of paddle
+			(this.paddle2.x + this.paddle2.width / 2 - GameConfig.CANVAS_WIDTH / 2) * this.scaleX, // Center of paddle
 			-0.25,
-			(GameConfig.CANVAS_HEIGHT / 2 - (this.paddle2.y + this.paddle2.height / 2)) * scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - this.paddle2.y) * this.scaleY
 		);
 
 		const ballMaterial = new BABYLON.StandardMaterial(
@@ -306,7 +304,7 @@ export class BabylonManager {
 		this.ballMesh = BABYLON.MeshBuilder.CreateSphere(
 			"ball",
 			{
-				diameter: this.ball.radius * 2 * scaleX,
+				diameter: this.ball.radius * 2 * this.scaleX,
 				segments: GameConfig.TEST_MODE ? 8 : 16,
 			},
 			this.scene
@@ -331,7 +329,7 @@ export class BabylonManager {
 			glowLayer.addIncludedOnlyMesh(this.paddleMesh2);
 		}
 
-		if (GameConfig.TEST_MODE) {
+		if (!GameConfig.TEST_MODE) {
 			this.createCollisionBoxes();
 		}
 	}
@@ -366,13 +364,13 @@ export class BabylonManager {
 		});
 	}
 
-	public createPowerupMesh(powerup : any): void { 
+	public createPowerupMesh(powerup: any): void {
 		if (!this.scene) return;
 
 		const position = new BABYLON.Vector3(
 			(powerup.x - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
 			-0.2,
-			(GameConfig.CANVAS_HEIGHT / 2 - powerup.y) * this.scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - powerup.y / 2) * this.scaleY
 		);
 
 		let powerupPath = "";
@@ -406,6 +404,7 @@ export class BabylonManager {
 				const container = new BABYLON.Mesh(`powerup-${powerup.id}`, this.scene);
 				container.position = position;
 
+
 				switch (powerup.type) {
 					case PowerUpTypes.PADDLE_SLOW: // Turtle
 						const randomDirection = Math.random() < 0.5 ? 1 : -1;
@@ -413,7 +412,7 @@ export class BabylonManager {
 						break;
 					case PowerUpTypes.PADDLE_SHRINK: // Axe
 						container.rotation.x = Math.PI / 2;
-						container.rotation.y =  Math.PI;
+						container.rotation.y = -Math.PI / 2;
 						break;
 					case PowerUpTypes.BALL_SHRINK: // Blueberry
 						container.rotation.x = -Math.PI / 2;
@@ -430,8 +429,16 @@ export class BabylonManager {
 				for (const mesh of meshes) {
 					if (mesh instanceof BABYLON.Mesh) {
 						mesh.parent = container;
+						if (powerup.type === PowerUpTypes.PADDLE_SLOW) {
+							mesh.computeWorldMatrix(true);
+							const boundingBox = mesh.getBoundingInfo();
+
+							const height = boundingBox.boundingBox.maximumWorld.y - boundingBox.boundingBox.minimumWorld.y;
+							const offset = height * 0.25 ; 
+							mesh.position.y -= offset;
+						}
 						const scaleFactor = this.getScaleFactorForModel(powerup.type);
-						mesh.scaling.scaleInPlace(scaleFactor * GameConfig.POWERUP_SIZE * 0.5);
+						mesh.scaling.scaleInPlace(scaleFactor * GameConfig.POWERUP_SIZE / 2);
 					}
 					// Apply emissive color to materials
 					if (mesh.material) {
@@ -445,34 +452,37 @@ export class BabylonManager {
 						}
 					}
 				}
-				if (!GameConfig.TEST_MODE)
-				{
+				if (!GameConfig.TEST_MODE) {
 					const glowLayer = new BABYLON.GlowLayer(`powerup-glow-${powerup.id}`, this.scene);
 					glowLayer.intensity = 0.7;
 					glowLayer.addIncludedOnlyMesh(container);
 					this.activePowerups.set(powerup.id, glowLayer);
 				}
 				this.powerupMeshes.set(powerup.id, container);
+
+				const collisionSphere = BABYLON.MeshBuilder.CreateSphere(
+					`powerup-collision-${powerup.id}`,
+					{
+						diameter: GameConfig.POWERUP_SIZE * this.scaleX,
+						segments: 16
+					},
+					this.scene
+				);
+				const collisionMaterial = new BABYLON.StandardMaterial("collisionMaterial", this.scene);
+				collisionMaterial.wireframe = true;
+				collisionMaterial.alpha = 0.5;
+				collisionMaterial.emissiveColor = emissiveColor;
+				collisionSphere.material = collisionMaterial;
+				collisionSphere.parent = container;
+
 			}
-		
+
 		});
 	}
 
-	private getScaleFactorForModel(powerupType: string): number {
-		switch (powerupType) {
-			case PowerUpTypes.PADDLE_GROW: // Mushroom
-				return 0.01; 
-			case PowerUpTypes.PADDLE_SHRINK: // Axe
-				return 0.0002; 
-			case PowerUpTypes.BALL_GROW: // Watermelon
-				return 0.2;
-			case PowerUpTypes.BALL_SHRINK: // Blueberry
-				return 0.05;
-			case PowerUpTypes.PADDLE_SLOW: // Turtle
-				return 0.03;
-			default:
-				return 1.0;
-		}
+	private getScaleFactorForModel(powerupType: PowerUpType): number {
+		const scales = GameConfig.POWERUP_VISUAL_SCALES;
+		return scales[powerupType] ?? 0.1;
 	}
 
 	public handlePowerupCollection(powerupId: number, playerNumber: number): void {
@@ -579,8 +589,31 @@ export class BabylonManager {
 
 	private updatePaddleMeshDimension(paddleMesh: BABYLON.Mesh, paddleState: any): void {
 		if (!this.scene) return;
-		const newHeight = paddleState.height * this.scaleY;
-		paddleMesh.scaling.y = newHeight / paddleMesh.getBoundingInfo().boundingBox.extendSize.y / 2;
+		
+		const originalHeight = paddleState.originalHeight ?? paddleState.height;
+		const scaleFactor = paddleState.height / originalHeight;
+		paddleMesh.scaling.y = scaleFactor;
+		paddleMesh.position = new BABYLON.Vector3(
+			(paddleState.x + paddleState.width / 2 - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
+			-0.25,
+			(GameConfig.CANVAS_HEIGHT / 2 - paddleState.y) * this.scaleY
+		);
+		this.updateCollisionBoxDimension(paddleMesh, paddleState);
+	}
+
+	private updateCollisionBoxDimension(paddleMesh: BABYLON.Mesh, paddleState: any): void {
+		if (!this.paddleCollisionBox1 || !this.paddleCollisionBox2 || !this.paddleMesh1 || !this.paddleMesh2) return;
+
+		const isPaddle1 = paddleMesh === this.paddleMesh1;
+		const collisionBox = isPaddle1 ? this.paddleCollisionBox1 : this.paddleCollisionBox2;
+		const originalHeight = paddleState.originalHeight || paddleState.height;
+		const scaleFactor = paddleState.height / originalHeight;
+		collisionBox.scaling.z = scaleFactor;
+		collisionBox.position = new BABYLON.Vector3(
+			(paddleState.x + paddleState.width / 2 - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
+			-0.25,
+			(GameConfig.CANVAS_HEIGHT / 2 - paddleState.y) * this.scaleY
+		);
 	}
 
 	private updateBallMeshDimension(ballState: any): void {
@@ -591,7 +624,7 @@ export class BabylonManager {
 
 	private updateMeshPositions(): void {
 		this.updatePaddleMeshPositions();
-		if (GameConfig.TEST_MODE) {
+		if (!GameConfig.TEST_MODE) { // test
 			this.updateCollisionBoxPositions();
 		}
 		if (this.gameStarted) {
@@ -613,13 +646,13 @@ export class BabylonManager {
 		this.paddleMesh1.position = new BABYLON.Vector3(
 			(this.paddle1.x + this.paddle1.width / 2 - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
 			-0.25,
-			(GameConfig.CANVAS_HEIGHT / 2 - (this.paddle1.y + this.paddle1.height / 2)) * this.scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - this.paddle1.y) * this.scaleY
 		);
 
 		this.paddleMesh2.position = new BABYLON.Vector3(
 			(this.paddle2.x + this.paddle2.width / 2 - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
 			-0.25,
-			(GameConfig.CANVAS_HEIGHT / 2 - (this.paddle2.y + this.paddle2.height / 2)) * this.scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - this.paddle2.y) * this.scaleY
 		);
 	}
 
@@ -635,7 +668,7 @@ export class BabylonManager {
 		this.ballMesh.position = targetPosition;
 	}
 
-	public handleBounce(position: { x: number, y: number }) { 
+	public handleBounce(position: { x: number, y: number }) {
 		if (!this.scene) return;
 		const bouncePosition = new BABYLON.Vector3(
 			(position.x - (GameConfig.CANVAS_WIDTH / 2)) * (20 / GameConfig.CANVAS_WIDTH),
@@ -687,7 +720,7 @@ export class BabylonManager {
 		setTimeout(() => {
 			particleSystem.stop();
 			setTimeout(() => particleSystem.dispose(), 800);
-			}, 300);
+		}, 300);
 	}
 
 	public handlePaddleHit(playerNumber: number, ballPosition: { x: number, y: number }): void {
@@ -730,7 +763,7 @@ export class BabylonManager {
 		material.emissiveColor = scorer === 1 ?
 			new BABYLON.Color3(1, 0, 0) :
 			new BABYLON.Color3(0, 0, 1);
-			scoreMesh.material = material;
+		scoreMesh.material = material;
 
 		setTimeout(() => {
 			glowLayer.dispose();
@@ -738,9 +771,9 @@ export class BabylonManager {
 		}, 1000);
 	}
 
-	
+
 	private createCollisionBoxes(): void {
-		if (!this.scene || !GameConfig.TEST_MODE) return;
+		if (!this.scene) return;
 
 		// Create a semi-transparent material for collision boxes
 		const collisionMaterial = new BABYLON.StandardMaterial(
@@ -762,6 +795,8 @@ export class BabylonManager {
 			this.scene
 		);
 		this.paddleCollisionBox1.material = collisionMaterial;
+		const bottomEdge1 = -this.paddle1.height * this.scaleY / 2;
+		this.paddleCollisionBox1.setPivotPoint(new BABYLON.Vector3(0, bottomEdge1, 0));
 
 		// Create collision box for paddle 2
 		this.paddleCollisionBox2 = BABYLON.MeshBuilder.CreateBox(
@@ -774,6 +809,8 @@ export class BabylonManager {
 			this.scene
 		);
 		this.paddleCollisionBox2.material = collisionMaterial;
+		const bottomEdge2 = -this.paddle2.height * this.scaleY / 2;
+		this.paddleCollisionBox2.setPivotPoint(new BABYLON.Vector3(0, bottomEdge2, 0));
 
 		// Set initial positions
 		this.updateCollisionBoxPositions();
@@ -786,14 +823,14 @@ export class BabylonManager {
 		this.paddleCollisionBox1.position = new BABYLON.Vector3(
 			(this.paddle1.x + this.paddle1.width / 2 - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
 			-0.25,
-			(GameConfig.CANVAS_HEIGHT / 2 -	(this.paddle1.y + this.paddle1.height / 2)) * this.scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - this.paddle1.y ) * this.scaleY
 		);
 
 		// Position collision box for paddle 2
 		this.paddleCollisionBox2.position = new BABYLON.Vector3(
 			(this.paddle2.x + this.paddle2.width / 2 - GameConfig.CANVAS_WIDTH / 2) * this.scaleX,
 			-0.25,
-			(GameConfig.CANVAS_HEIGHT / 2 - (this.paddle2.y + this.paddle2.height / 2)) * this.scaleY
+			(GameConfig.CANVAS_HEIGHT / 2 - this.paddle2.y ) * this.scaleY
 		);
 	}
 
@@ -833,7 +870,7 @@ export class BabylonManager {
 		}
 		this.powerupMeshes.forEach((mesh) => mesh.dispose());
 		this.powerupMeshes.clear();
-		
+
 
 		// Nullify references to help garbage collection
 		this.engine = null;

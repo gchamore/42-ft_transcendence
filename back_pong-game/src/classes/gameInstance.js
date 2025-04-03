@@ -89,18 +89,31 @@ export class GameInstance {
 
 		const scaledSpawnChance = GameConfig.POWERUP_SPAWN_CHANCE * deltaTime;
 
-		if (this.gameState.gameStarted && this.powerups.length < GameConfig.MAX_ACTIVE_POWERUPS && Math.random() < scaledSpawnChance) {
+		if (this.gameState.gameStarted && this.powerups.length < GameConfig.MAX_ACTIVE_POWERUPS /*&& Math.random() < scaledSpawnChance*/) { //test
 			this.spawnPowerup();
 		}
 	}
 
 	spawnPowerup() {
 		const types = Object.values(PowerUpTypes);
-		const type = types[Math.floor(Math.random() * types.length)];
-		const x = Math.random() * (GameConfig.CANVAS_WIDTH - 200) + 100;
-		const y = Math.random() * (GameConfig.CANVAS_HEIGHT - 100) + 50;
+		// const type = types[Math.floor(Math.random() * types.length)]; //test
+		const type = PowerUpTypes.PADDLE_SLOW; //test
+		let x,y;
+		let isValidPosition = false;
+		while (!isValidPosition) {
+			x = Math.random() * (GameConfig.CANVAS_WIDTH - 200) + 100;
+			y = Math.random() * (GameConfig.CANVAS_HEIGHT - 100) + 50;
+
+			isValidPosition = this.powerups.every((powerup) => {
+				const dx = x - powerup.x;
+				const dy = y - powerup.y;
+				const distance = Math.sqrt(dx * dx + dy * dy);
+				return distance >= GameConfig.POWERUP_SIZE;
+			});
+		}
 
 		const powerup = new PowerUp(this.nextPowerupId++, type, x, y);
+		powerup.radius = GameConfig.POWERUP_SIZE / 2;
 		this.powerups.push(powerup);
 		this.players.forEach((player) => {
 			safeSend(player, {
@@ -139,26 +152,33 @@ export class GameInstance {
 	}
 
 	activatePowerup(powerup, playerNumber) {
-		powerup.active = true;
-		powerup.activatedBy = playerNumber;
-		powerup.activatedTime = Date.now();
-		this.activePowerups.push(powerup);
-		switch (powerup.type) {
-			case PowerUpTypes.PADDLE_GROW:
-				this.applyPaddleGrow(playerNumber);
-				break;
-			case PowerUpTypes.PADDLE_SHRINK:
-				this.applyPaddleShrink(playerNumber === 1? 2 : 1);
-				break;
-			case PowerUpTypes.BALL_GROW:
-				this.applyBallGrow();
-				break;
-			case PowerUpTypes.BALL_SHRINK:
-				this.applyBallShrink();
-				break;
-			case PowerUpTypes.PADDLE_SLOW:
-				this.applyPaddleSlow(playerNumber === 1 ? 2 : 1);
-				break;
+		const existingPowerup = this.activePowerups.find(
+			(activePowerup) => activePowerup.type === powerup.type && activePowerup.activatedBy === playerNumber);
+
+		if (existingPowerup) {
+			existingPowerup.activatedTime = Date.now();
+		} else {
+			powerup.active = true;
+			powerup.activatedBy = playerNumber;
+			powerup.activatedTime = Date.now();
+			this.activePowerups.push(powerup);
+			switch (powerup.type) {
+				case PowerUpTypes.PADDLE_GROW:
+					this.applyPaddleGrow(playerNumber);
+					break;
+				case PowerUpTypes.PADDLE_SHRINK:
+					this.applyPaddleShrink(playerNumber === 1 ? 2 : 1);
+					break;
+				case PowerUpTypes.BALL_GROW:
+					this.applyBallGrow();
+					break;
+				case PowerUpTypes.BALL_SHRINK:
+					this.applyBallShrink();
+					break;
+				case PowerUpTypes.PADDLE_SLOW:
+					this.applyPaddleSlow(playerNumber === 1 ? 2 : 1);
+					break;
+			}
 		}
 	}
 
@@ -189,10 +209,12 @@ export class GameInstance {
 
 	applyPaddleGrow(playerNumber) {
 		const paddle = this.gameState[`paddle${playerNumber}`];
+		if (paddle.originalHeight) {
+			return;
+		}
 		paddle.originalHeight = paddle.height;
-		const centerY = paddle.y + paddle.height / 2;
 		paddle.height = Math.min(GameConfig.CANVAS_HEIGHT, paddle.height * 1.5);
-		paddle.y = Math.max(0, Math.min(centerY - paddle.height / 2, GameConfig.CANVAS_HEIGHT - paddle.height));
+		this.clampPaddlePosition(paddle);
 	}
 	
 	revertPaddleGrow(playerNumber) {
@@ -205,14 +227,19 @@ export class GameInstance {
 
 	applyPaddleShrink(playerNumber) {
 		const paddle = this.gameState[`paddle${playerNumber}`];
+		if (paddle.originalHeight) {
+			return;
+		}
 		paddle.originalHeight = paddle.height;
 		paddle.height = Math.max(GameConfig.MIN_PADDLE_LENGTH, paddle.height * 0.5);
+		this.clampPaddlePosition(paddle);
 	}
 
 	revertPaddleShrink(playerNumber) {
 		const paddle = this.gameState[`paddle${playerNumber}`];
 		if (paddle.originalHeight) {
 			paddle.height = paddle.originalHeight;
+			this.clampPaddlePosition(paddle);
 			delete paddle.originalHeight;
 		}
 	}
@@ -266,6 +293,11 @@ export class GameInstance {
 		}
 	}
 
+	clampPaddlePosition(paddle) {
+		const halfHeight = paddle.height / 2;
+		paddle.y = Math.max(halfHeight, Math.min(paddle.y, GameConfig.CANVAS_HEIGHT - halfHeight));
+	}
+
 	checkWallCollision() {
 		const ball = this.gameState.ball;
 		// Check top wall collision
@@ -311,7 +343,7 @@ export class GameInstance {
 
 			// Calculate the closest point on the paddle to the ball
 			const closestX = Math.max(paddle.x, Math.min(ball.x, paddle.x + paddle.width));
-			const closestY = Math.max(paddle.y, Math.min(ball.y, paddle.y + paddle.height));
+			const closestY = Math.max(paddle.y - paddle.height / 2, Math.min(ball.y, paddle.y + paddle.height / 2));
 
 			// Calculate the distance between the ball and this closest point
 			const distanceX = ball.x - closestX;
@@ -339,9 +371,9 @@ export class GameInstance {
 
 					// Ensure the ball is outside the paddle
 					if (playerNumber === 1) {
-						ball.x = paddle.x + paddle.width + ball.radius;
+						ball.x = paddle.x + paddle.width + ball.radius + 1;
 					} else {
-						ball.x = paddle.x - ball.radius;
+						ball.x = paddle.x - ball.radius - 1;
 					}
 				} else {
 					// TOP/BOTTOM COLLISION
@@ -353,9 +385,9 @@ export class GameInstance {
 
 					// Ensure the ball is outside the paddle
 					if (ball.y < paddle.y + paddle.height / 2) {
-						ball.y = paddle.y - ball.radius;
+						ball.y = paddle.y - ball.radius - 1;
 					} else {
-						ball.y = paddle.y + paddle.height + ball.radius;
+						ball.y = paddle.y + paddle.height + ball.radius + 1;
 					}
 				}
 
@@ -363,7 +395,7 @@ export class GameInstance {
 				const newYSpeed = Math.abs(ball.speedY);
 				const valueForSqrt = Math.max(0, currentSpeed * currentSpeed - newYSpeed * newYSpeed);
 				const newXSpeed = Math.sqrt(valueForSqrt);
-				ball.speedX = Math.sign(ball.speedX) * newXSpeed;
+				ball.speedX = Math.sign(ball.speedX) * Math.max(newXSpeed, GameConfig.MIN_BALL_SPEED);
 
 				// Speed up the ball if below max speed
 				const maxSpeed = GameConfig.MAX_BALL_SPEED;
@@ -374,6 +406,7 @@ export class GameInstance {
 					ball.speedX *= speedUpFactor;
 					ball.speedY *= speedUpFactor;
 				}
+				ball.speedY = Math.sign(ball.speedY) * Math.max(Math.abs(ball.speedY),GameConfig.MIN_BALL_SPEED);
 				this.players.forEach((player) => {
 					safeSend(player, {
 						type: "paddleHit",

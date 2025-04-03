@@ -15,30 +15,33 @@ export class Paddle {
 		this.height = GameConfig.DEFAULT_PADDLE_LENGTH;
 		this.speed = GameConfig.DEFAULT_PADDLE_SPEED;
 		this.velocity = 0;
-		this.setY(y);
+		this.y = y + this.height / 2;
+		this.clampPosition();
 	}
 
-	// Set the center of the paddle
-	setY(centerY: number) {
-		this.y = centerY - this.height / 2;
-		this.y = Math.max(0, Math.min(this.y, GameConfig.CANVAS_HEIGHT - this.height));
+	private clampPosition() {
+		const halfHeight = this.height / 2;
+		this.y = Math.max(halfHeight , Math.min(this.y, GameConfig.CANVAS_HEIGHT - halfHeight));
 	}
+
 
 	// Update the height of the paddle
-	updateHeight(newHeight: number) {
-		const centerY = this.y + this.height / 2;
-		this.height = newHeight;
-		this.setY(centerY);
+	update(paddleState: any): void {
+		this.height = paddleState.height;
+		this.y = paddleState.y;
+		this.clampPosition();
+		console.log('update :', this.y, this.height);
 	}
 
 	move(deltaTime: number = 16.67): void { //default value to 60 fps if not provided
 		if (this.velocity !== 0) {
 			const scaledVelocity = this.velocity * (deltaTime / 1000) * GameConfig.PADDLE_SPEED_FACTOR;
 			this.y -= scaledVelocity;
-			this.y = Math.max(0, Math.min(this.y, GameConfig.CANVAS_HEIGHT - this.height));
-			if (this.y <= 0 || this.y >= GameConfig.CANVAS_HEIGHT - this.height) {
+			this.clampPosition();
+			if (this.y <= this.height / 2 || this.y >= GameConfig.CANVAS_HEIGHT - this.height / 2) {
 				this.velocity = 0;
 			}
+			console.log('move :',this.y, this.height);
 		}
 	}
 }

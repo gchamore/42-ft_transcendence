@@ -13,7 +13,7 @@ export class GameControls {
 	private playerNumber: number;
 	private inputSequence: number = 1;
 	private inputHistory: PaddleInput[] = [];
-	private remotePaddleBuffer: { time: number; position: number }[] = [];
+	private remotePaddleBuffer: { time: number; position: number; height: number }[] = [];
 	private paddleInterpolationDelay: number = 100;
 	private ballPositionBuffer: { time: number; position: { x: number, y: number}; speedX: number; speedY: number }[] = [];
 	private ballInterpolationDelay: number = 50;
@@ -219,6 +219,7 @@ export class GameControls {
 
 			// Linear interpolation between positions with smoothing factor
 			this.remotePaddle.y = prev.position * (1 - t) + next.position * t;
+			this.remotePaddle.height = next.height;
 		}
 		// If we're past the next position in our buffer
 		else if (targetTime > next.time) {
@@ -232,6 +233,7 @@ export class GameControls {
 					const timeFactor = (targetTime - prev.time) / (next.time - prev.time);
 					const t = this.cubicEaseInOut(timeFactor);
 					this.remotePaddle.y = prev.position * (1 - t) + next.position * t;
+					this.remotePaddle.height = next.height;
 					return;
 				}
 			}
@@ -239,6 +241,7 @@ export class GameControls {
 			// If we're past all buffer positions, use the latest
 			if (this.remotePaddleBuffer.length > 0) {
 				this.remotePaddle.y = this.remotePaddleBuffer[this.remotePaddleBuffer.length - 1].position;
+				this.remotePaddle.height = this.remotePaddleBuffer[this.remotePaddleBuffer.length - 1].height;
 			}
 		}
 	}
@@ -248,14 +251,9 @@ export class GameControls {
 		return 0.5 * (1 - Math.cos(t * Math.PI));
 	}
 
-	public updateServerPaddlePosition(
-		serverPaddle1: ServerPaddleState,
-		serverPaddle2: ServerPaddleState
-	): void {
-		const serverLocalPaddle =
-			this.playerNumber === 1 ? serverPaddle1 : serverPaddle2;
-		const serverRemotePaddle =
-			this.playerNumber === 1 ? serverPaddle2 : serverPaddle1;
+	public updateServerPaddlePosition(serverPaddle1: ServerPaddleState,	serverPaddle2: ServerPaddleState ): void {
+		const serverLocalPaddle = this.playerNumber === 1 ? serverPaddle1 : serverPaddle2;
+		const serverRemotePaddle = this.playerNumber === 1 ? serverPaddle2 : serverPaddle1;
 
 		// need to interpolate the remote paddle position
 		this.storeRemotePosition(serverRemotePaddle);
@@ -269,6 +267,7 @@ export class GameControls {
 		this.remotePaddleBuffer.push({
 			time: now,
 			position: serverRemotePaddle.y,
+			height: serverRemotePaddle.height,
 		});
 		while (this.remotePaddleBuffer.length > 10) {
 			this.remotePaddleBuffer.shift();
@@ -276,12 +275,10 @@ export class GameControls {
 	}
 	
 	// Reconcile local paddle with server position to avoid Jitter (blocked movement, backward movement)
-	private reconcilePaddlePosition(
-		serverLocalPaddle: ServerPaddleState
-	): void {
-		this.localPaddle.lastProcessedInput =
-		serverLocalPaddle.lastProcessedInput;
-		// reset paddle position to authoritative server position
+	private reconcilePaddlePosition(serverLocalPaddle: ServerPaddleState): void {
+		this.localPaddle.lastProcessedInput = serverLocalPaddle.lastProcessedInput;
+		this.localPaddle.height = serverLocalPaddle.height;
+		
 		this.localPaddle.y = serverLocalPaddle.y;
 		// remove inputs that have already been processed by the server
 		this.inputHistory = this.inputHistory.filter(
@@ -295,9 +292,7 @@ export class GameControls {
 			
 			// Apply each unprocessed input
 			this.inputHistory.forEach((input) => {
-				// Move the paddle directly to the cached position
 				this.localPaddle.y = input.paddlePosition;
-				// Don't update lastProcessedInput here - that comes from the server
 			});
 		}
 	}

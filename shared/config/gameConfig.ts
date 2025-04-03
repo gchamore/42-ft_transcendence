@@ -1,3 +1,13 @@
+export const PowerUpTypes = {
+	PADDLE_GROW: 'paddle_grow',
+	PADDLE_SHRINK: 'paddle_shrink',
+	BALL_GROW: 'ball_grow',
+	BALL_SHRINK: 'ball_shrink',
+	PADDLE_SLOW: 'paddle_slow',
+} as const;
+
+export type PowerUpType = typeof PowerUpTypes[keyof typeof PowerUpTypes];
+
 export const GameConfig = {
 	CANVAS_WIDTH: 800,
 	CANVAS_HEIGHT: 600,
@@ -8,6 +18,7 @@ export const GameConfig = {
 	MIN_PADDLE_LENGTH: 50,
 	BALL_SPEEDUP_FACTOR: 1.05,
 	MAX_BALL_SPEED: 800,
+	MIN_BALL_SPEED: 10,
 	MAX_BALL_SIZE: 20,
 	MIN_BALL_SIZE: 5,
 
@@ -30,19 +41,19 @@ export const GameConfig = {
 	TARGET_FPS: 60,
 	BROADCAST_RATE: 30,
 
-	POWERUP_DURATION: 10000,
+	POWERUP_DURATION: 100000,
 	POWERUP_SPAWN_CHANCE: 0.05,
 	MAX_ACTIVE_POWERUPS: 2,
-	POWERUP_SIZE: 20,
-};
+	POWERUP_SIZE: 50,
+	POWERUP_VISUAL_SCALES: {
+		[PowerUpTypes.PADDLE_GROW]: 0.01,
+        [PowerUpTypes.PADDLE_SHRINK]: 0.0001,
+        [PowerUpTypes.BALL_GROW]: 0.2,
+        [PowerUpTypes.BALL_SHRINK]: 0.05,
+        [PowerUpTypes.PADDLE_SLOW]: 0.03
+    } as const
+} as const;
 
-export const PowerUpTypes = {
-	PADDLE_GROW: 'paddle_grow',
-	PADDLE_SHRINK: 'paddle_shrink',
-	BALL_GROW: 'ball_grow',
-	BALL_SHRINK: 'ball_shrink',
-	PADDLE_SLOW: 'paddle_slow',
-};
 
 /*
 🍄 Mushroom: Paddle Growth
