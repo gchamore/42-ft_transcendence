@@ -10,6 +10,7 @@ const fastify = require("fastify")({
 // Import des dépendances essentielles
 const initializeDatabase = require("./db/schema");
 const WebSocket = require('@fastify/websocket');
+const redis = require('./redis/redisClient');
 
 // ====== Initialisation des services ======
 // Configurer WebSocket
@@ -85,11 +86,10 @@ const cleanup = async (signal) => {
         // Utiliser la fonction utilitaire pour fermer toutes les connexions WebSocket
         const wsUtils = require('./ws/ws.utils');
         await wsUtils.closeAllWebSockets(fastify, 1000, "Server shutting down");
-        
         await fastify.close();
         fastify.db?.close();
-		await redis.quit();
-		console.log("Redis connection closed.");
+        await redis.quit();
+        console.log("Redis connection closed.");
         process.exit(0);
     } catch (error) {
         console.error('Cleanup error:', error);
