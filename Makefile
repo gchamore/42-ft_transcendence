@@ -29,13 +29,16 @@ run: check_deps
 down:
 	@echo "$(YELLOW)Arrêt des conteneurs...$(RESET)"
 	@read -p "Voulez-vous supprimer le volume persistant? (y/n) " answer; \
-    if [ "$$answer" = "y" ]; then \
-        $(DOCKER_COMPOSE) down -v; \
-        echo "$(GREEN)Volume supprimé$(RESET)"; \
-    else \
-        echo "$(YELLOW)Conservation du volume$(RESET)"; \
-        $(DOCKER_COMPOSE) down; \
-    fi
+	if [ "$$answer" = "y" ]; then \
+		docker compose stop; \
+		docker compose down -v; \
+		echo "$(GREEN)Volume supprimé$(RESET)"; \
+	else \
+		docker compose stop; \
+		docker compose down; \
+		echo "$(YELLOW)Conservation du volume$(RESET)"; \
+	fi
+
 
 up: check_deps
 	@echo "$(YELLOW)Démarrage des conteneurs...$(RESET)"

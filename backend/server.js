@@ -79,23 +79,113 @@ fastify.register(require('./routes/user.routes'));
 fastify.register(require('./routes/ws.routes'));
 fastify.register(require('./routes/oauth.routes'));
 
+
+function verifyCleanupSuccess(fastify, redis, db) {
+    const handles = process._getActiveHandles();
+    const requests = process._getActiveRequests();
+
+    console.log('\n🔍 [CLEANUP] Vérification des ressources encore actives...');
+    console.log(`🧵 Handles actifs (${handles.length}):`);
+    handles.forEach((handle, i) => {
+        const type = handle.constructor?.name || typeof handle;
+        console.log(`  ${i + 1}. ${type}`);
+
+        // 🎯 Connexions WebSocket
+        if (type === 'Socket' && handle.remoteAddress) {
+            console.log(`     ↪️  WebSocket vers ${handle.remoteAddress}:${handle.remotePort}`);
+        }
+
+        // 🎯 Connexions Redis (parfois détectées comme sockets ou timers)
+        if (handle.constructor?.name === 'RedisClient') {
+            console.log(`     ↪️  Redis client`);
+        }
+    });
+
+    console.log(`📡 Requêtes en attente (${requests.length}):`);
+    requests.forEach((req, i) => {
+        const type = req.constructor?.name || typeof req;
+        console.log(`  ${i + 1}. ${type}`);
+    });
+
+    // 📦 Vérifier fastify.connections
+    if (fastify?.connections?.size > 0) {
+        console.warn(`📡 [WS] ${fastify.connections.size} connexions WebSocket encore actives:`);
+        for (const [userId, conn] of fastify.connections.entries()) {
+            console.warn(`  🔗 User ${userId} - readyState: ${conn.readyState}`);
+        }
+    } else {
+        console.log('✅ [WS] Toutes les connexions WebSocket ont été fermées');
+    }
+
+    // 🧠 Redis état
+    if (redis?.status && redis.status !== 'end') {
+        console.warn(`⚠️ [Redis] Connexion Redis encore active: status=${redis.status}`);
+    } else {
+        console.log('✅ [Redis] Connexion Redis fermée');
+    }
+
+    // 🗂️ SQLite
+    try {
+        if (db) {
+            const stmt = db.prepare('SELECT 1');
+            stmt.get(); // simple test
+            console.warn('⚠️ [SQLite] La base semble encore accessible après cleanup');
+        }
+    } catch (err) {
+        console.log('✅ [SQLite] Connexion SQLite probablement fermée');
+    }
+
+    if (handles.length === 0 && requests.length === 0 && fastify.connections.size === 0 && redis.status === 'end') {
+        console.log('✅ [CLEANUP] Tout est correctement fermé 🎉');
+    } else {
+        console.warn('⚠️ [CLEANUP] Des ressources persistent, vérifie les logs ci-dessus');
+    }
+}
+
+
+
 // ====== Gestion de l'arrêt propre ======
+const wsUtils = require('./ws/ws.utils');
+
 const cleanup = async (signal) => {
     console.log(`\n${signal} received. Cleaning up...`);
+
     try {
-        // Utiliser la fonction utilitaire pour fermer toutes les connexions WebSocket
-        const wsUtils = require('./ws/ws.utils');
-        await wsUtils.closeAllWebSockets(fastify, 1000, "Server shutting down");
+        // 🔄 Petite pause pour laisser le temps aux signaux en attente de se propager
+        await new Promise(res => setTimeout(res, 200));
+
+        // 🧹 Fermeture des WebSockets
+        await wsUtils.closeAllWebSockets(fastify, 1001, "Server shutting down");
+
+        // 🛑 Fermeture du serveur Fastify
         await fastify.close();
-        fastify.db?.close();
-        await redis.quit();
-        console.log("Redis connection closed.");
-        process.exit(0);
+
+        // 🗂️ Fermeture SQLite
+        if (fastify.db?.close) {
+            fastify.db.close(); // SQLite est sync
+        }
+
+        // 🧠 Fermeture Redis
+        if (redis && redis.status !== 'end') {
+            await redis.quit();
+        }
+
+        // 🕵️ Vérification finale (après que tous les `.on('close')` aient pu se déclencher)
+        setTimeout(() => {
+            verifyCleanupSuccess(fastify, redis, fastify.db);
+            // 💣 Quitter uniquement après avoir affiché les diagnostics
+            setTimeout(() => {
+                console.log('✅ [EXIT] Fermeture du process');
+                process.exit(0);
+            }, 250); // petit délai final
+        }, 500); // donne 500ms aux sockets pour finir de se fermer
+
     } catch (error) {
-        console.error('Cleanup error:', error);
+        console.error('❌ Cleanup error:', error);
         process.exit(1);
     }
 };
+
 
 process.on('SIGTERM', () => cleanup('SIGTERM'));
 process.on('SIGINT', () => cleanup('SIGINT'));
