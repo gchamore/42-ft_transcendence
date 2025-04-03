@@ -1,6 +1,4 @@
-const Redis = require('ioredis');
 const jwt = require('jsonwebtoken');
-
 const redis = require('../../redis/redisClient');
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes

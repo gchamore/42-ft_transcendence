@@ -1,6 +1,5 @@
 const bcrypt = require("bcrypt");
 const authService = require('../jwt/services/auth.service');
-const Redis = require('ioredis');
 const redis = require('../redis/redisClient');
 const jwt = require('jsonwebtoken');
 const wsUtils = require('../ws/ws.utils');
