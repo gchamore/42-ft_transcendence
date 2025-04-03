@@ -1,7 +1,7 @@
 const bcrypt = require("bcrypt");
 const authService = require('../jwt/services/auth.service');
 const Redis = require('ioredis');
-const redis = new Redis();
+const redis = require('../redis/redisClient');
 const jwt = require('jsonwebtoken');
 const wsUtils = require('../ws/ws.utils');
 const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret_key';

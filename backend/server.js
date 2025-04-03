@@ -88,6 +88,8 @@ const cleanup = async (signal) => {
         
         await fastify.close();
         fastify.db?.close();
+		await redis.quit();
+		console.log("Redis connection closed.");
         process.exit(0);
     } catch (error) {
         console.error('Cleanup error:', error);

@@ -1,5 +1,5 @@
 const Redis = require('ioredis');
-const redis = new Redis();
+const redis = require('../redis/redisClient');
 const authService = require('../jwt/services/auth.service');
 
 /**
