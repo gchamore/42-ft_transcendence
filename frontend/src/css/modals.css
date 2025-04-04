@@ -67,11 +67,21 @@
 #chat-box {
     border: 3px solid rgb(0, 0, 0);
     display: flex;
+    flex-direction: column;
+    justify-content: end;
+    overflow: auto;
     margin: 10px;
     width: 440px;
     height: 200px;
     background-color: rgb(33, 30, 30);
     border-radius: 4% / 8.8%;
+}
+
+#chat-box label {
+    flex-shrink: 0;
+    padding-left: 5px;
+    font-size: small;
+    color: rgb(164, 103, 103);
 }
 /* --------- */
 

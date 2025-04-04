@@ -102,10 +102,10 @@ function add_message(username, message, type) {
         messages = user === null || user === void 0 ? void 0 : user.direct_messages;
     if (messages === undefined)
         return;
-    if (messages.length === 20) {
-        for (let i = messages.length - 2; i >= 0; --i)
-            messages[i + 1] = messages[i];
-    }
+    if (messages.length === 20)
+        messages.pop();
+    for (let i = messages.length - 1; i >= 0; --i)
+        messages[i + 1] = messages[i];
     messages[0] = new_message;
     if (type === 'live-chat' && section_index === get_section_index('chat'))
         sections[get_section_index('chat')].load_messages(user === null || user === void 0 ? void 0 : user.livechat);

@@ -72,7 +72,7 @@ class User {
                     case 'live-chat':
                         add_message(data.username, data.message, 'live-chat');
                         break;
-                  case 'direct_message':
+                    case 'direct_message':
                         add_message(data.username, data.message, 'direct_message');
                         break;
                 }
@@ -126,10 +126,10 @@ function add_message(username : string, message : string, type : string) {
     if (messages === undefined)
         return ;
 
-    if (messages.length === 20) {
-        for (let i = messages.length - 2; i >= 0; --i)
-            messages[i + 1] = messages[i];
-    }
+    if (messages.length === 20)
+        messages.pop();
+    for (let i = messages.length - 1; i >= 0; --i)
+        messages[i + 1] = messages[i];
     messages[0] = new_message;
 
     if (type === 'live-chat' && section_index === get_section_index('chat'))

@@ -346,11 +346,17 @@ class Chat extends ASection {
 		if (messages == undefined)
 			return;
 
-		messages.forEach(msg => {
+		let chat_box_childNodes : Array<ChildNode> = [];
+		this.chat_box.childNodes.forEach((childNode) => { chat_box_childNodes.push(childNode); });
+		for (let i = 0; i < chat_box_childNodes.length; ++i)
+			chat_box_childNodes[i].remove();
+
+		for (let i = messages.length - 1; i >= 0; --i) {
 			let element = document.createElement('label');
-			element.textContent = msg.format_message();
+			element.textContent = messages[i].format_message();
 			this.chat_box.appendChild(element);
-		});
+			console.log('Appending: ', element.textContent);
+		}
 	}
 	async send() {
 		let input = this.msg_input.value;
