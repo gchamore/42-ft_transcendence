@@ -89,7 +89,7 @@ export class GameInstance {
 
 		const scaledSpawnChance = GameConfig.POWERUP_SPAWN_CHANCE * deltaTime;
 
-		if (this.gameState.gameStarted && this.powerups.length < GameConfig.MAX_ACTIVE_POWERUPS /*&& Math.random() < scaledSpawnChance*/) { //test
+		if (/*this.gameState.gameStarted &&*/ this.powerups.length < GameConfig.MAX_ACTIVE_POWERUPS /*&& Math.random() < scaledSpawnChance*/) { //test
 			this.spawnPowerup();
 		}
 	}

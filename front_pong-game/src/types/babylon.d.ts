@@ -26,6 +26,7 @@ declare namespace BABYLON {
 			activeCamera: Camera;
 			render(): void;
 			clearColor: Color4;
+			dispose(): void;
 		}
 
 		class PBRMaterial extends StandardMaterial {
@@ -47,10 +48,16 @@ declare namespace BABYLON {
 
 		class Color3 {
 			constructor(r: number, g: number, b: number);
+			r: number;
+			g: number;
+			b: number;
+			clone(): Color3;
+			scale(scale: number): Color3;
 		}
 
 		class Color4 {
 		constructor(r: number, g: number, b: number, a: number);
+
 	}
 
 	class ArcRotateCamera {
@@ -70,6 +77,7 @@ declare namespace BABYLON {
 		upperRadiusLimit: number;
 		lowerBetaLimit: number;
 		upperBetaLimit: number;
+		dispose(): void;
 	}
 
 	class Light {
@@ -128,6 +136,7 @@ declare namespace BABYLON {
 		rotation: Vector3;
 		scaling: Vector3;
 		parent: Mesh | null;
+		isVisible: boolean;
 		dispose(): void;
 		getBoundingInfo(): BoundingInfo;
 		scaleInPlace(scale: number): Mesh;
