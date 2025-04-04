@@ -23,7 +23,8 @@ function verify_token() {
             if (!response.ok)
                 console.error("/api/verify_token failed:", data.error);
             else if (data.valid) {
-                console.log(data.username, "authenticated");
+                if (user !== undefined && user.name === data.username)
+                    return;
                 if ((user === null || user === void 0 ? void 0 : user.web_socket) && (user === null || user === void 0 ? void 0 : user.web_socket.readyState) === WebSocket.OPEN)
                     user.web_socket.close(1000);
                 update_user(new User(data.username));
@@ -93,7 +94,6 @@ function logout() {
             if (!response.ok)
                 console.error("/api/logout failed:", data.error);
             else if (data.success) {
-                console.log(user === null || user === void 0 ? void 0 : user.name, "logged-out");
                 if ((user === null || user === void 0 ? void 0 : user.web_socket) && (user === null || user === void 0 ? void 0 : user.web_socket.readyState) === WebSocket.OPEN)
                     user.web_socket.close(1000);
                 update_user(undefined);
@@ -188,7 +188,7 @@ function send(message_1, type_1) {
         let url;
         let body;
         try {
-            if (type === 'live-chat') {
+            if (type === 'livechat') {
                 url = '/api/live_chat_message';
                 body = { message: message };
             }

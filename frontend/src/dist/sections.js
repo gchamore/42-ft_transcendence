@@ -293,7 +293,6 @@ class Chat extends ASection {
     }
     /* Methods */
     enter(verified) {
-        console.log("Enter Chat section");
         if (verified !== true) {
             console.log("Try to enter Chat section as unauthenticated");
             return;
@@ -331,15 +330,14 @@ class Chat extends ASection {
             let element = document.createElement('label');
             element.textContent = messages[i].format_message();
             this.chat_box.appendChild(element);
-            console.log('Appending: ', element.textContent);
         }
     }
     send() {
         return __awaiter(this, void 0, void 0, function* () {
             let input = this.msg_input.value;
             this.msg_input.value = '';
-            if ((yield send(input, 'live-chat')) === true) {
-                add_message(user.name, input, 'live-chat');
+            if ((yield send(input, 'livechat')) === true) {
+                add_message(user.name, input, 'livechat');
             }
             else
                 this.leave();
@@ -378,7 +376,6 @@ function update_section() {
         sections[section_index].switch_logged_in();
 }
 function go_section(section) {
-    console.log('section: ', section);
     if (section === sections[section_index].type)
         section = 'home';
     set_new_section_index(section);

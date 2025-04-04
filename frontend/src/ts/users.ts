@@ -67,13 +67,12 @@ class User {
                 switch (data.type) {
                     case 'status_update':
                         update_friends_status(data.username, data.online);
-                        console.log(data.username, data.online);
                         break;
-                    case 'live-chat':
-                        add_message(data.username, data.message, 'live-chat');
+                    case 'livechat':
+                        add_message(data.user, data.message, 'livechat');
                         break;
                     case 'direct_message':
-                        add_message(data.username, data.message, 'direct_message');
+                        add_message(data.user, data.message, 'direct_message');
                         break;
                 }
             } catch (error) {
@@ -103,8 +102,10 @@ function update_user(new_user_value : User | undefined) {
         console.log('WebSocket error:', error);
         update_user(undefined);
     }
+
     if (user === undefined) {
-        section_index = HOME_INDEX;
+        let profile_i = get_section_index('profile')!;
+        section_index = (section_index === profile_i) ? profile_i : HOME_INDEX;
     }
     update_sections();
 }
@@ -114,11 +115,10 @@ function get_user_messages() : Array<Message> | undefined {
 }
 
 function add_message(username : string, message : string, type : string) {
-    console.log('Received message: ', username, message);
     let new_message : Message = new Message(username, message);
     let messages : Array<Message> | undefined;
     
-    if (type === 'live-chat')
+    if (type === 'livechat')
         messages = user?.livechat;
     else /*(type === 'direct_message') */
         messages = user?.direct_messages;
@@ -132,7 +132,7 @@ function add_message(username : string, message : string, type : string) {
         messages[i + 1] = messages[i];
     messages[0] = new_message;
 
-    if (type === 'live-chat' && section_index === get_section_index('chat'))
+    if (type === 'livechat' && section_index === get_section_index('chat'))
         (sections[get_section_index('chat')!] as Chat).load_messages(user?.livechat);
 }
 /* --------- */

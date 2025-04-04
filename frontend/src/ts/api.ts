@@ -15,7 +15,8 @@ async function verify_token(): Promise<void> {
 		if (!response.ok)
 			console.error("/api/verify_token failed:", data.error);
 		else if (data.valid) {
-			console.log(data.username, "authenticated");
+			if (user !== undefined && user.name === data.username)
+				return;
 
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
@@ -89,8 +90,6 @@ async function logout() {
 		if (!response.ok)
 			console.error("/api/logout failed:", data.error);
 		else if (data.success) {
-			console.log(user?.name, "logged-out");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
@@ -196,7 +195,7 @@ async function send(message : string, type : string, to : string = '') : Promise
 	let body;
 
 	try {
-		if (type === 'live-chat') {
+		if (type === 'livechat') {
 			url = '/api/live_chat_message';
 			body = {message : message};
 		}
@@ -224,7 +223,7 @@ async function send(message : string, type : string, to : string = '') : Promise
 
 		if (!response.ok) {
 			console.error(url + ' error: ', data.error);
-			return false
+			return false;
 		}
 		return data.success;
 
