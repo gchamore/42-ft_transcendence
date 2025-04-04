@@ -29,13 +29,14 @@ input::-webkit-autofill {
 }
 
 input {
-    border: 2px solid rgb(0, 0, 0);
+    border: 3px solid rgb(0, 0, 0);
     background-color: rgb(33, 30, 30);
     border-radius: 5px;
 
     margin-left: 10px;
     margin-right: 10px;
     color: rgb(164, 103, 103);
+    padding-left: 3px;
     font-weight: bolder;
 }
 /* --------- */
