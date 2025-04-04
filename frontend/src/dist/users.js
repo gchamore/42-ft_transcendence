@@ -8,6 +8,28 @@ class Message {
         this.username = username;
         this.message = message;
     }
+    format_message() {
+        let message = '';
+        let days = nb_to_str(this.date.getDay());
+        let months = nb_to_str(this.date.getMonth());
+        let hours = nb_to_str(this.date.getHours());
+        let minutes = nb_to_str(this.date.getMinutes());
+        message += days + '/' + months + ' ';
+        message += hours + ':' + minutes + ' ';
+        message += this.username + ': ';
+        message += this.message;
+        return message;
+    }
+}
+function nb_to_str(nb) {
+    let message;
+    if (nb < 10 && nb > 0)
+        message = "0" + nb;
+    else if (nb < 100 && nb >= 10)
+        message = "" + nb;
+    else
+        message = "00";
+    return message;
 }
 /* User */
 class User {
@@ -31,12 +53,12 @@ class User {
                         update_friends_status(data.username, data.online);
                         console.log(data.username, data.online);
                         break;
-                    // case 'live-chat':
-                    //     add_livechat_message(data.username, data.message);
-                    //     break;
-                    // case 'direct_message':
-                    //     add_direct_message(data.username, data.message);
-                    //     break;
+                    case 'live-chat':
+                        add_message(data.username, data.message, 'live-chat');
+                        break;
+                    case 'direct_message':
+                        add_message(data.username, data.message, 'direct_message');
+                        break;
                 }
             }
             catch (error) {
@@ -66,6 +88,27 @@ function update_user(new_user_value) {
         section_index = HOME_INDEX;
     }
     update_sections();
+}
+function get_user_messages() {
+    return user === null || user === void 0 ? void 0 : user.livechat;
+}
+function add_message(username, message, type) {
+    console.log('Received message: ', username, message);
+    let new_message = new Message(username, message);
+    let messages;
+    if (type === 'live-chat')
+        messages = user === null || user === void 0 ? void 0 : user.livechat;
+    else /*(type === 'direct_message') */
+        messages = user === null || user === void 0 ? void 0 : user.direct_messages;
+    if (messages === undefined)
+        return;
+    if (messages.length === 20) {
+        for (let i = messages.length - 2; i >= 0; --i)
+            messages[i + 1] = messages[i];
+    }
+    messages[0] = new_message;
+    if (type === 'live-chat' && section_index === get_section_index('chat'))
+        sections[get_section_index('chat')].load_messages(user === null || user === void 0 ? void 0 : user.livechat);
 }
 /* --------- */
 /* OtherUser */

@@ -183,3 +183,43 @@ function remove(friend_username) {
         return false;
     });
 }
+function send(message_1, type_1) {
+    return __awaiter(this, arguments, void 0, function* (message, type, to = '') {
+        let url;
+        let body;
+        try {
+            if (type === 'live-chat') {
+                url = '/api/live_chat_message';
+                body = { message: message };
+            }
+            else /*(type === 'direct_message') */ {
+                url = '/api/direct_chat_message';
+                body = { to: to, message: message };
+            }
+            const response = yield fetch(url, {
+                method: "POST",
+                credentials: 'include',
+                headers: { "Content-Type": "application/json"
+                },
+                body: JSON.stringify(body)
+            });
+            const data = yield response.json();
+            if (response.status === 401) {
+                console.error("Unauthorized!");
+                if ((user === null || user === void 0 ? void 0 : user.web_socket) && (user === null || user === void 0 ? void 0 : user.web_socket.readyState) === WebSocket.OPEN)
+                    user.web_socket.close(1000);
+                update_user(undefined);
+                return false;
+            }
+            if (!response.ok) {
+                console.error(url + ' error: ', data.error);
+                return false;
+            }
+            return data.success;
+        }
+        catch (error) {
+            console.error(url + ' error: ', error);
+        }
+        return false;
+    });
+}

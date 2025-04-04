@@ -69,12 +69,12 @@ class User {
                         update_friends_status(data.username, data.online);
                         console.log(data.username, data.online);
                         break;
-                    // case 'live-chat':
-                    //     add_livechat_message(data.username, data.message);
-                    //     break;
-                    // case 'direct_message':
-                    //     add_direct_message(data.username, data.message);
-                    //     break;
+                    case 'live-chat':
+                        add_message(data.username, data.message, 'live-chat');
+                        break;
+                  case 'direct_message':
+                        add_message(data.username, data.message, 'direct_message');
+                        break;
                 }
             } catch (error) {
                 console.error('WebSocket message parsing error:', error);
@@ -111,6 +111,29 @@ function update_user(new_user_value : User | undefined) {
 
 function get_user_messages() : Array<Message> | undefined {
     return user?.livechat;
+}
+
+function add_message(username : string, message : string, type : string) {
+    console.log('Received message: ', username, message);
+    let new_message : Message = new Message(username, message);
+    let messages : Array<Message> | undefined;
+    
+    if (type === 'live-chat')
+        messages = user?.livechat;
+    else /*(type === 'direct_message') */
+        messages = user?.direct_messages;
+
+    if (messages === undefined)
+        return ;
+
+    if (messages.length === 20) {
+        for (let i = messages.length - 2; i >= 0; --i)
+            messages[i + 1] = messages[i];
+    }
+    messages[0] = new_message;
+
+    if (type === 'live-chat' && section_index === get_section_index('chat'))
+        (sections[get_section_index('chat')!] as Chat).load_messages(user?.livechat);
 }
 /* --------- */
 

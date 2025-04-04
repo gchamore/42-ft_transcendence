@@ -19,6 +19,9 @@ abstract class ASection {
 	abstract switch_logged_off(): void;
 	abstract switch_logged_in(): void;
 	activate_section() {
+		this.dependencies.forEach(dep => {
+			sections[get_section_index(dep)!].enter(user !== undefined);
+		});
 		document.querySelectorAll(".section." + this.type).forEach(container => {
 			container.classList.add('active');
 		});
@@ -308,6 +311,7 @@ class Chat extends ASection {
 
 	/* Methods */
 	enter(verified: boolean) {
+		console.log("Enter Chat section");
 		if (verified !== true) {
 			console.log("Try to enter Chat section as unauthenticated");
 			return;
@@ -318,7 +322,7 @@ class Chat extends ASection {
 		this.btn2.onclick = () => this.send();
 		this.btn2.textContent = 'Send';
 	
-		this.btn3.onclick = () => this.actions();
+		this.btn3.onclick = () => history.back();
 		this.btn3.textContent = 'Actions';
 		
 		this.load_messages(get_user_messages());
@@ -344,12 +348,21 @@ class Chat extends ASection {
 
 		messages.forEach(msg => {
 			let element = document.createElement('label');
-			element.textContent = msg.username + ':'
-			this.chat_box.appendChild(Node())
+			element.textContent = msg.format_message();
+			this.chat_box.appendChild(element);
 		});
 	}
+	async send() {
+		let input = this.msg_input.value;
+		this.msg_input.value = '';
+		if (await send(input, 'live-chat') === true) {
+			add_message(user!.name, input, 'live-chat');
+		}
+		else
+			this.leave();
+	}
 }
-sections = [new Home(), new Profile(), new Friends()];
+sections = [new Home(), new Profile(), new Friends(), new Chat()];
 /* --------- */
 
 
@@ -387,6 +400,7 @@ function update_section(): void {
 }
 
 function go_section(section : string) {
+	console.log('section: ', section);
 	if (section === sections[section_index].type)
 		section = 'home';
 	set_new_section_index(section);

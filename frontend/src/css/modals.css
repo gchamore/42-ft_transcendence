@@ -64,6 +64,15 @@
     display: none;
 }
 
+#chat-box {
+    border: 3px solid rgb(0, 0, 0);
+    display: flex;
+    margin: 10px;
+    width: 440px;
+    height: 200px;
+    background-color: rgb(33, 30, 30);
+    border-radius: 4% / 8.8%;
+}
 /* --------- */
 
 
@@ -71,7 +80,6 @@
 /* Navigation */
 ul.modal li {
     border-radius: 12% / 26%;
-    height: 125px;
     height: 55px;
     position: absolute;
     bottom: 5%;
