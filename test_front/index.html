@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My title</title>
+
+    <!--JS script-->
+    <script>
+      function generate() {
+      let list = document.getElementById('box');
+
+      let new_list_element = document.createElement('li');
+      list.appendChild(new_list_element);
+    }
+    </script>
+
+    <!--CSS script-->
+    <style>
+      * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+      }
+
+      #panel {
+        position: absolute;
+        border: black solid 3px;
+        width: calc(100vw - 10px);
+        height: calc(100vh - 10px);
+        margin: 5px;
+      }
+
+      #box {
+        overflow: auto;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-content: start;
+        flex-wrap: wrap;
+      }
+
+      li {
+        border: grey solid 3px; 
+
+        flex-shrink: 0;
+        flex-grow: 0;
+        flex-wrap: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        border-radius: 15% / 40%;
+        width: 400px;
+        margin: 2px;
+        height: 120px;
+      }
+
+      #generator {
+        position: absolute;
+        width: 100px;
+        height: 80px;
+      }
+    </style>
+  </head>
+  <body>
+    <nav id="panel"><ul id="box">
+    </ul></nav>
+    <button id="generator" onclick="generate()">Generate</button>
+  </body>
+</html>
