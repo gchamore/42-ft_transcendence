@@ -366,7 +366,101 @@ class Chat extends ASection {
 			this.leave();
 	}
 }
-sections = [new Home(), new Profile(), new Friends(), new Chat()];
+
+class Actions extends ASection {
+	/* ASection */
+	type = 'actions';
+	protected = true;
+	parent = document.getElementById('actions-parent') as HTMLElement;
+	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
+	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
+	dependencies = ['home'];
+	
+	/* Properties */
+	readonly free_box = document.getElementById('free_box') as HTMLUListElement;
+	readonly blocked_box = document.getElementById('blocked_box') as HTMLUListElement;
+
+	readonly btn1 = document.getElementById('actions-btn1') as HTMLButtonElement;
+	readonly btn2 = document.getElementById('actions-btn2') as HTMLButtonElement;
+	readonly btn3 = document.getElementById('actions-btn3') as HTMLButtonElement;
+
+	/* Methods */
+	enter(verified: boolean) {
+		if (verified !== true) {
+			console.log("Try to enter Actions section as unauthenticated");
+			return;
+		}
+		this.btn1.onclick = () => history.back();
+		// this.btn2.onclick = () => invite();
+		this.btn2.setAttribute('onclick', '');
+		// this.btn3.onclick = () => block();
+		this.btn3.setAttribute('onclick', '');
+
+		this.btn1.textContent = 'Back';
+		this.btn2.textContent = 'Invite';
+		this.btn3.textContent = 'Block';
+
+		this.load_boxes();
+		this.activate_section();
+	}
+	leave() {
+		// To be continued...
+		this.clear_boxes();
+		this.deactivate_section();
+
+		this.btn1.removeAttribute('onclick');
+		this.btn2.removeAttribute('onclick');
+		this.btn3.removeAttribute('onclick');
+		this.btn1.setAttribute('textContent', '');
+		this.btn2.setAttribute('textContent', '');
+		this.btn3.setAttribute('textContent', '');
+	}
+	switch_logged_off() {}
+	switch_logged_in() {}
+	
+	clear_boxes() {
+		let childs : Array<ChildNode>;
+
+		childs = [];
+		this.free_box.childNodes.forEach(child => { childs.push(child); });
+		for (let i = 0; i < childs.length; ++i)
+			childs[i].remove();
+		
+		childs = [];
+		this.blocked_box.childNodes.forEach(child => { childs.push(child); });
+		for (let i = 0; i < childs.length; ++i)
+			childs[i].remove();
+	}
+	async load_boxes() {
+		let users : Array<string>;
+		let new_li : Element;
+	
+		users = this.free_users();
+		users.forEach(user => {
+			new_li = document.createElement('li');
+			new_li.textContent = user;
+			this.free_box.appendChild(new_li);
+		});
+
+		users = await blocked_users();
+		users.forEach(user => {
+			new_li = document.createElement('li');
+			new_li.textContent = user;
+			this.blocked_box.appendChild(new_li);
+		});
+	}
+	free_users() : Array<string> {
+		let users : Array<string> = [];
+
+		user?.livechat.forEach(msg => {
+			if (msg.username !== user?.name && users.indexOf(msg.username) <= -1)
+				users.push(msg.username);
+		});
+
+		return users;
+	}
+}
+sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions()];
 /* --------- */
 
 
