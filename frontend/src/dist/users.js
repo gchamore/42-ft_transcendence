@@ -39,6 +39,7 @@ class User {
         this.web_socket = undefined;
         this.livechat = [];
         this.direct_messages = [];
+        this.onlines = [];
     }
     connect_to_ws() {
         this.web_socket = new WebSocket('ws://localhost:8080/api/ws');
@@ -72,6 +73,20 @@ class User {
             console.log('WebSocket error:', error);
         };
     }
+    get_free_users() {
+        let users = [];
+        user === null || user === void 0 ? void 0 : user.onlines.forEach(elem => {
+            if (elem !== (user === null || user === void 0 ? void 0 : user.name) && users.includes(elem) === false)
+                users.push(elem);
+        });
+        return users;
+    }
+}
+function add_online(username) {
+    if ((user === null || user === void 0 ? void 0 : user.onlines.includes(username)) === false)
+        user === null || user === void 0 ? void 0 : user.onlines.push(username);
+    if (sections[section_index].type === 'actions')
+        sections[section_index].add_user(username);
 }
 function update_user(new_user_value) {
     user = new_user_value;

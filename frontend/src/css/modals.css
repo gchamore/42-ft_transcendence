@@ -83,6 +83,35 @@
     font-size: small;
     color: rgb(164, 103, 103);
 }
+
+#boxes {
+    margin-left: 20px;
+    margin-top: 20px;
+    gap: 10px;
+    display: flex;
+    flex-direction: row;
+    width: 450px;
+    height: 280px;
+    align-content: center;
+}
+
+#boxes div {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    width: 140px
+}
+
+#boxes div label {
+    align-self: center;
+}
+
+#free_box, #blocked_box {   
+    background-color: rgb(33, 30, 30);
+    border: 3px solid rgb(0, 0, 0);
+    border-radius: 12px;
+    flex-grow: 1;
+}
 /* --------- */
 
 

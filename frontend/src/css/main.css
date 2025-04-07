@@ -39,6 +39,10 @@ input {
     padding-left: 3px;
     font-weight: bolder;
 }
+
+li.hidden {
+    display: none;
+}
 /* --------- */
 
 

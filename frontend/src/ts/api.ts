@@ -234,7 +234,7 @@ async function send(message : string, type : string, to : string = '') : Promise
 	return false;
 }
 
-async function blocked_users() : Promise<Array<string> | Error> {
+async function get_blocked_users() : Promise<Array<string> | Error> {
 	try {
         const response = await fetch(`/api/blocked_users`, {
             method: "GET",

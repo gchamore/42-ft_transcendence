@@ -46,6 +46,7 @@ class User {
     web_socket: WebSocket | undefined;
     livechat: Array<Message>;
     direct_messages: Array<Message>;
+    onlines: Array<string>;
 
     constructor(username:string) {
         this.name = username;
@@ -53,6 +54,7 @@ class User {
         this.web_socket = undefined;
         this.livechat = [];
         this.direct_messages = [];
+        this.onlines = [];
     }
     connect_to_ws() {
         this.web_socket = new WebSocket('ws://localhost:8080/api/ws');
@@ -89,6 +91,23 @@ class User {
             console.log('WebSocket error:', error);
         };
     }
+    get_free_users() : Array<string> {
+		let users : Array<string> = [];
+
+		user?.onlines.forEach(elem => {
+			if (elem !== user?.name && users.includes(elem) === false)
+				users.push(elem);
+		});
+
+		return users;
+	}
+}
+
+function add_online(username : string) {
+    if (user?.onlines.includes(username) === false)
+        user?.onlines.push(username);
+    if (sections[section_index].type === 'actions')
+        (sections[section_index] as Actions).add_user(username);
 }
 
 function update_user(new_user_value : User | undefined) {

@@ -321,7 +321,7 @@ class Chat extends ASection {
 		this.btn2.onclick = () => this.send();
 		this.btn2.textContent = 'Send';
 	
-		this.btn3.onclick = () => history.back();
+		this.btn3.onclick = () => go_section('actions');
 		this.btn3.textContent = 'Actions';
 		
 		this.load_messages(get_user_messages());
@@ -384,6 +384,9 @@ class Actions extends ASection {
 	readonly btn2 = document.getElementById('actions-btn2') as HTMLButtonElement;
 	readonly btn3 = document.getElementById('actions-btn3') as HTMLButtonElement;
 
+	blocked_users : Array<string> = [];
+	free_users : Array<string> = [];
+
 	/* Methods */
 	enter(verified: boolean) {
 		if (verified !== true) {
@@ -391,20 +394,17 @@ class Actions extends ASection {
 			return;
 		}
 		this.btn1.onclick = () => history.back();
-		// this.btn2.onclick = () => invite();
-		this.btn2.setAttribute('onclick', '');
-		// this.btn3.onclick = () => block();
-		this.btn3.setAttribute('onclick', '');
-
 		this.btn1.textContent = 'Back';
-		this.btn2.textContent = 'Invite';
-		this.btn3.classList.add('hidden');
+		
+		this.btn2.setAttribute('onclick', '');
+		this.btn3.setAttribute('onclick', '');
+		this.btn3.parentElement?.classList.add('hidden');
+		this.btn2.parentElement?.classList.add('hidden');
 
 		this.load_boxes();
 		this.activate_section();
 	}
 	leave() {
-		// To be continued...
 		this.clear_boxes();
 		this.deactivate_section();
 
@@ -432,32 +432,42 @@ class Actions extends ASection {
 			childs[i].remove();
 	}
 	async load_boxes() {
-		let users : Array<string>;
-		let new_li : Element;
-	
-		users = this.free_users();
-		users.forEach(user => {
-			new_li = document.createElement('li');
-			new_li.textContent = user;
-			this.free_box.appendChild(new_li);
-		});
+		let blocked_users : Array<string> | Error = await get_blocked_users();
+		if (blocked_users instanceof Error)
+			return;
+		let free_users : Array<string> | undefined = user?.get_free_users();
+		if (free_users === undefined)
+			return;
 
-		users = await blocked_users();
-		users.forEach(user => {
-			new_li = document.createElement('li');
-			new_li.textContent = user;
+		this.blocked_users = blocked_users;
+		this.free_users = free_users;
+
+		this.blocked_users.forEach(blocked_user => {
+			let new_li = document.createElement('li');
+			new_li.textContent = blocked_user;
 			this.blocked_box.appendChild(new_li);
 		});
-	}
-	free_users() : Array<string> {
-		let users : Array<string> = [];
 
-		user?.livechat.forEach(msg => {
-			if (msg.username !== user?.name && users.indexOf(msg.username) <= -1)
-				users.push(msg.username);
+		this.free_users?.forEach(free_user => {
+			if ((this.blocked_users instanceof Error) === true
+				|| this.blocked_users.includes(free_user) === false)
+				return;
+			let new_li = document.createElement('li');
+			new_li.textContent = free_user;
+			this.free_box.appendChild(new_li);
 		});
+	}
+	add_user(username: string) {
+		if (!(this.blocked_users instanceof Error)
+			&& this.blocked_users.includes(username))
+			return;
 
-		return users;
+		if (this.free_users.includes(username) === false) {
+			this.free_users.push(username);
+			let new_li = document.createElement('li');
+			new_li.textContent = username;
+			this.free_box.appendChild(new_li);
+		}
 	}
 }
 sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions()];
@@ -519,7 +529,7 @@ function deactivate(list : NodeListOf<Element>): void {
 }
 
 function update_friends_status(username : string, online : boolean) {
-
+	add_online(username);
 	if (section_index == get_section_index('friends')
 		&& (sections[section_index] as Friends).anotherUser?.username === username) {
 		(sections[section_index] as Friends).update_status(online);

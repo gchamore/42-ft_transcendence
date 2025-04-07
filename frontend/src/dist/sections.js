@@ -301,7 +301,7 @@ class Chat extends ASection {
         this.btn1.textContent = 'Back';
         this.btn2.onclick = () => this.send();
         this.btn2.textContent = 'Send';
-        this.btn3.onclick = () => history.back();
+        this.btn3.onclick = () => go_section('actions');
         this.btn3.textContent = 'Actions';
         this.load_messages(get_user_messages());
         this.msg_input.value = '';
@@ -344,7 +344,103 @@ class Chat extends ASection {
         });
     }
 }
-sections = [new Home(), new Profile(), new Friends(), new Chat()];
+class Actions extends ASection {
+    constructor() {
+        super(...arguments);
+        /* ASection */
+        this.type = 'actions';
+        this.protected = true;
+        this.parent = document.getElementById('actions-parent');
+        this.logged_off = this.parent.querySelectorAll('.logged-off');
+        this.logged_in = this.parent.querySelectorAll('.logged-in');
+        this.dependencies = ['home'];
+        /* Properties */
+        this.free_box = document.getElementById('free_box');
+        this.blocked_box = document.getElementById('blocked_box');
+        this.btn1 = document.getElementById('actions-btn1');
+        this.btn2 = document.getElementById('actions-btn2');
+        this.btn3 = document.getElementById('actions-btn3');
+        this.blocked_users = [];
+        this.free_users = [];
+    }
+    /* Methods */
+    enter(verified) {
+        var _a, _b;
+        if (verified !== true) {
+            console.log("Try to enter Actions section as unauthenticated");
+            return;
+        }
+        this.btn1.onclick = () => history.back();
+        this.btn1.textContent = 'Back';
+        this.btn2.setAttribute('onclick', '');
+        this.btn3.setAttribute('onclick', '');
+        (_a = this.btn3.parentElement) === null || _a === void 0 ? void 0 : _a.classList.add('hidden');
+        (_b = this.btn2.parentElement) === null || _b === void 0 ? void 0 : _b.classList.add('hidden');
+        this.load_boxes();
+        this.activate_section();
+    }
+    leave() {
+        this.clear_boxes();
+        this.deactivate_section();
+        this.btn1.removeAttribute('onclick');
+        this.btn2.removeAttribute('onclick');
+        this.btn3.removeAttribute('onclick');
+        this.btn1.setAttribute('textContent', '');
+        this.btn2.setAttribute('textContent', '');
+        this.btn3.setAttribute('textContent', '');
+    }
+    switch_logged_off() { }
+    switch_logged_in() { }
+    clear_boxes() {
+        let childs;
+        childs = [];
+        this.free_box.childNodes.forEach(child => { childs.push(child); });
+        for (let i = 0; i < childs.length; ++i)
+            childs[i].remove();
+        childs = [];
+        this.blocked_box.childNodes.forEach(child => { childs.push(child); });
+        for (let i = 0; i < childs.length; ++i)
+            childs[i].remove();
+    }
+    load_boxes() {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            let blocked_users = yield get_blocked_users();
+            if (blocked_users instanceof Error)
+                return;
+            let free_users = user === null || user === void 0 ? void 0 : user.get_free_users();
+            if (free_users === undefined)
+                return;
+            this.blocked_users = blocked_users;
+            this.free_users = free_users;
+            this.blocked_users.forEach(blocked_user => {
+                let new_li = document.createElement('li');
+                new_li.textContent = blocked_user;
+                this.blocked_box.appendChild(new_li);
+            });
+            (_a = this.free_users) === null || _a === void 0 ? void 0 : _a.forEach(free_user => {
+                if ((this.blocked_users instanceof Error) === true
+                    || this.blocked_users.includes(free_user) === false)
+                    return;
+                let new_li = document.createElement('li');
+                new_li.textContent = free_user;
+                this.free_box.appendChild(new_li);
+            });
+        });
+    }
+    add_user(username) {
+        if (!(this.blocked_users instanceof Error)
+            && this.blocked_users.includes(username))
+            return;
+        if (this.free_users.includes(username) === false) {
+            this.free_users.push(username);
+            let new_li = document.createElement('li');
+            new_li.textContent = username;
+            this.free_box.appendChild(new_li);
+        }
+    }
+}
+sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions()];
 /* --------- */
 /* Utils */
 function get_section_index(type) {
@@ -394,6 +490,7 @@ function deactivate(list) {
 }
 function update_friends_status(username, online) {
     var _a;
+    add_online(username);
     if (section_index == get_section_index('friends')
         && ((_a = sections[section_index].anotherUser) === null || _a === void 0 ? void 0 : _a.username) === username) {
         sections[section_index].update_status(online);
