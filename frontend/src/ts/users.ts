@@ -104,8 +104,10 @@ class User {
 }
 
 function add_online(username : string) {
-    if (user?.onlines.includes(username) === false)
-        user?.onlines.push(username);
+    if (!(user?.onlines.includes(username) === false && user?.name !== username))
+        return;
+
+    user?.onlines.push(username);
     if (sections[section_index].type === 'actions')
         (sections[section_index] as Actions).add_user(username);
 }

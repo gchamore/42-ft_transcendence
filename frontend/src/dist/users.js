@@ -83,8 +83,9 @@ class User {
     }
 }
 function add_online(username) {
-    if ((user === null || user === void 0 ? void 0 : user.onlines.includes(username)) === false)
-        user === null || user === void 0 ? void 0 : user.onlines.push(username);
+    if (!((user === null || user === void 0 ? void 0 : user.onlines.includes(username)) === false && (user === null || user === void 0 ? void 0 : user.name) !== username))
+        return;
+    user === null || user === void 0 ? void 0 : user.onlines.push(username);
     if (sections[section_index].type === 'actions')
         sections[section_index].add_user(username);
 }
