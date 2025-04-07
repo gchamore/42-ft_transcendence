@@ -10,6 +10,7 @@ const fastify = require("fastify")({
 // Import des dépendances essentielles
 const initializeDatabase = require("./db/schema");
 const WebSocket = require('@fastify/websocket');
+const redis = require('./redis/redisClient');
 
 // ====== Initialisation des services ======
 // Configurer WebSocket
@@ -79,21 +80,38 @@ fastify.register(require('./routes/ws.routes'));
 fastify.register(require('./routes/oauth.routes'));
 
 // ====== Gestion de l'arrêt propre ======
+const wsUtils = require('./ws/ws.utils');
+
 const cleanup = async (signal) => {
-    console.log(`\n${signal} received. Cleaning up...`);
-    try {
-        // Utiliser la fonction utilitaire pour fermer toutes les connexions WebSocket
-        const wsUtils = require('./ws/ws.utils');
-        await wsUtils.closeAllWebSockets(fastify, 1000, "Server shutting down");
-        
-        await fastify.close();
-        fastify.db?.close();
-        process.exit(0);
-    } catch (error) {
-        console.error('Cleanup error:', error);
+	console.log(`\n${signal} received. Cleaning up...`);
+
+	try {
+		// Petite pause pour laisser le temps aux signaux en attente de se propager
+		await new Promise(res => setTimeout(res, 200));
+
+		// Fermeture des WebSockets
+		await wsUtils.closeAllWebSockets(fastify, 1001, "Server shutting down");
+
+		// Fermeture du serveur Fastify
+		await fastify.close();
+
+        // Fermeture SQLite
+        if (fastify.db?.close) {
+            fastify.db.close(); // SQLite est sync
+        }
+	
+        // Fermeture Redis
+		if (redis && redis.status !== 'end') {
+			await redis.quit();
+		}
+
+
+	} catch (error) {
+		console.error('❌ Cleanup error:', error);
         process.exit(1);
     }
 };
+
 
 process.on('SIGTERM', () => cleanup('SIGTERM'));
 process.on('SIGINT', () => cleanup('SIGINT'));

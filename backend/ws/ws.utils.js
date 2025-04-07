@@ -1,5 +1,4 @@
-const Redis = require('ioredis');
-const redis = new Redis();
+const redis = require('../redis/redisClient');
 const authService = require('../jwt/services/auth.service');
 
 /**
@@ -270,6 +269,17 @@ async function handleDirectMessage(fastify, senderId, recipientUsername, message
     const recipientUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(recipientUsername);
     if (!recipientUser) {
         return { success: false, error: 'Recipient not found' };
+    }
+
+    // Vérifier si l'expéditeur est bloqué par le destinataire
+    const isBlocked = fastify.db.prepare(`
+        SELECT 1 FROM blocks 
+        WHERE (blocker_id = ? AND blocked_id = ?) 
+           OR (blocker_id = ? AND blocked_id = ?)
+    `).get(recipientUser.id, senderId, senderId, recipientUser.id);
+
+    if (isBlocked) {
+        return { success: false, error: 'Cannot send message due to block status' };
     }
 
     // Vérifier si le destinataire est connecté

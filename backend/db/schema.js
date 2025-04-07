@@ -50,6 +50,19 @@ function initializeDatabase(dbPath)
         )
     `).run();
 
+    // table blocks : blocker_id, blocked_id, date
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS blocks (
+            blocker_id INTEGER,
+            blocked_id INTEGER,
+            date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (blocker_id, blocked_id),
+            FOREIGN KEY (blocker_id) REFERENCES users(id),
+            FOREIGN KEY (blocked_id) REFERENCES users(id),
+            CHECK (blocker_id != blocked_id)
+        )
+    `).run();
+
     return db;
 }
 
