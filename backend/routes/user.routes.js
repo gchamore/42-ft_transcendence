@@ -151,6 +151,95 @@ async function routes(fastify, options) {
             return reply.code(500).send({ error: "Failed to search user" });
         }
     });
+
+    fastify.post("/block/:username", async (request, reply) => {
+        const blockedUsername = request.params.username;
+        const blockerId = request.user.userId;
+
+        try {
+            // Vérifier si l'utilisateur à bloquer existe
+            const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(blockedUsername);
+            if (!blockedUser) {
+                return reply.code(404).send({ error: "User not found" });
+            }
+
+            // Vérifier si le blocage existe déjà
+            const existingBlock = db.prepare(
+                "SELECT * FROM blocks WHERE blocker_id = ? AND blocked_id = ?"
+            ).get(blockerId, blockedUser.id);
+
+            if (existingBlock) {
+                return reply.code(400).send({ error: "User already blocked" });
+            }
+
+            // Ajouter le blocage
+            db.prepare(
+                "INSERT INTO blocks (blocker_id, blocked_id) VALUES (?, ?)"
+            ).run(blockerId, blockedUser.id);
+
+            // Si les utilisateurs sont amis, supprimer l'amitié
+            db.prepare(
+                "DELETE FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)"
+            ).run(blockerId, blockedUser.id, blockedUser.id, blockerId);
+
+            return { success: true, message: "User blocked successfully" };
+
+        } catch (error) {
+            fastify.log.error(error);
+            return reply.code(500).send({ error: "Failed to block user" });
+        }
+    });
+
+    fastify.delete("/unblock/:username", async (request, reply) => {
+        const blockedUsername = request.params.username;
+        const blockerId = request.user.userId;
+
+        try {
+            // Vérifier si l'utilisateur existe
+            const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(blockedUsername);
+            if (!blockedUser) {
+                return reply.code(404).send({ error: "User not found" });
+            }
+
+            // Supprimer le blocage
+            const result = db.prepare(
+                "DELETE FROM blocks WHERE blocker_id = ? AND blocked_id = ?"
+            ).run(blockerId, blockedUser.id);
+
+            if (result.changes === 0) {
+                return reply.code(404).send({ error: "Block not found" });
+            }
+
+            return { success: true, message: "User unblocked successfully" };
+
+        } catch (error) {
+            fastify.log.error(error);
+            return reply.code(500).send({ error: "Failed to unblock user" });
+        }
+    });
+
+    fastify.get("/blocked", async (request, reply) => {
+        const userId = request.user.userId;
+
+        try {
+            const blockedUsers = db.prepare(`
+                SELECT u.username, strftime('%d-%m-%Y', b.date) as blocked_since
+                FROM blocks b
+                JOIN users u ON u.id = b.blocked_id
+                WHERE b.blocker_id = ?
+                ORDER BY b.date DESC
+            `).all(userId);
+
+            return { 
+                success: true, 
+                blockedUsers: blockedUsers 
+            };
+
+        } catch (error) {
+            fastify.log.error(error);
+            return reply.code(500).send({ error: "Failed to fetch blocked users" });
+        }
+    });
 }
 
 module.exports = routes;

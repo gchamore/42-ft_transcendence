@@ -271,6 +271,17 @@ async function handleDirectMessage(fastify, senderId, recipientUsername, message
         return { success: false, error: 'Recipient not found' };
     }
 
+    // Vérifier si l'expéditeur est bloqué par le destinataire
+    const isBlocked = fastify.db.prepare(`
+        SELECT 1 FROM blocks 
+        WHERE (blocker_id = ? AND blocked_id = ?) 
+           OR (blocker_id = ? AND blocked_id = ?)
+    `).get(recipientUser.id, senderId, senderId, recipientUser.id);
+
+    if (isBlocked) {
+        return { success: false, error: 'Cannot send message due to block status' };
+    }
+
     // Vérifier si le destinataire est connecté
     const isRecipientConnected = fastify.connections.has(recipientUser.id);
     if (!isRecipientConnected) {
