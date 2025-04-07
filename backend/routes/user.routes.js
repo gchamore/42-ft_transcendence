@@ -223,7 +223,7 @@ async function routes(fastify, options) {
 
         try {
             const blockedUsers = db.prepare(`
-                SELECT u.username, strftime('%d-%m-%Y', b.date) as blocked_since
+                SELECT u.username
                 FROM blocks b
                 JOIN users u ON u.id = b.blocked_id
                 WHERE b.blocker_id = ?
@@ -232,7 +232,7 @@ async function routes(fastify, options) {
 
             return { 
                 success: true, 
-                blockedUsers: blockedUsers 
+                blockedUsers: blockedUsers.map(u => u.username) 
             };
 
         } catch (error) {
