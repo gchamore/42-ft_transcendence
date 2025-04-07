@@ -398,7 +398,7 @@ class Actions extends ASection {
 
 		this.btn1.textContent = 'Back';
 		this.btn2.textContent = 'Invite';
-		this.btn3.textContent = 'Block';
+		this.btn3.classList.add('hidden');
 
 		this.load_boxes();
 		this.activate_section();
