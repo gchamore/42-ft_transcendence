@@ -366,8 +366,12 @@ export class GameInstance {
 					// Calculate hit position along the paddle (0 = top, 1 = bottom)
 					const hitPoint = (ball.y - paddle.y) / paddle.height;
 
-					// Set Y velocity based on where the ball hit the paddle
-					ball.speedY = (hitPoint - 0.5) * currentSpeed * 2;
+					const rawAngle = (hitPoint - 0.5) * Math.PI / 2;
+					const constrainedAngle = Math.max(GameConfig.MIN_ANGLE, Math.min(GameConfig.MAX_ANGLE, rawAngle));
+
+					const speedMagnitude = Math.sqrt(ball.speedX * ball.speedX + ball.speedY * ball.speedY);
+					ball.speedY = Math.sin(constrainedAngle) * speedMagnitude;
+					ball.speedX = Math.sign(ball.speedX) * Math.abs(Math.cos(constrainedAngle) * speedMagnitude);
 
 					// Ensure the ball is outside the paddle
 					if (playerNumber === 1) {

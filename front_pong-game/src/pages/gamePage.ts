@@ -88,7 +88,7 @@ export class Game {
 				this.ball,
 				() => {
 					console.log("3D scene loading complete");
-					this.isLoading = false; // Update loading state
+					this.isLoading = false;
 				}
 			);
 
@@ -198,7 +198,6 @@ export class Game {
 			}
 			setTimeout(() => {
 				this.stopGame();
-				// Option: Redirect to home page
 				window.location.href = "/";
 			}, 3000);
 		};

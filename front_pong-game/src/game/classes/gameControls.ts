@@ -2,6 +2,7 @@ import { Paddle } from './paddle';
 import { Ball } from './ball';
 import { PaddleInput, ServerPaddleState } from '../../types/gameTypes';
 import { BabylonManager } from '../managers/babylonManager';
+import { GameConfig } from "../../../../shared/config/gameConfig.js";
 
 export class GameControls {
 	localPaddle: Paddle;
@@ -16,7 +17,9 @@ export class GameControls {
 	private remotePaddleBuffer: { time: number; position: number; height: number }[] = [];
 	private paddleInterpolationDelay: number = 100;
 	private ballPositionBuffer: { time: number; position: { x: number, y: number}; speedX: number; speedY: number }[] = [];
-	private ballInterpolationDelay: number = 50;
+	private ballInterpolationDelay: number = 100;
+	private networkMeasurements: number[] = [];
+	private avgPacketInterval: number = 1000 / GameConfig.BROADCAST_RATE;
 
 	private babylonManager: BabylonManager;
 
@@ -299,78 +302,149 @@ export class GameControls {
 
 	public storeBallPosition(serverBall: { x: number, y: number, speedX: number, speedY: number, radius?: number }): void {
 		const now = performance.now();
+
+		// Measure time between server updates
+		if (this.ballPositionBuffer.length > 0) {
+			const lastUpdate = this.ballPositionBuffer[this.ballPositionBuffer.length - 1].time;
+			const interval = now - lastUpdate;
+
+			// Store measurements (up to 20 recent values)
+			this.networkMeasurements.push(interval);
+			if (this.networkMeasurements.length > 20) {
+				this.networkMeasurements.shift();
+			}
+
+			// Recalculate average packet interval
+			if (this.networkMeasurements.length >= 5) {
+				this.avgPacketInterval = this.networkMeasurements.reduce((sum, val) => sum + val, 0) /
+					this.networkMeasurements.length;
+
+				// Adjust interpolation delay (1.5-2.5x average interval works well)
+				// Lower for faster response, higher for smoother movement
+				this.ballInterpolationDelay = Math.min(
+					Math.max(this.avgPacketInterval * 2, 50), // Min 50ms
+					150 // Max 150ms
+				);
+			}
+		}
+
+		// Push new position to buffer
 		this.ballPositionBuffer.push({
 			time: now,
 			position: { x: serverBall.x, y: serverBall.y },
 			speedX: serverBall.speedX,
 			speedY: serverBall.speedY,
 		});
-		while (this.ballPositionBuffer.length > 10) {
-			this.ballPositionBuffer.shift();
+
+		// Keep buffer time-ordered
+		this.ballPositionBuffer.sort((a, b) => a.time - b.time);
+
+		// Dynamic buffer size based on network conditions
+		const bufferTimeWindow = Math.max(500, this.avgPacketInterval * 5);
+		const maxBufferSize = Math.max(10, Math.ceil(bufferTimeWindow / this.avgPacketInterval));
+
+		if (this.ballPositionBuffer.length > maxBufferSize) {
+			this.ballPositionBuffer = this.ballPositionBuffer.slice(-maxBufferSize);
 		}
 	}
 
 	private updateBallPosition(): void {
 		const now = performance.now();
-
 		// Return if the buffer is empty or has only one entry
-		if (this.ballPositionBuffer.length < 2) {
-			return;
-		}
-
-		// Clean old positions from the buffer
-		while (this.ballPositionBuffer.length > 2 &&
-			now > this.ballPositionBuffer[1].time + this.ballInterpolationDelay) {
-			this.ballPositionBuffer.shift();
-		}
+		if (this.ballPositionBuffer.length < 2) return;
 
 		// Get the two positions to interpolate between
 		const targetTime = now - this.ballInterpolationDelay;
 
-		// Find the two buffer entries surrounding our target time
-		let prev = this.ballPositionBuffer[0];
-		let next = this.ballPositionBuffer[1];
+		// Find the best pair of points for interpolation
+		let prev = null;
+		let next = null;
 
-		// If we're still interpolating between these points
-		if (targetTime <= next.time && targetTime >= prev.time) {
-			// Calculate how far we are between the two positions (0 to 1)
+		// Find the closest surrounding points
+		for (let i = 0; i < this.ballPositionBuffer.length - 1; i++) {
+			if (targetTime >= this.ballPositionBuffer[i].time &&
+				targetTime <= this.ballPositionBuffer[i + 1].time) {
+				prev = this.ballPositionBuffer[i];
+				next = this.ballPositionBuffer[i + 1];
+				break;
+			}
+		}
+
+		// If we found appropriate interpolation points
+		if (prev && next) {
+			// Calculate interpolation factor
 			const timeFactor = (targetTime - prev.time) / (next.time - prev.time);
-
-			// Use a smoothing function for interpolation
 			const t = this.cubicEaseInOut(timeFactor);
 
-			// Linear interpolation between actual positions 
+			// Linear interpolation
 			this.ball.x = prev.position.x * (1 - t) + next.position.x * t;
 			this.ball.y = prev.position.y * (1 - t) + next.position.y * t;
-			return;
+
 		}
-		// If we're past the next position in our buffer
-		else if (targetTime > next.time) {
-			// Look ahead in the buffer if there are more positions
-			for (let i = 1; i < this.ballPositionBuffer.length - 1; i++) {
-				if (targetTime <= this.ballPositionBuffer[i + 1].time &&
-					targetTime >= this.ballPositionBuffer[i].time) {
-					prev = this.ballPositionBuffer[i];
-					next = this.ballPositionBuffer[i + 1];
-
-					const timeFactor = (targetTime - prev.time) / (next.time - prev.time);
-					const t = this.cubicEaseInOut(timeFactor);
-
-					this.ball.x  = prev.position.x * (1 - t) + next.position.x * t;
-					this.ball.y = prev.position.y * (1 - t) + next.position.y * t;
-					return;
-				}
-			}
-			// If we're past all buffer positions, use the latest + velocity projection
-			if (this.ballPositionBuffer.length > 0) {
+		// Use extrapolation for the latest data
+		else {
+			if (this.ballPositionBuffer.length >= 2) {
 				const latest = this.ballPositionBuffer[this.ballPositionBuffer.length - 1];
+				const previousToLatest = this.ballPositionBuffer.length > 2 ?
+					this.ballPositionBuffer[this.ballPositionBuffer.length - 2] : null;
+
+				// Calculate time elapsed since the latest point
 				const timeElapsed = (now - latest.time) / 1000;
 
-				// Use velocity to predict current position
-				this.ball.x = latest.position.x + latest.speedX * timeElapsed;
-				this.ball.y = latest.position.y + latest.speedY * timeElapsed;
+				// Limit extrapolation to reasonable time (to prevent extreme positions)
+				const safeTimeElapsed = Math.min(timeElapsed, 0.1);
+
+				// Check if we're likely near a collision point (wall or paddle)
+				const isNearWall = this.isNearBoundary(latest.position.x, latest.position.y);
+
+				if (isNearWall && previousToLatest) {
+					// Near collision - be conservative with extrapolation 
+					// Reduce extrapolation time when near boundaries
+					const reducedTimeElapsed = safeTimeElapsed * 0.5;
+
+					// Use a blend of positions to smooth the transition
+					this.ball.x = latest.position.x + latest.speedX * reducedTimeElapsed;
+					this.ball.y = latest.position.y + latest.speedY * reducedTimeElapsed;
+				} else {
+					// Normal extrapolation - not near collision surfaces
+					this.ball.x = latest.position.x + latest.speedX * safeTimeElapsed;
+					this.ball.y = latest.position.y + latest.speedY * safeTimeElapsed;
+				}
+			}
+			// Fall back to the latest position if we can't extrapolate
+			else if (this.ballPositionBuffer.length > 0) {
+				const latest = this.ballPositionBuffer[this.ballPositionBuffer.length - 1];
+				this.ball.x = latest.position.x;
+				this.ball.y = latest.position.y;
 			}
 		}
+
+		// Periodically clean up (less frequently than each frame)
+		if (now % 1000 < 16) { // Clean once per second approximately
+			this.cleanupBuffer();
+		}
+	}
+
+	private isNearBoundary(x: number, y: number): boolean {
+		const ballRadius = this.ball.radius;
+		const canvasWidth = GameConfig.CANVAS_WIDTH;
+		const canvasHeight = GameConfig.CANVAS_HEIGHT;
+		const leftPaddle = this.playerNumber === 1 ? this.localPaddle : this.remotePaddle;
+		const rightPaddle = this.playerNumber === 1 ? this.remotePaddle : this.localPaddle;
+    
+
+		const nearTopWall = y - ballRadius < 20;
+		const nearBottomWall = y + ballRadius > canvasHeight - 20;
+		const nearLeftPaddle = x - ballRadius < leftPaddle.width + 20 && Math.abs(y - leftPaddle.y) < leftPaddle.height / 2 + 20;
+		const nearRightPaddle = x + ballRadius > canvasWidth - rightPaddle.width - 20 && Math.abs(y - rightPaddle.y) < rightPaddle.height / 2 + 20;
+		return nearTopWall || nearBottomWall || nearLeftPaddle || nearRightPaddle;
+	}
+
+	private cleanupBuffer(): void {
+		const maxAgeMs = 1000; // Keep positions from last second
+		const now = performance.now();
+		this.ballPositionBuffer = this.ballPositionBuffer.filter(point =>
+			now - point.time < maxAgeMs);
 	}
 
 
