@@ -233,3 +233,33 @@ async function send(message : string, type : string, to : string = '') : Promise
 
 	return false;
 }
+
+async function get_blocked_users() : Promise<Array<string> | Error> {
+	try {
+        const response = await fetch(`/api/blocked_users`, {
+            method: "GET",
+			credentials: 'include'
+		});
+		const data = await response.json();
+
+		if (response.status === 401) {
+            console.error("Unauthorized!");
+
+			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+				user.web_socket.close(1000);
+			update_user(undefined);
+            return new Error();
+        }
+
+		if (!response.ok) {
+			console.error(`/api/blocked_users failed:`, data.error);
+			return new Error();
+		}
+
+		return data.blocked_users;
+    } catch (error) {
+		console.error(`/api/blocked_users error:`, error);
+	}
+
+	return new Error();
+}

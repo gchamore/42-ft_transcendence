@@ -223,3 +223,30 @@ function send(message_1, type_1) {
         return false;
     });
 }
+function get_blocked_users() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const response = yield fetch(`/api/blocked_users`, {
+                method: "GET",
+                credentials: 'include'
+            });
+            const data = yield response.json();
+            if (response.status === 401) {
+                console.error("Unauthorized!");
+                if ((user === null || user === void 0 ? void 0 : user.web_socket) && (user === null || user === void 0 ? void 0 : user.web_socket.readyState) === WebSocket.OPEN)
+                    user.web_socket.close(1000);
+                update_user(undefined);
+                return new Error();
+            }
+            if (!response.ok) {
+                console.error(`/api/blocked_users failed:`, data.error);
+                return new Error();
+            }
+            return data.blocked_users;
+        }
+        catch (error) {
+            console.error(`/api/blocked_users error:`, error);
+        }
+        return new Error();
+    });
+}
