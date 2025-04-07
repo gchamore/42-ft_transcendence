@@ -362,6 +362,7 @@ class Actions extends ASection {
         this.btn3 = document.getElementById('actions-btn3');
         this.blocked_users = [];
         this.free_users = [];
+        this.current = undefined;
     }
     /* Methods */
     enter(verified) {
@@ -404,7 +405,6 @@ class Actions extends ASection {
     }
     load_boxes() {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
             let blocked_users = yield get_blocked_users();
             if (blocked_users instanceof Error)
                 return;
@@ -415,14 +415,16 @@ class Actions extends ASection {
             this.free_users = free_users;
             this.blocked_users.forEach(blocked_user => {
                 let new_li = document.createElement('li');
+                new_li.onclick = () => this.click(new_li);
                 new_li.textContent = blocked_user;
                 this.blocked_box.appendChild(new_li);
             });
-            (_a = this.free_users) === null || _a === void 0 ? void 0 : _a.forEach(free_user => {
+            this.free_users.forEach(free_user => {
                 if ((this.blocked_users instanceof Error) === true
                     || this.blocked_users.includes(free_user) === false)
                     return;
                 let new_li = document.createElement('li');
+                new_li.onclick = () => this.click(new_li);
                 new_li.textContent = free_user;
                 this.free_box.appendChild(new_li);
             });
@@ -435,8 +437,29 @@ class Actions extends ASection {
         if (this.free_users.includes(username) === false) {
             this.free_users.push(username);
             let new_li = document.createElement('li');
+            new_li.onclick = () => this.click(new_li);
             new_li.textContent = username;
             this.free_box.appendChild(new_li);
+        }
+    }
+    click(element) {
+        var _a, _b, _c, _d, _e, _f;
+        if (((_a = this.current) === null || _a === void 0 ? void 0 : _a.textContent) === element.textContent) {
+            element.classList.remove('active');
+            this.current = undefined;
+        }
+        else {
+            element.classList.add('active');
+            (_b = this.current) === null || _b === void 0 ? void 0 : _b.classList.remove('active');
+            this.current = element;
+        }
+        if (this.current !== undefined) {
+            (_c = this.btn2.parentElement) === null || _c === void 0 ? void 0 : _c.classList.remove('hidden');
+            (_d = this.btn3.parentElement) === null || _d === void 0 ? void 0 : _d.classList.remove('hidden');
+        }
+        else {
+            (_e = this.btn2.parentElement) === null || _e === void 0 ? void 0 : _e.classList.add('hidden');
+            (_f = this.btn3.parentElement) === null || _f === void 0 ? void 0 : _f.classList.add('hidden');
         }
     }
 }
@@ -490,7 +513,8 @@ function deactivate(list) {
 }
 function update_friends_status(username, online) {
     var _a;
-    add_online(username);
+    if (online)
+        add_online(username);
     if (section_index == get_section_index('friends')
         && ((_a = sections[section_index].anotherUser) === null || _a === void 0 ? void 0 : _a.username) === username) {
         sections[section_index].update_status(online);

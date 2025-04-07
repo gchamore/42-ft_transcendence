@@ -99,7 +99,7 @@
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-    width: 140px
+    width: 140px;
 }
 
 #boxes div label {
@@ -111,6 +111,30 @@
     border: 3px solid rgb(0, 0, 0);
     border-radius: 12px;
     flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 5px;
+    height: 260px;
+    overflow-y: auto;
+}
+
+ul.boxes li {
+    flex-shrink: 0;
+    text-align: center;
+    width: 90%;
+    height: 50px;
+    overflow: hidden;
+    border-radius: 5% / 20%;
+    transition: none;
+}
+ul.boxes li:hover {
+    background-color: rgb(156, 41, 46);
+    transform: none;
+}
+
+ul.boxes li.active {
+    background-color: rgb(58, 44, 204);
 }
 /* --------- */
 

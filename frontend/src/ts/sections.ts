@@ -387,6 +387,8 @@ class Actions extends ASection {
 	blocked_users : Array<string> = [];
 	free_users : Array<string> = [];
 
+	current : HTMLLIElement | undefined = undefined;
+
 	/* Methods */
 	enter(verified: boolean) {
 		if (verified !== true) {
@@ -444,15 +446,17 @@ class Actions extends ASection {
 
 		this.blocked_users.forEach(blocked_user => {
 			let new_li = document.createElement('li');
+			new_li.onclick = () => this.click(new_li);
 			new_li.textContent = blocked_user;
 			this.blocked_box.appendChild(new_li);
 		});
 
-		this.free_users?.forEach(free_user => {
+		this.free_users.forEach(free_user => {
 			if ((this.blocked_users instanceof Error) === true
 				|| this.blocked_users.includes(free_user) === false)
 				return;
 			let new_li = document.createElement('li');
+			new_li.onclick = () => this.click(new_li);
 			new_li.textContent = free_user;
 			this.free_box.appendChild(new_li);
 		});
@@ -465,8 +469,28 @@ class Actions extends ASection {
 		if (this.free_users.includes(username) === false) {
 			this.free_users.push(username);
 			let new_li = document.createElement('li');
+			new_li.onclick = () => this.click(new_li);
 			new_li.textContent = username;
 			this.free_box.appendChild(new_li);
+		}
+	}
+	click(element : HTMLLIElement) {
+		if (this.current?.textContent === element.textContent) {
+			element.classList.remove('active');
+			this.current = undefined;
+		}
+		else {
+			element.classList.add('active');
+			this.current?.classList.remove('active');
+			this.current = element;
+		}
+		if (this.current !== undefined) {
+			this.btn2.parentElement?.classList.remove('hidden');
+			this.btn3.parentElement?.classList.remove('hidden');
+		}
+		else {
+			this.btn2.parentElement?.classList.add('hidden');
+			this.btn3.parentElement?.classList.add('hidden');
 		}
 	}
 }
@@ -529,7 +553,8 @@ function deactivate(list : NodeListOf<Element>): void {
 }
 
 function update_friends_status(username : string, online : boolean) {
-	add_online(username);
+	if (online)
+		add_online(username);
 	if (section_index == get_section_index('friends')
 		&& (sections[section_index] as Friends).anotherUser?.username === username) {
 		(sections[section_index] as Friends).update_status(online);
