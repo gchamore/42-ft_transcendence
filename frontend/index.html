@@ -280,6 +280,53 @@
 			cursor: pointer;
 			margin-left: 0.5rem;
 		}
+
+		/* Styles pour le modal 2FA */
+		.modal {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.7);
+			z-index: 1000;
+		}
+
+		.modal-content {
+			background-color: #1e1e1e;
+			margin: 15% auto;
+			padding: 20px;
+			border-radius: 8px;
+			width: 80%;
+			max-width: 500px;
+			position: relative;
+		}
+
+		.qr-code {
+			display: block;
+			margin: 20px auto;
+			max-width: 200px;
+		}
+
+		.close-modal {
+			position: absolute;
+			right: 10px;
+			top: 10px;
+			font-size: 24px;
+			cursor: pointer;
+			color: #aaa;
+		}
+
+		.close-modal:hover {
+			color: #fff;
+		}
+
+		.verification-input {
+			width: 200px;
+			margin: 10px auto;
+			display: block;
+		}
 	</style>
 </head>
 
@@ -309,6 +356,20 @@
 
 		<div id="welcome" class="hidden">
 			<h2>Welcome, <span id="username"></span>!</h2>
+			<!-- Ajouter le bouton 2FA juste après le titre -->
+			<button id="twofa-btn" style="margin: 1rem 0;">Activate 2FA</button>
+
+			<!-- Modal pour la configuration 2FA -->
+			<div id="twofa-modal" class="modal">
+				<div class="modal-content">
+					<span class="close-modal">&times;</span>
+					<h3>2FA Configuration</h3>
+					<p>Scan this QR code with your authenticator app:</p>
+					<img id="qr-code" class="qr-code" src="" alt="QR Code">
+					<input type="text" id="verification-code" class="verification-input" placeholder="Enter verification code">
+					<button id="verify-2fa-btn">Verify</button>
+				</div>
+			</div>
 
 			<!-- Ajouter le chat ici -->
 			<div class="chat-container">
@@ -835,6 +896,8 @@
 			setTimeout(() => {
 				connectWebSocket();
 			}, 500);
+
+			check2FAStatus(); // Ajouter cette ligne
 		}
 
 		// Chat functionality
@@ -1154,7 +1217,7 @@
 				const userElements = searchResult.querySelectorAll('.friend-item');
 				userElements.forEach(element => {
 					const username = element.dataset.username;
-					const isOnline = users.includes(username);
+					const isOnline = users[username] === true;
 					const statusBadge = element.querySelector('.status-badge');
 					if (statusBadge) {
 						statusBadge.textContent = isOnline ? 'Online' : 'Offline';
@@ -1167,16 +1230,12 @@
 		// Mise à jour de la fonction updateUserStatus pour vérifier la liste des utilisateurs en ligne
 		function updateUserStatus(data) {
 			// Mettre à jour le stockage local des utilisateurs en ligne
-			const onlineUsers = JSON.parse(sessionStorage.getItem('onlineUsers') || '[]');
+			const onlineUsers = JSON.parse(sessionStorage.getItem('onlineUsers') || '{}');
+			
 			if (data.online) {
-				if (!onlineUsers.includes(data.username)) {
-					onlineUsers.push(data.username);
-				}
+				onlineUsers[data.username] = true;
 			} else {
-				const index = onlineUsers.indexOf(data.username);
-				if (index > -1) {
-					onlineUsers.splice(index, 1);
-				}
+				delete onlineUsers[data.username];
 			}
 			sessionStorage.setItem('onlineUsers', JSON.stringify(onlineUsers));
 
@@ -1267,6 +1326,115 @@
 			// Auto scroll to bottom
 			chatMessages.scrollTop = chatMessages.scrollHeight;
 		}
+
+		// Fonction pour vérifier le statut 2FA
+		async function check2FAStatus() {
+			try {
+				const response = await fetch(`${API_URL}/2fa/status`, {
+					credentials: 'include'
+				});
+				const data = await response.json();
+				const twofaBtn = document.getElementById('twofa-btn');
+				
+				if (data.enabled) {
+					twofaBtn.textContent = 'Disable 2FA';
+					twofaBtn.setAttribute('data-status', 'enabled');
+				} else {
+					twofaBtn.textContent = 'Activate 2FA';
+					twofaBtn.setAttribute('data-status', 'disabled');
+				}
+			} catch (error) {
+				console.error('Failed to check 2FA status:', error);
+			}
+		}
+
+		// Gestionnaire du modal 2FA
+		const twofaModal = document.getElementById('twofa-modal');
+		const closeModal = document.querySelector('.close-modal');
+		let currentSecret = null;
+
+		closeModal.onclick = () => {
+			twofaModal.style.display = 'none';
+		};
+
+		window.onclick = (event) => {
+			if (event.target === twofaModal) {
+				twofaModal.style.display = 'none';
+			}
+		};
+
+		// Gestionnaire du bouton 2FA
+		document.getElementById('twofa-btn').addEventListener('click', async () => {
+			const btn = document.getElementById('twofa-btn');
+			const status = btn.getAttribute('data-status');
+
+			if (status === 'enabled') {
+				// Désactiver 2FA
+				try {
+					const response = await fetch(`${API_URL}/2fa/disable`, {
+						method: 'POST',
+						credentials: 'include'
+					});
+					const data = await response.json();
+					if (data.success) {
+						showMessage('2FA disabled successfully', false);
+						btn.textContent = 'Activate 2FA';
+						btn.setAttribute('data-status', 'disabled');
+					}
+				} catch (error) {
+					showMessage('Failed to disable 2FA', true);
+				}
+			} else {
+				// Activer 2FA
+				try {
+					const response = await fetch(`${API_URL}/2fa/setup`, {
+						method: 'POST',
+						credentials: 'include'
+					});
+					const data = await response.json();
+					
+					document.getElementById('qr-code').src = data.qrCode;
+					currentSecret = data.secret;
+					twofaModal.style.display = 'block';
+				} catch (error) {
+					showMessage('Failed to setup 2FA', true);
+				}
+			}
+		});
+
+		// Gestionnaire de vérification 2FA
+		document.getElementById('verify-2fa-btn').addEventListener('click', async () => {
+			const code = document.getElementById('verification-code').value;
+			if (!code) {
+				showMessage('Please enter verification code', true);
+				return;
+			}
+
+			try {
+				const response = await fetch(`${API_URL}/2fa/activate`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({
+						secret: currentSecret,
+						token: code
+					})
+				});
+
+				const data = await response.json();
+				if (data.success) {
+					showMessage('2FA activated successfully', false);
+					twofaModal.style.display = 'none';
+					document.getElementById('twofa-btn').textContent = 'Disable 2FA';
+					document.getElementById('twofa-btn').setAttribute('data-status', 'enabled');
+					document.getElementById('verification-code').value = '';
+				} else {
+					showMessage('Invalid verification code', true);
+				}
+			} catch (error) {
+				showMessage('Failed to verify 2FA code', true);
+			}
+		});
 	</script>
 </body>
 
