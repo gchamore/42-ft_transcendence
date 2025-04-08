@@ -319,7 +319,7 @@ async function getOnlineUsers(fastify) {
 		if (user) onlineUsersMap[user.username] = true;
 	});
 
-	return onlineUsers;
+	return onlineUsersMap;
 }
 
 /**
