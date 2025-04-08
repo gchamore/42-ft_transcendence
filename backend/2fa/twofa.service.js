@@ -6,7 +6,7 @@ class TwofaService {
 		return jwt.sign(
 			{ userId, is2FATemp: true },
 			JWT_2FA_SECRET,
-			{ expiresIn: "5m" } // courte durée de vie
+			{ expiresIn: "5m" }
 		);
 	}
 	

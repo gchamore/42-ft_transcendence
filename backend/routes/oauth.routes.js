@@ -8,6 +8,7 @@ const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_REDIRECT_URI
 );
 
+/*** 📌 Route: google/token ***/
 async function routes(fastify, options) {
     fastify.post('/auth/google/token', async (request, reply) => {
         try {

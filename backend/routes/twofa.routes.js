@@ -5,7 +5,7 @@ const TwofaService = require('../2fa/twofa.service');
 
 async function routes(fastify, options) {
     const { db } = fastify;
-
+	/*** 📌 Route: 2fa/setup ***/
 	fastify.post("/2fa/setup", async (request, reply) => {
 		const userId = request.user.userId; // Changer request.user.id en request.user.userId
 		const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -22,7 +22,7 @@ async function routes(fastify, options) {
 			secret: secret.base32
 		});
 	});
-	
+	/*** 📌 Route: 2fa/activate ***/
 	fastify.post("/2fa/activate", async (request, reply) => {
 		const { secret, token } = request.body;
 		const userId = request.user.userId; // Changer request.user.id en request.user.userId
@@ -40,7 +40,7 @@ async function routes(fastify, options) {
 	
 		return reply.send({ success: true, message: "2FA activated" });
 	});
-	
+	/*** 📌 Route: 2fa/verify ***/
 	fastify.post("/2fa/verify", async (request, reply) => {
 		const { token: twofaCode, temp_token } = request.body;
 		const payload = await TwofaService.verifyTemp2FAToken(temp_token);
@@ -80,14 +80,14 @@ async function routes(fastify, options) {
 				id: user.id
 			});
 	});
-	
+	/*** 📌 Route: 2fa/disable ***/
 	fastify.post("/2fa/disable", async (request, reply) => {
 		const userId = request.user.userId; // Changer request.user.id en request.user.userId
 		db.prepare("UPDATE users SET twofa_secret = NULL WHERE id = ?").run(userId);
 		return reply.send({ success: true, message: "2FA disabled" });
 	});
 
-    // Route pour vérifier le statut 2FA
+    /*** 📌 Route: 2fa/status ***/
     fastify.get("/2fa/status", async (request, reply) => {
         const userId = request.user.userId;
         const user = db.prepare("SELECT twofa_secret FROM users WHERE id = ?").get(userId);

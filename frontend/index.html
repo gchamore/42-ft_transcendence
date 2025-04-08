@@ -352,6 +352,17 @@
 
 			<button id="verify-token-btn" style="margin-top: 1rem;">Verify Token</button>
 			<button id="google-login-btn">Login with Google</button>
+
+			<!-- Ajouter le modal de vérification 2FA après les formulaires d'auth -->
+			<div id="verify-2fa-modal" class="modal">
+				<div class="modal-content">
+					<span class="close-modal">&times;</span>
+					<h3>2FA Verification Required</h3>
+					<p>Please enter your 2FA code:</p>
+					<input type="text" id="verify-2fa-code" class="verification-input" placeholder="Enter verification code">
+					<button id="submit-2fa-code">Verify</button>
+				</div>
+			</div>
 		</div>
 
 		<div id="welcome" class="hidden">
@@ -554,8 +565,22 @@
 				const data = await response.json();
 
 				if (response.ok) {
-					showMessage('Login successful!', false);
-					showWelcome(data.username);
+					if (data.step === "2fa_required") {
+						// Stocker le token temporaire et le nom d'utilisateur
+						sessionStorage.setItem('temp_2fa_token', data.temp_token);
+						sessionStorage.setItem('pending_username', username);
+
+						// Afficher le modal 2FA
+						const modal = document.getElementById('verify-2fa-modal');
+						modal.style.display = 'block';
+
+						// Focus sur le champ de code
+						document.getElementById('verify-2fa-code').focus();
+					} else {
+						// Login normal sans 2FA
+						showMessage('Login successful!', false);
+						showWelcome(data.username);
+					}
 				} else {
 					showMessage(data.error || 'Login failed', true);
 				}
@@ -564,6 +589,59 @@
 				console.error('Login error:', error);
 			}
 		});
+
+			// Ajouter le gestionnaire pour la vérification 2FA
+			document.getElementById('submit-2fa-code').addEventListener('click', async () => {
+				const code = document.getElementById('verify-2fa-code').value;
+				const temp_token = sessionStorage.getItem('temp_2fa_token');
+
+				if (!code || !temp_token) {
+					showMessage('Please enter verification code', true);
+					return;
+				}
+
+				try {
+					const response = await fetch(`${API_URL}/2fa/verify`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ token: code, temp_token }),
+						credentials: 'include'
+					});
+
+					const data = await response.json();
+
+					if (response.ok && data.success) {
+						// Nettoyer le stockage temporaire
+						sessionStorage.removeItem('temp_2fa_token');
+						const username = sessionStorage.getItem('pending_username');
+						sessionStorage.removeItem('pending_username');
+
+						// Fermer le modal
+						document.getElementById('verify-2fa-modal').style.display = 'none';
+
+						// Réinitialiser le champ
+						document.getElementById('verify-2fa-code').value = '';
+
+						// Rediriger vers l'accueil
+						showMessage('2FA verification successful!', false);
+						showWelcome(username);
+					} else {
+						showMessage(data.error || 'Invalid verification code', true);
+					}
+				} catch (error) {
+					showMessage('Server error during 2FA verification', true);
+					console.error('2FA verification error:', error);
+				}
+			});
+
+			// Ajouter le gestionnaire pour fermer le modal 2FA
+			document.querySelector('#verify-2fa-modal .close-modal').addEventListener('click', () => {
+				document.getElementById('verify-2fa-modal').style.display = 'none';
+				// Nettoyer le stockage et le champ
+				sessionStorage.removeItem('temp_2fa_token');
+				sessionStorage.removeItem('pending_username');
+				document.getElementById('verify-2fa-code').value = '';
+			});
 
 		// Fonction commune de vérification de token
 		async function verifyToken() {

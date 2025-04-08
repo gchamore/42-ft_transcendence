@@ -51,7 +51,8 @@ const publicRoutes = [
     '/register',
     '/refresh',
     '/verify_token',
-	'/auth/google/token'
+	'/auth/google/token',
+	'/2fa/verify'
 ];
 
 // Middleware d'authentification
