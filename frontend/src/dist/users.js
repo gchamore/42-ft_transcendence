@@ -50,8 +50,11 @@ class User {
             try {
                 const data = JSON.parse(event.data);
                 switch (data.type) {
+                    case 'onlines':
+                        this.init_status(data.users);
+                        break;
                     case 'status_update':
-                        update_friends_status(data.username, data.online);
+                        update_status(data.username, data.online);
                         break;
                     case 'livechat':
                         add_message(data.user, data.message, 'livechat');
@@ -81,13 +84,18 @@ class User {
         });
         return users;
     }
+    init_status(status) {
+        status.forEach((value, key) => {
+            if (value === true)
+                user === null || user === void 0 ? void 0 : user.onlines.push(key);
+        });
+    }
+    block(username) {
+        this.livechat = this.livechat.filter(item => item.username !== username);
+    }
 }
 function add_online(username) {
-    if (!((user === null || user === void 0 ? void 0 : user.onlines.includes(username)) === false && (user === null || user === void 0 ? void 0 : user.name) !== username))
-        return;
     user === null || user === void 0 ? void 0 : user.onlines.push(username);
-    if (sections[section_index].type === 'actions')
-        sections[section_index].add_user(username);
 }
 function update_user(new_user_value) {
     user = new_user_value;

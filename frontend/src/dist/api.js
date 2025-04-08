@@ -226,7 +226,7 @@ function send(message_1, type_1) {
 function get_blocked_users() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield fetch(`/api/blocked_users`, {
+            const response = yield fetch(`/api/blocked`, {
                 method: "GET",
                 credentials: 'include'
             });
@@ -236,17 +236,71 @@ function get_blocked_users() {
                 if ((user === null || user === void 0 ? void 0 : user.web_socket) && (user === null || user === void 0 ? void 0 : user.web_socket.readyState) === WebSocket.OPEN)
                     user.web_socket.close(1000);
                 update_user(undefined);
-                return new Error();
+                return undefined;
             }
             if (!response.ok) {
-                console.error(`/api/blocked_users failed:`, data.error);
-                return new Error();
+                console.error(`/api/blocked failed:`, data.error);
+                return undefined;
             }
-            return data.blocked_users;
+            return data.blockedUsers;
         }
         catch (error) {
-            console.error(`/api/blocked_users error:`, error);
+            console.error(`/api/blocked error:`, error);
         }
-        return new Error();
+        return undefined;
+    });
+}
+function block(username) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const response = yield fetch(`/api/block/${username}`, {
+                method: "POST",
+                credentials: 'include'
+            });
+            const data = yield response.json();
+            if (response.status === 401) {
+                console.error("Unauthorized!");
+                if ((user === null || user === void 0 ? void 0 : user.web_socket) && (user === null || user === void 0 ? void 0 : user.web_socket.readyState) === WebSocket.OPEN)
+                    user.web_socket.close(1000);
+                update_user(undefined);
+                return false;
+            }
+            if (!response.ok) {
+                console.error(`/api/block/${username} failed:`, data.error);
+                return false;
+            }
+            return data.success;
+        }
+        catch (error) {
+            console.error(`/api/block/${username} error:`, error);
+        }
+        return false;
+    });
+}
+function unblock(username) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const response = yield fetch(`/api/unblock/${username}`, {
+                method: "DELETE",
+                credentials: 'include'
+            });
+            const data = yield response.json();
+            if (response.status === 401) {
+                console.error("Unauthorized!");
+                if ((user === null || user === void 0 ? void 0 : user.web_socket) && (user === null || user === void 0 ? void 0 : user.web_socket.readyState) === WebSocket.OPEN)
+                    user.web_socket.close(1000);
+                update_user(undefined);
+                return false;
+            }
+            if (!response.ok) {
+                console.error(`/api/unblock/${username} failed:`, data.error);
+                return false;
+            }
+            return data.success;
+        }
+        catch (error) {
+            console.error(`/api/unblock/${username} error:`, error);
+        }
+        return false;
     });
 }

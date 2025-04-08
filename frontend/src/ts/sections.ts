@@ -432,10 +432,13 @@ class Actions extends ASection {
 		this.blocked_box.childNodes.forEach(child => { childs.push(child); });
 		for (let i = 0; i < childs.length; ++i)
 			childs[i].remove();
+
+		this.blocked_users = [];
+		this.free_users = [];
 	}
 	async load_boxes() {
-		let blocked_users : Array<string> | Error = await get_blocked_users();
-		if (blocked_users instanceof Error)
+		let blocked_users : Array<string> | undefined = await get_blocked_users();
+		if (blocked_users === undefined)
 			return;
 		let free_users : Array<string> | undefined = user?.get_free_users();
 		if (free_users === undefined)
@@ -487,15 +490,49 @@ class Actions extends ASection {
 		if (this.current !== undefined) {
 			this.btn2.parentElement?.classList.remove('hidden');
 			this.btn3.parentElement?.classList.remove('hidden');
+
+			if (this.btn2.parentElement?.id === 'free_box')
+				this.btn2.textContent = 'Block';
+			else
+				this.btn2.textContent = 'Unblock';
+			this.btn2.onclick = () => this.trigger(this.btn2.textContent);
+
+			// Here put the invite feature of the pong-game...
+			this.btn3.onclick = () => history.back();
+			this.btn3.textContent = 'Invite';
+			// ---
+
 		}
 		else {
 			this.btn2.parentElement?.classList.add('hidden');
 			this.btn3.parentElement?.classList.add('hidden');
+			this.btn2.onclick = () => history.back();
+			this.btn3.onclick = () => history.back();
+			this.btn2.textContent = '';
+			this.btn3.textContent = '';
+		}
+	}
+	async trigger(action : string | null) {
+		let username : string | undefined | null = this.current?.textContent;
+
+		if (action === null || username === undefined || username === null)
+			return;
+
+		if (action === 'Block' && await block(username) === true) {
+			user?.block(username);
+
+			this.clear_boxes();
+			this.load_boxes();
+		}
+		if (action === 'Unblock' && await unblock(username) === true) {
+			this.clear_boxes();
+			this.load_boxes();
 		}
 	}
 }
 sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions()];
 /* --------- */
+
 
 
 /* Utils */
@@ -552,12 +589,18 @@ function deactivate(list : NodeListOf<Element>): void {
 	});
 }
 
-function update_friends_status(username : string, online : boolean) {
+function update_status(username : string, online : boolean) {
+	if (section_index == get_section_index('friends')
+		&& (sections[section_index] as Friends).anotherUser?.username === username)
+		(sections[section_index] as Friends).update_status(online);
+
+	if (user?.onlines.includes(username) === true || user?.name === username)
+        return;
+
 	if (online)
 		add_online(username);
-	if (section_index == get_section_index('friends')
-		&& (sections[section_index] as Friends).anotherUser?.username === username) {
-		(sections[section_index] as Friends).update_status(online);
-	}
+
+	if (sections[section_index].type === 'actions')
+        (sections[section_index] as Actions).add_user(username);
 }
 /* --------- */

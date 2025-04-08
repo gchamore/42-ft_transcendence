@@ -402,11 +402,13 @@ class Actions extends ASection {
         this.blocked_box.childNodes.forEach(child => { childs.push(child); });
         for (let i = 0; i < childs.length; ++i)
             childs[i].remove();
+        this.blocked_users = [];
+        this.free_users = [];
     }
     load_boxes() {
         return __awaiter(this, void 0, void 0, function* () {
             let blocked_users = yield get_blocked_users();
-            if (blocked_users instanceof Error)
+            if (blocked_users === undefined)
                 return;
             let free_users = user === null || user === void 0 ? void 0 : user.get_free_users();
             if (free_users === undefined)
@@ -443,7 +445,7 @@ class Actions extends ASection {
         }
     }
     click(element) {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g;
         if (((_a = this.current) === null || _a === void 0 ? void 0 : _a.textContent) === element.textContent) {
             element.classList.remove('active');
             this.current = undefined;
@@ -456,11 +458,41 @@ class Actions extends ASection {
         if (this.current !== undefined) {
             (_c = this.btn2.parentElement) === null || _c === void 0 ? void 0 : _c.classList.remove('hidden');
             (_d = this.btn3.parentElement) === null || _d === void 0 ? void 0 : _d.classList.remove('hidden');
+            if (((_e = this.btn2.parentElement) === null || _e === void 0 ? void 0 : _e.id) === 'free_box')
+                this.btn2.textContent = 'Block';
+            else
+                this.btn2.textContent = 'Unblock';
+            this.btn2.onclick = () => this.trigger(this.btn2.textContent);
+            // Here put the invite feature of the pong-game...
+            this.btn3.onclick = () => history.back();
+            this.btn3.textContent = 'Invite';
+            // ---
         }
         else {
-            (_e = this.btn2.parentElement) === null || _e === void 0 ? void 0 : _e.classList.add('hidden');
-            (_f = this.btn3.parentElement) === null || _f === void 0 ? void 0 : _f.classList.add('hidden');
+            (_f = this.btn2.parentElement) === null || _f === void 0 ? void 0 : _f.classList.add('hidden');
+            (_g = this.btn3.parentElement) === null || _g === void 0 ? void 0 : _g.classList.add('hidden');
+            this.btn2.onclick = () => history.back();
+            this.btn3.onclick = () => history.back();
+            this.btn2.textContent = '';
+            this.btn3.textContent = '';
         }
+    }
+    trigger(action) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            let username = (_a = this.current) === null || _a === void 0 ? void 0 : _a.textContent;
+            if (action === null || username === undefined || username === null)
+                return;
+            if (action === 'Block' && (yield block(username)) === true) {
+                user === null || user === void 0 ? void 0 : user.block(username);
+                this.clear_boxes();
+                this.load_boxes();
+            }
+            if (action === 'Unblock' && (yield unblock(username)) === true) {
+                this.clear_boxes();
+                this.load_boxes();
+            }
+        });
     }
 }
 sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions()];
@@ -511,13 +543,16 @@ function deactivate(list) {
         element.classList.remove('active');
     });
 }
-function update_friends_status(username, online) {
+function update_status(username, online) {
     var _a;
+    if (section_index == get_section_index('friends')
+        && ((_a = sections[section_index].anotherUser) === null || _a === void 0 ? void 0 : _a.username) === username)
+        sections[section_index].update_status(online);
+    if ((user === null || user === void 0 ? void 0 : user.onlines.includes(username)) === true || (user === null || user === void 0 ? void 0 : user.name) === username)
+        return;
     if (online)
         add_online(username);
-    if (section_index == get_section_index('friends')
-        && ((_a = sections[section_index].anotherUser) === null || _a === void 0 ? void 0 : _a.username) === username) {
-        sections[section_index].update_status(online);
-    }
+    if (sections[section_index].type === 'actions')
+        sections[section_index].add_user(username);
 }
 /* --------- */
