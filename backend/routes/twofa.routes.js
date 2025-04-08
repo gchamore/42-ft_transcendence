@@ -7,7 +7,7 @@ async function routes(fastify, options) {
     const { db } = fastify;
 	/*** 📌 Route: 2fa/setup ***/
 	fastify.post("/2fa/setup", async (request, reply) => {
-		const userId = request.user.userId; // Changer request.user.id en request.user.userId
+		const userId = request.user.userId;
 		const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 		if (!user) return reply.code(404).send({ error: "User not found" });
 	
@@ -25,7 +25,7 @@ async function routes(fastify, options) {
 	/*** 📌 Route: 2fa/activate ***/
 	fastify.post("/2fa/activate", async (request, reply) => {
 		const { secret, token } = request.body;
-		const userId = request.user.userId; // Changer request.user.id en request.user.userId
+		const userId = request.user.userId;
 	
 		const isValid = speakeasy.totp.verify({
 			secret,
@@ -82,7 +82,7 @@ async function routes(fastify, options) {
 	});
 	/*** 📌 Route: 2fa/disable ***/
 	fastify.post("/2fa/disable", async (request, reply) => {
-		const userId = request.user.userId; // Changer request.user.id en request.user.userId
+		const userId = request.user.userId;
 		db.prepare("UPDATE users SET twofa_secret = NULL WHERE id = ?").run(userId);
 		return reply.send({ success: true, message: "2FA disabled" });
 	});
