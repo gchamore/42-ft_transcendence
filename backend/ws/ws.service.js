@@ -76,8 +76,9 @@ class WebSocketService {
         connection.socket.connectionId = connectionId;
         fastify.connections.set(userId, connection.socket);
         
-        // Mettre à jour le statut en ligne
+        // Mettre à jour le statut en ligne et envoyer la liste des utilisateurs en ligne
         await wsUtils.updateUserOnlineStatus(userId, true);
+        await wsUtils.sendOnlineUsersList(fastify, userId);
         wsUtils.broadcastUserStatus(fastify, userId, true);
     }
     
