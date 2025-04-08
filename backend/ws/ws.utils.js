@@ -304,6 +304,38 @@ async function handleDirectMessage(fastify, senderId, recipientUsername, message
     return { success: true };
 }
 
+/**
+ * Récupère la liste des utilisateurs en ligne
+ * @param {Object} fastify - Fastify instance
+ * @returns {Promise<Array>} - Liste des usernames en ligne
+ */
+async function getOnlineUsers(fastify) {
+    const onlineUserIds = await redis.smembers('online_users');
+    if (onlineUserIds.length === 0) return [];
+
+    const onlineUsers = onlineUserIds.map(id => {
+        const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(id);
+        return user ? user.username : null;
+    }).filter(Boolean);
+
+    return onlineUsers;
+}
+
+/**
+ * Envoie la liste des utilisateurs en ligne à un utilisateur spécifique
+ * @param {Object} fastify - Fastify instance
+ * @param {number|string} userId - User ID to send the list to
+ */
+async function sendOnlineUsersList(fastify, userId) {
+    const onlineUsers = await getOnlineUsers(fastify);
+    const payload = {
+        type: 'onlines',
+        users: onlineUsers
+    };
+    
+    sendToUser(fastify, userId, payload);
+}
+
 module.exports = {
     closeUserWebSocket,
     closeAllWebSockets,
@@ -315,5 +347,7 @@ module.exports = {
     isUserOnline,
     validateWebSocketToken,
     handleLiveChatMessage,
-    handleDirectMessage
+    handleDirectMessage,
+    getOnlineUsers,
+    sendOnlineUsersList
 };

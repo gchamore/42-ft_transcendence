@@ -1064,6 +1064,9 @@
 							case 'status_update':
 								updateUserStatus(data);
 								break;
+							case 'onlines':
+								handleOnlineUsers(data.users);
+								break;
 							case 'livechat':
 							case 'direct_message':
 								addChatMessage(data);
@@ -1140,14 +1143,49 @@
 			}
 		}
 
-		// Mise à jour du statut d'un utilisateur
-		function updateUserStatus(data) {
-			const searchResult = document.getElementById('search-result');
-			const userElement = searchResult.querySelector(`[data-username="${data.username}"]`);
+		// Nouvelle fonction pour gérer la liste des utilisateurs en ligne
+		function handleOnlineUsers(users) {
+			// Stocker la liste des utilisateurs en ligne dans sessionStorage
+			sessionStorage.setItem('onlineUsers', JSON.stringify(users));
 
+			// Mettre à jour les statuts dans l'interface
+			const searchResult = document.getElementById('search-result');
+			if (searchResult) {
+				const userElements = searchResult.querySelectorAll('.friend-item');
+				userElements.forEach(element => {
+					const username = element.dataset.username;
+					const isOnline = users.includes(username);
+					const statusBadge = element.querySelector('.status-badge');
+					if (statusBadge) {
+						statusBadge.textContent = isOnline ? 'Online' : 'Offline';
+						statusBadge.className = `status-badge ${isOnline ? 'status-online' : 'status-offline'}`;
+					}
+				});
+			}
+		}
+
+		// Mise à jour de la fonction updateUserStatus pour vérifier la liste des utilisateurs en ligne
+		function updateUserStatus(data) {
+			// Mettre à jour le stockage local des utilisateurs en ligne
+			const onlineUsers = JSON.parse(sessionStorage.getItem('onlineUsers') || '[]');
+			if (data.online) {
+				if (!onlineUsers.includes(data.username)) {
+					onlineUsers.push(data.username);
+				}
+			} else {
+				const index = onlineUsers.indexOf(data.username);
+				if (index > -1) {
+					onlineUsers.splice(index, 1);
+				}
+			}
+			sessionStorage.setItem('onlineUsers', JSON.stringify(onlineUsers));
+
+			// Mettre à jour l'interface
+			const searchResult = document.getElementById('search-result');
+			const userElement = searchResult?.querySelector(`[data-username="${data.username}"]`);
 			if (userElement) {
 				const statusBadge = userElement.querySelector('.status-badge');
-				if (statusBadge) {  // Vérifier si le badge existe
+				if (statusBadge) {
 					statusBadge.textContent = data.online ? 'Online' : 'Offline';
 					statusBadge.className = `status-badge ${data.online ? 'status-online' : 'status-offline'}`;
 				}
