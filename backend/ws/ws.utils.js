@@ -310,15 +310,16 @@ async function handleDirectMessage(fastify, senderId, recipientUsername, message
  * @returns {Promise<Array>} - Liste des usernames en ligne
  */
 async function getOnlineUsers(fastify) {
-    const onlineUserIds = await redis.smembers('online_users');
-    if (onlineUserIds.length === 0) return [];
+	const onlineUserIds = await redis.smembers('online_users');
+	if (onlineUserIds.length === 0) return [];
 
-    const onlineUsers = onlineUserIds.map(id => {
-        const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(id);
-        return user ? user.username : null;
-    }).filter(Boolean);
+	const onlineUsersMap = {};
+	onlineUserIds.forEach(id => {
+		const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(id);
+		if (user) onlineUsersMap[user.username] = true;
+	});
 
-    return onlineUsers;
+	return onlineUsers;
 }
 
 /**
