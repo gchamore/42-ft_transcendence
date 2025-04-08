@@ -147,8 +147,7 @@ function handleStartGame(socket, game, playerNumber) {
 	if (playerNumber === game.gameState.servingPlayer) {
 		if (game.players.length === 2) {
 			console.log(`Player ${playerNumber} starting game ${game.gameId}`);
-			const currentGame = games.get(game.gameId);
-			currentGame.gameState.gameStarted = true;
+			game.gameState.gameStarted = true;
 		} else {
 			safeSend(socket, {
 				type: 'error',

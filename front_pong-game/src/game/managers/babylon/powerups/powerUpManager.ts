@@ -65,25 +65,21 @@ export class PowerUpManager {
 			// Create collection effect
 			const particleSystem = new BABYLON.ParticleSystem(`powerup-collect-${powerupId}`, 100, this.scene);
 			particleSystem.particleTexture = new BABYLON.Texture("/assets/textures/flare.png", this.scene);
-			particleSystem.emitter = powerupMesh.position.clone();
-			particleSystem.color1 = new BABYLON.Color4(1, 1, 1, 1);
-
-			if (powerupMesh.material && powerupMesh.material instanceof BABYLON.StandardMaterial) {
-				const color = powerupMesh.material.diffuseColor;
-				particleSystem.color2 = new BABYLON.Color4(color.r, color.g, color.b, 1);
-			}
-
-			particleSystem.colorDead = new BABYLON.Color4(0.7, 0.7, 0.7, 0);
+			particleSystem.emitter = powerupMesh.position;
+			particleSystem.color1 = new BABYLON.Color4(1, 1, 1, 1); // White color
+			particleSystem.color2 = new BABYLON.Color4(1, 0.84, 0.4, 0.8); // Light orange color
+			particleSystem.colorDead = new BABYLON.Color4(0.53, 0.81, 0.98, 0); // Blue color
 			particleSystem.minSize = 0.1;
-			particleSystem.maxSize = 0.5;
-			particleSystem.minLifeTime = 0.3;
-			particleSystem.maxLifeTime = 1;
-			particleSystem.emitRate = 100;
+			particleSystem.maxSize = 0.3;
+			particleSystem.minLifeTime = 0.2;
+			particleSystem.maxLifeTime = 0.4;
+			particleSystem.emitRate = 200;
 			particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
-			particleSystem.direction1 = new BABYLON.Vector3(-2, 2, -2);
-			particleSystem.direction2 = new BABYLON.Vector3(2, 2, 2);
+			particleSystem.direction1 = new BABYLON.Vector3(-1, 1, -1);
+			particleSystem.direction2 = new BABYLON.Vector3(1, 1, 1);
 			particleSystem.minEmitPower = 1;
 			particleSystem.maxEmitPower = 3;
+			particleSystem.updateSpeed = 0.01;
 
 			particleSystem.start();
 
@@ -91,27 +87,29 @@ export class PowerUpManager {
 			powerupMesh.dispose();
 			this.powerupMeshes.delete(powerupId);
 
-			// Store the particle system for disposal later
-			this.activePowerups.set(powerupId, {
-				particleSystem,
-				playerNumber
-			});
 
 			// Auto-dispose the particle system after a short time
 			setTimeout(() => {
 				particleSystem.stop();
-			}, 1000);
+				particleSystem.dispose();
+				this.activePowerups.delete(powerupId);
+			}, 800);
 		}
 	}
 
 	public deactivatePowerup(powerupId: number): void {
-		const activePowerup = this.activePowerups.get(powerupId);
-		if (!activePowerup) return;
+		const powerupMesh = this.powerupMeshes.get(powerupId);
+		if (!powerupMesh) return;
 
-		if (activePowerup.particleSystem) {
+		if (powerupMesh) {
+			powerupMesh.dispose();
+			this.powerupMeshes.delete(powerupId);
+		}
+		const activePowerup = this.activePowerups.get(powerupId);
+		if (activePowerup && activePowerup.particleSystem) {
+			activePowerup.particleSystem.stop();
 			activePowerup.particleSystem.dispose();
 		}
-
 		this.activePowerups.delete(powerupId);
 	}
 

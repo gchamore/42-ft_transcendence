@@ -63,12 +63,10 @@ export class GameInstance {
 		if (this.gameState.gameStarted) {
 			ball.x += ball.speedX * deltaTime;
 			ball.y += ball.speedY * deltaTime;
-
 			if (this.settings.powerUpsEnabled) {
 				this.updatePowerups(deltaTime);
 				this.checkPowerupCollision();
 			}
-
 			this.checkWallCollision();
 			this.checkPaddleCollision();
 			return (this.checkScoring(ball));
@@ -89,15 +87,14 @@ export class GameInstance {
 
 		const scaledSpawnChance = GameConfig.POWERUP_SPAWN_CHANCE * deltaTime;
 
-		if (/*this.gameState.gameStarted &&*/ this.powerups.length < GameConfig.MAX_ACTIVE_POWERUPS /*&& Math.random() < scaledSpawnChance*/) { //test
+		if (this.gameState.gameStarted && this.powerups.length < GameConfig.MAX_ACTIVE_POWERUPS && Math.random() < scaledSpawnChance) {
 			this.spawnPowerup();
 		}
 	}
 
 	spawnPowerup() {
 		const types = Object.values(PowerUpTypes);
-		// const type = types[Math.floor(Math.random() * types.length)]; //test
-		const type = PowerUpTypes.PADDLE_SLOW; //test
+		const type = types[Math.floor(Math.random() * types.length)];
 		let x,y;
 		let isValidPosition = false;
 		while (!isValidPosition) {
@@ -144,6 +141,7 @@ export class GameInstance {
 					safeSend(player, {
 						type: "powerupCollected",
 						powerupId: powerup.id,
+						powerupType: powerup.type,
 						playerNumber: hitByPlayer,
 					});
 				});
@@ -247,14 +245,14 @@ export class GameInstance {
 	applyBallGrow() {
 		const ball = this.gameState.ball;
 		ball.originalRadius = ball.radius;
-		ball.radius = Math.min(GameConfig.MAX_BALL_SIZE, ball.radius * 1.5);
+		ball.radius = Math.min(GameConfig.MAX_BALL_SIZE, ball.radius * 2);
 		this.adjustBallPosition();
 	}
 
 	applyBallShrink() {
 		const ball = this.gameState.ball;
 		ball.originalRadius = ball.radius;
-		ball.radius = Math.max(GameConfig.MIN_BALL_SIZE, ball.radius * 0.5);
+		ball.radius = Math.max(GameConfig.MIN_BALL_SIZE, ball.radius / 2);
 		this.adjustBallPosition();
 	}
 
@@ -282,7 +280,7 @@ export class GameInstance {
 	applyPaddleSlow(playerNumber) {
 		const paddle = this.gameState[`paddle${playerNumber}`];
 		paddle.originalSpeed = paddle.speed;
-		paddle.speed = Math.max(GameConfig.MIN_PADDLE_SPEED, paddle.speed * 0.5);
+		paddle.speed = Math.max(GameConfig.MIN_PADDLE_SPEED, paddle.speed / 2);
 	}
 
 	revertPaddleSlow(playerNumber) {
@@ -360,13 +358,12 @@ export class GameInstance {
 
 				if (isHorizontalCollision) {
 					// LEFT/RIGHT COLLISION
-					// Flip X direction
 					ball.speedX *= -1;
 
 					// Calculate hit position along the paddle (0 = top, 1 = bottom)
-					const hitPoint = (ball.y - paddle.y) / paddle.height;
+					const hitPoint = (ball.y - paddle.y) / (paddle.height / 2);
 
-					const rawAngle = (hitPoint - 0.5) * Math.PI / 2;
+					const rawAngle = hitPoint * GameConfig.MAX_ANGLE;
 					const constrainedAngle = Math.max(GameConfig.MIN_ANGLE, Math.min(GameConfig.MAX_ANGLE, rawAngle));
 
 					const speedMagnitude = Math.sqrt(ball.speedX * ball.speedX + ball.speedY * ball.speedY);
@@ -460,8 +457,7 @@ export class GameInstance {
 
 	resetBall(scoringPlayer = null) {
 		if (this.activePowerups.length > 0) {
-			const powerupsCopy = [...this.activePowerups];
-			powerupsCopy.forEach((powerup) => {
+			this.activePowerups.forEach((powerup) => {
 				this.deactivatePowerup(powerup);
 			});
 			this.activePowerups = [];

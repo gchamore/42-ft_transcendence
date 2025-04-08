@@ -14,7 +14,7 @@ export class GameControls {
 	private playerNumber: number;
 	private inputSequence: number = 1;
 	private inputHistory: PaddleInput[] = [];
-	private remotePaddleBuffer: { time: number; position: number; height: number }[] = [];
+	private remotePaddleBuffer: { time: number; position: number; height: number; speed: number }[] = [];
 	private paddleInterpolationDelay: number = 100;
 	private ballPositionBuffer: { time: number; position: { x: number, y: number}; speedX: number; speedY: number }[] = [];
 	private ballInterpolationDelay: number = 100;
@@ -223,6 +223,7 @@ export class GameControls {
 			// Linear interpolation between positions with smoothing factor
 			this.remotePaddle.y = prev.position * (1 - t) + next.position * t;
 			this.remotePaddle.height = next.height;
+			this.remotePaddle.speed = next.speed;
 		}
 		// If we're past the next position in our buffer
 		else if (targetTime > next.time) {
@@ -237,6 +238,7 @@ export class GameControls {
 					const t = this.cubicEaseInOut(timeFactor);
 					this.remotePaddle.y = prev.position * (1 - t) + next.position * t;
 					this.remotePaddle.height = next.height;
+					this.remotePaddle.speed = next.speed;
 					return;
 				}
 			}
@@ -245,6 +247,7 @@ export class GameControls {
 			if (this.remotePaddleBuffer.length > 0) {
 				this.remotePaddle.y = this.remotePaddleBuffer[this.remotePaddleBuffer.length - 1].position;
 				this.remotePaddle.height = this.remotePaddleBuffer[this.remotePaddleBuffer.length - 1].height;
+				this.remotePaddle.speed = this.remotePaddleBuffer[this.remotePaddleBuffer.length - 1].speed;
 			}
 		}
 	}
@@ -271,6 +274,7 @@ export class GameControls {
 			time: now,
 			position: serverRemotePaddle.y,
 			height: serverRemotePaddle.height,
+			speed: serverRemotePaddle.speed,
 		});
 		while (this.remotePaddleBuffer.length > 10) {
 			this.remotePaddleBuffer.shift();
@@ -281,6 +285,7 @@ export class GameControls {
 	private reconcilePaddlePosition(serverLocalPaddle: ServerPaddleState): void {
 		this.localPaddle.lastProcessedInput = serverLocalPaddle.lastProcessedInput;
 		this.localPaddle.height = serverLocalPaddle.height;
+		this.localPaddle.speed = serverLocalPaddle.speed;
 		
 		this.localPaddle.y = serverLocalPaddle.y;
 		// remove inputs that have already been processed by the server

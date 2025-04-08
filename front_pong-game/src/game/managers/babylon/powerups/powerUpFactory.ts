@@ -14,7 +14,7 @@ export class PowerUpFactory {
 
 		const position = this.coordinateConverter.toScenePosition(
 			powerup.x,
-			powerup.y / 2, // Note: The original has a division by 2 here
+			powerup.y,
 			-0.2
 		);
 
@@ -83,13 +83,10 @@ export class PowerUpFactory {
 
 							// Special handling for the turtle model
 							if (powerup.type === PowerUpTypes.PADDLE_SLOW) {
-								mesh.computeWorldMatrix(true);
-								const boundingBox = mesh.getBoundingInfo();
-
-								const height = boundingBox.boundingBox.maximumWorld.y -
-									boundingBox.boundingBox.minimumWorld.y;
-								const offset = height * 0.25;
-								mesh.position.y -= offset;
+								mesh.position.z += -0.5;
+							}
+							else if (powerup.type === PowerUpTypes.BALL_GROW) {
+								mesh.position.z += 0.5;
 							}
 
 							// Apply scaling based on power-up type
@@ -110,8 +107,11 @@ export class PowerUpFactory {
 						}
 					}
 
-					// Create collision sphere
-					this.createCollisionSphere(container, powerup.id, emissiveColor);
+
+					if (GameConfig.TEST_MODE) {
+						// Create collision sphere
+						this.createCollisionSphere(powerup.id, emissiveColor, position);
+					}
 
 					// Add glow effect
 					if (!GameConfig.TEST_MODE) {
@@ -126,7 +126,7 @@ export class PowerUpFactory {
 		});
 	}
 
-	private createCollisionSphere(container: BABYLON.Mesh, powerupId: number, emissiveColor: BABYLON.Color3): void {
+	private createCollisionSphere(powerupId: number, emissiveColor: BABYLON.Color3, position: BABYLON.Vector3): void {
 		if (!this.scene) return;
 
 		const collisionSphere = BABYLON.MeshBuilder.CreateSphere(
@@ -143,7 +143,7 @@ export class PowerUpFactory {
 		collisionMaterial.alpha = 0.5;
 		collisionMaterial.emissiveColor = emissiveColor;
 		collisionSphere.material = collisionMaterial;
-		collisionSphere.parent = container;
+		collisionSphere.position = position;
 	}
 
 	public getScaleFactorForModel(powerupType: PowerUpType): number {

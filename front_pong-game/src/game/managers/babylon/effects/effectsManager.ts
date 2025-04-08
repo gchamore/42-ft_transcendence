@@ -9,7 +9,7 @@ export class EffectsManager {
 		if (!this.scene || GameConfig.TEST_MODE) return;
 
 		const particleSystem = new BABYLON.ParticleSystem("bounce-effect", 100, this.scene);
-		particleSystem.particleTexture = new BABYLON.Texture("/assets/textures/sparkle.jpg", this.scene);
+		particleSystem.particleTexture = new BABYLON.Texture("/assets/textures/sparkle.png", this.scene);
 		particleSystem.emitter = position;
 		particleSystem.color1 = new BABYLON.Color4(0.7, 0.8, 1.0, 1.0);
 		particleSystem.color2 = new BABYLON.Color4(0.2, 0.5, 1.0, 1.0);

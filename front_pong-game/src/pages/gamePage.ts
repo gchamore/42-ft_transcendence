@@ -261,7 +261,7 @@ export class Game {
 					this.servingPlayer
 				);
 			}
-			this.uiManager.drawPowerupStatus(timestamp);
+			this.uiManager.drawPowerupStatus();
 		}
 		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
 	}

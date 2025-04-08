@@ -52,42 +52,26 @@ export class FPSManager {
 		}
 	}
 
-	/**
-	 * Update the FPS counter with the game loop timestamp
-	 * Call this method from your game loop
-	 */
-	update(timestamp: number): void {
-		// If Babylon engine is provided, use its FPS instead
-		this.frameCount++;
 
-		// Calculate time since last FPS update
+	update(timestamp: number): void {
+		this.frameCount++;
 		const elapsed = timestamp - this.lastFpsUpdate;
 
-		// Update FPS counter at specified interval
 		if (elapsed >= this.fpsUpdateInterval) {
 			// Calculate FPS
 			if (this.engine && !this.engine.isDisposed) {
-				// Use Babylon's FPS counter
 				this.currentFps = Math.round(this.engine.getFps());
-				console.log(`Babylon FPS: ${this.currentFps}`);
 			} else {
-				// Calculate our own FPS
 				this.currentFps = Math.round(this.frameCount / (elapsed / 1000));
 			}
 
-			// Update display
 			this.updateFpsDisplay(this.currentFps);
 
-			// Reset counters for next interval
 			this.lastFpsUpdate = timestamp;
 			this.frameCount = 0;
 		}
 	}
 
-	/**
-	 * Update the FPS display directly with a specific value
-	 * Useful for custom FPS tracking scenarios
-	 */
 	updateFpsDisplay(fps: number): void {
 		if (!this.fpsCounterElement) return;
 
@@ -104,10 +88,6 @@ export class FPSManager {
 		}
 	}
 
-	/**
-	 * Call this when you want to stop tracking FPS
-	 * This will remove the counter from the DOM
-	 */
 	dispose(): void {
 		if (this.fpsCounterElement && this.fpsCounterElement.parentNode) {
 			this.fpsCounterElement.parentNode.removeChild(this.fpsCounterElement);

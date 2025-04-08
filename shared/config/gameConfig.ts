@@ -19,8 +19,9 @@ export const GameConfig = {
 	BALL_SPEEDUP_FACTOR: 1.05,
 	MAX_BALL_SPEED: 800,
 	MIN_BALL_SPEED: 10,
-	MAX_BALL_SIZE: 20,
-	MIN_BALL_SIZE: 5,
+	MAX_BALL_SIZE: 40,
+	MIN_BALL_SIZE: 2,
+	MIN_PADDLE_SPEED : 1,
 
 	MIN_VERTICAL_SPEED: 2,
 	MAX_ANGLE: Math.PI / 4,
@@ -41,16 +42,16 @@ export const GameConfig = {
 	TARGET_FPS: 60,
 	BROADCAST_RATE: 60,
 
-	POWERUP_DURATION: 100000,
+	POWERUP_DURATION: 10000, // 10 seconds
 	POWERUP_SPAWN_CHANCE: 0.05,
 	MAX_ACTIVE_POWERUPS: 2,
 	POWERUP_SIZE: 50,
 	POWERUP_VISUAL_SCALES: {
-		[PowerUpTypes.PADDLE_GROW]: 0.01,
-        [PowerUpTypes.PADDLE_SHRINK]: 0.0001,
-        [PowerUpTypes.BALL_GROW]: 0.2,
-        [PowerUpTypes.BALL_SHRINK]: 0.05,
-        [PowerUpTypes.PADDLE_SLOW]: 0.03
+		[PowerUpTypes.PADDLE_GROW]: 0.005, // Mushroom
+        [PowerUpTypes.PADDLE_SHRINK]: 0.00005, // Axe
+        [PowerUpTypes.BALL_GROW]: 0.085, // Watermelon
+        [PowerUpTypes.BALL_SHRINK]: 0.025, // Blueberry
+        [PowerUpTypes.PADDLE_SLOW]: 0.015 // Turtle
     } as const
 } as const;
 
