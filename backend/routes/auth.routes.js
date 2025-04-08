@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const authService = require('../jwt/services/auth.service');
-const redis = require('../redis/redisClient');
+const TwofaService = require('../2fa/twofa.service');
 const jwt = require('jsonwebtoken');
 const wsUtils = require('../ws/ws.utils');
 const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret_key';
@@ -215,7 +215,7 @@ async function routes(fastify, options) {
 		// Vérifie si 2FA activée
 		if (user.twofa_secret) {
 			// Génère un token temporaire limité à la 2FA
-			const tempToken = await authService.generateTemp2FAToken(user.id);
+			const tempToken = await TwofaService.generateTemp2FAToken(user.id);
 			return reply.code(200).send({
 				step: "2fa_required",
 				message: "2FA is enabled. Please provide the verification code.",

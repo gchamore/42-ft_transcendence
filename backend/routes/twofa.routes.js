@@ -40,7 +40,7 @@ async function routes(fastify, options) {
 	
 	fastify.post("/2fa/verify", async (request, reply) => {
 		const { token: twofaCode, temp_token } = request.body;
-		const payload = await authService.verifyTemp2FAToken(temp_token);
+		const payload = await TwofaService.verifyTemp2FAToken(temp_token);
 		const user = db.prepare("SELECT * FROM users WHERE id = ?").get(payload.userId);
 	
 		const isValid = speakeasy.totp.verify({
@@ -56,8 +56,20 @@ async function routes(fastify, options) {
 		const isLocal = request.headers.host.startsWith("localhost");
 	
 		return reply
-			.setCookie('accessToken', accessToken, { httpOnly: true, secure: !isLocal, sameSite: 'None', path: '/', maxAge: 15 * 60 })
-			.setCookie('refreshToken', refreshToken, { httpOnly: true, secure: !isLocal, sameSite: 'None', path: '/', maxAge: 7 * 24 * 60 * 60 })
+			.setCookie('accessToken', accessToken, {
+				httpOnly: true,
+				secure: !isLocal,
+				sameSite: 'None',
+				path: '/',
+				maxAge: 15 * 60 // 15 minutes
+			})
+			.setCookie('refreshToken', refreshToken, {
+				httpOnly: true,
+				secure: !isLocal,
+				sameSite: 'None',
+				path: '/',
+				maxAge: 7 * 24 * 60 * 60 // 7 jours
+			})
 			.send({
 				success: true,
 				message: "2FA verification successful",
