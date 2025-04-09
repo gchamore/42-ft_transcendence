@@ -1,6 +1,7 @@
 import { SettingsPage } from './pages/settingsPage.js';
 import { Game } from './pages/gamePage.js';
 import { WebSocketService } from './services/webSocketService.js';
+import { GameConfig } from '../../shared/config/gameConfig.js';
 
 class App {
 	private readonly DEFAULT_ROUTE = '#settings';
@@ -82,10 +83,11 @@ class App {
 		
 		while (attempts < this.MAX_ID_ATTEMPTS) {
 			const gameId = Math.random().toString(36).substring(2, 8);
+			const ipAddress = GameConfig.IP_ADDRESS;
 			
 			try {
 				// Check if game exists by trying to fetch its status
-				const response = await fetch(`http://localhost:3000/game/status/${gameId}`);
+				const response = await fetch(`http://${ipAddress}:3000/game/status/${gameId}`);
 				if (response.status === 404) {
 					// Game doesn't exist, we can use this ID
 					return gameId;
