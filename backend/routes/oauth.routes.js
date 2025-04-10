@@ -46,7 +46,16 @@ async function routes(fastify, options) {
                     "SELECT * FROM users WHERE id = ?"
                 ).get(result.lastInsertRowid);
             }
-
+			// Vérifie si 2FA activée
+			if (user.twofa_secret) {
+				// Génère un token temporaire limité à la 2FA
+				const tempToken = await TwofaService.generateTemp2FAToken(user.id);
+				return reply.code(200).send({
+					step: "2fa_required",
+					message: "2FA is enabled. Please provide the verification code.",
+					temp_token: tempToken
+				});
+			}
             // Génération des tokens JWT
             const { accessToken, refreshToken } = await authService.generateTokens(user.id);
 
