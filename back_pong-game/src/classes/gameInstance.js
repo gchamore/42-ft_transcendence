@@ -3,17 +3,17 @@ import { PhysicManager } from './physicManager.js';
 import { PowerUpManager } from './powerUp.js';
 
 export class GameInstance {
-  constructor(gameId, existingSettings = null) {
+  constructor(gameId, existingSettings) {
     this.gameId = gameId;
     this.players = [];
-	this.isLobby = gameId.startsWith('lobby-');
-    this.gameStateManager = new GameStateManager(gameId, existingSettings);
+	  this.isLobby = gameId.startsWith('lobby-');
+    this.gameStateManager = new GameStateManager(gameId);
     this.physicManager = new PhysicManager();
     this.powerUpManager = new PowerUpManager();
+    this.settings = existingSettings;
     
     // Initialize game state
     this.gameState = this.gameStateManager.getState();
-    this.settings = this.gameStateManager.settings;
     this.playerReadyStatus = this.gameStateManager.playerReadyStatus;
     
     // Reset ball position
@@ -100,7 +100,8 @@ export class GameInstance {
   }
 
   updateSettings(newSettings) {
-    return this.gameStateManager.updateSettings(newSettings);
+    this.settings = { ...this.settings, ...newSettings };
+    return this.settings;
   }
 
   transitionToGame(newGameId) {

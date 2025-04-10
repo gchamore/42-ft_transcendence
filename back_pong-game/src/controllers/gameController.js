@@ -1,10 +1,14 @@
 import { GameInstance } from "../classes/gameInstance.js";
-import { handleNewPlayer } from '../handlers/messageHandlers.js';
+import { SettingsManager } from "../classes/settingsManager.js";
+import { handleNewPlayer } from '../handlers/gameMessageHandlers.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { GameConfig } from "../../public/dist/shared/config/gameConfig.js";
 
 export const games = new Map();
-export let mainLobby = null;
+export let mainLobby = {
+	settingsManager: new SettingsManager(),
+	players: [],
+};
 const broadcastTimeout = {};
 
 export function setupWebSocketRoutes(fastify) {
@@ -34,23 +38,19 @@ export function resetMainLobby() {
 	return mainLobby;
 }
 
-function handleGameConnection(connection, request) {
+function handleGameConnection(connection, request) { //need changes 
 	const socket = connection.socket;
 	const { gameId } = request.params;
 
 	console.log('WebSocket connection established for game:', { gameId });
 
 	if (gameId === 'lobby-main') {
-		if (!mainLobby) {
-			mainLobby = new GameInstance(gameId);
-			console.log('Main lobby created');
-		}
 		handleNewPlayer(socket, mainLobby);
 	} else {
 		// Handle actual game connections
 		let game = games.get(gameId);
 		if (!game) {
-			const lobbySettings = mainLobby ? mainLobby.settings : null;
+			const lobbySettings = mainLobby.settingsManager.getSettings();
 			game = new GameInstance(gameId, lobbySettings, safeSend);
 			games.set(gameId, game);
 		}

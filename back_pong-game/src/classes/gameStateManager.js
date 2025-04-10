@@ -3,18 +3,10 @@ import { GameConfig } from "../../public/dist/shared/config/gameConfig.js";
 import { safeSend } from '../utils/socketUtils.js';
 
 export class GameStateManager {
-	constructor(gameId, existingSettings = null) {
+	constructor(gameId) {
 		this.gameId = gameId;
 		this.isLobby = gameId.startsWith("lobby-");
 		this.gameState = createDefaultGameState(gameId);
-		this.settings = existingSettings || {
-			ballSpeed: GameConfig.DEFAULT_BALL_SPEED,
-			paddleSpeed: GameConfig.DEFAULT_PADDLE_SPEED,
-			paddleLength: GameConfig.DEFAULT_PADDLE_LENGTH,
-			mapType: GameConfig.DEFAULT_MAP,
-			powerUpsEnabled: GameConfig.DEFAULT_POWERUPS,
-			maxScore: GameConfig.DEFAULT_MAX_SCORE,
-		};
 		this.playerReadyStatus = new Set();
 	}
 
@@ -84,23 +76,6 @@ export class GameStateManager {
 			return player1Score > player2Score ? 1 : 2;
 		}
 		return null;
-	}
-
-	updateSettings(newSettings) {
-		// Update settings that are passed in and keep the rest the same
-		this.settings = {
-			...this.settings,
-			...newSettings,
-		};
-
-		this.gameState.ball.speedX = parseInt(newSettings.ballSpeed) * GameConfig.BASE_BALL_SPEED_FACTOR;
-		this.gameState.ball.speedY = parseInt(newSettings.ballSpeed) * GameConfig.BASE_BALL_SPEED_FACTOR;
-		this.gameState.paddle1.speed = parseInt(newSettings.paddleSpeed);
-		this.gameState.paddle2.speed = parseInt(newSettings.paddleSpeed);
-		this.gameState.paddle1.height = parseInt(newSettings.paddleLength);
-		this.gameState.paddle2.height = parseInt(newSettings.paddleLength);
-
-		return this.settings;
 	}
 
 	transitionToGame(newGameId) {
