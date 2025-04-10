@@ -354,32 +354,38 @@ async function routes(fastify, options) {
                 return reply.code(404).send({ error: "User not found" });
             }
 
-            fastify.log.info(`Révocation des tokens pour l'utilisateur: ${user.username} (ID: ${userId})`);
-            
+			fastify.log.info(`Révocation des tokens pour l'utilisateur: ${user.username} (ID: ${userId})`);
+
+			// Diffuser le changement de statut AVANT de fermer la connexion WebSocket
+			await wsUtils.updateUserOnlineStatus(userId, false);
+			await wsUtils.broadcastUserStatus(fastify, userId, false);
+
             // Fermer la connexion WebSocket de l'utilisateur
             await wsUtils.closeUserWebSocket(fastify, userId, 1000, "Tokens revoked");
             
-            // Révoquer les tokens via le service
-            const success = await authService.revokeTokens(userId);
-            
-            if (success) {
-                fastify.log.info(`Tokens révoqués avec succès pour l'utilisateur: ${user.username}`);
-                return reply.send({ 
-                    success: true, 
-                    message: "Tokens revoked successfully" 
-                });
-            } else {
-                fastify.log.error(`Échec de la révocation des tokens pour l'utilisateur: ${user.username}`);
-                return reply.code(500).send({ 
-                    error: "Failed to revoke tokens" 
-                });
-            }
-        } catch (error) {
-            fastify.log.error(error, "Erreur lors de la révocation des tokens");
-            return reply.code(500).send({ 
-                error: "Internal error during token revocation",
-                details: error.message
-            });
+            // Révoquer les tokens
+			await authService.revokeTokens(userId);
+
+			const isLocal = request.headers.host.startsWith("localhost");
+			const cookieOptions = {
+				path: '/',
+				secure: !isLocal,
+				httpOnly: true,
+				sameSite: 'None'
+			};
+
+			fastify.log.info(`Tokens révoqués avec succès pour l'utilisateur: ${user.username}`);
+
+			return reply
+				.clearCookie('accessToken', cookieOptions)
+				.clearCookie('refreshToken', cookieOptions)
+				.header('Access-Control-Allow-Credentials', 'true')
+				.header('Access-Control-Allow-Origin', request.headers.origin || 'http://localhost:8080')
+				.send({ success: true, message: "Logged out successfully" });
+
+		} catch (error) {
+            fastify.log.error('Revoke error:', error);
+            return reply.code(500).send({ error: 'Revoke failed' });
         }
     });
 
