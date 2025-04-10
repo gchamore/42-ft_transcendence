@@ -9,7 +9,8 @@ export const PowerUpTypes = {
 export type PowerUpType = typeof PowerUpTypes[keyof typeof PowerUpTypes];
 
 export const GameConfig = {
-	IP_ADDRESS: '10.32.6.15',
+	LOBBY_TIMEOUT: 10 * 60 * 1000, // 30 minutes
+	IP_ADDRESS: '10.32.6.18',
 	CANVAS_WIDTH: 800,
 	CANVAS_HEIGHT: 600,
 	WINNING_SCORE: 5,

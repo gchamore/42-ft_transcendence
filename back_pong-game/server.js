@@ -1,10 +1,16 @@
 import Fastify from 'fastify';
 import fastifyWebSocket from '@fastify/websocket';
 import fastifyStatic from '@fastify/static';
+import fastifyCors from '@fastify/cors';
 import { join } from 'path';
 import { setupWebSocketRoutes } from './src/controllers/gameController.js';
 
 const fastify = Fastify({ logger: true });
+
+// Register CORS plugin
+fastify.register(fastifyCors, {
+	origin: '*', // Allow all origins
+});
 
 // Register fastify websocket plugin
 fastify.register(fastifyWebSocket);
