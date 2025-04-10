@@ -296,11 +296,7 @@ async function routes(fastify, options) {
 	});
 
 	/*** 📌 Route: LOGOUT ***/
-	fastify.post("/logout", {
-		schema: {
-			body: { type: 'null' }
-		}
-	}, async (request, reply) => {
+	fastify.post("/logout", async (request, reply) => {
 		// Le middleware a déjà vérifié le token et mis request.user
 		const userId = request.user.userId;
 		const token = request.cookies?.accessToken;
@@ -317,7 +313,6 @@ async function routes(fastify, options) {
 
 			// Révoquer les tokens
 			await authService.revokeTokens(userId);
-			await authService.blacklistToken(token);
 
 			const isLocal = request.headers.host.startsWith("localhost");
 			const cookieOptions = {
