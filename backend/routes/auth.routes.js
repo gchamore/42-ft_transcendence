@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const authService = require('../jwt/services/auth.service');
-const redis = require('../redis/redisClient');
+const TwofaService = require('../2fa/twofa.service');
 const jwt = require('jsonwebtoken');
 const wsUtils = require('../ws/ws.utils');
 const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret_key';
@@ -215,7 +215,7 @@ async function routes(fastify, options) {
 		// Vérifie si 2FA activée
 		if (user.twofa_secret) {
 			// Génère un token temporaire limité à la 2FA
-			const tempToken = await authService.generateTemp2FAToken(user.id);
+			const tempToken = await TwofaService.generateTemp2FAToken(user.id);
 			return reply.code(200).send({
 				step: "2fa_required",
 				message: "2FA is enabled. Please provide the verification code.",
@@ -296,11 +296,7 @@ async function routes(fastify, options) {
 	});
 
 	/*** 📌 Route: LOGOUT ***/
-	fastify.post("/logout", {
-		schema: {
-			body: { type: 'null' }
-		}
-	}, async (request, reply) => {
+	fastify.post("/logout", async (request, reply) => {
 		// Le middleware a déjà vérifié le token et mis request.user
 		const userId = request.user.userId;
 		const token = request.cookies?.accessToken;
@@ -317,7 +313,6 @@ async function routes(fastify, options) {
 
 			// Révoquer les tokens
 			await authService.revokeTokens(userId);
-			await authService.blacklistToken(token);
 
 			const isLocal = request.headers.host.startsWith("localhost");
 			const cookieOptions = {
@@ -359,32 +354,38 @@ async function routes(fastify, options) {
                 return reply.code(404).send({ error: "User not found" });
             }
 
-            fastify.log.info(`Révocation des tokens pour l'utilisateur: ${user.username} (ID: ${userId})`);
-            
+			fastify.log.info(`Révocation des tokens pour l'utilisateur: ${user.username} (ID: ${userId})`);
+
+			// Diffuser le changement de statut AVANT de fermer la connexion WebSocket
+			await wsUtils.updateUserOnlineStatus(userId, false);
+			await wsUtils.broadcastUserStatus(fastify, userId, false);
+
             // Fermer la connexion WebSocket de l'utilisateur
             await wsUtils.closeUserWebSocket(fastify, userId, 1000, "Tokens revoked");
             
-            // Révoquer les tokens via le service
-            const success = await authService.revokeTokens(userId);
-            
-            if (success) {
-                fastify.log.info(`Tokens révoqués avec succès pour l'utilisateur: ${user.username}`);
-                return reply.send({ 
-                    success: true, 
-                    message: "Tokens revoked successfully" 
-                });
-            } else {
-                fastify.log.error(`Échec de la révocation des tokens pour l'utilisateur: ${user.username}`);
-                return reply.code(500).send({ 
-                    error: "Failed to revoke tokens" 
-                });
-            }
-        } catch (error) {
-            fastify.log.error(error, "Erreur lors de la révocation des tokens");
-            return reply.code(500).send({ 
-                error: "Internal error during token revocation",
-                details: error.message
-            });
+            // Révoquer les tokens
+			await authService.revokeTokens(userId);
+
+			const isLocal = request.headers.host.startsWith("localhost");
+			const cookieOptions = {
+				path: '/',
+				secure: !isLocal,
+				httpOnly: true,
+				sameSite: 'None'
+			};
+
+			fastify.log.info(`Tokens révoqués avec succès pour l'utilisateur: ${user.username}`);
+
+			return reply
+				.clearCookie('accessToken', cookieOptions)
+				.clearCookie('refreshToken', cookieOptions)
+				.header('Access-Control-Allow-Credentials', 'true')
+				.header('Access-Control-Allow-Origin', request.headers.origin || 'http://localhost:8080')
+				.send({ success: true, message: "Logged out successfully" });
+
+		} catch (error) {
+            fastify.log.error('Revoke error:', error);
+            return reply.code(500).send({ error: 'Revoke failed' });
         }
     });
 

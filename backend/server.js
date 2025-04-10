@@ -51,7 +51,8 @@ const publicRoutes = [
     '/register',
     '/refresh',
     '/verify_token',
-	'/auth/google/token'
+	'/auth/google/token',
+	'/2fa/verify'
 ];
 
 // Middleware d'authentification
@@ -78,6 +79,7 @@ fastify.register(require('./routes/game.routes'));
 fastify.register(require('./routes/user.routes'));
 fastify.register(require('./routes/ws.routes'));
 fastify.register(require('./routes/oauth.routes'));
+fastify.register(require('./routes/twofa.routes'));
 
 // ====== Gestion de l'arrêt propre ======
 const wsUtils = require('./ws/ws.utils');
@@ -117,7 +119,7 @@ process.on('SIGTERM', () => cleanup('SIGTERM'));
 process.on('SIGINT', () => cleanup('SIGINT'));
 
 // ====== Démarrage du serveur ======
-fastify.listen({ port: 3000, host: '0.0.0.0' }, (err) => {
+fastify.listen({ port: 3000, host: '0.0.0.0' }, (err) => { // Changer port 3000 en 8080
     if (err) {
         console.error('Server start error:', err);
         process.exit(1);
