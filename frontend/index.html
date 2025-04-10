@@ -453,11 +453,26 @@
 
 					const data = await response.json();
 
-					if (response.ok && data.success) {
-						showMessage('Google Login successful!', false);
-						// Ne pas appeler showWelcome ici car il sera appelé par checkAuth
-						await checkAuth();
-						window.history.replaceState({}, document.title, '/');
+					if (response.ok) {
+						if (data.step === "2fa_required") {
+							// Stocker le token temporaire et le nom d'utilisateur
+							sessionStorage.setItem('temp_2fa_token', data.temp_token);
+							sessionStorage.setItem('pending_username', data.username);
+							
+							// Afficher le modal 2FA
+							const modal = document.getElementById('verify-2fa-modal');
+							modal.style.display = 'block';
+							
+							// Focus sur le champ de code
+							document.getElementById('verify-2fa-code').focus();
+							
+							// Nettoyer l'URL sans recharger la page
+							window.history.replaceState({}, document.title, '/');
+						} else if (data.success) {
+							showMessage('Google Login successful!', false);
+							await checkAuth();
+							window.history.replaceState({}, document.title, '/');
+						}
 					} else {
 						showMessage(data.error || 'Google Login failed', true);
 					}
