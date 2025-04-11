@@ -1,5 +1,6 @@
 const { google } = require('googleapis');
 const authService = require('../jwt/services/auth.service');
+const TwofaService = require('../2fa/twofa.service'); // Ajout de l'import manquant
 require('dotenv').config();
 
 const oauth2Client = new google.auth.OAuth2(
@@ -8,6 +9,7 @@ const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_REDIRECT_URI
 );
 
+/*** 📌 Route: google/token ***/
 async function routes(fastify, options) {
     fastify.post('/auth/google/token', async (request, reply) => {
         try {
@@ -46,7 +48,25 @@ async function routes(fastify, options) {
                 ).get(result.lastInsertRowid);
             }
 
-            // Génération des tokens JWT
+            // Vérifie si 2FA activée avec gestion d'erreur améliorée
+            if (user.twofa_secret) {
+                try {
+                    const tempToken = await TwofaService.generateTemp2FAToken(user.id);
+                    fastify.log.info('2FA token generated for Google OAuth user:', user.username);
+                    
+                    return reply.code(200).send({
+                        step: "2fa_required",
+                        message: "2FA is enabled. Please provide the verification code.",
+                        temp_token: tempToken,
+                        username: user.username
+                    });
+                } catch (twoFaError) {
+                    fastify.log.error('2FA token generation error:', twoFaError);
+                    throw new Error('Failed to generate 2FA token');
+                }
+            }
+
+            // Si pas de 2FA, continue avec le processus normal
             const { accessToken, refreshToken } = await authService.generateTokens(user.id);
 
             // Détermination si local ou production
@@ -75,9 +95,13 @@ async function routes(fastify, options) {
 
         } catch (error) {
             fastify.log.error('Google OAuth error:', error);
+            
+            // Réponse d'erreur plus détaillée
             return reply.code(500).send({
                 success: false,
-                error: 'Failed to authenticate with Google'
+                error: 'Failed to authenticate with Google',
+                details: error.message,
+                step: error.step || 'unknown'
             });
         }
     });

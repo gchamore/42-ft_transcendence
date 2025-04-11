@@ -1,6 +1,7 @@
 async function routes(fastify, options) {
     const { db } = fastify;
 
+	/*** 📌 Route: add friend user ***/
     fastify.post("/add/:username", async (request, reply) => {
         const friendUsername = request.params.username;
         const userId = request.user.userId;
@@ -40,6 +41,7 @@ async function routes(fastify, options) {
         }
     });
 
+	/*** 📌 Route: remove friend user ***/
     fastify.delete("/remove/:username", async (request, reply) => {
         const friendUsername = request.params.username;
         const userId = request.user.userId;
@@ -66,6 +68,7 @@ async function routes(fastify, options) {
         }
     });
 
+	/*** 📌 Route: search user ***/
     fastify.get("/search/:username", async (request, reply) => {
         const searchedUsername = request.params.username;
         const userId = request.user.userId;
@@ -152,6 +155,7 @@ async function routes(fastify, options) {
         }
     });
 
+	/*** 📌 Route: block a user ***/
     fastify.post("/block/:username", async (request, reply) => {
         const blockedUsername = request.params.username;
         const blockerId = request.user.userId;
@@ -190,6 +194,7 @@ async function routes(fastify, options) {
         }
     });
 
+	/*** 📌 Route: unblock a user ***/
     fastify.delete("/unblock/:username", async (request, reply) => {
         const blockedUsername = request.params.username;
         const blockerId = request.user.userId;
@@ -218,6 +223,7 @@ async function routes(fastify, options) {
         }
     });
 
+	/*** 📌 Route: all blocked user ***/
     fastify.get("/blocked", async (request, reply) => {
         const userId = request.user.userId;
 
