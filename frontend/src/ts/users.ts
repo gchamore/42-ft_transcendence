@@ -70,7 +70,8 @@ class User {
                     case 'onlines':
                         this.init_status(data.users);
                         break;
-                    case 'status_update':
+                        case 'status_update':
+                        console.log('here:', data.username);
                         update_status(data.username, data.online);
                         break;
                     case 'livechat':
@@ -78,8 +79,7 @@ class User {
                         break;
                     case 'direct_message':
                         add_message(data.user, data.message, 'direct_message');
-                        break;
-                }
+                        break;            }
             } catch (error) {
                 console.error('WebSocket message parsing error:', error);
             }
@@ -104,20 +104,31 @@ class User {
 
 		return users;
 	}
-    init_status(status : Map<string, boolean>) {
-        status.forEach((value, key) => {
-            if (value === true)
+    init_status(status : { [key: string]: boolean }) {
+        let statusMap: Map<string, boolean>;
+        statusMap = new Map();
+        for (const key in status) {
+            if (status.hasOwnProperty(key)) {
+                statusMap.set(key, status[key]);
+            }
+        }
+        statusMap.forEach((value : boolean, key : string) => {
+            if (value === true && key !== user?.name)
                 user?.onlines.push(key);
         });
+        console.log(user?.onlines);
+        if (section_index === get_section_index('actions')) {
+            (sections[section_index] as Actions).load_boxes();
+        }
     }
     block(username : string) {
         this.livechat = this.livechat.filter(item => item.username !== username);
     }
-
 }
 
-function add_online(username : string) {
-    user?.onlines.push(username);
+async function add_online(username : string) {
+    user!.onlines.push(username);
+    console.log(user?.onlines);
 }
 
 function update_user(new_user_value : User | undefined) {

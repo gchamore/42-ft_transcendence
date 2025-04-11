@@ -213,14 +213,14 @@ function send(message_1, type_1) {
             }
             if (!response.ok) {
                 console.error(url + ' error: ', data.error);
-                return false;
+                return true;
             }
             return data.success;
         }
         catch (error) {
             console.error(url + ' error: ', error);
         }
-        return false;
+        return true;
     });
 }
 function get_blocked_users() {

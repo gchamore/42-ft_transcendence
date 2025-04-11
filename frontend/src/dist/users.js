@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 /* Global variables */
 var user = undefined;
 /* --------- */
@@ -54,6 +63,7 @@ class User {
                         this.init_status(data.users);
                         break;
                     case 'status_update':
+                        console.log('here:', data.username);
                         update_status(data.username, data.online);
                         break;
                     case 'livechat':
@@ -85,17 +95,31 @@ class User {
         return users;
     }
     init_status(status) {
-        status.forEach((value, key) => {
-            if (value === true)
+        let statusMap;
+        statusMap = new Map();
+        for (const key in status) {
+            if (status.hasOwnProperty(key)) {
+                statusMap.set(key, status[key]);
+            }
+        }
+        statusMap.forEach((value, key) => {
+            if (value === true && key !== (user === null || user === void 0 ? void 0 : user.name))
                 user === null || user === void 0 ? void 0 : user.onlines.push(key);
         });
+        console.log(user === null || user === void 0 ? void 0 : user.onlines);
+        if (section_index === get_section_index('actions')) {
+            sections[section_index].load_boxes();
+        }
     }
     block(username) {
         this.livechat = this.livechat.filter(item => item.username !== username);
     }
 }
 function add_online(username) {
-    user === null || user === void 0 ? void 0 : user.onlines.push(username);
+    return __awaiter(this, void 0, void 0, function* () {
+        user.onlines.push(username);
+        console.log(user === null || user === void 0 ? void 0 : user.onlines);
+    });
 }
 function update_user(new_user_value) {
     user = new_user_value;

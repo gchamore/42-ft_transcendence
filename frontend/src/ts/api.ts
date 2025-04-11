@@ -223,7 +223,7 @@ async function send(message : string, type : string, to : string = '') : Promise
 
 		if (!response.ok) {
 			console.error(url + ' error: ', data.error);
-			return false;
+			return true;
 		}
 		return data.success;
 
@@ -231,7 +231,7 @@ async function send(message : string, type : string, to : string = '') : Promise
 		console.error(url + ' error: ', error);
     }
 
-	return false;
+	return true;
 }
 
 async function get_blocked_users() : Promise<Array<string> | undefined> {

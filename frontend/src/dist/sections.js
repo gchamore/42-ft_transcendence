@@ -407,6 +407,7 @@ class Actions extends ASection {
     }
     load_boxes() {
         return __awaiter(this, void 0, void 0, function* () {
+            this.clear_boxes();
             let blocked_users = yield get_blocked_users();
             if (blocked_users === undefined)
                 return;
@@ -415,6 +416,7 @@ class Actions extends ASection {
                 return;
             this.blocked_users = blocked_users;
             this.free_users = free_users;
+            console.log(blocked_users, free_users);
             this.blocked_users.forEach(blocked_user => {
                 let new_li = document.createElement('li');
                 new_li.onclick = () => this.click(new_li);
@@ -423,8 +425,9 @@ class Actions extends ASection {
             });
             this.free_users.forEach(free_user => {
                 if ((this.blocked_users instanceof Error) === true
-                    || this.blocked_users.includes(free_user) === false)
+                    && this.blocked_users.includes(free_user) === true)
                     return;
+                console.log(free_user);
                 let new_li = document.createElement('li');
                 new_li.onclick = () => this.click(new_li);
                 new_li.textContent = free_user;
@@ -485,13 +488,10 @@ class Actions extends ASection {
                 return;
             if (action === 'Block' && (yield block(username)) === true) {
                 user === null || user === void 0 ? void 0 : user.block(username);
-                this.clear_boxes();
                 this.load_boxes();
             }
-            if (action === 'Unblock' && (yield unblock(username)) === true) {
-                this.clear_boxes();
+            if (action === 'Unblock' && (yield unblock(username)) === true)
                 this.load_boxes();
-            }
         });
     }
 }
@@ -550,9 +550,9 @@ function update_status(username, online) {
         sections[section_index].update_status(online);
     if ((user === null || user === void 0 ? void 0 : user.onlines.includes(username)) === true || (user === null || user === void 0 ? void 0 : user.name) === username)
         return;
-    if (online)
+    if (online === true)
         add_online(username);
     if (sections[section_index].type === 'actions')
-        sections[section_index].add_user(username);
+        sections[section_index].load_boxes();
 }
 /* --------- */

@@ -357,7 +357,7 @@ class Chat extends ASection {
 		}
 	}
 	async send() {
-		let input = this.msg_input.value;
+		let input : string = this.msg_input.value;
 		this.msg_input.value = '';
 		if (await send(input, 'livechat') === true) {
 			add_message(user!.name, input, 'livechat');
@@ -437,6 +437,7 @@ class Actions extends ASection {
 		this.free_users = [];
 	}
 	async load_boxes() {
+		this.clear_boxes();
 		let blocked_users : Array<string> | undefined = await get_blocked_users();
 		if (blocked_users === undefined)
 			return;
@@ -446,6 +447,7 @@ class Actions extends ASection {
 
 		this.blocked_users = blocked_users;
 		this.free_users = free_users;
+		console.log(blocked_users, free_users);
 
 		this.blocked_users.forEach(blocked_user => {
 			let new_li = document.createElement('li');
@@ -456,11 +458,13 @@ class Actions extends ASection {
 
 		this.free_users.forEach(free_user => {
 			if ((this.blocked_users instanceof Error) === true
-				|| this.blocked_users.includes(free_user) === false)
+				&& this.blocked_users.includes(free_user) === true)
 				return;
+			console.log(free_user);
 			let new_li = document.createElement('li');
 			new_li.onclick = () => this.click(new_li);
 			new_li.textContent = free_user;
+
 			this.free_box.appendChild(new_li);
 		});
 	}
@@ -520,14 +524,11 @@ class Actions extends ASection {
 
 		if (action === 'Block' && await block(username) === true) {
 			user?.block(username);
+			this.load_boxes();
+		}
 
-			this.clear_boxes();
+		if (action === 'Unblock' && await unblock(username) === true)
 			this.load_boxes();
-		}
-		if (action === 'Unblock' && await unblock(username) === true) {
-			this.clear_boxes();
-			this.load_boxes();
-		}
 	}
 }
 sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions()];
@@ -597,10 +598,10 @@ function update_status(username : string, online : boolean) {
 	if (user?.onlines.includes(username) === true || user?.name === username)
         return;
 
-	if (online)
+	if (online === true)
 		add_online(username);
 
 	if (sections[section_index].type === 'actions')
-        (sections[section_index] as Actions).add_user(username);
+        (sections[section_index] as Actions).load_boxes();
 }
 /* --------- */
