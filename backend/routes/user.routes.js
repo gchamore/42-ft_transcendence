@@ -2,6 +2,12 @@ async function routes(fastify, options) {
     const { db } = fastify;
 
 	/*** 📌 Route: add friend user ***/
+	// Route to add a friend
+	// It uses the JWT middleware to authenticate the user
+	// It checks if the user exists and if the friendship already exists
+	// It returns success or error message
+	// It requires authentication
+	// It uses the SQLite database to store the friendships
     fastify.post("/add/:username", async (request, reply) => {
         const friendUsername = request.params.username;
         const userId = request.user.userId;
@@ -9,17 +15,20 @@ async function routes(fastify, options) {
         fastify.log.info(`Tentative d'ajout d'ami: ${friendUsername}`);
 
         try {
+			// Verify if user exists in the database
             const friend = db.prepare("SELECT id, username FROM users WHERE username = ?").get(friendUsername);
             if (!friend) {
                 fastify.log.warn(`Utilisateur non trouvé: ${friendUsername}`);
                 return reply.code(404).send({ error: "User not found" });
             }
 
+			// Check if the user is trying to add themselves as a friend
             const currentUser = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
             if (currentUser.username === friendUsername) {
                 return reply.code(400).send({ error: "Cannot add yourself as friend" });
             }
 
+			// Check if the friendship already exists
             const existingFriendship = db.prepare(
                 "SELECT * FROM friendships WHERE user_id = ? AND friend_id = ?"
             ).get(userId, friend.id);
@@ -28,6 +37,7 @@ async function routes(fastify, options) {
                 return reply.code(400).send({ error: "Already friends" });
             }
 
+			// Check if the user is blocked
             db.prepare(
                 "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)"
             ).run(userId, friend.id);
@@ -42,16 +52,21 @@ async function routes(fastify, options) {
     });
 
 	/*** 📌 Route: remove friend user ***/
-    fastify.delete("/remove/:username", async (request, reply) => {
+	// Route to remove a friend
+	// It uses the JWT middleware to authenticate the user
+	// It checks if the user exists and if the friendship exists
+	fastify.delete("/remove/:username", async (request, reply) => {
         const friendUsername = request.params.username;
         const userId = request.user.userId;
 
         try {
+			// Verify if user exists in the database
             const friend = db.prepare("SELECT id FROM users WHERE username = ?").get(friendUsername);
             if (!friend) {
                 return reply.code(404).send({ error: "User not found" });
             }
 
+			// Check if the friendship exists
             const result = db.prepare(
                 "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?"
             ).run(userId, friend.id);
@@ -69,12 +84,18 @@ async function routes(fastify, options) {
     });
 
 	/*** 📌 Route: search user ***/
+	// Route to search for a user
+	// It uses the JWT middleware to authenticate the user
+	// It checks if the user exists and if the friendship exists
+	// It returns the user information and friendship status
+	// It uses the SQLite database to store the users and friendships
+	// It returns the user information and friendship status
     fastify.get("/search/:username", async (request, reply) => {
         const searchedUsername = request.params.username;
         const userId = request.user.userId;
 
         try {
-            // Rechercher l'utilisateur
+            // Verify if user exists in the database and get their information
             const searchedUser = db.prepare(`
                 SELECT id, username, 
                        strftime('%d-%m-%Y', created_at) as created_at,
@@ -89,14 +110,14 @@ async function routes(fastify, options) {
                 });
             }
 
-            // Vérifier si c'est un ami
+			// Verify if the user is a friend
             const friendship = db.prepare(`
                 SELECT strftime('%d-%m-%Y', date) as friend_since
                 FROM friendships 
                 WHERE user_id = ? AND friend_id = ?
             `).get(userId, searchedUser.id);
 
-            // Calculer les statistiques de jeu
+			// Calculate game statistics
             const gameStats = db.prepare(`
                 SELECT 
                     COUNT(*) as total_games,
@@ -105,12 +126,12 @@ async function routes(fastify, options) {
                 WHERE (player1_id = ? OR player2_id = ?)
             `).get(searchedUser.id, searchedUser.id, searchedUser.id);
 
-            // Calculer le win rate
+			// Calculate win rate
             const winRate = gameStats.total_games > 0 
                 ? ((searchedUser.wins / gameStats.total_games) * 100).toFixed(1) 
                 : 0;
 
-            // Si c'est un ami, ajouter les stats communes
+			// If it's a friend, add common stats
             if (friendship) {
                 const commonGames = db.prepare(`
                     SELECT 
@@ -136,7 +157,7 @@ async function routes(fastify, options) {
                 };
             }
 
-            // Si ce n'est pas un ami
+            // If not a friend, return user information without friendship details
             return {
                 success: true,
                 isFriend: false,
@@ -156,18 +177,23 @@ async function routes(fastify, options) {
     });
 
 	/*** 📌 Route: block a user ***/
+	// Route to block a user
+	// It uses the JWT middleware to authenticate the user
+	// It checks if the user exists and if the block already exists
+	// It uses the SQLite database to store the blocks
+	// It also removes the friendship if it exists
     fastify.post("/block/:username", async (request, reply) => {
         const blockedUsername = request.params.username;
         const blockerId = request.user.userId;
 
         try {
-            // Vérifier si l'utilisateur à bloquer existe
+			// Verify if user exists in the database
             const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(blockedUsername);
             if (!blockedUser) {
                 return reply.code(404).send({ error: "User not found" });
             }
 
-            // Vérifier si le blocage existe déjà
+			// Check if the block already exists
             const existingBlock = db.prepare(
                 "SELECT * FROM blocks WHERE blocker_id = ? AND blocked_id = ?"
             ).get(blockerId, blockedUser.id);
@@ -176,12 +202,12 @@ async function routes(fastify, options) {
                 return reply.code(400).send({ error: "User already blocked" });
             }
 
-            // Ajouter le blocage
+			// Insert the block into the database
             db.prepare(
                 "INSERT INTO blocks (blocker_id, blocked_id) VALUES (?, ?)"
             ).run(blockerId, blockedUser.id);
 
-            // Si les utilisateurs sont amis, supprimer l'amitié
+			// If they are friends, remove the friendship
             db.prepare(
                 "DELETE FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)"
             ).run(blockerId, blockedUser.id, blockedUser.id, blockerId);
@@ -195,18 +221,23 @@ async function routes(fastify, options) {
     });
 
 	/*** 📌 Route: unblock a user ***/
+	// Route to unblock a user
+	// It uses the JWT middleware to authenticate the user
+	// It checks if the user exists and if the block exists
+	// It uses the SQLite database to store the blocks
+	// It returns success or error message
     fastify.delete("/unblock/:username", async (request, reply) => {
         const blockedUsername = request.params.username;
         const blockerId = request.user.userId;
 
         try {
-            // Vérifier si l'utilisateur existe
+			// Verify if user exists in the database
             const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(blockedUsername);
             if (!blockedUser) {
                 return reply.code(404).send({ error: "User not found" });
             }
 
-            // Supprimer le blocage
+			// Delete the block from the database
             const result = db.prepare(
                 "DELETE FROM blocks WHERE blocker_id = ? AND blocked_id = ?"
             ).run(blockerId, blockedUser.id);
@@ -224,10 +255,16 @@ async function routes(fastify, options) {
     });
 
 	/*** 📌 Route: all blocked user ***/
+	// Route to get all blocked users
+	// It uses the JWT middleware to authenticate the user
+	// It fetches all blocked users from the database
+	// It returns the list of blocked users
+	// It uses the SQLite database to store the blocks
     fastify.get("/blocked", async (request, reply) => {
         const userId = request.user.userId;
 
         try {
+			// Fetch all blocked users
             const blockedUsers = db.prepare(`
                 SELECT u.username
                 FROM blocks b

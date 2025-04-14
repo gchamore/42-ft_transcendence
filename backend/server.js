@@ -7,13 +7,13 @@ const fastify = require("fastify")({
     }
 });
 
-// Import des dépendances essentielles
+// Import essential dependencies
 const initializeDatabase = require("./db/schema");
 const WebSocket = require('@fastify/websocket');
 const redis = require('./redis/redisClient');
 
-// ====== Initialisation des services ======
-// Configurer WebSocket
+// ====== Initialization of services ======
+// Configure WebSocket
 fastify.register(WebSocket, {
     options: { 
         maxPayload: 1048576,
@@ -21,10 +21,10 @@ fastify.register(WebSocket, {
     }
 });
 
-// Stocker les connexions WebSocket actives
+// Stock active WebSocket connections
 fastify.decorate('connections', new Map());
 
-// Base de données SQLite
+// SQlite database
 try {
     const db = initializeDatabase(process.env.DATABASE_URL);
     fastify.decorate('db', db);
@@ -33,7 +33,7 @@ try {
     process.exit(1);
 }
 
-// ====== Configuration CORS et Cookies ======
+// ====== CORS and Cookies configuration ======
 fastify.register(require('@fastify/cors'), {
     origin: true,
     credentials: true,
@@ -45,7 +45,7 @@ fastify.register(require('@fastify/cors'), {
 
 fastify.register(require('@fastify/cookie'));
 
-// Liste des routes publiques
+// List of public routes
 const publicRoutes = [
     '/login',
     '/register',
@@ -55,9 +55,9 @@ const publicRoutes = [
 	'/2fa/verify'
 ];
 
-// Middleware d'authentification
+// Authentication middleware
 fastify.addHook('onRequest', (request, reply, done) => {
-    // Log pour debug
+    // Log for debug
     fastify.log.debug({
         path: request.routerPath,
         method: request.method,
@@ -69,7 +69,7 @@ fastify.addHook('onRequest', (request, reply, done) => {
         return done();
     }
 
-    // Si route protégée, on passe par le middleware d'auth
+	// If protected route, use auth middleware
     require('./jwt/middlewares/auth.middleware')(request, reply, done);
 });
 
@@ -81,28 +81,28 @@ fastify.register(require('./routes/ws.routes'));
 fastify.register(require('./routes/oauth.routes'));
 fastify.register(require('./routes/twofa.routes'));
 
-// ====== Gestion de l'arrêt propre ======
+// ====== Graceful shutdown handling ======
 const wsUtils = require('./ws/ws.utils');
 
 const cleanup = async (signal) => {
 	console.log(`\n${signal} received. Cleaning up...`);
 
 	try {
-		// Petite pause pour laisser le temps aux signaux en attente de se propager
+		// Small pause to allow pending signals to propagate
 		await new Promise(res => setTimeout(res, 200));
 
-		// Fermeture des WebSockets
+		// Close WebSockets
 		await wsUtils.closeAllWebSockets(fastify, 1001, "Server shutting down");
 
-		// Fermeture du serveur Fastify
+		// Close Fastify server
 		await fastify.close();
 
-        // Fermeture SQLite
+		// SQLite closing
         if (fastify.db?.close) {
-            fastify.db.close(); // SQLite est sync
+            fastify.db.close();
         }
 	
-        // Fermeture Redis
+		// Redis closing
 		if (redis && redis.status !== 'end') {
 			await redis.quit();
 		}
@@ -118,8 +118,8 @@ const cleanup = async (signal) => {
 process.on('SIGTERM', () => cleanup('SIGTERM'));
 process.on('SIGINT', () => cleanup('SIGINT'));
 
-// ====== Démarrage du serveur ======
-fastify.listen({ port: 3000, host: '0.0.0.0' }, (err) => { // Changer port 3000 en 8080
+// ====== Server startup ======
+fastify.listen({ port: 3000, host: '0.0.0.0' }, (err) => {
     if (err) {
         console.error('Server start error:', err);
         process.exit(1);

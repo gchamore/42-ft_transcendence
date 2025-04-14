@@ -1,15 +1,11 @@
 const redis = require('../redis/redisClient');
 const authService = require('../jwt/services/auth.service');
 
-/**
- * Close a WebSocket connection for a specific user
- * @param {Object} fastify - Fastify instance
- * @param {number|string} userId - User ID
- * @param {number} code - WebSocket close code (default: 1000)
- * @param {string} reason - Reason for closing (default: "Connection closed")
- * @param {boolean} updateStatus - Whether to update user online status (default: false)
- * @returns {boolean} - True if connection was closed, false if no connection found
- */
+// This function closes a WebSocket connection for a specific user
+// It takes the userId, close code, reason, and whether to update the status
+// It removes the connection from the map and updates Redis
+// It broadcasts the offline status to other clients
+// It returns true if the connection was closed successfully, false otherwise
 async function closeUserWebSocket(fastify, userId, code = 1000, reason = "Connection closed", updateStatus = false) {
     const wsConnection = fastify.connections.get(userId);
     if (wsConnection) {
@@ -38,12 +34,10 @@ async function closeUserWebSocket(fastify, userId, code = 1000, reason = "Connec
     return false;
 }
 
-/**
- * Close all WebSocket connections
- * @param {Object} fastify - Fastify instance
- * @param {number} code - WebSocket close code (default: 1000)
- * @param {string} reason - Reason for closing (default: "Server shutdown")
- */
+// This function closes all WebSocket connections
+// It takes the fastify instance, close code, and reason
+// It clears the connections map and Redis online users set
+// It returns the number of closed connections
 async function closeAllWebSockets(fastify, code = 1000, reason = "Server shutdown") {
     fastify.log.info(`Closing all WebSocket connections with reason: ${reason}`);
     
@@ -76,11 +70,11 @@ async function closeAllWebSockets(fastify, code = 1000, reason = "Server shutdow
     return closedConnections.length;
 }
 
-/**
- * Broadcast a message to all connected WebSocket clients
- * @param {Object} fastify - Fastify instance
- * @param {Object} payload - Message payload to broadcast
- */
+// This function broadcasts a message to all connected clients
+// It takes the fastify instance and the payload
+// It converts the payload to a string if it's not already
+// It sends the message to each connected socket
+// It returns the number of sent messages
 function broadcastToAllClients(fastify, payload) {
     const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
     let sentCount = 0;
@@ -95,12 +89,10 @@ function broadcastToAllClients(fastify, payload) {
     return sentCount;
 }
 
-/**
- * Broadcast a message to all connected WebSocket clients except the sender
- * @param {Object} fastify - Fastify instance
- * @param {Object} payload - Message payload to broadcast
- * @param {number|string} excludeUserId - User ID to exclude from broadcast
- */
+// This function broadcasts a message to all connected clients except the sender
+// It takes the fastify instance, payload, and the userId of the sender
+// It converts the payload to a string if it's not already
+// It sends the message to each connected socket except the sender's
 function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
     const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
     let sentCount = 0;
@@ -115,13 +107,11 @@ function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
     return sentCount;
 }
 
-/**
- * Send a message to a specific user
- * @param {Object} fastify - Fastify instance
- * @param {number|string} userId - User ID to send message to
- * @param {Object} payload - Message payload
- * @returns {boolean} - True if message was sent, false if user not connected
- */
+// This function sends a message to a specific user
+// It takes the fastify instance, userId, and payload
+// It converts the payload to a string if it's not already
+// It checks if the socket is open before sending the message
+// It returns true if the message was sent, false otherwise
 function sendToUser(fastify, userId, payload) {
     const socket = fastify.connections.get(userId);
     
@@ -134,12 +124,11 @@ function sendToUser(fastify, userId, payload) {
     return false;
 }
 
-/**
- * Broadcast user status change to all connected clients
- * @param {Object} fastify - Fastify instance
- * @param {number|string} userId - User ID whose status changed
- * @param {boolean} isOnline - Whether the user is now online
- */
+// This function broadcasts the user's online status to all clients
+// It takes the fastify instance, userId, and online status
+// It retrieves the user's username from the database
+// It creates a payload with the user's status and broadcasts it
+// It returns true if the user was found and the message was sent, false otherwise
 async function broadcastUserStatus(fastify, userId, isOnline) {
     const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
     if (!user) return false;
@@ -154,11 +143,12 @@ async function broadcastUserStatus(fastify, userId, isOnline) {
     return broadcastToAllClients(fastify, payload);
 }
 
-/**
- * Update user's online status in Redis
- * @param {number|string} userId - User ID
- * @param {boolean} isOnline - Whether the user is online
- */
+// This function updates the user's online status in Redis
+// It takes the userId and online status as parameters
+// It adds or removes the user from the online_users set in Redis
+// It returns true if the status was updated, false otherwise
+// It checks if the user is already in the set before adding
+// It removes the user from the set if they are offline
 async function updateUserOnlineStatus(userId, isOnline) {
     if (isOnline) {
         if (!await redis.sismember('online_users', userId.toString())) {
@@ -172,32 +162,24 @@ async function updateUserOnlineStatus(userId, isOnline) {
     return false;
 }
 
-/**
- * Check if a user is online
- * @param {number|string} userId - User ID to check
- * @returns {Promise<boolean>} - True if user is online
- */
+// It returns false if the user was already in the set
+// It returns true if the user was added to the set
 async function isUserOnline(userId) {
     return await redis.sismember('online_users', userId.toString());
 }
 
-/**
- * Validate WebSocket connection token
- * @param {string} accessToken - JWT access token
- * @returns {Promise<Object|null>} - User validation object or null if invalid
- */
+// This function validates the WebSocket token
+// It checks if the token is valid using the authService
 async function validateWebSocketToken(accessToken) {
     if (!accessToken) return null;
     return await authService.validateToken(accessToken, null, 'access');
 }
 
-/**
- * Handle live chat message broadcasting
- * @param {Object} fastify - Fastify instance
- * @param {number|string} userId - User ID sending the message
- * @param {string} message - Message content
- * @returns {Object} - Result object with success status and error if any
- */
+// This function handles live chat messages
+// It takes the fastify instance, userId, and message as parameters
+// It checks if the user is connected and if the message is valid
+// It retrieves the user's username from the database
+// It creates a payload with the message and broadcasts it to all clients
 async function handleLiveChatMessage(fastify, userId, message) {
     // Vérifier d'abord si l'utilisateur est bien connecté
     const isConnected = fastify.connections.has(userId);
@@ -229,16 +211,16 @@ async function handleLiveChatMessage(fastify, userId, message) {
     return { success: true };
 }
 
-/**
- * Handle direct message between users
- * @param {Object} fastify - Fastify instance
- * @param {number|string} senderId - Sender's user ID
- * @param {string} recipientUsername - Username of message recipient
- * @param {string} message - Message content
- * @returns {Object} - Result object with success status and warnings/errors
- */
+// This function handles direct messages
+// It takes the fastify instance, senderId, recipientUsername, and message as parameters
+// It checks if the sender is connected and if the message is valid
+// It retrieves the sender's username and checks if the recipient exists
+// It checks if the sender is blocked by the recipient
+// It checks if the recipient is connected
+// It creates a payload with the message and sends it to the recipient
+// It returns true if the message was sent, false otherwise
 async function handleDirectMessage(fastify, senderId, recipientUsername, message) {
-    // Vérifier d'abord si l'expéditeur est bien connecté
+	// Verify if the sender is connected
     const isSenderConnected = fastify.connections.has(senderId);
     if (!isSenderConnected) {
         return { success: false, error: 'You must be connected to send messages' };
@@ -271,7 +253,7 @@ async function handleDirectMessage(fastify, senderId, recipientUsername, message
         return { success: false, error: 'Recipient not found' };
     }
 
-    // Vérifier si l'expéditeur est bloqué par le destinataire
+	// Verify if the sender is blocked by the recipient
     const isBlocked = fastify.db.prepare(`
         SELECT 1 FROM blocks 
         WHERE (blocker_id = ? AND blocked_id = ?) 
@@ -282,7 +264,7 @@ async function handleDirectMessage(fastify, senderId, recipientUsername, message
         return { success: false, error: 'Cannot send message due to block status' };
     }
 
-    // Vérifier si le destinataire est connecté
+	// Verify if the recipient is connected
     const isRecipientConnected = fastify.connections.has(recipientUser.id);
     if (!isRecipientConnected) {
         return { success: false, error: 'Recipient is offline. Cannot send message to offline users.' };
@@ -304,11 +286,12 @@ async function handleDirectMessage(fastify, senderId, recipientUsername, message
     return { success: true };
 }
 
-/**
- * Récupère la liste des utilisateurs en ligne
- * @param {Object} fastify - Fastify instance
- * @returns {Promise<Array>} - Liste des usernames en ligne
- */
+// This function retrieves the list of online users
+// It takes the fastify instance as a parameter
+// It retrieves the online user IDs from Redis
+// It creates a map of usernames and returns it
+// It returns an empty array if no online users are found
+// It returns an object with usernames as keys and true as values
 async function getOnlineUsers(fastify) {
 	const onlineUserIds = await redis.smembers('online_users');
 	if (onlineUserIds.length === 0) return [];
@@ -322,11 +305,12 @@ async function getOnlineUsers(fastify) {
 	return onlineUsersMap;
 }
 
-/**
- * Envoie la liste des utilisateurs en ligne à un utilisateur spécifique
- * @param {Object} fastify - Fastify instance
- * @param {number|string} userId - User ID to send the list to
- */
+// This function sends the list of online users to a specific user
+// It takes the fastify instance and userId as parameters
+// It retrieves the online users from Redis
+// It creates a payload with the list of online users
+// It sends the payload to the user
+// It returns true if the message was sent, false otherwise
 async function sendOnlineUsersList(fastify, userId) {
     const onlineUsers = await getOnlineUsers(fastify);
     const payload = {

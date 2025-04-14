@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Fonction de nettoyage
+# Cleanup function
 cleanup() {
     echo "Arrêt des services..."
     kill $(jobs -p)
@@ -8,14 +8,14 @@ cleanup() {
     exit 0
 }
 
-# Capture des signaux
+# Capture signals
 trap cleanup SIGTERM SIGINT
 
-# Démarrage de Redis en arrière-plan
+# Start Redis in the background
 redis-server --daemonize yes
 
-# Démarrage de l'application Node
+# Node application startup
 node server.js &
 
-# Attente des processus en arrière-plan
+# Background process waiting
 wait
