@@ -1,4 +1,4 @@
-const authService = require('../jwt/services/auth.service');
+const authService = require('../auth/auth.service');
 const wsUtils = require('./ws.utils');
 
 class WebSocketService {

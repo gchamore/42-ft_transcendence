@@ -1,6 +1,6 @@
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
-const authService = require('../jwt/services/auth.service');
+const authService = require('../auth/auth.service');
 const TwofaService = require('../2fa/twofa.service');
 
 async function routes(fastify, options) {

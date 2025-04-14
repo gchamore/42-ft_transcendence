@@ -1,5 +1,5 @@
 const { google } = require('googleapis');
-const authService = require('../jwt/services/auth.service');
+const authService = require('../auth/auth.service');
 const TwofaService = require('../2fa/twofa.service'); // Ajout de l'import manquant
 require('dotenv').config();
 

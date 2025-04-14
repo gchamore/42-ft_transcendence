@@ -1,4 +1,4 @@
-const authService = require('../services/auth.service');
+const authService = require('../../auth/auth.service');
 
 // Middleware d'authentification for token checking
 // It verifies if the access token is valid and not expired

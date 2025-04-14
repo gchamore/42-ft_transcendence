@@ -1,5 +1,5 @@
 const redis = require('../redis/redisClient');
-const authService = require('../jwt/services/auth.service');
+const authService = require('../auth/auth.service');
 
 // This function closes a WebSocket connection for a specific user
 // It takes the userId, close code, reason, and whether to update the status

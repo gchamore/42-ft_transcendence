@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-const authService = require('../jwt/services/auth.service');
+const authService = require('../auth/auth.service');
 const TwofaService = require('../2fa/twofa.service');
 const jwt = require('jsonwebtoken');
 const wsUtils = require('../ws/ws.utils');
@@ -40,44 +40,26 @@ async function routes(fastify, options) {
 		// Register the user in the database
 		try {
 			// Hash the password using bcrypt
-			fastify.log.info(`Hashage du mot de passe pour l'utilisateur : ${username}`);
-			const hashedPassword = await bcrypt.hash(password, 10);
+			const hashedPassword = await authService.hashPassword(password);
 
-			// Insert the user into the database
-			const result = db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, hashedPassword);
-			fastify.log.info(`Nouvel utilisateur enregistré : ${username}`);
-
-			// Get the newly created user from the database
-			const newUser = db.prepare("SELECT id, username FROM users WHERE id = ?").get(result.lastInsertRowid);
+			// Add the user to the database
+			const userId = await authService.addToDatabase(db, 'users', {username: username, password: hashedPassword});			
 
 			// Generate the access and refresh tokens for the user
-			const { accessToken, refreshToken } = await authService.generateTokens(newUser.id);
+			const { accessToken, refreshToken } = await authService.generateTokens(userId);
 
 			// Check if the application is running locally or in production
 			const isLocal = request.headers.host.startsWith("localhost");
 
-			// Send the response with the tokens in cookies
-			return reply
-				.code(201)
-				.setCookie('accessToken', accessToken, {
-					httpOnly: true,
-					secure: !isLocal,
-					sameSite: 'None',
-					path: '/',
-					maxAge: 15 * 60 // 15 minutes
-				})
-				.setCookie('refreshToken', refreshToken, {
-					httpOnly: true,
-					secure: !isLocal,
-					sameSite: 'None',
-					path: '/',
-					maxAge: 7 * 24 * 60 * 60 // 7 jours
-				})
-				.send({
+			// Set the cookies for the tokens
+			authService.setCookie(reply, accessToken, 15, isLocal); // accessToken : 15 min
+			authService.setCookie(reply, refreshToken, 7, isLocal); // refreshToken : 7 jours
+
+			return reply.code(201).send({
 					success: true,
 					message: "User registered and logged in successfully",
-					username: newUser.username,
-					id: newUser.id
+					username: username,
+					id: userId
 				});
 
 		} catch (error) {
@@ -171,8 +153,7 @@ async function routes(fastify, options) {
 		} catch (error) {
 			fastify.log.error(error, `Erreur lors de la suppression du compte : ${username}`);
 			return reply.code(500).send({
-				error: "Failed to delete user",
-				details: error.message
+				error: "Failed to delete user"
 			});
 		}
 	});
@@ -344,7 +325,6 @@ async function routes(fastify, options) {
 	// Clear the cookies for the tokens
 	// Close the WebSocket connection for the user
 	fastify.post("/logout", async (request, reply) => {
-		// Le middleware a déjà vérifié le token et mis request.user
 		// Middleware used because the user is already authenticated
 		const userId = request.user.userId;
 		const token = request.cookies?.accessToken;
