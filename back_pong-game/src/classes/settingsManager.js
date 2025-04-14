@@ -1,4 +1,4 @@
-import { GameConfig } from "../../public/dist/shared/config/gameConfig";
+import { GameConfig } from "../../public/dist/shared/config/gameConfig.js";
 
 export class SettingsManager {
     constructor(existingSettings = null) {

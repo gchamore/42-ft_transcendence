@@ -1,8 +1,11 @@
-import { LobbyManager } from '../classes/lobbyManager.js';
 import { GameInstance } from '../classes/gameInstance.js';
 import { games } from '../controllers/gameController.js';
+import { safeSend } from '../utils/socketUtils.js';
+import { removeMessageListeners } from './disconnectHandler.js';
+import { handleGameMessage } from './gameMessageHandlers.js';
+import WebSocket from 'ws';
 
-export function handleNewPlayer(socket, lobby) {
+export function handleNewLobbyPlayer(socket, lobby) {
     // Verify socket is open
     if (socket.readyState !== WebSocket.OPEN) {
         console.error('Socket not in OPEN state');
@@ -93,6 +96,13 @@ function handleLobbyMessage(socket, lobby, data) {
 
 function startGameFromLobby(lobby, gameId) {
     const game = new GameInstance(gameId, lobby.getSettings());
+	console.log(`Transitioning game from Lobby to ${gameId}`);
+
+	lobby.players.forEach((player) => {
+		game.addPlayer(player);
+	});
+
+	game.transitionToGame(gameId);
     games.set(gameId, game);
 
     // Notify players about the game start
@@ -102,8 +112,15 @@ function startGameFromLobby(lobby, gameId) {
             gameId: gameId,
             settings: lobby.getSettings(),
         });
-    });
+		removeMessageListeners(player);
+
+		player.on('message', (message) => {
+			const data = JSON.parse(message);
+			handleGameMessage(player, game, data);
+		});
+    });	
 
     // Clean up the lobby
     lobby.players = [];
+	console.log(`Game successfully transitioned  to ${gameId}`);
 }

@@ -1,14 +1,14 @@
 import { GameInstance } from "../classes/gameInstance.js";
+import { LobbyManager } from "../classes/lobbyManager.js";
 import { SettingsManager } from "../classes/settingsManager.js";
-import { handleNewPlayer } from '../handlers/gameMessageHandlers.js';
+import { handleNewGamePlayer } from '../handlers/gameMessageHandlers.js';
+import { handleNewLobbyPlayer } from '../handlers/lobbyMessageHandler.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { GameConfig } from "../../public/dist/shared/config/gameConfig.js";
 
 export const games = new Map();
-export let mainLobby = {
-	settingsManager: new SettingsManager(),
-	players: [],
-};
+export const settingsManagers = new Map();
+export let mainLobby = new LobbyManager('lobby-main');
 const broadcastTimeout = {};
 
 export function setupWebSocketRoutes(fastify) {
@@ -34,7 +34,7 @@ export function setupWebSocketRoutes(fastify) {
 }
 
 export function resetMainLobby() {
-	mainLobby = new GameInstance('lobby-main', null, safeSend);
+	mainLobby = new LobbyManager('lobby-main');
 	return mainLobby;
 }
 
@@ -45,16 +45,22 @@ function handleGameConnection(connection, request) { //need changes
 	console.log('WebSocket connection established for game:', { gameId });
 
 	if (gameId === 'lobby-main') {
-		handleNewPlayer(socket, mainLobby);
+		handleNewLobbyPlayer(socket, mainLobby);
 	} else {
 		// Handle actual game connections
 		let game = games.get(gameId);
+		let settingsManager = settingsManagers.get(gameId);
 		if (!game) {
+			if (!settingsManager) {
+				settingsManager = new SettingsManager();
+				settingsManagers.set(gameId, settingsManager);
+			}
+
 			const lobbySettings = mainLobby.settingsManager.getSettings();
 			game = new GameInstance(gameId, lobbySettings, safeSend);
 			games.set(gameId, game);
 		}
-		handleNewPlayer(socket, game);
+		handleNewGamePlayer(socket, game);
 	}
 }
 

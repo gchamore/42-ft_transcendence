@@ -17,6 +17,20 @@ export function handleDisconnect(socket, game) {
 	}
 }
 
+export function removeMessageListeners(socket) {
+	try{
+		const listeners = socket.listeners('message');
+		if (listeners && listeners.length) {
+			listeners.forEach(listener => {
+				socket.removeListener('message', listener);
+			});
+			console.log(`Removed ${listeners.length} message listeners from socket`);
+		}
+	} catch (e) {
+		console.error('Error removing message listeners:', e);
+	}
+}
+
 function validateDisconnectParams(socket, game) {
 	if (!socket.playerNumber) {
 		console.error('Player number not found for disconnection handling');

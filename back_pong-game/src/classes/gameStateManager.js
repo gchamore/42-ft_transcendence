@@ -3,11 +3,12 @@ import { GameConfig } from "../../public/dist/shared/config/gameConfig.js";
 import { safeSend } from '../utils/socketUtils.js';
 
 export class GameStateManager {
-	constructor(gameId) {
+	constructor(gameId, settings) {
 		this.gameId = gameId;
 		this.isLobby = gameId.startsWith("lobby-");
 		this.gameState = createDefaultGameState(gameId);
 		this.playerReadyStatus = new Set();
+		this.settings = settings;
 	}
 
 	setPlayerReady(playerNumber) {
@@ -79,7 +80,6 @@ export class GameStateManager {
 	}
 
 	transitionToGame(newGameId) {
-		console.log(`Transitioning game from ${this.gameId} to ${newGameId}`);
 
 		// Update the game ID
 		const oldGameId = this.gameId;
@@ -95,7 +95,6 @@ export class GameStateManager {
 		// Mark both players as ready
 		this.playerReadyStatus = new Set([1, 2]);
 
-		console.log(`Game successfully transitioned from ${oldGameId} to ${newGameId}`);
 		return this;
 	}
 

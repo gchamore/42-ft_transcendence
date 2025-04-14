@@ -7,7 +7,7 @@ export class GameInstance {
     this.gameId = gameId;
     this.players = [];
 	  this.isLobby = gameId.startsWith('lobby-');
-    this.gameStateManager = new GameStateManager(gameId);
+    this.gameStateManager = new GameStateManager(gameId, existingSettings);
     this.physicManager = new PhysicManager();
     this.powerUpManager = new PowerUpManager();
     this.settings = existingSettings;
@@ -29,7 +29,7 @@ export class GameInstance {
   }
 
   addPlayer(socket) {
-    if (this.players.length >= 2) {
+    if (this.players.length >= 2 || !socket) {
       return false;
     }
     const playerNumber = this.players.length + 1;
