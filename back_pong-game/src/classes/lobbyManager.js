@@ -2,40 +2,47 @@ import { SettingsManager } from '../classes/settingsManager.js';
 import { safeSend } from '../utils/socketUtils.js';
 
 export class LobbyManager {
-    constructor(lobbyId) {
-        this.lobbyId = lobbyId;
-        this.settingsManager = new SettingsManager();
-        this.players = [];
-    }
+	constructor(lobbyId) {
+		this.lobbyId = lobbyId;
+		this.settingsManager = new SettingsManager();
+		this.players = new Map();
+	}
 
-    addPlayer(socket) {
-        if (this.players.length >= 2) {
-            return false; // Lobby is full
-        }
-        const playerNumber = this.players.length + 1;
-        socket.playerNumber = playerNumber;
-        this.players.push(socket);
-        return true;
-    }
+	addPlayer(socket, clientId) {
+		socket.clientId = clientId;
+		// If the client reconnects, update their existing connection.
+		if (this.players.has(clientId)) {
+			const existingSocket = this.players.get(clientId);
+			this.players.set(clientId, socket);
+			socket.playerNumber = existingSocket.playerNumber;
+			return true;
+		}
 
-    removePlayer(socket) {
-        const index = this.players.indexOf(socket);
-        if (index > -1) {
-            this.players.splice(index, 1);
-        }
-    }
+		if (this.players.size >= 2) {
+			return false; // Lobby is full
+		}
+		// Assign player number based on current count
+		const playerNumber = this.players.size + 1;
+		socket.playerNumber = playerNumber;
+		this.players.set(clientId, socket);
+		return true;
+	}
 
-    updateSettings(newSettings) {
-        const updatedSettings = this.settingsManager.updateSettings(newSettings);
-        this.players.forEach((player) => {
-            safeSend(player, {
-                type: 'settingsUpdate',
-                settings: updatedSettings,
-            });
-        });
-    }
+	removePlayer(clientId) {
+		this.players.delete(clientId);
+	}
 
-    getSettings() {
-        return this.settingsManager.getSettings();
-    }
+	updateSettings(newSettings) {
+		const updatedSettings = this.settingsManager.updateSettings(newSettings);
+		this.players.forEach((player) => {
+			safeSend(player, {
+				type: 'settingsUpdate',
+				settings: updatedSettings,
+			});
+		});
+	}
+
+	getSettings() {
+		return this.settingsManager.getSettings();
+	}
 }

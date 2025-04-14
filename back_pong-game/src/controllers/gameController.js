@@ -8,7 +8,7 @@ import { GameConfig } from "../../public/dist/shared/config/gameConfig.js";
 
 export const games = new Map();
 export const settingsManagers = new Map();
-export let mainLobby = new LobbyManager('lobby-main');
+export const lobbies = new Map();
 const broadcastTimeout = {};
 
 export function setupWebSocketRoutes(fastify) {
@@ -33,19 +33,37 @@ export function setupWebSocketRoutes(fastify) {
 	  setupGameUpdateInterval();
 }
 
-export function resetMainLobby() {
-	mainLobby = new LobbyManager('lobby-main');
-	return mainLobby;
+function generateLobbyId() {
+	return `lobby-${Math.random().toString(36).substring(2, 8)}`;
 }
 
-function handleGameConnection(connection, request) { //need changes 
+function getAvailableLobby() {
+	for (const lobby of lobbies.values()) {
+		if (lobby.players.size < 2) {
+			return lobby;
+		}
+	}
+	const newLobbyId = generateLobbyId();
+	const newLobby = new LobbyManager(newLobbyId);
+	lobbies.set(newLobbyId, newLobby);
+	return newLobby;
+}
+
+export function resetlobbies() {
+	lobbies.clear();
+}
+
+function handleGameConnection(connection, request) {
 	const socket = connection.socket;
 	const { gameId } = request.params;
 
+	const clientId = request.query.clientId || `guest-${Math.random().toString(36).substring(2, 8)}`;
+
 	console.log('WebSocket connection established for game:', { gameId });
 
-	if (gameId === 'lobby-main') {
-		handleNewLobbyPlayer(socket, mainLobby);
+	if (gameId.startsWith('lobby-')) {
+		const lobby = getAvailableLobby();
+		handleNewLobbyPlayer(socket, lobby, clientId);
 	} else {
 		// Handle actual game connections
 		let game = games.get(gameId);
@@ -56,7 +74,7 @@ function handleGameConnection(connection, request) { //need changes
 				settingsManagers.set(gameId, settingsManager);
 			}
 
-			const lobbySettings = mainLobby.settingsManager.getSettings();
+			const lobbySettings = settingsManager.getSettings();
 			game = new GameInstance(gameId, lobbySettings, safeSend);
 			games.set(gameId, game);
 		}

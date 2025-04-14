@@ -245,10 +245,8 @@ export class SettingsPage {
 					type: 'playerReady',
 					playerNumber: 1
 				}));
-				const gameId = Math.random().toString(36).substring(2, 8);
 				this.socket.send(JSON.stringify({
-					type: 'startGameRequest',
-					gameId: gameId
+					type: 'startGameRequest'
 				}));
 			}
 		};
