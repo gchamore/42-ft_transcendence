@@ -7,25 +7,21 @@ export function handleDisconnect(socket, game) {
 	const playerNumber = socket.playerNumber;
 	console.log(`Player ${playerNumber} disconnected from game ${game.gameId}`);
 
-	cleanUpSocketListeners(socket);
 	game.removePlayer(socket);
-
+	
 	if (game.players.length === 0) {
 		handleEmptyGame(game);
 	} else {
 		handleRemainingPlayers(game, playerNumber);
 	}
+	cleanUpSocketListeners(socket);
 }
 
 export function removeMessageListeners(socket) {
 	try{
-		const listeners = socket.listeners('message');
-		if (listeners && listeners.length) {
-			listeners.forEach(listener => {
-				socket.removeListener('message', listener);
-			});
-			console.log(`Removed ${listeners.length} message listeners from socket`);
-		}
+		socket.removeAllListeners('message');
+		socket.removeAllListeners('close');
+		console.log(`Removed message and close listeners from socket`);
 	} catch (e) {
 		console.error('Error removing message listeners:', e);
 	}

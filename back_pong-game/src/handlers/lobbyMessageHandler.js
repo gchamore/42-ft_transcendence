@@ -2,7 +2,8 @@ import { GameInstance } from '../classes/gameInstance.js';
 import { games } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { removeMessageListeners } from './disconnectHandler.js';
-import { handleGameMessage } from './gameMessageHandlers.js';
+import { handleNewGamePlayer } from './gameMessageHandlers.js';
+import { lobbies } from '../controllers/gameController.js';
 import WebSocket from 'ws';
 
 export function handleNewLobbyPlayer(socket, lobby, clientId) {
@@ -51,6 +52,10 @@ export function handleNewLobbyPlayer(socket, lobby, clientId) {
 	socket.on('close', () => {
 		console.log(`Player ${playerNumber} disconnected from lobby ${lobby.lobbyId}`);
 		lobby.removePlayer(socket);
+		if (lobby.players.size === 0) {
+			lobbies.delete(lobby.lobbyId);
+			console.log(`Lobby ${lobby.lobbyId} deleted due to emptyness`);
+		}
 	});
 }
 
@@ -114,13 +119,11 @@ function startGameFromLobby(lobby) {
 		});
 		removeMessageListeners(player);
 
-		player.on('message', (message) => {
-			const data = JSON.parse(message);
-			handleGameMessage(player, game, data);
-		});
+		handleNewGamePlayer(player, game);
 	});
 
 	// Clean up the lobby
 	lobby.players.clear();
+	lobbies.delete(lobby.lobbyId);
 	console.log(`Game successfully transitioned  to ${gameId}`);
 }

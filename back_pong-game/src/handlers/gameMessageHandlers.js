@@ -59,9 +59,7 @@ export function handleNewGamePlayer(socket, game) {
 		console.log(`Player ${playerNum} disconnected`);
 
 		if (gameInst) {
-			setTimeout(() => {
-				handleDisconnect(socket, gameInst);
-			}, 0);
+			handleDisconnect(socket, gameInst);
 		} else {
 			console.error('Game instance not found for player disconnect');
 		}

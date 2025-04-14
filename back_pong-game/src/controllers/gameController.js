@@ -89,7 +89,10 @@ function setupGameUpdateInterval() {
 		const deltaTime = (now - lastUpdateTime) / 1000;
 		lastUpdateTime = now;
 		games.forEach((game) => {
-			if (game.players.length === 0) return;
+			if (game.players.length === 0){
+				games.delete(game.gameId);
+				return;
+			};
 
 			processGameUpdate(game, deltaTime);
 
@@ -127,9 +130,13 @@ function processGameUpdate(game, deltaTime) {
 
 export function broadcastGameState(game) {
 	game.players.forEach((player) => {
-		safeSend(player, {
-			type: 'gameState',
-			gameState: game.getState()
-		});
+		if (player.readyState === 1) {
+			safeSend(player, {
+				type: 'gameState',
+				gameState: game.getState()
+			});
+		} else {
+			console.warn(`Skipping broadcast to player ${player.playerNumber} because socket is not open (state: ${player.readyState})`);
+		}
 	});
 } 
