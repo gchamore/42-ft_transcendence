@@ -71,6 +71,9 @@ class AuthService {
 	// Generic database check function
 	async checkExists(db, tableName, conditions) {
 		try {
+			if (!conditions || Object.keys(conditions).length === 0) {
+				throw new Error("checkExists() requires at least one condition");
+			}			
 			const whereClause = Object.entries(conditions)
 				.map(([key]) => `${key} = ?`)
 				.join(' AND ');
@@ -149,8 +152,8 @@ class AuthService {
 
 			// Check if user exists in the database
 			if (db) {
-				const userExists = db.prepare("SELECT id FROM users WHERE id = ?").get(decoded.userId);
-				if (!userExists) {
+				const userExists = await getFromDatabase(db, 'users', ['id'], { id: decoded.userId });
+				if (!userExists) {	
 					await this.revokeTokens(decoded.userId);
 					return null;
 				}
