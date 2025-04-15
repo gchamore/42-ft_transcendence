@@ -63,7 +63,6 @@ class User {
                         this.init_status(data.users);
                         break;
                     case 'status_update':
-                        console.log('here:', data.username);
                         update_status(data.username, data.online);
                         break;
                     case 'livechat':
@@ -106,7 +105,6 @@ class User {
             if (value === true && key !== (user === null || user === void 0 ? void 0 : user.name))
                 user === null || user === void 0 ? void 0 : user.onlines.push(key);
         });
-        console.log(user === null || user === void 0 ? void 0 : user.onlines);
         if (section_index === get_section_index('actions')) {
             sections[section_index].load_boxes();
         }
@@ -118,7 +116,6 @@ class User {
 function add_online(username) {
     return __awaiter(this, void 0, void 0, function* () {
         user.onlines.push(username);
-        console.log(user === null || user === void 0 ? void 0 : user.onlines);
     });
 }
 function update_user(new_user_value) {

@@ -10,7 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 function verify_token() {
     return __awaiter(this, void 0, void 0, function* () {
-        console.log('verify_token()');
         try {
             const response = yield fetch(`/api/verify_token`, {
                 method: "POST",

@@ -135,7 +135,7 @@ class Profile extends ASection {
         this.username_i.value = "";
         this.password_i.value = "";
         this.btn1.textContent = "Settings";
-        this.btn1.setAttribute("onclick", "go_section('settings')");
+        this.btn1.onclick = () => go_section('settings');
         this.btn2.textContent = "Logout";
         this.btn2.setAttribute("onclick", "logout()");
         this.logged_in_view();
@@ -418,7 +418,6 @@ class Actions extends ASection {
                 return;
             this.blocked_users = blocked_users;
             this.free_users = free_users;
-            console.log(blocked_users, free_users);
             this.blocked_users.forEach(blocked_user => {
                 let new_li = document.createElement('li');
                 new_li.onclick = () => this.click(new_li);

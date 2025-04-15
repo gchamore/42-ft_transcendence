@@ -1,5 +1,4 @@
 async function verify_token(): Promise<void> {
-	console.log('verify_token()');
 	try {
 		const response = await fetch(`/api/verify_token`, {
 			method: "POST",

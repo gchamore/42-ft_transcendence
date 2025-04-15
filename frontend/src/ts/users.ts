@@ -71,7 +71,6 @@ class User {
                         this.init_status(data.users);
                         break;
                         case 'status_update':
-                        console.log('here:', data.username);
                         update_status(data.username, data.online);
                         break;
                     case 'livechat':
@@ -116,7 +115,6 @@ class User {
             if (value === true && key !== user?.name)
                 user?.onlines.push(key);
         });
-        console.log(user?.onlines);
         if (section_index === get_section_index('actions')) {
             (sections[section_index] as Actions).load_boxes();
         }
@@ -128,7 +126,6 @@ class User {
 
 async function add_online(username : string) {
     user!.onlines.push(username);
-    console.log(user?.onlines);
 }
 
 function update_user(new_user_value : User | undefined) {
