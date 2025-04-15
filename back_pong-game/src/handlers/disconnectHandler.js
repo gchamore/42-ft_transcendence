@@ -19,8 +19,7 @@ export function handleDisconnect(socket, game) {
 
 export function removeMessageListeners(socket) {
 	try{
-		socket.removeAllListeners('message');
-		socket.removeAllListeners('close');
+		socket.removeAllListeners();
 		console.log(`Removed message and close listeners from socket`);
 	} catch (e) {
 		console.error('Error removing message listeners:', e);

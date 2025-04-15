@@ -5,6 +5,7 @@ import { handleNewGamePlayer } from '../handlers/gameMessageHandlers.js';
 import { handleNewLobbyPlayer } from '../handlers/lobbyMessageHandler.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { GameConfig } from "../../public/dist/shared/config/gameConfig.js";
+import { handleDisconnect } from "../handlers/disconnectHandler.js";
 
 export const games = new Map();
 export const settingsManagers = new Map();
@@ -12,25 +13,21 @@ export const lobbies = new Map();
 const broadcastTimeout = {};
 
 export function setupWebSocketRoutes(fastify) {
-	fastify.get('/game/status/:gameId', async (request, reply) => {
-		const { gameId } = request.params;
-		const gameExists = games.has(gameId);
+	// REST endpoint to create a new game
+	fastify.post('/game/create', async (request, reply) => {
+		const gameId = Math.random().toString(36).substring(2, 8);
+		const settingsManager = new SettingsManager();
+		settingsManagers.set(gameId, settingsManager);
 
-		if (gameExists) {
-			return { exists: true };
-		}
-
-		reply.code(404);
-		return { exists: false };
+		reply.send({ gameId });
+	});
+	// WebSocket route
+	fastify.register(async function (fastify) {
+		fastify.get('/game/:gameId', { websocket: true }, handleGameConnection);
 	});
 
-	 // WebSocket route
-	 fastify.register(async function (fastify) {
-		fastify.get('/game/:gameId', { websocket: true }, handleGameConnection);
-	  });
-
-	  // Start game update loop
-	  setupGameUpdateInterval();
+	// Start game update loop
+	setupGameUpdateInterval();
 }
 
 function generateLobbyId() {
@@ -103,6 +100,16 @@ function setupGameUpdateInterval() {
 				broadcastGameState(game);
 				broadcastTimeout[game.gameId] = now;
 			}
+
+			game.players.forEach((player) => {
+				if (!player.isAlive) {
+					console.log(`Player ${player.playerNumber} is unresponsive, disconnecting...`);
+					handleDisconnect(player, game);
+				} else {
+					player.isAlive = false;
+					safeSend(player, { type: 'ping' });
+				}
+			});
 		});
 	}, 1000 / GameConfig.TARGET_FPS);
 }

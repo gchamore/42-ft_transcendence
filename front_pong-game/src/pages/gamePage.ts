@@ -182,6 +182,9 @@ export class Game {
 						this.uiManager.removeActivePowerup(data.powerupId);
 					}
 					break;
+				case 'ping':
+					this.socket.send(JSON.stringify({ type: 'pong' }));
+					break;
 			}
 		};
 

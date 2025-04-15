@@ -45,25 +45,37 @@ export function handleNewGamePlayer(socket, game) {
 	// Set up socket message handler
 	socket.on('message', message => {
 		const data = JSON.parse(message);
-		handleGameMessage(socket, game, data);
+		if (socket.currentHandler) {
+			socket.currentHandler(data);
+		} else {
+			console.error('No handler set for incoming message');
+		}
 	});
 
 	// Set up disconnect handler
 	socket.isDisconnecting = false;
 	socket.on('close', () => {
-		if (!socket || socket.isDisconnecting) return;
-		socket.isDisconnecting = true;
-
-		const playerNum = socket.playerNumber;
-		const gameInst = socket.gameInstance;
-		console.log(`Player ${playerNum} disconnected`);
-
-		if (gameInst) {
-			handleDisconnect(socket, gameInst);
+		if (socket.currentCloseHandler) {
+			socket.currentCloseHandler(socket, game);
 		} else {
-			console.error('Game instance not found for player disconnect');
+			console.error('No close handler set for socket');
 		}
 	});
+}
+
+export function handleGameDisconnect(socket, game) {
+	if (!socket || socket.isDisconnecting) return;
+	socket.isDisconnecting = true;
+
+	const playerNum = socket.playerNumber;
+	const gameInst = socket.gameInstance;
+	console.log(`Player ${playerNum} disconnected`);
+
+	if (gameInst) {
+		handleDisconnect(socket, gameInst);
+	} else {
+		console.error('Game instance not found for player disconnect');
+	}
 }
 
 export function handleGameMessage(socket, game, data) {
@@ -78,6 +90,11 @@ export function handleGameMessage(socket, game, data) {
 		case 'rematchRequest':
 			handleRematchRequest(socket, game, playerNumber);
 			break;
+		case 'pong':
+			socket.isAlive = true;
+			break;
+		default:
+			console.error(`Unknown message type: ${data.type}`);
 	}
 }
 

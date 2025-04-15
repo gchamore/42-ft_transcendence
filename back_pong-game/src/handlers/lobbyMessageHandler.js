@@ -1,7 +1,7 @@
 import { GameInstance } from '../classes/gameInstance.js';
 import { games } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
-import { removeMessageListeners } from './disconnectHandler.js';
+import { handleGameMessage, handleGameDisconnect } from './gameMessageHandlers.js';
 import { handleNewGamePlayer } from './gameMessageHandlers.js';
 import { lobbies } from '../controllers/gameController.js';
 import WebSocket from 'ws';
@@ -42,21 +42,36 @@ export function handleNewLobbyPlayer(socket, lobby, clientId) {
 		});
 	}
 
+	socket.currentHandler = (data) => handleLobbyMessage(socket, lobby, data);
+	socket.currentCloseHandler = () => handleLobbyDisconnect(socket, lobby);
+
 	// Set up socket message handler
 	socket.on('message', (message) => {
 		const data = JSON.parse(message);
-		handleLobbyMessage(socket, lobby, data);
+		if (socket.currentHandler) {
+			socket.currentHandler(data);
+		} else {
+			console.error('No handler set for incoming message');
+		}
 	});
 
 	// Handle disconnect
 	socket.on('close', () => {
-		console.log(`Player ${playerNumber} disconnected from lobby ${lobby.lobbyId}`);
-		lobby.removePlayer(socket);
-		if (lobby.players.size === 0) {
-			lobbies.delete(lobby.lobbyId);
-			console.log(`Lobby ${lobby.lobbyId} deleted due to emptyness`);
+		if (socket.currentCloseHandler) {
+			socket.currentCloseHandler();
+		} else {
+			console.error('No close handler set for socket');
 		}
 	});
+}
+
+function handleLobbyDisconnect(socket, lobby) {
+	console.log(`Player ${playerNumber} disconnected from lobby ${lobby.lobbyId}`);
+	lobby.removePlayer(socket);
+	if (lobby.players.size === 0) {
+		lobbies.delete(lobby.lobbyId);
+		console.log(`Lobby ${lobby.lobbyId} deleted due to emptyness`);
+	}
 }
 
 function handleLobbyMessage(socket, lobby, data) {
@@ -117,8 +132,8 @@ function startGameFromLobby(lobby) {
 			gameId: gameId,
 			settings: lobby.getSettings(),
 		});
-		removeMessageListeners(player);
-
+		player.currentHandler = (data) => handleGameMessage(player, game, data);
+		player.currentCloseHandler = () => handleGameDisconnect(player, game);
 		handleNewGamePlayer(player, game);
 	});
 

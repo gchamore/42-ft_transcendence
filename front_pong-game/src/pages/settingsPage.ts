@@ -23,8 +23,8 @@ export class SettingsPage {
 	private handlePowerUpsChange!: (event: Event) => void;
 	private startButtonClickHandler!: (event: Event) => void;
 
-	constructor() {
-		this.lobbyId = 'lobby-main'
+	constructor(activeGameId: string) {
+		this.lobbyId = activeGameId
 		this.ballSpeedSlider = document.getElementById('ball-speed') as HTMLInputElement;
 		this.ballSpeedValue = document.getElementById('ball-speed-value')!;
 		this.paddleLengthSlider = document.getElementById('paddle-length') as HTMLInputElement;
@@ -85,6 +85,9 @@ export class SettingsPage {
 						this.startButton.disabled = false;
 						this.startButton.textContent = 'Start Game';
 					}
+					break;
+				case 'ping':
+					this.socket.send(JSON.stringify({ type: 'pong' }));
 					break;
 				case 'error':
 					console.error(data.message);
