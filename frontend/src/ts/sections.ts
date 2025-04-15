@@ -388,6 +388,7 @@ class Actions extends ASection {
 	free_users : Array<string> = [];
 
 	current : HTMLLIElement | undefined = undefined;
+	load_mutex : boolean = false;
 
 	/* Methods */
 	enter(verified: boolean) {
@@ -421,22 +422,22 @@ class Actions extends ASection {
 	switch_logged_in() {}
 	
 	clear_boxes() {
-		let childs : Array<ChildNode>;
+		while (this.free_box.firstChild) {
+			this.free_box.firstChild.remove(); 
+		}
+		while (this.blocked_box.firstChild) {
+			this.blocked_box.firstChild.remove(); 
+		}
 
-		childs = [];
-		this.free_box.childNodes.forEach(child => { childs.push(child); });
-		for (let i = 0; i < childs.length; ++i)
-			childs[i].remove();
-		
-		childs = [];
-		this.blocked_box.childNodes.forEach(child => { childs.push(child); });
-		for (let i = 0; i < childs.length; ++i)
-			childs[i].remove();
-
+		this.current = undefined;
 		this.blocked_users = [];
 		this.free_users = [];
 	}
 	async load_boxes() {
+		if (this.load_mutex === true)
+			return;
+		this.load_mutex = true;
+
 		this.clear_boxes();
 		let blocked_users : Array<string> | undefined = await get_blocked_users();
 		if (blocked_users === undefined)
@@ -457,29 +458,14 @@ class Actions extends ASection {
 		});
 
 		this.free_users.forEach(free_user => {
-			if ((this.blocked_users instanceof Error) === true
-				&& this.blocked_users.includes(free_user) === true)
+			if (this.blocked_users.includes(free_user) === true)
 				return;
-			console.log(free_user);
 			let new_li = document.createElement('li');
 			new_li.onclick = () => this.click(new_li);
 			new_li.textContent = free_user;
-
 			this.free_box.appendChild(new_li);
 		});
-	}
-	add_user(username: string) {
-		if (!(this.blocked_users instanceof Error)
-			&& this.blocked_users.includes(username))
-			return;
-
-		if (this.free_users.includes(username) === false) {
-			this.free_users.push(username);
-			let new_li = document.createElement('li');
-			new_li.onclick = () => this.click(new_li);
-			new_li.textContent = username;
-			this.free_box.appendChild(new_li);
-		}
+		this.load_mutex = false;
 	}
 	click(element : HTMLLIElement) {
 		if (this.current?.textContent === element.textContent) {
@@ -495,7 +481,7 @@ class Actions extends ASection {
 			this.btn2.parentElement?.classList.remove('hidden');
 			this.btn3.parentElement?.classList.remove('hidden');
 
-			if (this.btn2.parentElement?.id === 'free_box')
+			if (this.current.parentElement?.getAttribute('id') === 'free_box')
 				this.btn2.textContent = 'Block';
 			else
 				this.btn2.textContent = 'Unblock';
@@ -525,10 +511,13 @@ class Actions extends ASection {
 		if (action === 'Block' && await block(username) === true) {
 			user?.block(username);
 			this.load_boxes();
+			this.current = undefined;
 		}
 
-		if (action === 'Unblock' && await unblock(username) === true)
+		if (action === 'Unblock' && await unblock(username) === true) {
 			this.load_boxes();
+			this.current = undefined;
+		}
 	}
 }
 sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions()];

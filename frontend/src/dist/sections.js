@@ -363,6 +363,7 @@ class Actions extends ASection {
         this.blocked_users = [];
         this.free_users = [];
         this.current = undefined;
+        this.load_mutex = false;
     }
     /* Methods */
     enter(verified) {
@@ -393,20 +394,21 @@ class Actions extends ASection {
     switch_logged_off() { }
     switch_logged_in() { }
     clear_boxes() {
-        let childs;
-        childs = [];
-        this.free_box.childNodes.forEach(child => { childs.push(child); });
-        for (let i = 0; i < childs.length; ++i)
-            childs[i].remove();
-        childs = [];
-        this.blocked_box.childNodes.forEach(child => { childs.push(child); });
-        for (let i = 0; i < childs.length; ++i)
-            childs[i].remove();
+        while (this.free_box.firstChild) {
+            this.free_box.firstChild.remove();
+        }
+        while (this.blocked_box.firstChild) {
+            this.blocked_box.firstChild.remove();
+        }
+        this.current = undefined;
         this.blocked_users = [];
         this.free_users = [];
     }
     load_boxes() {
         return __awaiter(this, void 0, void 0, function* () {
+            if (this.load_mutex === true)
+                return;
+            this.load_mutex = true;
             this.clear_boxes();
             let blocked_users = yield get_blocked_users();
             if (blocked_users === undefined)
@@ -424,28 +426,15 @@ class Actions extends ASection {
                 this.blocked_box.appendChild(new_li);
             });
             this.free_users.forEach(free_user => {
-                if ((this.blocked_users instanceof Error) === true
-                    && this.blocked_users.includes(free_user) === true)
+                if (this.blocked_users.includes(free_user) === true)
                     return;
-                console.log(free_user);
                 let new_li = document.createElement('li');
                 new_li.onclick = () => this.click(new_li);
                 new_li.textContent = free_user;
                 this.free_box.appendChild(new_li);
             });
+            this.load_mutex = false;
         });
-    }
-    add_user(username) {
-        if (!(this.blocked_users instanceof Error)
-            && this.blocked_users.includes(username))
-            return;
-        if (this.free_users.includes(username) === false) {
-            this.free_users.push(username);
-            let new_li = document.createElement('li');
-            new_li.onclick = () => this.click(new_li);
-            new_li.textContent = username;
-            this.free_box.appendChild(new_li);
-        }
     }
     click(element) {
         var _a, _b, _c, _d, _e, _f, _g;
@@ -461,7 +450,7 @@ class Actions extends ASection {
         if (this.current !== undefined) {
             (_c = this.btn2.parentElement) === null || _c === void 0 ? void 0 : _c.classList.remove('hidden');
             (_d = this.btn3.parentElement) === null || _d === void 0 ? void 0 : _d.classList.remove('hidden');
-            if (((_e = this.btn2.parentElement) === null || _e === void 0 ? void 0 : _e.id) === 'free_box')
+            if (((_e = this.current.parentElement) === null || _e === void 0 ? void 0 : _e.getAttribute('id')) === 'free_box')
                 this.btn2.textContent = 'Block';
             else
                 this.btn2.textContent = 'Unblock';
@@ -489,9 +478,12 @@ class Actions extends ASection {
             if (action === 'Block' && (yield block(username)) === true) {
                 user === null || user === void 0 ? void 0 : user.block(username);
                 this.load_boxes();
+                this.current = undefined;
             }
-            if (action === 'Unblock' && (yield unblock(username)) === true)
+            if (action === 'Unblock' && (yield unblock(username)) === true) {
                 this.load_boxes();
+                this.current = undefined;
+            }
         });
     }
 }
