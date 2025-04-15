@@ -135,7 +135,7 @@ class Profile extends ASection {
         this.username_i.value = "";
         this.password_i.value = "";
         this.btn1.textContent = "Settings";
-        this.btn2.setAttribute("onclick", "verify_token()");
+        this.btn1.setAttribute("onclick", "go_section('settings')");
         this.btn2.textContent = "Logout";
         this.btn2.setAttribute("onclick", "logout()");
         this.logged_in_view();
@@ -495,7 +495,32 @@ class Actions extends ASection {
         });
     }
 }
-sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions()];
+class Settings extends ASection {
+    constructor() {
+        super(...arguments);
+        /* ASection */
+        this.type = 'settings';
+        this.protected = true;
+        this.parent = document.getElementById('settings-parent');
+        this.logged_off = this.parent.querySelectorAll('.logged-off');
+        this.logged_in = this.parent.querySelectorAll('.logged-in');
+        this.dependencies = [];
+    }
+    /* Methods */
+    enter(verified) {
+        if (verified !== true) {
+            console.log("Try to enter Settings section as unauthenticated");
+            return;
+        }
+        this.activate_section();
+    }
+    leave() {
+        this.deactivate_section();
+    }
+    switch_logged_off() { }
+    switch_logged_in() { }
+}
+sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(), new Settings()];
 /* --------- */
 /* Utils */
 function get_section_index(type) {

@@ -139,7 +139,7 @@ class Profile extends ASection {
 		this.password_i.value = "";
 
 		this.btn1.textContent = "Settings";
-		this.btn2.setAttribute("onclick", "verify_token()");
+		this.btn1.setAttribute("onclick", "go_section('settings')");
 		this.btn2.textContent = "Logout";
 		this.btn2.setAttribute("onclick", "logout()");
 
@@ -528,7 +528,31 @@ class Actions extends ASection {
 		this.btn2.parentElement?.classList.add('hidden');
 	}
 }
-sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions()];
+
+class Settings extends ASection {
+	/* ASection */
+	type = 'settings';
+	protected = true;
+	parent = document.getElementById('settings-parent') as HTMLElement;
+	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
+	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
+	dependencies = [];
+
+	/* Methods */
+	enter(verified: boolean) {
+		if (verified !== true) {
+			console.log("Try to enter Settings section as unauthenticated");
+			return;
+		}
+		this.activate_section();
+	}
+	leave() {
+		this.deactivate_section();
+	}
+	switch_logged_off() {}
+	switch_logged_in() {}
+}
+sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(), new Settings()];
 /* --------- */
 
 
