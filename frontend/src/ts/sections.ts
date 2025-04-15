@@ -481,23 +481,26 @@ class Actions extends ASection {
 			this.btn2.parentElement?.classList.remove('hidden');
 			this.btn3.parentElement?.classList.remove('hidden');
 
-			if (this.current.parentElement?.getAttribute('id') === 'free_box')
+			if (this.current.parentElement?.getAttribute('id') === 'free_box') {
 				this.btn2.textContent = 'Block';
-			else
+				// Here put the invite feature of the pong-game...
+				this.btn3.onclick = () => history.back();
+				this.btn3.textContent = 'Invite';
+				// ---
+			}
+			else {
 				this.btn2.textContent = 'Unblock';
+				this.btn3.parentElement?.classList.add('hidden');
+				this.btn3.removeAttribute('onclick');
+				this.btn3.textContent = '';
+			}
 			this.btn2.onclick = () => this.trigger(this.btn2.textContent);
-
-			// Here put the invite feature of the pong-game...
-			this.btn3.onclick = () => history.back();
-			this.btn3.textContent = 'Invite';
-			// ---
-
 		}
 		else {
 			this.btn2.parentElement?.classList.add('hidden');
 			this.btn3.parentElement?.classList.add('hidden');
-			this.btn2.onclick = () => history.back();
-			this.btn3.onclick = () => history.back();
+			this.btn2.removeAttribute('onclick');
+			this.btn3.removeAttribute('onclick');
 			this.btn2.textContent = '';
 			this.btn3.textContent = '';
 		}
@@ -511,13 +514,18 @@ class Actions extends ASection {
 		if (action === 'Block' && await block(username) === true) {
 			user?.block(username);
 			this.load_boxes();
-			this.current = undefined;
 		}
-
+		
 		if (action === 'Unblock' && await unblock(username) === true) {
 			this.load_boxes();
-			this.current = undefined;
 		}
+		this.current = undefined;
+
+		this.btn2.setAttribute('onclick', '');
+		this.btn3.setAttribute('onclick', '');
+
+		this.btn3.parentElement?.classList.add('hidden');
+		this.btn2.parentElement?.classList.add('hidden');
 	}
 }
 sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions()];

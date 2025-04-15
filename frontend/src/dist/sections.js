@@ -437,7 +437,7 @@ class Actions extends ASection {
         });
     }
     click(element) {
-        var _a, _b, _c, _d, _e, _f, _g;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         if (((_a = this.current) === null || _a === void 0 ? void 0 : _a.textContent) === element.textContent) {
             element.classList.remove('active');
             this.current = undefined;
@@ -450,40 +450,48 @@ class Actions extends ASection {
         if (this.current !== undefined) {
             (_c = this.btn2.parentElement) === null || _c === void 0 ? void 0 : _c.classList.remove('hidden');
             (_d = this.btn3.parentElement) === null || _d === void 0 ? void 0 : _d.classList.remove('hidden');
-            if (((_e = this.current.parentElement) === null || _e === void 0 ? void 0 : _e.getAttribute('id')) === 'free_box')
+            if (((_e = this.current.parentElement) === null || _e === void 0 ? void 0 : _e.getAttribute('id')) === 'free_box') {
                 this.btn2.textContent = 'Block';
-            else
+                // Here put the invite feature of the pong-game...
+                this.btn3.onclick = () => history.back();
+                this.btn3.textContent = 'Invite';
+                // ---
+            }
+            else {
                 this.btn2.textContent = 'Unblock';
+                (_f = this.btn3.parentElement) === null || _f === void 0 ? void 0 : _f.classList.add('hidden');
+                this.btn3.removeAttribute('onclick');
+                this.btn3.textContent = '';
+            }
             this.btn2.onclick = () => this.trigger(this.btn2.textContent);
-            // Here put the invite feature of the pong-game...
-            this.btn3.onclick = () => history.back();
-            this.btn3.textContent = 'Invite';
-            // ---
         }
         else {
-            (_f = this.btn2.parentElement) === null || _f === void 0 ? void 0 : _f.classList.add('hidden');
-            (_g = this.btn3.parentElement) === null || _g === void 0 ? void 0 : _g.classList.add('hidden');
-            this.btn2.onclick = () => history.back();
-            this.btn3.onclick = () => history.back();
+            (_g = this.btn2.parentElement) === null || _g === void 0 ? void 0 : _g.classList.add('hidden');
+            (_h = this.btn3.parentElement) === null || _h === void 0 ? void 0 : _h.classList.add('hidden');
+            this.btn2.removeAttribute('onclick');
+            this.btn3.removeAttribute('onclick');
             this.btn2.textContent = '';
             this.btn3.textContent = '';
         }
     }
     trigger(action) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
+            var _a, _b, _c;
             let username = (_a = this.current) === null || _a === void 0 ? void 0 : _a.textContent;
             if (action === null || username === undefined || username === null)
                 return;
             if (action === 'Block' && (yield block(username)) === true) {
                 user === null || user === void 0 ? void 0 : user.block(username);
                 this.load_boxes();
-                this.current = undefined;
             }
             if (action === 'Unblock' && (yield unblock(username)) === true) {
                 this.load_boxes();
-                this.current = undefined;
             }
+            this.current = undefined;
+            this.btn2.setAttribute('onclick', '');
+            this.btn3.setAttribute('onclick', '');
+            (_b = this.btn3.parentElement) === null || _b === void 0 ? void 0 : _b.classList.add('hidden');
+            (_c = this.btn2.parentElement) === null || _c === void 0 ? void 0 : _c.classList.add('hidden');
         });
     }
 }
