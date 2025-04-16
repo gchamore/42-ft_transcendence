@@ -20,6 +20,7 @@ window.addEventListener("popstate", function (event) {
     });
 });
 document.addEventListener("DOMContentLoaded", () => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(window.location.pathname);
     yield verify_token();
     set_new_section_index(window.location.pathname.replace("/", ""));
     update_sections();

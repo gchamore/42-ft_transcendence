@@ -1,3 +1,9 @@
+/* Global variables */
+let argument : string | undefined = undefined;
+/* --------- */
+
+
+
 /* Event listeners */
 window.addEventListener("popstate", async function(event) {
 	await verify_token();
@@ -10,6 +16,7 @@ window.addEventListener("popstate", async function(event) {
 });
 
 document.addEventListener("DOMContentLoaded", async () => {
+	console.log(window.location.pathname);
 	await verify_token();
 	set_new_section_index(window.location.pathname.replace("/", ""));
 	update_sections();

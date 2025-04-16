@@ -242,6 +242,8 @@ class Friends extends ASection {
 				this.btn2.textContent = 'Add';
 			}
 
+			this.btn3.onclick = () => go_section('message');
+			this.btn3.textContent = 'Message';
 			
 			const stats = this.anotherUser.format_stats();
 			this.stat1.textContent = stats[0];
@@ -552,7 +554,32 @@ class Settings extends ASection {
 	switch_logged_off() {}
 	switch_logged_in() {}
 }
-sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(), new Settings()];
+
+class Message extends ASection {
+	/* ASection */
+	type = 'message';
+	protected = true;
+	parent = document.getElementById('message-parent') as HTMLElement;
+	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
+	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
+	dependencies = ['home'];
+
+	/* Methods */
+	enter(verified: boolean) {
+		if (verified !== true || ) {
+			console.log("Try to enter message section as unauthenticated");
+			return;
+		}
+		this.activate_section();
+	}
+	leave() {
+		this.deactivate_section();
+	}
+	switch_logged_off() {}
+	switch_logged_in() {}
+}
+sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(),
+			new Settings(), new Message()];
 /* --------- */
 
 
