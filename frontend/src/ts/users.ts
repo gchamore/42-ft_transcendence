@@ -1,23 +1,39 @@
 /* Global variables */
 var user : undefined | User = undefined;
+
+const options: Intl.DateTimeFormatOptions = {
+timeZone: 'Europe/Paris',
+year: 'numeric',
+month: '2-digit',
+day: '2-digit',
+hour: '2-digit',
+minute: '2-digit',
+second: '2-digit',
+hour12: false,
+};
+  
+const formatter = new Intl.DateTimeFormat('fr-FR', options);
 /* --------- */
 
+
+
+/* Message */
 class Message {
-    readonly date : Date;
+    readonly date : string;
     readonly username : string;
     readonly message : string;
 
     constructor(username : string, message : string) {
-        this.date = new Date(Date.now());
+        this.date = formatter.format(new Date());
         this.username = username;
         this.message = message;
     }
     format_message() : string {
         let message = '';
-        let days = nb_to_str(this.date.getDay());
-        let months = nb_to_str(this.date.getMonth());
-        let hours = nb_to_str(this.date.getHours());
-        let minutes = nb_to_str(this.date.getMinutes());
+        let days = this.date.substring(0, 2);
+        let months = this.date.substring(3, 5);
+        let hours = this.date.substring(11, 13);
+        let minutes = this.date.substring(14, 16);
         message += days + '/' + months + ' ';
         message += hours + ':' + minutes + ' ';
         message += this.username + ': ';
@@ -25,17 +41,7 @@ class Message {
         return message;
     }
 }
-
-function nb_to_str(nb : number) : string {
-    let message : string;
-    if (nb < 10 && nb > 0)
-        message = "0" + nb;
-    else if (nb < 100 && nb >= 10)
-        message = "" + nb;
-    else
-        message = "00";
-    return message;
-}
+/* --------- */
 
 
 
