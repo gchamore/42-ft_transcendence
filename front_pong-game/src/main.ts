@@ -3,7 +3,7 @@ import { Game } from './pages/gamePage.js';
 import { WebSocketService } from './services/webSocketService.js';
 
 class App {
-	private readonly DEFAULT_ROUTE = 'settings';
+	private readonly DEFAULT_ROUTE = 'lobby';
 	private readonly GAME_ROUTE = 'game';
 
 	private currentSettingsPage: SettingsPage | null = null;
@@ -23,8 +23,9 @@ class App {
 
 
 	async setupRouting() {
-		const path = window.location.hash || this.DEFAULT_ROUTE;
-		const [page, gameId] = path.split('/');
+		const rawPath = window.location.hash || this.DEFAULT_ROUTE;
+		const path = rawPath.startsWith('#') ? rawPath.substring(1) : rawPath;
+		let [page, gameId] = path.split('/');
 
 		const settingsPage = document.getElementById('settings-page');
 		const gamePage = document.getElementById('gameCanvas');
@@ -44,36 +45,36 @@ class App {
 			this.currentGamePage = null;
 		}
 
-		let activeGameId = gameId;
-
-		if (page === this.GAME_ROUTE) {
-			try {
-				// Generate random gameId if none provided
-				// Update URL with gameId
-				if (!gameId) {
-					const response = await fetch('/game/create', { method: 'POST' });
-					if (!response.ok) {
-						throw new Error('Failed to create game');
-					}
-					const data = await response.json();
-					activeGameId = data.gameId;
-					window.location.hash = `game/${activeGameId}`; // Update URL with new gameId\
-					return;
+		
+		if (!gameId) {
+			try { 
+				const response = await fetch('/game/create', { method: 'POST' });
+				if (!response.ok) {
+					throw new Error('Failed to create game');
 				}
-				this.currentGamePage = new Game(activeGameId);
-				settingsPage!.style.display = 'none'; // Hide settings page
-				gameContainer.style.display = 'block'; // Show game container
-				gamePage!.style.display = 'block'; // Show game page
+				const data = await response.json();
+				gameId = data.gameId;
+				window.location.hash = `${this.DEFAULT_ROUTE}/${gameId}`;
+				return;
 			} catch (error) {
 				console.error('Failed to generate unique gameId:', error);
-				// Handle error (maybe redirect to error page or settings)
 				window.location.hash = this.DEFAULT_ROUTE;
+				return;
 			}
-		} else {
-			this.currentSettingsPage = new SettingsPage(activeGameId); // store reference to settings page
+		}
+
+		if (page === this.GAME_ROUTE) {
+			this.currentGamePage = new Game(gameId);
+			settingsPage!.style.display = 'none'; // Hide settings page
+			gameContainer.style.display = 'block'; // Show game container
+			gamePage!.style.display = 'block'; // Show game page
+		} else if (page === this.DEFAULT_ROUTE) {
+			this.currentSettingsPage = new SettingsPage(gameId); // store reference to settings page
 			settingsPage!.style.display = 'block'; // Show settings page
 			gamePage!.style.display = 'none'; // Hide game page
 			gameContainer.style.display = 'none'; // Hide game container
+		} else {
+			console.error('Invalid route:', path);
 		}
 
 		window.addEventListener('hashchange', () => {

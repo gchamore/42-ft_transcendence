@@ -30,22 +30,6 @@ export function setupWebSocketRoutes(fastify) {
 	setupGameUpdateInterval();
 }
 
-function generateLobbyId() {
-	return `lobby-${Math.random().toString(36).substring(2, 8)}`;
-}
-
-function getAvailableLobby() {
-	for (const lobby of lobbies.values()) {
-		if (lobby.players.size < 2) {
-			return lobby;
-		}
-	}
-	const newLobbyId = generateLobbyId();
-	const newLobby = new LobbyManager(newLobbyId);
-	lobbies.set(newLobbyId, newLobby);
-	return newLobby;
-}
-
 export function resetlobbies() {
 	lobbies.clear();
 }
@@ -53,15 +37,22 @@ export function resetlobbies() {
 function handleGameConnection(connection, request) {
 	const socket = connection.socket;
 	const { gameId } = request.params;
+	const mode = request.query.mode;
 
-	const clientId = request.query.clientId || `guest-${Math.random().toString(36).substring(2, 8)}`;
+	console.log('WebSocket connection established for game:', { gameId, mode });
 
-	console.log('WebSocket connection established for game:', { gameId });
+	const clientId = request.query.clientId || Math.random().toString(36).substring(2, 8);
 
-	if (gameId.startsWith('lobby-')) {
-		const lobby = getAvailableLobby();
+	if (mode === 'lobby') {
+		let lobby;
+		if (lobbies.has(gameId)) {
+			lobby = lobbies.get(gameId);
+		} else {
+			lobby = new LobbyManager(gameId);
+			lobbies.set(gameId, lobby);
+		}
 		handleNewLobbyPlayer(socket, lobby, clientId);
-	} else {
+	} else if (mode === 'game') {
 		// Handle actual game connections
 		let game = games.get(gameId);
 		let settingsManager = settingsManagers.get(gameId);
@@ -76,6 +67,10 @@ function handleGameConnection(connection, request) {
 			games.set(gameId, game);
 		}
 		handleNewGamePlayer(socket, game);
+	} else {
+		console.error('Invalid mode:', mode);
+		socket.close();
+		return;
 	}
 }
 
@@ -86,7 +81,7 @@ function setupGameUpdateInterval() {
 		const deltaTime = (now - lastUpdateTime) / 1000;
 		lastUpdateTime = now;
 		games.forEach((game) => {
-			if (game.players.length === 0){
+			if (game.players.size === 0){
 				games.delete(game.gameId);
 				return;
 			};
@@ -99,17 +94,18 @@ function setupGameUpdateInterval() {
 			if (now - broadcastTimeout[game.gameId] >= 1000 / GameConfig.BROADCAST_RATE) {
 				broadcastGameState(game);
 				broadcastTimeout[game.gameId] = now;
+				game.players.forEach((player) => {
+					if (!player.isAlive) {
+						console.log(`Player ${player.playerNumber} is unresponsive, disconnecting...`);
+						handleDisconnect(player, game);
+					} else {
+						player.isAlive = false;
+						safeSend(player, { type: 'ping' });
+						console.log(`Ping sent to player ${player.playerNumber}`);
+					}
+				});
 			}
 
-			game.players.forEach((player) => {
-				if (!player.isAlive) {
-					console.log(`Player ${player.playerNumber} is unresponsive, disconnecting...`);
-					handleDisconnect(player, game);
-				} else {
-					player.isAlive = false;
-					safeSend(player, { type: 'ping' });
-				}
-			});
 		});
 	}, 1000 / GameConfig.TARGET_FPS);
 }
@@ -137,13 +133,9 @@ function processGameUpdate(game, deltaTime) {
 
 export function broadcastGameState(game) {
 	game.players.forEach((player) => {
-		if (player.readyState === 1) {
-			safeSend(player, {
-				type: 'gameState',
-				gameState: game.getState()
-			});
-		} else {
-			console.warn(`Skipping broadcast to player ${player.playerNumber} because socket is not open (state: ${player.readyState})`);
-		}
+		safeSend(player, {
+			type: 'gameState',
+			gameState: game.getState()
+		});
 	});
 } 

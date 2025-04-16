@@ -10,22 +10,26 @@ export class LobbyManager {
 
 	addPlayer(socket, clientId) {
 		socket.clientId = clientId;
+
+		if (this.players.size >= 2) {
+			console.error(`Lobby ${this.lobbyId} is full. Cannot add client ${clientId} size: ${this.players.size}`);
+			return false;
+		}
+
 		// If the client reconnects, update their existing connection.
 		if (this.players.has(clientId)) {
 			const existingSocket = this.players.get(clientId);
 			this.players.set(clientId, socket);
 			socket.playerNumber = existingSocket.playerNumber;
+			console.log(`Client ${clientId} reconnected to lobby ${this.lobbyId}`);
+			return true;
+		} else {
+			const playerNumber = this.players.size + 1;
+			socket.playerNumber = playerNumber;
+			this.players.set(clientId, socket);
+			console.log(`Client ${clientId} joined lobby ${this.lobbyId}`);
 			return true;
 		}
-
-		if (this.players.size >= 2) {
-			return false; // Lobby is full
-		}
-		// Assign player number based on current count
-		const playerNumber = this.players.size + 1;
-		socket.playerNumber = playerNumber;
-		this.players.set(clientId, socket);
-		return true;
 	}
 
 	removePlayer(clientId) {

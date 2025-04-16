@@ -43,7 +43,7 @@ export class SettingsPage {
 	}
 
 	private connectWebSocket() {
-		this.socket = WebSocketService.getInstance().connect(this.lobbyId);
+		this.socket = WebSocketService.getInstance().connect(this.lobbyId, 'lobby');
 		this.socket.onopen = () => {
 			console.log('Settings socket connected');
 			if (this.playerNumber === 1) {
@@ -75,7 +75,7 @@ export class SettingsPage {
 					break;
 				case 'gameStart':
 					if (data.gameId){
-						window.location.hash = `#game/${data.gameId}`;
+						window.location.hash = `game/${data.gameId}`;
 					} else {
 						console.error('Game ID not provided');
 					}

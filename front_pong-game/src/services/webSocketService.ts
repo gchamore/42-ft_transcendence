@@ -24,15 +24,15 @@ export class WebSocketService {
 		this.playerNumber = playerNumber;
 	}
 
-	public connect(gameId: string): WebSocket {
+	public connect(gameId: string, mode: string): WebSocket {
 		// Close existing socket if it exists
 		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 			console.log('Reusing existing WebSocket connection');
 			return this.socket;
 		}
 
-		console.log(`Creating new WebSocket connection for game: ${gameId}`);
-		this.socket = new WebSocket(`ws://localhost:3000/game/${gameId}`);
+		console.log(`Creating new WebSocket connection for game: ${gameId} in mode ${mode}`);
+		this.socket = new WebSocket(`ws://localhost:3000/game/${gameId}?mode=${mode}`);
 		return this.socket;
 	}
 

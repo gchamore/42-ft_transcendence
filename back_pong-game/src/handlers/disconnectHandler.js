@@ -9,7 +9,7 @@ export function handleDisconnect(socket, game) {
 
 	game.removePlayer(socket);
 	
-	if (game.players.length === 0) {
+	if (game.players.size === 0) {
 		handleEmptyGame(game);
 	} else {
 		handleRemainingPlayers(game, playerNumber);
@@ -36,8 +36,7 @@ function validateDisconnectParams(socket, game) {
 		return false;
 	}
 	// Check if player is still in the game's player list
-	const playerIndex = game.players.indexOf(socket);
-	if (playerIndex === -1) {
+	if (!game.players.has(socket.clientId)) {
 		console.error('Player not found in game for disconnection handling');
 		return false;
 	}
@@ -52,31 +51,36 @@ function handleEmptyGame(game) {
 function handleRemainingPlayers(game, disconnectedPlayerNumber) {
 	try {
 		// Get the remaining player and determine the winner
-		const remainingPlayer = game.players[0];
-		const winnerNumber = remainingPlayer.playerNumber;
-
-		// Update scores to reflect the disconnect
-		if (disconnectedPlayerNumber === 1) {
-			game.gameState.score.player2Score = game.settings.maxScore || 5;
-		} else {
-			game.gameState.score.player1Score = game.settings.maxScore || 5;
-		}
-
-		// Notify remaining player about the disconnect
-		safeSend(remainingPlayer, {
-			type: 'gameOver',
-			reason: 'opponentDisconnected',
-			winner: winnerNumber,
-			score1: game.gameState.score.player1Score,
-			score2: game.gameState.score.player2Score,
-			message: `Player ${disconnectedPlayerNumber} disconnected. You win!`
+		let remainingPlayer = null;
+		game.players.forEach((player) => {
+			remainingPlayer = player;
 		});
+		if (remainingPlayer) {
+			const winnerNumber = remainingPlayer.playerNumber;
 
-		// Update the game state for the remaining player
-		broadcastGameState(game);
+			// Update scores to reflect the disconnect
+			if (disconnectedPlayerNumber === 1) {
+				game.gameState.score.player2Score = game.settings.maxScore || 5;
+			} else {
+				game.gameState.score.player1Score = game.settings.maxScore || 5;
+			}
 
-		// Schedule game cleanup after delay
-		scheduleGameCleanup(game.gameId);
+			// Notify remaining player about the disconnect
+			safeSend(remainingPlayer, {
+				type: 'gameOver',
+				reason: 'opponentDisconnected',
+				winner: winnerNumber,
+				score1: game.gameState.score.player1Score,
+				score2: game.gameState.score.player2Score,
+				message: `Player ${disconnectedPlayerNumber} disconnected. You win!`
+			});
+
+			// Update the game state for the remaining player
+			broadcastGameState(game);
+
+			// Schedule game cleanup after delay
+			scheduleGameCleanup(game.gameId);
+		}
 	} catch (e) {
 		console.error('Error handling remaining players:', e);
 	}

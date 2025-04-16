@@ -114,15 +114,11 @@ function handleLobbyMessage(socket, lobby, data) {
 }
 
 function startGameFromLobby(lobby) {
-	const gameId = 'game-' + lobby.lobbyId.split('-')[1];
+	const gameId = lobby.lobbyId;
 	const game = new GameInstance(gameId, lobby.getSettings());
 	console.log(`Transitioning game from Lobby ${lobby.lobbyId} to ${gameId}`);
 
-	lobby.players.forEach((player) => {
-		game.addPlayer(player);
-	});
 
-	game.transitionToGame(gameId);
 	games.set(gameId, game);
 
 	// Notify players about the game start

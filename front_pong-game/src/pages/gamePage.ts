@@ -119,7 +119,7 @@ export class Game {
 		}
 
 	private connectWebSocket() {
-		this.socket = WebSocketService.getInstance().connect(this.gameId);
+		this.socket = WebSocketService.getInstance().connect(this.gameId, 'game');
 		
 		this.socket.onopen = () => {
 			console.log("Connected to server");
@@ -184,6 +184,7 @@ export class Game {
 					break;
 				case 'ping':
 					this.socket.send(JSON.stringify({ type: 'pong' }));
+					console.log("Ping received, sending pong");
 					break;
 			}
 		};
@@ -306,10 +307,12 @@ export class Game {
 
 	private handleGameOver(data: any) {
 		this.gameStarted = false;
+
+		const finalScore = data.finalScore || { player1Score: 0, player2Score: 0 };
 	
 		this.scoreBoard.updateScore({
-			player1Score: data.finalScore.player1Score,
-			player2Score: data.finalScore.player2Score,
+			player1Score: finalScore.player1Score,
+			player2Score: finalScore.player2Score,
 		});
 	
 		if (data.reason === "opponentDisconnected") {
@@ -326,7 +329,7 @@ export class Game {
 			this.uiManager.drawGameOverMessage(
 				performance.now(),
 				data.winner,
-				`${data.finalScore.player1Score} - ${data.finalScore.player2Score}`
+				`${finalScore.player1Score} - ${finalScore.player2Score}`
 			);
 			// Regular game over message
 			this.createGameOverMenu(`Player ${data.winner} wins!`);

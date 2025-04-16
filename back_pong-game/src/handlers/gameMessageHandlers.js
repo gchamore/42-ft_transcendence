@@ -92,6 +92,7 @@ export function handleGameMessage(socket, game, data) {
 			break;
 		case 'pong':
 			socket.isAlive = true;
+			console.log(`Received pong from player ${playerNumber}`);
 			break;
 		default:
 			console.error(`Unknown message type: ${data.type}`);

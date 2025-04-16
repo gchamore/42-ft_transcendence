@@ -5,8 +5,7 @@ import { PowerUpManager } from './powerUp.js';
 export class GameInstance {
 	constructor(gameId, existingSettings) {
 		this.gameId = gameId;
-		this.players = [];
-		this.isLobby = gameId.startsWith('lobby-');
+		this.players = new Map();
 		this.gameStateManager = new GameStateManager(gameId, existingSettings);
 		this.physicManager = new PhysicManager();
 		this.powerUpManager = new PowerUpManager();
@@ -29,18 +28,44 @@ export class GameInstance {
 	}
 
 	addPlayer(socket) {
-		if (this.players.length >= 2 || !socket) {
+		if (this.players.size >= 2) {
+			console.error(`Game ${this.gameId} is full length : ${this.players.size}`);
 			return false;
 		}
-		const playerNumber = this.players.length + 1;
-		socket.playerNumber = playerNumber;
-		this.players.push(socket);
+
+		if (!socket) {
+			console.error('Socket is null or undefined');
+			return false;
+		}
+		const cliendId = socket.clientId;
+		if (!cliendId) {
+			console.error('Socket does not have a clientId');
+			return false;
+		}
+
+		const playerNumber = socket.playerNumber;
+		if (!playerNumber) {
+			console.error('Socket does not have a playerNumber');
+			return false;
+		}
+
+		if (!this.players.has(cliendId)) {
+			this.players.set(cliendId, socket);
+		}
 		return true;
 	}
 
 	removePlayer(socket) {
-		this.players = this.players.filter(p => p.playerNumber !== socket.playerNumber);
-		if (this.players.length === 0) {
+		const clientId = socket.clientId;
+		if (!clientId) {
+			console.error('Socket does not have a clientId');
+			return;
+		}
+
+		this.players.delete(clientId);
+		console.log(`Player ${socket.playerNumber} (Client ${clientId}) removed from game ${this.gameId}`);
+
+		if (this.players.size === 0) {
 			this.cleanup();
 		}
 	}
@@ -60,7 +85,7 @@ export class GameInstance {
 			}
 
 			// Check collisions
-			this.physicManager.checkWallCollision(ball, this.players);
+			this.physicManager.checkWallCollision(ball,  this.players.values());
 			this.physicManager.checkPaddleCollision(ball, this.gameState.paddle1, this.gameState.paddle2, this.players);
 
 			// Check if someone scored
@@ -84,7 +109,7 @@ export class GameInstance {
 	resetBall(scoringPlayer = null) {
 		// Clear all powerups first
 		if (this.settings.powerUpsEnabled) {
-			this.powerUpManager.clearAllPowerups(this.gameState, this.players);
+			this.powerUpManager.clearAllPowerups(this.gameState,  this.players);
 		}
 
 		// Reset ball position and speed
@@ -96,14 +121,6 @@ export class GameInstance {
 		return this.settings;
 	}
 
-	transitionToGame(newGameId) {
-		this.gameStateManager.transitionToGame(newGameId);
-		this.gameState = this.gameStateManager.getState();
-		this.gameId = this.gameStateManager.gameId;
-		this.isLobby = this.gameStateManager.isLobby;
-		return this;
-	}
-
 	resetForRematch() {
 		this.gameStateManager.resetForRematch();
 		this.gameState = this.gameStateManager.getState();
@@ -112,7 +129,7 @@ export class GameInstance {
 
 	cleanup() {
 		this.players.forEach((player) => player.close());
-		this.players = [];
+		this.players.clear();
 	}
 
 	getState() {
