@@ -19,6 +19,7 @@ export function handleNewGamePlayer(socket, game) {
 	// Attach game instance to socket
 	socket.gameInstance = game;
 	const playerNumber = socket.playerNumber;
+	socket.isAlive = true;
 
 	console.log(`Player ${playerNumber} joined game ${game.gameId}`);
 
@@ -41,26 +42,6 @@ export function handleNewGamePlayer(socket, game) {
 			settings: game.settings
 		});
 	}
-
-	// Set up socket message handler
-	socket.on('message', message => {
-		const data = JSON.parse(message);
-		if (socket.currentHandler) {
-			socket.currentHandler(data);
-		} else {
-			console.error('No handler set for incoming message');
-		}
-	});
-
-	// Set up disconnect handler
-	socket.isDisconnecting = false;
-	socket.on('close', () => {
-		if (socket.currentCloseHandler) {
-			socket.currentCloseHandler(socket, game);
-		} else {
-			console.error('No close handler set for socket');
-		}
-	});
 }
 
 export function handleGameDisconnect(socket, game) {

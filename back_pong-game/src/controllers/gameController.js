@@ -94,18 +94,20 @@ function setupGameUpdateInterval() {
 			if (now - broadcastTimeout[game.gameId] >= 1000 / GameConfig.BROADCAST_RATE) {
 				broadcastGameState(game);
 				broadcastTimeout[game.gameId] = now;
-				game.players.forEach((player) => {
-					if (!player.isAlive) {
-						console.log(`Player ${player.playerNumber} is unresponsive, disconnecting...`);
-						handleDisconnect(player, game);
+				game.players.forEach((socket) => {
+					if (!socket.isAlive) {
+						if (socket.lastPingTime && now - socket.lastPingTime > GameConfig.PING_TIMEOUT) {
+							console.log(`Player ${socket.playerNumber} is unresponsive, disconnecting...`);
+							handleDisconnect(socket, game);
+						}
 					} else {
-						player.isAlive = false;
-						safeSend(player, { type: 'ping' });
-						console.log(`Ping sent to player ${player.playerNumber}`);
+						socket.isAlive = false;
+						socket.lastPingTime = now;
+						safeSend(socket, { type: 'ping' });
+						console.log(`Ping sent to player ${socket.playerNumber}`);
 					}
 				});
 			}
-
 		});
 	}, 1000 / GameConfig.TARGET_FPS);
 }

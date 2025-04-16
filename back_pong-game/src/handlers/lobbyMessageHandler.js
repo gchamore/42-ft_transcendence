@@ -66,7 +66,8 @@ export function handleNewLobbyPlayer(socket, lobby, clientId) {
 }
 
 function handleLobbyDisconnect(socket, lobby) {
-	console.log(`Player ${playerNumber} disconnected from lobby ${lobby.lobbyId}`);
+	
+	console.log(`Player ${socket.playerNumber} disconnected from lobby ${lobby.lobbyId}`);
 	lobby.removePlayer(socket);
 	if (lobby.players.size === 0) {
 		lobbies.delete(lobby.lobbyId);
