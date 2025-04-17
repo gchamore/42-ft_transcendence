@@ -11,8 +11,6 @@ export class GameInstance {
 		this.powerUpManager = new PowerUpManager();
 		this.settings = existingSettings;
 
-		// Initialize game state
-		this.gameState = this.gameStateManager.getState();
 		this.playerReadyStatus = this.gameStateManager.playerReadyStatus;
 
 		// Reset ball position
@@ -71,31 +69,31 @@ export class GameInstance {
 	}
 
 	update(deltaTime) {
-		this.gameState = this.gameStateManager.getState();
+		const gameState = this.gameStateManager.getState();
 		const ball = this.gameState.ball;
 
-		if (this.gameState.gameStarted) {
+		if (gameState.gameStarted) {
 			// Update ball position
 			this.physicManager.updateBallPosition(ball, deltaTime);
 
 			// Handle powerups if enabled
 			if (this.settings.powerUpsEnabled) {
-				this.powerUpManager.updatePowerups(deltaTime, this.gameState, this.players);
-				this.powerUpManager.checkPowerupCollision(this.gameState, this.players);
+				this.powerUpManager.updatePowerups(deltaTime, gameState, this.players);
+				this.powerUpManager.checkPowerupCollision(gameState, this.players);
 			}
 
 			// Check collisions
 			this.physicManager.checkWallCollision(ball,  this.players.values());
-			this.physicManager.checkPaddleCollision(ball, this.gameState.paddle1, this.gameState.paddle2, this.players);
+			this.physicManager.checkPaddleCollision(ball, gameState.paddle1, gameState.paddle2, this.players);
 
 			// Check if someone scored
-			const scoringResult = this.physicManager.checkScoring(ball, this.gameState);
+			const scoringResult = this.physicManager.checkScoring(ball, gameState);
 
 			if (scoringResult.scored) {
 				this.resetBall(scoringResult.scorer);
 
 				// Check for game winner
-				const winner = this.gameStateManager.checkWin();
+				const winner = gameStateManager.checkWin();
 				if (winner) {
 					scoringResult.winner = winner;
 				}
@@ -108,8 +106,9 @@ export class GameInstance {
 
 	resetBall(scoringPlayer = null) {
 		// Clear all powerups first
+		const gameState = this.gameStateManager.getState();
 		if (this.settings.powerUpsEnabled) {
-			this.powerUpManager.clearAllPowerups(this.gameState,  this.players);
+			this.powerUpManager.clearAllPowerups(gameState,  this.players);
 		}
 
 		// Reset ball position and speed
@@ -123,7 +122,6 @@ export class GameInstance {
 
 	resetForRematch() {
 		this.gameStateManager.resetForRematch();
-		this.gameState = this.gameStateManager.getState();
 		return this;
 	}
 
@@ -133,6 +131,6 @@ export class GameInstance {
 	}
 
 	getState() {
-		return this.gameState;
+		return this.gameStateManager.getState();
 	}
 }

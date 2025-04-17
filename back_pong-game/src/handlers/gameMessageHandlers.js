@@ -73,7 +73,6 @@ export function handleGameMessage(socket, game, data) {
 			break;
 		case 'pong':
 			socket.isAlive = true;
-			console.log(`Received pong from player ${playerNumber}`);
 			break;
 		default:
 			console.error(`Unknown message type: ${data.type}`);
@@ -81,10 +80,11 @@ export function handleGameMessage(socket, game, data) {
 }
 
 function handleStartGame(socket, game, playerNumber) {
-	if (playerNumber === game.gameState.servingPlayer) {
+	const gameState = game.gameStateManager.getState();
+	if (playerNumber === gameState.servingPlayer) {
 		if (game.players.length === 2) {
 			console.log(`Player ${playerNumber} starting game ${game.gameId}`);
-			game.gameState.gameStarted = true;
+			gameState.gameStarted = true;
 		} else {
 			safeSend(socket, {
 				type: 'error',
@@ -110,8 +110,8 @@ function handleMovePaddle(socket, game, playerNumber, data) {
 		console.error('Player trying to move paddle that is not theirs');
 		return;
 	}
-
-	const paddle = game.gameState[`paddle${playerNumber}`];
+	const gameState = game.gameStateManager.getState();
+	const paddle = gameState[`paddle${playerNumber}`];
 	// validate input sequence
 	if (data.inputSequence <= paddle.lastProcessedInput) {
 		return;

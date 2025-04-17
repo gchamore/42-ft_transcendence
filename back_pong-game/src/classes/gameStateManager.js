@@ -5,10 +5,21 @@ import { safeSend } from '../utils/socketUtils.js';
 export class GameStateManager {
 	constructor(gameId, settings) {
 		this.gameId = gameId;
-		this.isLobby = gameId.startsWith("lobby-");
 		this.gameState = createDefaultGameState(gameId);
 		this.playerReadyStatus = new Set();
 		this.settings = settings;
+		this.applySettings(this.gameState, settings);
+	}
+
+	applySettings(gameState, settings) {
+		console.log(`settings: ${JSON.stringify(settings, null, 2)}`);
+		console.log(`gameState: ${JSON.stringify(gameState, null, 2)}`);
+		gameState.ball.speedX = Number(settings.ballSpeed) || GameConfig.DEFAULT_BALL_SPEED;
+		gameState.ball.speedY = Number(settings.ballSpeed) || GameConfig.DEFAULT_BALL_SPEED;
+		gameState.paddle1.speed = Number(settings.paddleSpeed) || GameConfig.DEFAULT_PADDLE_SPEED;
+		gameState.paddle2.speed = Number(settings.paddleSpeed) || GameConfig.DEFAULT_PADDLE_SPEED;
+		gameState.paddle1.height = Number(settings.paddleLength) || GameConfig.DEFAULT_PADDLE_LENGTH;
+		gameState.paddle2.height = Number(settings.paddleLength) || GameConfig.DEFAULT_PADDLE_LENGTH;
 	}
 
 	setPlayerReady(playerNumber) {
@@ -80,13 +91,7 @@ export class GameStateManager {
 	}
 
 	transitionToGame(newGameId) {
-
-		// Update the game ID
-		const oldGameId = this.gameId;
 		this.gameId = newGameId;
-
-		// Update lobby status
-		this.isLobby = false;
 
 		// Reset for the actual game
 		this.gameState.gameId = newGameId;
@@ -110,6 +115,7 @@ export class GameStateManager {
 
 	reset() {
 		this.gameState = createDefaultGameState(this.gameId);
+		applySettings(this.gameState, this.settings);
 	}
 
 	getState() {

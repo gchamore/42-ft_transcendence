@@ -116,9 +116,9 @@ function handleLobbyMessage(socket, lobby, data) {
 
 function startGameFromLobby(lobby) {
 	const gameId = lobby.lobbyId;
-	const game = new GameInstance(gameId, lobby.getSettings());
+	const settings = lobby.getSettings();
+	const game = new GameInstance(gameId, settings);
 	console.log(`Transitioning game from Lobby ${lobby.lobbyId} to ${gameId}`);
-
 
 	games.set(gameId, game);
 
@@ -127,7 +127,7 @@ function startGameFromLobby(lobby) {
 		safeSend(player, {
 			type: 'gameStart',
 			gameId: gameId,
-			settings: lobby.getSettings(),
+			settings: settings,
 		});
 		player.currentHandler = (data) => handleGameMessage(player, game, data);
 		player.currentCloseHandler = () => handleGameDisconnect(player, game);

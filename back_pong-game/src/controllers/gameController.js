@@ -104,7 +104,6 @@ function setupGameUpdateInterval() {
 						socket.isAlive = false;
 						socket.lastPingTime = now;
 						safeSend(socket, { type: 'ping' });
-						console.log(`Ping sent to player ${socket.playerNumber}`);
 					}
 				});
 			}

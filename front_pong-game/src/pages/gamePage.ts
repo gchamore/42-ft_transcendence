@@ -184,7 +184,6 @@ export class Game {
 					break;
 				case 'ping':
 					this.socket.send(JSON.stringify({ type: "pong" }));
-					console.log("Ping received, sending pong");
 					break;
 			}
 		};
