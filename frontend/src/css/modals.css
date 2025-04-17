@@ -1,0 +1,155 @@
+/* Container and items */
+#modals-container {
+    position: absolute;
+
+    height: 400px;
+    width: 500px;
+    top: 50%;
+    left: 50%;
+    
+    transform: translate(-50%, -50%);
+}
+
+.modal.item.active {
+    background-color: rgb(145, 83, 83);
+    border-radius: 4% / 5%;
+    border-style: solid;
+
+    position:absolute;
+    display: block;
+
+    height: 100%;
+    width: 100%;
+}
+
+.modal.content {
+    /* border: rgb(255, 255, 255) solid 3px; */
+
+    display: flex;
+    align-items: start;
+    margin: 15px;   
+}
+
+.modal.content.column {
+    flex-direction: column;
+}
+.modal.content.row {
+    flex-direction: row;
+}
+.modal.content.center {
+    align-items: center;
+    justify-content: center;
+}
+
+#badge, #friend-stats{
+    /* border: rgb(72, 60, 60) solid 3px; */
+    display: flex;
+    flex-direction: column;
+    margin: 15px;
+}
+
+#status {
+    position: absolute;
+    bottom: 125px;
+    align-self: center;
+}
+
+#badge, #friend-stats, #failed-research {
+    font-size: 20px;
+}
+
+.not-found:not(.active),
+.found:not(.active),
+.found li.online:not(.active){
+    display: none;
+}
+
+#chat-box {
+    border: 3px solid rgb(0, 0, 0);
+    display: flex;
+    flex-direction: column;
+    justify-content: end;
+    overflow: auto;
+    margin: 10px;
+    width: 440px;
+    height: 200px;
+    background-color: rgb(33, 30, 30);
+    border-radius: 4% / 8.8%;
+}
+
+#chat-box label {
+    flex-shrink: 0;
+    padding-left: 5px;
+    font-size: small;
+    color: rgb(164, 103, 103);
+}
+
+#boxes {
+    margin-left: 20px;
+    margin-top: 20px;
+    gap: 10px;
+    display: flex;
+    flex-direction: row;
+    width: 450px;
+    height: 280px;
+    align-content: center;
+}
+
+#boxes div {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    width: 140px
+}
+
+#boxes div label {
+    align-self: center;
+}
+
+#free_box, #blocked_box {   
+    background-color: rgb(33, 30, 30);
+    border: 3px solid rgb(0, 0, 0);
+    border-radius: 12px;
+    flex-grow: 1;
+}
+/* --------- */
+
+
+
+/* Navigation */
+ul.modal li {
+    border-radius: 12% / 26%;
+    height: 55px;
+    position: absolute;
+    bottom: 5%;
+}
+
+ul.modal li:active {
+    transform: scale(0.85);
+}
+
+li.l1 {
+    left: 5%;
+}
+
+li.l2 {
+    right: 5%;
+}
+li.l3 {
+    left: 185px;
+}
+
+ul.modal li button{
+    width: 120px;
+    height: 50px;
+}
+/* --------- */
+
+
+/* Avatar */
+.avatar {
+    background-color: rgb(255, 255, 255);
+    border-radius: 50%;
+    border-width: 3px;
+    border-style: solid;
+}

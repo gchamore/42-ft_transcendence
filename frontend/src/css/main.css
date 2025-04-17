@@ -1,0 +1,150 @@
+/* General */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+body {
+    position: relative;
+    height: 100vh;
+
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 1.7;
+}
+
+input::-webkit-autofill {
+    display: none !important;
+}
+
+.section:not(.active),
+.not-found:not(.active),
+.found:not(.active),
+*.logged-in:not(.active),
+*.logged-off:not(.active) {
+    display: none;
+}
+
+input {
+    border: 3px solid rgb(0, 0, 0);
+    background-color: rgb(33, 30, 30);
+    border-radius: 5px;
+
+    margin-left: 10px;
+    margin-right: 10px;
+    color: rgb(164, 103, 103);
+    padding-left: 3px;
+    font-weight: bolder;
+}
+
+li.hidden {
+    display: none;
+}
+/* --------- */
+
+
+
+/* Body sections */
+.home {
+    /* border: 5px solid red; */
+    background-color: rgb(145, 83, 83);
+    
+    height: 100%;
+    width: 100%;
+    min-height: 300px;
+    min-width: 600px;
+    
+    position: absolute;
+    display: flex;
+    opacity: 1;
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+}
+
+#game-overlay {
+    border: 3px solid rgb(0, 0, 0);
+    background-color: rgb(33, 30, 30);
+    
+    margin: 10px;
+    border-radius: 20px;
+    
+    min-height: 300px;
+    min-width: 500px;
+    
+    flex-grow: 1;
+    
+    display: flex;
+    justify-content:  center;
+    align-items: center;
+}
+
+#game {
+    background-color: rgb(255, 12, 223);
+    
+    height: 280px;
+    width: 500px;
+    overflow: hidden;
+}
+/* --------- */
+
+
+
+/* Navigation */
+ul {
+    list-style-type: none;
+    gap: 5px;
+}
+
+button {
+    border: none;
+    background: none;
+}
+
+li {
+    background-color: rgb(153, 29, 35);
+
+    border-color: black;
+    border-style: solid;
+    border-width: 3px;
+
+    transition: transform 0.1s ease-in-out;
+}
+
+li:hover {
+    background-color: rgb(156, 41, 46);
+    transform: scale(1.05);
+}
+/* --------- */
+
+
+/* Pages buttons */
+#pages-btns {
+    border: black solid 3px;
+
+    position: absolute;
+    bottom: 0;
+    height: 100px;
+    margin: 20px;
+    width: calc(100% - 40px);
+
+    display: flex;
+    justify-content:  center;
+    align-items: center;
+}
+
+#pages-btns button {
+    border: black solid 3px;
+
+    max-width: 100px;
+    height: 50px;
+    margin: 10px;
+    flex-grow: 1;
+    color: white;
+}
+
+#pages-btns button:active {
+    border: white solid 3px;
+}

@@ -1,0 +1,52 @@
+/* General */
+#sidebar {
+    min-height: 300px;
+    min-width: 100px;
+    
+    flex-grow: 0;
+}
+/* --------- */
+
+
+
+/* Navigation */
+ul.sidebar {
+    margin-right: 10px;
+    padding: 5px;
+    padding-top: 10px;
+    
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
+ul.sidebar li{
+    border-radius: 50%;
+}
+
+ul.sidebar li:active {
+    transform: scale(0.90) rotateZ(180deg);
+}
+
+ul.sidebar li button{
+    height: 80px;
+    width: 80px;
+    overflow:visible;
+}
+/* --------- */
+
+
+
+/* Include assets */
+#profile-btn {
+    background: transparent url(../assets/profile.png) no-repeat center;
+}
+
+#friends-btn {
+    background: transparent url(../assets/friends.png) no-repeat center;
+}
+
+#chat-btn {
+    background: transparent url(../assets/chat.png) no-repeat center;
+}
+/* --------- */

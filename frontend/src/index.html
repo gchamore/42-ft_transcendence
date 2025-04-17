@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>  
+  <head>
+    <title>Our Pong-game Website</title>
+    
+    <base href="/"> <!-- to make sure files will be loaded from the root (index.html path) -->
+  
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/modals.css">
+    <link rel="stylesheet" href="css/sidebar.css">
+  </head>
+  
+  <body>
+    <section class="section home profile friends active" id="home-parent">
+      <aside id="sidebar">
+        <nav>
+          <ul class="sidebar">
+            <li><button id="profile-btn" onclick="go_section('profile')"></button></li>
+            <li class="logged-in"><button id="friends-btn"></button></li>
+            <li class="logged-in"><button id="chat-btn"></button></li>
+          </ul>
+        </nav>
+      </aside>
+      
+      <main id="game-overlay">
+        <canvas id="game" title="pong-game"></canvas>
+      </main>   
+    </section>
+    
+    <div id="modals-container">
+      <article class="modal item section profile" id="profile-parent">
+        <section class="modal content column center">
+          <img class="avatar logged-in" id="profile-avatar">
+          
+          <div>
+            <label class="logged-off" for="profile-username">Username:</label>
+            <input class="logged-off" type="text" id="profile-username-input">
+            <label class="logged-in" id="profile-username"></label>
+          </div>
+          
+          <div class="logged-off">
+            <label for="profile-password">Password:</label>
+            <input type="text" id="profile-password">
+          </div>
+        </section>
+        
+        <section>
+          <nav>
+            <ul class="modal">
+              <li class="l1"><button id="profile-btn1"></button></li>
+              <li class="l2"><button id="profile-btn2"></button></li>
+            </ul>
+          </nav>
+        </section>
+      </article>
+      
+      <article class="modal item section friends logged-in" id="friends-parent">
+        <section class="modal content column">
+          <label for="friends-username">Search a user :</label>
+          <input type="text" id="friends-username">
+          <label class="not-found" id="failed-research">User not found...</label>
+        </section>
+        
+        <section class="modal content row center found space-between">
+          <div id="badge">
+            <img class="avatar" id="friend-avatar">
+            <label id="status"></label>
+          </div>
+          
+          <div id="friend-stats">
+            <label id="friend-stat1"></label>
+            <label id="friend-stat2"></label>
+            <label id="friend-stat3"></label>
+            <label id="friend-stat4"></label>
+          </div>
+        </section>
+        
+        <section>
+          <nav>
+            <ul class="modal">
+              <li class="l1 friends"><button id="friends-btn1"></button></li>
+              <div class="found">
+                <li class="l2 friends"><button id="friends-btn2"></button></li>
+                <li class="l3 friends online"><button id="friends-btn3"></button></li>
+              </div>
+            </ul>
+          </nav>
+        </section>
+      </article>
+      
+      <article class="modal item section chat logged-in" id="chat-parent">
+        <section class="modal content column">
+          <ul class="modal column chatbox" id="chat-box"> </ul>
+          <input type="text" id="msg-input">
+        </section>
+
+        <section>
+          <nav>
+            <ul class="modal">
+              <li class="l1 chat"><button id="chat-btn1"></button></li>
+              <li class="l2 chat"><button id="chat-btn2"></button></li>
+              <li class="l3 chat"><button id="chat-btn3"></button></li>
+            </ul>
+          </nav>
+        </section>
+      </article>
+
+      <article class="modal item section actions logged-in" id="actions-parent">
+        <nav id="boxes">
+          <div>
+            <label>Online users</label>
+            <ul class="boxes" id="free_box"></ul>
+          </div>
+          <div>
+            <label>Blocked users</label>
+            <ul class="boxes" id="blocked_box"></ul>
+          </div>
+        </nav>
+
+        <section>
+          <nav>
+            <ul class="modal row">
+              <li class="l1 actions"><button id="actions-btn1"></button></li>
+              <li class="l2 actions"><button id="actions-btn2"></button></li>
+              <li class="l3 actions"><button id="actions-btn3"></button></li>
+            </ul>
+          </nav>
+        </section>
+      </article>
+    </div>
+    
+    <!-- <div id="pages-btns">
+      <button id="home-page">HOME</button>
+      <button id="profile-page">PROFILE</button>
+      <button id="friends-page">FRIENDS</button>
+    </div> -->
+
+    <script src="dist/sections.js?timestamp=<?= time() ?>"></script>
+    <script src="dist/users.js?timestamp=<?= time() ?>"></script>
+    <script src="dist/api.js?timestamp=<?= time() ?>"></script>
+    <script src="dist/history_api.js?timestamp=<?= time() ?>"></script>
+  </body>
+</html>

@@ -1,0 +1,91 @@
+Fonctions pour JWT
+========================
+
+📌 generateTokens :
+Cela doit generer 2 tokens un access token (duree de vie de 15min) 
+et un refresh token (duree de vie de 7jours) 
+et les stocker dans redis.
+
+----------------
+
+📌 validateToken :
+Si aucun token dans les cookies = acces refuse.
+Verifier le access token.
+Si le access token est valide et pas sur blacklist et que le user 
+existe toujours dans la bdd.
+Il renvoie le code valide comme quoi l'acces est autorise.
+Si le access token est invalide on va alors verifier le refresh token.
+Si le refresh token est valide et pas sur blacklist et 
+que le user existe toujours dans la bdd, 
+on va alors regenerer un access token et valider l'acces 
+et renvoyer le code valide comme quoi l'acces est autorise.
+Si le refresh token est aussi incorrect alors cela renvoie 
+un code erreur acces refuse.
+
+----------------
+
+📌 refreshAccessToken :
+Cela doit simplement supprimer tout access token deja 
+existant mais pas le refresh pour ce user, et recreer 
+un access nouveltoken
+
+----------------
+
+📌 revokeTokens :
+Cela doit Supprimer tous les tokens (redis + je sais pas 
+si possible mais tokens sur cookies aussi) pour un userId donne.
+
+----------------
+
+📌 blacklistToken :
+Cela doit mettre sur liste noire redis les tokens en argument.
+Ces tokens conservent leurs duree et seront retiree de la 
+liste noire et donc des tokens accessible a la fin de leur duree.
+
+----------------
+
+📌 verif redis :
+
+Rentrer dans le conteneur :
+docker exec -it $(docker ps --format "{{.Names}}" | grep backend) /bin/sh
+
+Rentrer dans redis :
+redis-cli
+
+Afficher les tokens :
+KEYS *
+
+connaitre leur type :
+TYPE refresh_1
+TYPE access_1
+TYPE online_user
+
+afficher la key :
+GET refresh_1
+GET access_1
+
+afficher les id des online_users
+SMEMBERS online_users
+
+chercher si connecter avec un user_id
+SISMEMBER online_users "user_id"
+
+----------------
+
+📌 Archi redis :
+
+/app # redis-cli
+127.0.0.1:6379> KEYS *
+1) "online_users"
+2) "access_1"
+3) "refresh_1"
+4) "user_names"
+127.0.0.1:6379> TYPE refresh_1
+string
+127.0.0.1:6379> TYPE access_1
+string
+127.0.0.1:6379> GET refresh_1
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInR5cGUiOiJyZWZyZXNoIiwiaWF0IjoxNzQxNzQxODI2LCJleHAiOjE3NDIzNDY2MjZ9.fex1j6vA45spL02YSdwEKLSqKd7Zz4i6wF_QD1DP4cA"
+127.0.0.1:6379> GET access_1
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NDE3NDE4MjYsImV4cCI6MTc0MTc0MjcyNn0.JltMvemE0NV6DUhvKE5cJ6v7Qg535NVBeL4ucuwZGQQ"
+127.0.0.1:6379>
