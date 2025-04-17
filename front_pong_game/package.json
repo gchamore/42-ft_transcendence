@@ -1,0 +1,31 @@
+{
+  "name": "pong-game",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && cp -r src/dist/shared ../backend/shared ",
+    "clean": "rm -rf ./public/dist && rm -rf ../back_pong-game/public",
+    "dev": "npm run build && cd ../back_pong-game && npm run dev",
+    "start": "npm run build && cd ../back_pong-game && npm start",
+    "rebuild": "npm run clean && npm run start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "lite-server": "^2.6.1",
+    "nodemon": "^3.1.9",
+    "typescript": "^5.7.3"
+  },
+  "prettier": {
+    "useTabs": true,
+    "tabWidth": 4
+  },
+  "dependencies": {
+    "babylonjs": "^7.51.3",
+    "babylonjs-loaders": "^7.51.3"
+  }
+}

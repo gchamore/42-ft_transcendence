@@ -117,10 +117,10 @@ process.on('SIGTERM', () => cleanup('SIGTERM'));
 process.on('SIGINT', () => cleanup('SIGINT'));
 
 // ====== Démarrage du serveur ======
-fastify.listen({ port: 3000, host: '0.0.0.0' }, (err) => {
+fastify.listen({ port: 3000, host: '0.0.0.0' }, (err, address) => {
     if (err) {
         console.error('Server start error:', err);
         process.exit(1);
     }
-    console.log('🚀 Server ready at http://localhost:8080');
+    console.log(`🚀 Server ready at ${address}`);
 });

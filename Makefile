@@ -29,13 +29,16 @@ run: check_deps
 down:
 	@echo "$(YELLOW)Arrêt des conteneurs...$(RESET)"
 	@read -p "Voulez-vous supprimer le volume persistant? (y/n) " answer; \
-    if [ "$$answer" = "y" ]; then \
-        $(DOCKER_COMPOSE) down -v; \
-        echo "$(GREEN)Volume supprimé$(RESET)"; \
-    else \
-        echo "$(YELLOW)Conservation du volume$(RESET)"; \
-        $(DOCKER_COMPOSE) down; \
-    fi
+	if [ "$$answer" = "y" ]; then \
+		docker compose stop; \
+		docker compose down -v; \
+		echo "$(GREEN)Volume supprimé$(RESET)"; \
+	else \
+		docker compose stop; \
+		docker compose down; \
+		echo "$(YELLOW)Conservation du volume$(RESET)"; \
+	fi
+
 
 up: check_deps
 	@echo "$(YELLOW)Démarrage des conteneurs...$(RESET)"
@@ -86,6 +89,18 @@ logs:
 	@echo "$(YELLOW)Logs de nginx:$(RESET)"
 	@$(DOCKER_COMPOSE) logs nginx
 
+# Voir les valeurs des clés Redis en continu
+check_redis:
+	@echo "$(YELLOW)Surveillance en temps réel des clés Redis... (Ctrl+C pour arrêter)$(RESET)"
+	@while true; do \
+		echo ""; \
+		echo "$(YELLOW)📡 Vérification des clés Redis :$(RESET)"; \
+		docker exec -it $(shell docker ps --format "{{.Names}}" | grep backend) redis-cli KEYS '*'; \
+		echo ""; \
+		sleep 15; \
+	done
+
+
 # Redémarrer un service spécifique
 restart_service:
 	@read -p "Nom du service à redémarrer (backend/nginx) : " service; \
@@ -109,4 +124,4 @@ export HEADER
 first_header:
 	@echo "\n$$HEADER\n"
 
-.PHONY: all check_deps run down up clean status logs restart_service re first_header get_database
+.PHONY: all check_deps run down up clean status logs restart_service re first_header get_database check_redis

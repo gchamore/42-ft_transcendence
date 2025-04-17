@@ -4,10 +4,11 @@
     "target": "es2016",
     "module": "commonjs",
     "outDir": "./src/dist",
-    "rootDir": "./src/ts",
+    "rootDir": "..",
     "esModuleInterop": true,
     "strict": true
   },
-  "include": ["src/ts/**/*.ts"],
+  "include": ["src/ts/**/*.ts",
+		"../shared/**/*.ts"],
   "exclude": ["node_modules"]
 }
