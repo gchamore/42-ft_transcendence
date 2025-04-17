@@ -1,5 +1,9 @@
-const authService = require('../services/auth.service');
+const authService = require('../../auth/auth.service');
 
+// Middleware d'authentification for token checking
+// It verifies if the access token is valid and not expired
+// If the access token is expired, it tries to refresh it using the refresh token
+// If both tokens are invalid, it clears the cookies and returns a 401 error
 async function authMiddleware(request, reply, done) {
     const accessToken = request.cookies?.accessToken;
     const refreshToken = request.cookies?.refreshToken;
@@ -39,7 +43,6 @@ async function authMiddleware(request, reply, done) {
                 .send({ error: 'Invalid token' });
         }
 
-        // Si un nouveau accessToken a été généré
         if (result.newAccessToken) {
             request.log.info('New access token generated, updating cookie');
 
@@ -53,7 +56,6 @@ async function authMiddleware(request, reply, done) {
             });
         }
 
-        // Stocker l'ID utilisateur dans la requête
         request.user = {
             userId: result.userId
         };

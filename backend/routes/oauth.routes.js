@@ -1,5 +1,5 @@
 const { google } = require('googleapis');
-const authService = require('../jwt/services/auth.service');
+const authService = require('../auth/auth.service');
 const TwofaService = require('../2fa/twofa.service'); // Ajout de l'import manquant
 require('dotenv').config();
 
@@ -10,6 +10,11 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 /*** 📌 Route: google/token ***/
+// Trade the authorization code for tokens and user info
+// This route is used to authenticate the user with Google OAuth
+// and create or update the user in the database
+// It also handles 2FA if enabled for the user
+// It returns the access and refresh tokens in cookies
 async function routes(fastify, options) {
     fastify.post('/auth/google/token', async (request, reply) => {
         try {
@@ -18,21 +23,21 @@ async function routes(fastify, options) {
                 return reply.code(400).send({ error: 'Authorization code is required' });
             }
 
-            // Échange du code contre les tokens
+			// Trade the authorization code for tokens
             const { tokens } = await oauth2Client.getToken(code);
             oauth2Client.setCredentials(tokens);
 
-            // Récupération des infos utilisateur
+			// Get user info from Google
             const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
             const { data } = await oauth2.userinfo.get();
 
-            // Recherche de l'utilisateur ou création
+			// Check if user exists in the database
             let user = fastify.db.prepare(
                 "SELECT * FROM users WHERE email = ?"
             ).get(data.email);
 
             if (!user) {
-                // Générer un username unique
+				// Generate a unique username
                 let username = data.given_name;
                 let counter = 1;
                 while (fastify.db.prepare("SELECT 1 FROM users WHERE username = ?").get(username)) {
@@ -48,7 +53,7 @@ async function routes(fastify, options) {
                 ).get(result.lastInsertRowid);
             }
 
-            // Vérifie si 2FA activée avec gestion d'erreur améliorée
+			// Check if 2FA is enabled for the user
             if (user.twofa_secret) {
                 try {
                     const tempToken = await TwofaService.generateTemp2FAToken(user.id);
@@ -66,13 +71,13 @@ async function routes(fastify, options) {
                 }
             }
 
-            // Si pas de 2FA, continue avec le processus normal
+			// If no 2FA, proceed with the normal process
             const { accessToken, refreshToken } = await authService.generateTokens(user.id);
 
-            // Détermination si local ou production
-            const isLocal = request.headers.host.startsWith("localhost");
+			// Check if the application is running locally or in production
+			const isLocal = request.headers.host.startsWith("localhost");
 
-            // Envoi des cookies et réponse
+			// Set cookies with tokens
             reply
                 .setCookie('accessToken', accessToken, {
                     httpOnly: true,
@@ -96,7 +101,6 @@ async function routes(fastify, options) {
         } catch (error) {
             fastify.log.error('Google OAuth error:', error);
             
-            // Réponse d'erreur plus détaillée
             return reply.code(500).send({
                 success: false,
                 error: 'Failed to authenticate with Google',
