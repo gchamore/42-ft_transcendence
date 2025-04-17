@@ -242,7 +242,9 @@ class Friends extends ASection {
 				this.btn2.textContent = 'Add';
 			}
 
-			this.btn3.onclick = () => go_section('message');
+			this.btn3.onclick = () => {
+				window.location.href = "directmessage" + '/' + this.anotherUser?.username;
+			};
 			this.btn3.textContent = 'Message';
 			
 			const stats = this.anotherUser.format_stats();
@@ -555,11 +557,11 @@ class Settings extends ASection {
 	switch_logged_in() {}
 }
 
-class Message extends ASection {
+class DirectMessage extends ASection {
 	/* ASection */
-	type = 'message';
+	type = 'directmessage';
 	protected = true;
-	parent = document.getElementById('message-parent') as HTMLElement;
+	parent = document.getElementById('directmessage-parent') as HTMLElement;
 	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
 	dependencies = ['home'];
@@ -567,7 +569,7 @@ class Message extends ASection {
 	/* Methods */
 	enter(verified: boolean) {
 		if (verified !== true || ) {
-			console.log("Try to enter message section as unauthenticated");
+			console.log("Try to enter DirectMessage section as unauthenticated");
 			return;
 		}
 		this.activate_section();
@@ -579,23 +581,64 @@ class Message extends ASection {
 	switch_logged_in() {}
 }
 sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(),
-			new Settings(), new Message()];
+			new Settings(), new DirectMessage()];
 /* --------- */
 
 
 
 /* Utils */
+function	get_url_type(url : string) : string {
+	let end;
+	for (end = 0; end < url.length; ++end) {
+		if (url[end] == '/')
+			break;
+	}
+	let type;
+
+	type = url.substring(0, end);
+	console.log('Url type:', type);
+
+	return type;
+}
+
+function	get_url_option(url : string) : string | undefined {
+	let start;
+	for (start = 0; start < url.length; ++start) {
+		if (url[start] == '/')
+			break;
+	}
+
+	let option;
+	if (start < url.length) {
+		option = url.substring(start + 1, length);
+	}
+	else
+		option = undefined;
+	console.log('Url option:', option);
+
+	return option;
+}
+
 function get_section_index(type : string): number | undefined {
 	for (let i = 0; i < sections.length; i++) {
 		if (sections[i].type === type)
-			return i;
+				return i;
 	}
 	return undefined;
 }
 
-function set_new_section_index(type : string): void {
+function set_section_index(type : string, option : string | undefined): void {
 	let index : number | undefined = get_section_index(type);
-	section_index = (index !== undefined && is_section_accessible(index)) ? index : HOME_INDEX;
+	if (index === undefined)
+		section_index = HOME_INDEX;
+	else if (!is_section_accessible(index))
+		section_index = HOME_INDEX;
+	else if (sections[index].option !== undefined
+		&& sections[index].option !== option)
+		section_index = HOME_INDEX;
+	else if (sections[index].option === undefined
+		|| sections[index].option === option)
+		sections_index = index;
 }
 
 function is_section_accessible(index : number): boolean {
@@ -617,10 +660,10 @@ function update_section(): void {
 		sections[section_index].switch_logged_in();
 }
 
-function go_section(section : string) {
+function go_section(section : string, type : string) {
 	if (section === sections[section_index].type)
 		section = 'home';
-	set_new_section_index(section);
+	set_section_index(section, type);
 	update_sections();
 	history.pushState({ section : sections[section_index].type }, "",
 		sections[section_index].type);
