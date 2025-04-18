@@ -1,7 +1,0 @@
-{
-    "server": {
-      "baseDir": ["./public", "./dist"],
-      "index": "index.html"
-    }
-  }
-  
