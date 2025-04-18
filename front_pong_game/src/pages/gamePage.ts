@@ -23,6 +23,8 @@ export class Game {
 	private paddle1!: Paddle;
 	private paddle2!: Paddle;
 	private ball!: Ball;
+	private mapType: string = "";
+	private powerUpsEnabled: boolean = false;
 	private scoreBoard!: ScoreBoard;
 	private controls!: GameControls;
 	private uiManager!: UIManager;
@@ -86,6 +88,8 @@ export class Game {
 				this.paddle1,
 				this.paddle2,
 				this.ball,
+				this.mapType,
+				this.powerUpsEnabled,
 				() => {
 					console.log("3D scene loading complete");
 					this.isLoading = false;
@@ -166,18 +170,18 @@ export class Game {
 					}
 					break;
 				case "powerupSpawn":
-					if (this.babylonManager) {
+					if (this.babylonManager && this.powerUpsEnabled) {
 						this.babylonManager.createPowerupMesh(data.powerup);
 					}
 					break;
 				case "powerupCollected":
-					if (this.babylonManager) {
+					if (this.babylonManager && this.powerUpsEnabled) {
 						this.babylonManager.handlePowerupCollection(data.powerupId, data.playerNumber);
 						this.uiManager.addActivePowerup(data.powerupId, data.powerupType, data.playerNumber);
 					}
 					break;
 				case "powerupDeactivated":
-					if (this.babylonManager) {
+					if (this.babylonManager && this.powerUpsEnabled) {
 						this.babylonManager.handlePowerupDeactivation(data.powerupId);
 						this.uiManager.removeActivePowerup(data.powerupId);
 					}
@@ -302,6 +306,8 @@ export class Game {
 		this.paddle2.speed = savedSettings.paddleSpeed;
 		this.paddle1.height = savedSettings.paddleLength;
 		this.paddle2.height = savedSettings.paddleLength;
+		this.mapType = savedSettings.mapType;
+		this.powerUpsEnabled = savedSettings.powerUpsEnabled;
 	}
 
 	private handleGameOver(data: any) {

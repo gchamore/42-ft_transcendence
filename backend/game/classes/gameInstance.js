@@ -7,7 +7,7 @@ export class GameInstance {
 		this.gameId = gameId;
 		this.players = new Map();
 		this.gameStateManager = new GameStateManager(gameId, existingSettings);
-		this.physicManager = new PhysicManager();
+		this.physicManager = new PhysicManager(existingSettings.mapType);
 		this.powerUpManager = new PowerUpManager();
 		this.settings = existingSettings;
 
@@ -82,6 +82,9 @@ export class GameInstance {
 				this.powerUpManager.checkPowerupCollision(gameState, this.players);
 			}
 
+			if (this.mapType === 'custom') {
+				this.physicManager.checkCustomMapCollision(ball, this.players);
+			}
 			// Check collisions
 			this.physicManager.checkWallCollision(ball,  this.players.values());
 			this.physicManager.checkPaddleCollision(ball, gameState.paddle1, gameState.paddle2, this.players);

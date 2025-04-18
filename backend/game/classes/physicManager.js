@@ -122,14 +122,57 @@ export class PhysicManager {
 
 				players.forEach((player) => {
 					safeSend(player, {
-						type: "paddleHit",
-						playerNumber,
-						ballPosition: { x: ball.x, y: ball.y },
+						type: "wallBounce",
+						position: { x: ball.x, y: ball.y },
 					});
 				});
 				return true;
 			}
 		});
+		return false;
+	}
+
+	checkCustomMapCollision(ball, players) {
+		// obstacle positions & half‐sizes from your createCustomMap (width=0.5, depth=3)
+		const obstacles = [
+			{ x: -3, y: 0, halfW: 0.25, halfH: 1.5 },
+			{ x: 3, y: 0, halfW: 0.25, halfH: 1.5 }
+		];
+
+		for (const obs of obstacles) {
+			// translate into obstacle‐local coords
+			const dx = ball.x - obs.x;
+			const dy = ball.y - obs.y;
+
+			// find closest point on box to ball center
+			const closestX = Math.max(-obs.halfW, Math.min(dx, obs.halfW));
+			const closestY = Math.max(-obs.halfH, Math.min(dy, obs.halfH));
+
+			const distX = dx - closestX;
+			const distY = dy - closestY;
+
+			if (distX * distX + distY * distY <= ball.radius * ball.radius) {
+				// flip X velocity
+				ball.speedX *= -1;
+
+				// push the ball outside the obstacle
+				if (dx > 0) {
+					ball.x = obs.x + obs.halfW + ball.radius + 1;
+				} else {
+					ball.x = obs.x - obs.halfW - ball.radius - 1;
+				}
+
+				// notify clients
+				players.forEach(player =>
+					safeSend(player, {
+						type: "obstacleBounce",
+						position: { x: ball.x, y: ball.y }
+					})
+				);
+				return true;
+			}
+		}
+
 		return false;
 	}
 

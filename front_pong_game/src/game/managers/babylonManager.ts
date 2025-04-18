@@ -32,7 +32,7 @@ export class BabylonManager {
 	private collisionManager: CollisionManager;
 
 	// Effects and UI
-	private powerUpManager: PowerUpManager;
+	private powerUpManager!: PowerUpManager;
 	private effectsManager: EffectsManager;
 	private loadingScreen: LoadingScreen;
 
@@ -49,6 +49,8 @@ export class BabylonManager {
 		private paddle1: Paddle,
 		private paddle2: Paddle,
 		private ball: Ball,
+		private mapType: string,
+		private powerUpsEnabled: boolean,
 		private onLoadingComplete?: () => void
 	) {
 		// Initialize loading screen first
@@ -93,12 +95,14 @@ export class BabylonManager {
 		// Initialize effects and powerups
 		this.effectsManager = new EffectsManager(this.sceneManager.getScene());
 
-		this.powerUpManager = new PowerUpManager(
-			this.sceneManager.getScene(),
-			this.paddleManager,
-			this.coordinateConverter,
-			this.effectsManager
-		);
+		if (this.powerUpsEnabled) {
+			this.powerUpManager = new PowerUpManager(
+				this.sceneManager.getScene(),
+				this.paddleManager,
+				this.coordinateConverter,
+				this.effectsManager
+			);
+		}
 
 		// Set up the environment
 		this.setupEnvironment();
@@ -123,6 +127,9 @@ export class BabylonManager {
 		this.environmentFactory.createTable();
 		this.environmentFactory.createWalls();
 		this.environmentFactory.createCenterLine();
+		if (this.mapType === "custom") {
+			this.environmentFactory.createCustomMap();
+		}
 	}
 
 	private setupEventHandlers(): void {
@@ -234,7 +241,9 @@ export class BabylonManager {
 
 		// Dispose all managers
 		this.loadingScreen.hide();
-		this.powerUpManager.dispose();
+		if (this.powerUpsEnabled) {
+			this.powerUpManager.dispose();
+		}
 		this.effectsManager.dispose();
 		this.collisionManager.dispose();
 		this.ballManager.dispose();

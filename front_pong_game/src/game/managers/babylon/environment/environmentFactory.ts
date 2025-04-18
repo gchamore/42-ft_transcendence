@@ -3,6 +3,8 @@ export class EnvironmentFactory {
 	private topWall: BABYLON.Mesh | null = null;
 	private bottomWall: BABYLON.Mesh | null = null;
 	private centerLine: BABYLON.Mesh | null = null;
+	private obstacle1: BABYLON.Mesh | null = null;
+	private obstacle2: BABYLON.Mesh | null = null;
 
 	constructor(
 		private scene: BABYLON.Scene | null,
@@ -83,6 +85,22 @@ export class EnvironmentFactory {
 		this.centerLine.material = lineMaterial;
 	}
 
+	public createCustomMap(): void {
+		if (!this.scene) return;
+
+		const customMapMaterial = new BABYLON.StandardMaterial("customMapMaterial", this.scene);
+		customMapMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.1, 0.1);
+
+		this.obstacle1 = BABYLON.MeshBuilder.CreateBox( "obstacle1", { width: 0.5, height: 1, depth: 3 }, this.scene );
+		this.obstacle1.position = new BABYLON.Vector3( -3, 0, 0 );
+		this.obstacle1.material = customMapMaterial;
+		this.obstacle1.receiveShadows = true;
+		this.obstacle2 = BABYLON.MeshBuilder.CreateBox( "obstacle2", { width: 0.5, height: 1, depth: 3 }, this.scene );
+		this.obstacle2.position = new BABYLON.Vector3( 3, 0, 0 );
+		this.obstacle2.material = customMapMaterial;
+		this.obstacle2.receiveShadows = true;
+	}
+	
 	public getTableMesh(): BABYLON.Mesh | null {
 		return this.tableMesh;
 	}
@@ -115,5 +133,16 @@ export class EnvironmentFactory {
 			this.centerLine.dispose();
 			this.centerLine = null;
 		}
+
+		if (this.obstacle1) {
+			this.obstacle1.dispose();
+			this.obstacle1 = null;
+		}
+
+		if (this.obstacle2) {
+			this.obstacle2.dispose();
+			this.obstacle2 = null;
+		}
+
 	}
 }
