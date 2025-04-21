@@ -30,6 +30,7 @@ class App {
 		const settingsPage = document.getElementById('settings-page');
 		const gamePage = document.getElementById('gameCanvas');
 		const gameContainer = document.getElementById('game-container');
+		const fpsCounter = document.getElementById('fps-counter');
 
 		if (!settingsPage || !gamePage || !gameContainer) {
 			console.error('Required elements are not available in the DOM!');
@@ -68,6 +69,7 @@ class App {
 			settingsPage!.style.display = 'none'; // Hide settings page
 			gameContainer.style.display = 'block'; // Show game container
 			gamePage!.style.display = 'block'; // Show game page
+			fpsCounter!.style.display = 'block'; // Show FPS counter
 		} else if (page === this.DEFAULT_ROUTE) {
 			this.currentSettingsPage = new SettingsPage(gameId); // store reference to settings page
 			settingsPage!.style.display = 'block'; // Show settings page
