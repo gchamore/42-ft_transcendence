@@ -1,6 +1,6 @@
 
 
-async function routes(fastify, options) {
+export async function routes(fastify, options) {
     const { db } = fastify;
 
 	fastify.post("/2fa/setup", async (request, reply) => {
@@ -72,5 +72,3 @@ async function routes(fastify, options) {
 		return reply.send({ success: true, message: "2FA disabled" });
 	});
 }
-
-module.exports = routes;

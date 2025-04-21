@@ -6,8 +6,8 @@
 	"type": "module",
 	"scripts": {
 		"test:auth": "node tools/auth_tester.js",
-		"start": "node server.js | pino-pretty",
-		"dev": "nodemon server.js | pino-pretty",
+		"start": "node ../server.js | pino-pretty",
+		"dev": "nodemon ../server.js | pino-pretty",
 		"clean": "rm -rf public/*"
 	},
 	"dependencies": {

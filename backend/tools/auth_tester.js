@@ -7,9 +7,9 @@
  * 3. La vérification du token d'accès
  */
 
-const axios = require('axios');
+import axios from 'axios';
 const API_URL = 'http://localhost:3000';
-const chalk = require('chalk'); // Pour des logs colorés (npm install chalk)
+import chalk from 'chalk';
 
 // Configuration
 const TEST_USER = {

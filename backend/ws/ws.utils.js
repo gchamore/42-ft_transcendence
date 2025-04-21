@@ -1,5 +1,5 @@
-const redis = require('../redis/redisClient');
-const authService = require('../jwt/services/auth.service');
+import redis from '../redis/redisClient.js';
+import authService from '../jwt/services/auth.service.js';
 
 /**
  * Close a WebSocket connection for a specific user
@@ -10,7 +10,7 @@ const authService = require('../jwt/services/auth.service');
  * @param {boolean} updateStatus - Whether to update user online status (default: false)
  * @returns {boolean} - True if connection was closed, false if no connection found
  */
-async function closeUserWebSocket(fastify, userId, code = 1000, reason = "Connection closed", updateStatus = false) {
+export async function closeUserWebSocket(fastify, userId, code = 1000, reason = "Connection closed", updateStatus = false) {
     const wsConnection = fastify.connections.get(userId);
     if (wsConnection) {
         fastify.log.info(`Closing WebSocket connection for user: ${userId} with reason: ${reason}`);
@@ -44,7 +44,7 @@ async function closeUserWebSocket(fastify, userId, code = 1000, reason = "Connec
  * @param {number} code - WebSocket close code (default: 1000)
  * @param {string} reason - Reason for closing (default: "Server shutdown")
  */
-async function closeAllWebSockets(fastify, code = 1000, reason = "Server shutdown") {
+export async function closeAllWebSockets(fastify, code = 1000, reason = "Server shutdown") {
     fastify.log.info(`Closing all WebSocket connections with reason: ${reason}`);
     
     const closedConnections = [];
@@ -81,7 +81,7 @@ async function closeAllWebSockets(fastify, code = 1000, reason = "Server shutdow
  * @param {Object} fastify - Fastify instance
  * @param {Object} payload - Message payload to broadcast
  */
-function broadcastToAllClients(fastify, payload) {
+export function broadcastToAllClients(fastify, payload) {
     const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
     let sentCount = 0;
     
@@ -101,7 +101,7 @@ function broadcastToAllClients(fastify, payload) {
  * @param {Object} payload - Message payload to broadcast
  * @param {number|string} excludeUserId - User ID to exclude from broadcast
  */
-function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
+export function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
     const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
     let sentCount = 0;
     
@@ -122,7 +122,7 @@ function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
  * @param {Object} payload - Message payload
  * @returns {boolean} - True if message was sent, false if user not connected
  */
-function sendToUser(fastify, userId, payload) {
+export function sendToUser(fastify, userId, payload) {
     const socket = fastify.connections.get(userId);
     
     if (socket && socket.readyState === 1) {
@@ -140,7 +140,7 @@ function sendToUser(fastify, userId, payload) {
  * @param {number|string} userId - User ID whose status changed
  * @param {boolean} isOnline - Whether the user is now online
  */
-async function broadcastUserStatus(fastify, userId, isOnline) {
+export async function broadcastUserStatus(fastify, userId, isOnline) {
     const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
     if (!user) return false;
     
@@ -159,7 +159,7 @@ async function broadcastUserStatus(fastify, userId, isOnline) {
  * @param {number|string} userId - User ID
  * @param {boolean} isOnline - Whether the user is online
  */
-async function updateUserOnlineStatus(userId, isOnline) {
+export async function updateUserOnlineStatus(userId, isOnline) {
     if (isOnline) {
         if (!await redis.sismember('online_users', userId.toString())) {
             await redis.sadd('online_users', userId.toString());
@@ -177,7 +177,7 @@ async function updateUserOnlineStatus(userId, isOnline) {
  * @param {number|string} userId - User ID to check
  * @returns {Promise<boolean>} - True if user is online
  */
-async function isUserOnline(userId) {
+export async function isUserOnline(userId) {
     return await redis.sismember('online_users', userId.toString());
 }
 
@@ -186,7 +186,7 @@ async function isUserOnline(userId) {
  * @param {string} accessToken - JWT access token
  * @returns {Promise<Object|null>} - User validation object or null if invalid
  */
-async function validateWebSocketToken(accessToken) {
+export async function validateWebSocketToken(accessToken) {
     if (!accessToken) return null;
     return await authService.validateToken(accessToken, null, 'access');
 }
@@ -198,7 +198,7 @@ async function validateWebSocketToken(accessToken) {
  * @param {string} message - Message content
  * @returns {Object} - Result object with success status and error if any
  */
-async function handleLiveChatMessage(fastify, userId, message) {
+export async function handleLiveChatMessage(fastify, userId, message) {
     // Vérifier d'abord si l'utilisateur est bien connecté
     const isConnected = fastify.connections.has(userId);
     if (!isConnected) {
@@ -237,7 +237,7 @@ async function handleLiveChatMessage(fastify, userId, message) {
  * @param {string} message - Message content
  * @returns {Object} - Result object with success status and warnings/errors
  */
-async function handleDirectMessage(fastify, senderId, recipientUsername, message) {
+export async function handleDirectMessage(fastify, senderId, recipientUsername, message) {
     // Vérifier d'abord si l'expéditeur est bien connecté
     const isSenderConnected = fastify.connections.has(senderId);
     if (!isSenderConnected) {
@@ -309,7 +309,7 @@ async function handleDirectMessage(fastify, senderId, recipientUsername, message
  * @param {Object} fastify - Fastify instance
  * @returns {Promise<Array>} - Liste des usernames en ligne
  */
-async function getOnlineUsers(fastify) {
+export async function getOnlineUsers(fastify) {
 	const onlineUserIds = await redis.smembers('online_users');
 	if (onlineUserIds.length === 0) return [];
 
@@ -327,7 +327,7 @@ async function getOnlineUsers(fastify) {
  * @param {Object} fastify - Fastify instance
  * @param {number|string} userId - User ID to send the list to
  */
-async function sendOnlineUsersList(fastify, userId) {
+export async function sendOnlineUsersList(fastify, userId) {
     const onlineUsers = await getOnlineUsers(fastify);
     const payload = {
         type: 'onlines',
@@ -336,19 +336,3 @@ async function sendOnlineUsersList(fastify, userId) {
     
     sendToUser(fastify, userId, payload);
 }
-
-module.exports = {
-    closeUserWebSocket,
-    closeAllWebSockets,
-    broadcastToAllClients,
-    broadcastToAllExceptSender,
-    sendToUser,
-    broadcastUserStatus,
-    updateUserOnlineStatus,
-    isUserOnline,
-    validateWebSocketToken,
-    handleLiveChatMessage,
-    handleDirectMessage,
-    getOnlineUsers,
-    sendOnlineUsersList
-};

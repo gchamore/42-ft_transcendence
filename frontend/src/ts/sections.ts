@@ -68,6 +68,8 @@ class Home extends ASection {
 	readonly profile_btn = document.getElementById('profile-btn') as HTMLButtonElement;
 	readonly friends_btn = document.getElementById('friends-btn') as HTMLButtonElement;
 	readonly chat_btn = document.getElementById('chat-btn') as HTMLButtonElement;
+	readonly play1v1_btn = document.getElementById('play1v1-btn') as HTMLButtonElement;
+	readonly playTournament_btn = document.getElementById('playTournament-btn') as HTMLButtonElement;
 
 	/* Methods */
 	enter(verified: boolean) {
@@ -81,11 +83,89 @@ class Home extends ASection {
 		this.logged_off_view();
 		this.chat_btn.removeAttribute('onclick');
 		this.friends_btn.removeAttribute('onclick');
+		this.play1v1_btn.removeAttribute('onclick');
+		this.playTournament_btn.removeAttribute('onclick');
 	}
 	switch_logged_in() {
 		this.logged_in_view();
 		this.friends_btn.setAttribute('onclick', "go_section('friends')");
 		this.chat_btn.setAttribute('onclick', "go_section('chat')");
+		this.play1v1_btn.onclick = () => this.play1v1();
+		this.playTournament_btn.onclick = () => this.playTournament();
+	}
+	async play1v1() {
+		if (!user) { 
+			console.error('play1v1: not logged in');
+			return ;
+		}
+		try { 
+			const resp = await fetch('/game/queue', {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ playerId: user.name })
+			});
+			if (resp.status === 202) { 
+				alert('waiting for an opponent');
+			} else if (resp.ok) { 
+				const { gameId } = await resp.json();
+				window.location.hash = `game/${gameId}`;
+			} else { 
+				const err = await resp.json();
+				alert(`Queue error: ${err.error}`);
+			}
+		} catch (err) {
+			console.error('play1v1: error', err);
+			alert('Failed to join 1v1 queue');
+		}
+
+	}
+	async playTournament() {
+		if (!user) {
+			console.error('playTournament: not logged in');
+			return;
+		}
+		const maxPlayers = parseInt(prompt('Enter max players:', '4') || '4', 10);
+		if (isNaN(maxPlayers) || maxPlayers < 2) {
+			alert('Invalid number of players');
+			return;
+		}
+		try {
+			const createResp = await fetch('/game/tournament', {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					creatorId: user.name,
+					name: '',
+					maxPlayers
+				})
+			});
+			if (!createResp.ok) {
+				const err = await createResp.json();
+				alert(`Tournament creation error: ${err.error}`);
+				return;
+			}
+			const { tournamentId: tid } = await createResp.json();
+			const joinResp = await fetch(`/tournament/${tid}/join`, {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ playerId: user.name })
+			});
+			if (joinResp.status === 202) {
+				alert(`Joined tournament ${tid}, waiting for players…`);
+			} else if (joinResp.ok) {
+				window.location.hash = `game/${tid}`;
+			} else {
+				const err = await joinResp.json();
+				alert(`Tournament join error: ${err.error}`);
+			}
+		} catch (err) {
+			console.error('playTournament: error', err);
+			alert('Failed to create / join tournament');
+		}
+
 	}
 }
 

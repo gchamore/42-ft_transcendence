@@ -1,6 +1,6 @@
-const authService = require('../services/auth.service');
+import authService from '../services/auth.service.js';
 
-async function authMiddleware(request, reply, done) {
+export async function authMiddleware(request, reply, done) {
     const accessToken = request.cookies?.accessToken;
     const refreshToken = request.cookies?.refreshToken;
     
@@ -65,5 +65,3 @@ async function authMiddleware(request, reply, done) {
         reply.code(500).send({ error: 'Internal authentication error' });
     }
 }
-
-module.exports = authMiddleware;

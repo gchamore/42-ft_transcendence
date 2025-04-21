@@ -1,24 +1,23 @@
 {
-  "name": "front",
-  "type": "module",
-"dependencies": {
-	"@types/node": "^22.13.4",
-	"lite-server": "^2.6.1",
-	"nodemon": "^3.1.9",
-	"typescript": "^5.7.3",
-	"babylonjs": "^7.51.3",
-	"babylonjs-loaders": "^7.51.3"
-  },
-
-  "scripts": {
-	"build": "tsc && cp -r src/dist/shared ../backend/game/shared",
-	"clean": "rm -rf ./src/dist && rm -rf ../backend/game/shared",
-	"start": "npm run build && cd ../back_pong-game && npm start",
-    "dev": "npx tsc --watch --preserveWatchOutput & ",
-    "stop-dev": "ps aux | grep -w 'tsc' | grep -v grep | awk '{print $2}' | xargs -r kill"
-  },
-  "prettier": {
-    "useTabs": true,
-    "tabWidth": 4
-  }
+	"name": "front",
+	"type": "module",
+	"dependencies": {
+		"@types/node": "^22.13.4",
+		"lite-server": "^2.6.1",
+		"nodemon": "^3.1.9",
+		"typescript": "^5.7.3",
+		"babylonjs": "^7.51.3",
+		"babylonjs-loaders": "^7.51.3"
+	},
+	"scripts": {
+		"build": "tsc && cp -r src/dist/shared ../backend/game/shared",
+		"clean": "rm -rf ./src/dist && rm -rf ../backend/game/shared",
+		"start": "npm run build && cd ../back_pong-game && npm start",
+		"dev": "npx tsc --watch --preserveWatchOutput & ",
+		"stop-dev": "ps aux | grep -w 'tsc' | grep -v grep | awk '{print $2}' | xargs -r kill"
+	},
+	"prettier": {
+		"useTabs": true,
+		"tabWidth": 4
+	}
 }

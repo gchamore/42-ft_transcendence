@@ -23,7 +23,7 @@ declare namespace BABYLON {
 
 		class Scene {
 			constructor(engine: Engine);
-			activeCamera: Camera;
+			activeCamera: ArcRotateCamera;
 			render(): void;
 			clearColor: Color4;
 			dispose(): void;

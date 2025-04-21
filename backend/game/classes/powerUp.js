@@ -1,4 +1,4 @@
-import { GameConfig, PowerUpTypes } from '../../../back_pong-game/public/dist/shared/config/gameConfig.js';
+import { GameConfig, PowerUpTypes } from '../shared/config/gameConfig.js';
 import { safeSend } from '../utils/socketUtils.js';
 
 export class PowerUp {

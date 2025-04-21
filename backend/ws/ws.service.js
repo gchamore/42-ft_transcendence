@@ -1,7 +1,7 @@
-const authService = require('../jwt/services/auth.service');
-const wsUtils = require('./ws.utils');
+import authService from '../jwt/services/auth.service.js';
+import * as wsUtils from './ws.utils.js';
 
-class WebSocketService {
+export class WebSocketService {
     /**
      * Valide le token d'accès pour la connexion WebSocket
      * @param {Object} fastify - Instance Fastify
@@ -184,4 +184,4 @@ class WebSocketService {
     }
 }
 
-module.exports = new WebSocketService();
+export default new WebSocketService();

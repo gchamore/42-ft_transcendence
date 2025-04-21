@@ -1,11 +1,11 @@
-const bcrypt = require("bcrypt");
-const authService = require('../jwt/services/auth.service');
-const redis = require('../redis/redisClient');
-const jwt = require('jsonwebtoken');
-const wsUtils = require('../ws/ws.utils');
+import bcrypt from "bcrypt";
+import authService from '../jwt/services/auth.service.js';
+import redis from '../redis/redisClient.js';
+import jwt from 'jsonwebtoken';
+import * as wsUtils from '../ws/ws.utils.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret_key';
 
-async function routes(fastify, options) {
+export async function authRoutes(fastify, options) {
 	const { db } = fastify;
 
 	// Route racine
@@ -463,5 +463,3 @@ async function routes(fastify, options) {
 		});
 	});
 }
-
-module.exports = routes;

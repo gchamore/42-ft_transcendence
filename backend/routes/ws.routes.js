@@ -1,7 +1,7 @@
-const wsUtils = require('../ws/ws.utils');
-const wsService = require('../ws/ws.service');
+import * as wsUtils from '../ws/ws.utils.js';
+import * as wsService from '../ws/ws.service.js';
 
-async function routes(fastify, options) {
+export async function wsRoutes(fastify, options) {
 	// Route for live chat messages
     fastify.post('/live_chat_message', async (request, reply) => {
 		const userId = request.user.userId;
@@ -63,5 +63,3 @@ async function routes(fastify, options) {
         }
     });
 }
-
-module.exports = routes;

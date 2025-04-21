@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.createDefaultGameState = void 0;
-const createDefaultGameState = (gameId = '') => ({
+export const createDefaultGameState = (gameId = '') => ({
     gameId,
     gameStarted: false,
     servingPlayer: Math.random() < 0.5 ? 1 : 2,
@@ -10,4 +7,3 @@ const createDefaultGameState = (gameId = '') => ({
     ball: { x: 400, y: 300, radius: 10, speedX: 4, speedY: 4 },
     score: { player1Score: 0, player2Score: 0 }
 });
-exports.createDefaultGameState = createDefaultGameState;

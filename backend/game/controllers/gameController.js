@@ -1,12 +1,10 @@
 import { GameInstance } from "../classes/gameInstance.js";
 import { LobbyManager } from "../classes/lobbyManager.js";
-import { SettingsManager } from "../classes/settingsManager.js";
 import { handleNewGamePlayer } from '../handlers/gameMessageHandlers.js';
 import { handleNewLobbyPlayer } from '../handlers/lobbyMessageHandler.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { GameConfig } from "../shared/config/gameConfig.js";
 import { handleDisconnect } from "../handlers/disconnectHandler.js";
-import { settingsManagers } from "../routes/game.routes.js";
 
 export const games = new Map();
 export const lobbies = new Map();
@@ -37,14 +35,15 @@ export function handleGameConnection(connection, request) {
 	} else if (mode === 'game') {
 		// Handle actual game connections
 		let game = games.get(gameId);
-		let settingsManager = settingsManagers.get(gameId);
+		let lobby = lobbies.get(gameId);
 		if (!game) {
-			if (!settingsManager) {
-				settingsManager = new SettingsManager();
-				settingsManagers.set(gameId, settingsManager);
+			if (!lobby) {
+				console.error(`Lobby not found for gameId: ${gameId}`);
+				socket.close();
+				return;
 			}
 
-			const lobbySettings = settingsManager.getSettings();
+			const lobbySettings = lobby.getSettings();
 			game = new GameInstance(gameId, lobbySettings, safeSend);
 			games.set(gameId, game);
 		}

@@ -1,4 +1,4 @@
-async function routes(fastify, options) {
+export async function userRoutes(fastify, options) {
     const { db } = fastify;
 
     fastify.post("/add/:username", async (request, reply) => {
@@ -241,5 +241,3 @@ async function routes(fastify, options) {
         }
     });
 }
-
-module.exports = routes;

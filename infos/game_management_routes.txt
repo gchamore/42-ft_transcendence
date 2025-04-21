@@ -1,0 +1,41 @@
+1v1 QUEUE
+• POST /game/queue/join
+• Body: { playerId }
+• → 202 Accepted, or 200 + { gameId } when matched
+• DELETE /game/queue/leave
+• Body: { playerId }
+• → 204 No Content
+
+TOURNAMENT
+• POST /tournaments
+• Body: { creatorId, name, maxPlayers }
+• → 201 Created + { tournamentId }
+• POST /tournaments/:tournamentId/join
+• Body: { playerId }
+• → 200 OK
+• GET /tournaments/:tournamentId
+• → 200 + { players[], bracket[], status }
+• GET /tournaments/:tournamentId/bracket
+• → 200 + { matches: [ { matchId, players:[p1,p2], winner? } ] }
+
+INVITES
+• POST /invites
+• Body: { fromId, toUsername, gameType:'1v1'|'tournament', tournamentId? }
+• → 200 OK
+
+EXISTING “GAME” FLOW
+• POST /game/create
+(your current /game/create)
+• WS GET /game/:gameId?mode=lobby
+• WS GET /game/:gameId?mode=game
+
+SOCKET MESSAGES
+From client → server
+• { type:'joinQueue', playerId }
+• { type:'joinTournament', tournamentId, playerId }
+• { type:'invite', toUsername, gameType, tournamentId? }
+
+From server → client
+• { type:'matched', gameId }
+• { type:'tournamentStarted', tournamentId, bracket }
+• { type:'inviteReceived', fromUsername, gameType, tournamentId? }

@@ -1,3 +1,4 @@
 {
-    "makefile.configureOnOpen": true
+	"makefile.configureOnOpen": true,
+	"postman.settings.dotenv-detection-notification-visibility": false
 }

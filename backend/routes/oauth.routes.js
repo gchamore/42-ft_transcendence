@@ -1,6 +1,8 @@
-const { google } = require('googleapis');
-const authService = require('../jwt/services/auth.service');
-require('dotenv').config();
+import { google } from 'googleapis';
+import authService from '../jwt/services/auth.service.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -8,7 +10,7 @@ const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_REDIRECT_URI
 );
 
-async function routes(fastify, options) {
+export async function oauthRoutes(fastify, options) {
     fastify.post('/auth/google/token', async (request, reply) => {
         try {
             const { code } = request.body;
@@ -83,4 +85,3 @@ async function routes(fastify, options) {
     });
 }
 
-module.exports = routes;

@@ -1,7 +1,7 @@
-const Database = require("better-sqlite3");
+import Database from 'better-sqlite3';
 
 // Créer la base de données SQLite
-function initializeDatabase(dbPath)
+export function initializeDatabase(dbPath)
 {
     const db = new Database(dbPath);
 	// test
@@ -66,4 +66,3 @@ function initializeDatabase(dbPath)
     return db;
 }
 
-module.exports = initializeDatabase;

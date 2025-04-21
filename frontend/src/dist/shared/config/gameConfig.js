@@ -1,14 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.GameConfig = exports.PowerUpTypes = void 0;
-exports.PowerUpTypes = {
+export const PowerUpTypes = {
     PADDLE_GROW: 'paddle_grow',
     PADDLE_SHRINK: 'paddle_shrink',
     BALL_GROW: 'ball_grow',
     BALL_SHRINK: 'ball_shrink',
     PADDLE_SLOW: 'paddle_slow',
 };
-exports.GameConfig = {
+export const GameConfig = {
     LOBBY_TIMEOUT: 10 * 60 * 1000, // 30 minutes
     IP_ADDRESS: '10.32.6.18',
     CANVAS_WIDTH: 800,
@@ -44,11 +41,11 @@ exports.GameConfig = {
     MAX_ACTIVE_POWERUPS: 2,
     POWERUP_SIZE: 50,
     POWERUP_VISUAL_SCALES: {
-        [exports.PowerUpTypes.PADDLE_GROW]: 0.005, // Mushroom
-        [exports.PowerUpTypes.PADDLE_SHRINK]: 0.00005, // Axe
-        [exports.PowerUpTypes.BALL_GROW]: 0.085, // Watermelon
-        [exports.PowerUpTypes.BALL_SHRINK]: 0.025, // Blueberry
-        [exports.PowerUpTypes.PADDLE_SLOW]: 0.015 // Turtle
+        [PowerUpTypes.PADDLE_GROW]: 0.005, // Mushroom
+        [PowerUpTypes.PADDLE_SHRINK]: 0.00005, // Axe
+        [PowerUpTypes.BALL_GROW]: 0.085, // Watermelon
+        [PowerUpTypes.BALL_SHRINK]: 0.025, // Blueberry
+        [PowerUpTypes.PADDLE_SLOW]: 0.015 // Turtle
     }
 };
 /*

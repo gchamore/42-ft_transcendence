@@ -1,10 +1,10 @@
-const jwt = require('jsonwebtoken');
-const redis = require('../../redis/redisClient');
+import jwt from 'jsonwebtoken';
+import redis from '../../redis/redisClient.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days
 
-class AuthService {
+export class AuthService {
     async generateTokens(userId) {
         // Générer les nouveaux tokens
         const accessToken = jwt.sign({ userId, type: 'access' }, JWT_SECRET, { 
@@ -151,4 +151,4 @@ class AuthService {
     }
 }
 
-module.exports = new AuthService();
+export default new AuthService();
