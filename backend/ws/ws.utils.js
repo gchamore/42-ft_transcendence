@@ -1,5 +1,6 @@
 import redis from '../redis/redisClient.js';
-import * as authService from '../auth/auth.service.js';
+import authService from '../auth/auth.service.js';
+
 
 // This function closes a WebSocket connection for a specific user
 // It takes the userId, close code, reason, and whether to update the status

@@ -56,16 +56,21 @@ export async function wsRoutes(fastify, options) {
 	// It uses the ws library to handle WebSocket connections
     fastify.get('/ws', { websocket: true }, async (connection, req) => {
         try {
-            // Validate the access token
-            const accessToken = req.cookies?.accessToken;
-            const validation = await wsService.validateConnectionToken(fastify, connection, accessToken);
-            if (!validation) return;
+			// Validate the access token
+			const accessToken = req.cookies?.accessToken;
+			console.log('Token reçu:', accessToken);
+			const validation = await wsService.validateConnectionToken(fastify, connection, accessToken);
+			if (!validation) {
+				console.warn('Access token invalide ERROR');
+				return;
+			}
 
-            const userId = validation.userId;
-            const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-            
+			console.log('3');
+			const userId = validation.userId;
+			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+
 			// Generate a unique ID for the connection
-            const connectionId = wsService.generateConnectionId();
+			const connectionId = wsService.generateConnectionId();
             fastify.log.info(`New WebSocket connection [ID: ${connectionId}] for user: ${user.username} (${userId})`);
             
 			// Handle existing connections
@@ -77,8 +82,10 @@ export async function wsRoutes(fastify, options) {
 			// Set up WebSocket events
             wsService.setupWebSocketEvents(fastify, connection, accessToken, userId, user.username, connectionId);
             
-        } catch (error) {
-            wsService.handleConnectionError(fastify, connection, error);
-        }
+			} catch (error) {
+				console.error('🔥 WebSocket /ws error caught:', error?.message || error);
+				wsService.handleConnectionError(fastify, connection, error);
+			}
+			
     });
 }

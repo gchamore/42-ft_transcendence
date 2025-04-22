@@ -138,7 +138,7 @@ export class AuthService {
 		return { accessToken, refreshToken };
 	}
 
-	// Verify if the access token is valid (not blacklisted, user exists, in resdis, not expired)
+	// Verify if the access token is valid (not blacklisted, user exists, in redis, not expired)
 	// If the token is expired, it tries to refresh it using the refresh token
 	// If both tokens are invalid, it clears the cookies and returns a 401 error
 	async validateToken(accessToken, refreshToken, type = 'access', db) {
@@ -152,7 +152,7 @@ export class AuthService {
 
 			// Check if user exists in the database
 			if (db) {
-				const userExists = await getFromDatabase(db, 'users', ['id'], { id: decoded.userId });
+				const userExists = await this.getFromDatabase(db, 'users', ['id'], { id: decoded.userId });
 				if (!userExists) {	
 					await this.revokeTokens(decoded.userId);
 					return null;
