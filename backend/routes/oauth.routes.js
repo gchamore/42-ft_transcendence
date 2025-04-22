@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import authService from '../jwt/services/auth.service.js';
+import authService from '../auth/auth.service.js';
 import dotenv from 'dotenv';
 
 dotenv.config();

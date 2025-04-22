@@ -1,4 +1,4 @@
-import authService from '../auth/auth.service.js';
+import authService from '../../auth/auth.service.js';
 
 // Middleware d'authentification for token checking
 // It verifies if the access token is valid and not expired

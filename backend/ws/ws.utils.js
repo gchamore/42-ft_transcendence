@@ -1,5 +1,5 @@
 import redis from '../redis/redisClient.js';
-import authService from '../jwt/services/auth.service.js';
+import * as authService from '../auth/auth.service.js';
 
 /**
  * Close a WebSocket connection for a specific user

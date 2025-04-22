@@ -64,9 +64,10 @@ const publicRoutes = [
 ];
 
 // Redirect root route to /home
-app.get("/", (request, reply) => {
-    reply.redirect("/home");
-});
+// app.get("/", (request, reply) => {
+//     // reply.redirect("/home");
+// 	return { status: "api is running" };
+// });
 
 // Middleware d'authentification
 app.addHook('onRequest', (request, reply, done) => {

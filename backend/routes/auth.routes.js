@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
-import authService from '../jwt/services/auth.service.js';
-import TwofaService from'../2fa/twofa.service';
+import authService from '../auth/auth.service.js';
+import TwofaService from'../2fa/twofa.service.js';
 import jwt from 'jsonwebtoken';
 import * as wsUtils from '../ws/ws.utils.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret_key';
