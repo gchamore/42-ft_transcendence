@@ -5,6 +5,9 @@ import { handleNewLobbyPlayer } from '../handlers/lobbyMessageHandler.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { GameConfig } from "../shared/config/gameConfig.js";
 import { handleDisconnect } from "../handlers/disconnectHandler.js";
+import cookie from 'cookie';
+import authService from '../../services/auth.service.js'; // adapte le chemin si besoin
+
 
 export const games = new Map();
 export const lobbies = new Map();
