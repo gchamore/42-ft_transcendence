@@ -22,6 +22,7 @@ check_deps:
 
 # Lancer l'infrastructure
 run: check_deps
+	@npm run build --prefix ./frontend
 	@$(DOCKER_COMPOSE) up --build -d
 	@echo "$(GREEN)Application disponible sur : http://localhost:8080$(RESET)"
 
@@ -49,6 +50,7 @@ clean: down
 	@echo "$(YELLOW)Nettoyage des ressources Docker...$(RESET)"
 	@docker system prune -a --volumes -f;
 	@rm -rf ./backend/tools/database.db
+	@npm run clean --prefix ./frontend
 	@echo "$(GREEN)Nettoyage terminé$(RESET)"
 
 
