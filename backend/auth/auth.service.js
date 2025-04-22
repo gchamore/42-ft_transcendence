@@ -1,11 +1,11 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const redis = require('../redis/redisClient');
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import redis from '../redis/redisClient.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days
 
-class AuthService {
+export class AuthService {
 
 	// Hash password with bcrypt
 	async hashPassword(password, saltRounds = 10) {
@@ -287,4 +287,4 @@ class AuthService {
 	}
 }
 
-module.exports = new AuthService();
+export default new AuthService();
