@@ -12,7 +12,7 @@ export function initializeDatabase(dbPath)
             username TEXT UNIQUE,
             password TEXT,
             email TEXT,
-            avatar TEXT DEFAULT NULL,
+			avatar TEXT DEFAULT '/assets/avatar.png',
 			twofa_secret TEXT DEFAULT NULL,
             settings TEXT DEFAULT '{}',
             wins INTEGER DEFAULT 0,

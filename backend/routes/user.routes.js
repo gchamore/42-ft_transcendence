@@ -240,4 +240,94 @@ export async function userRoutes(fastify, options) {
             return reply.code(500).send({ error: "Failed to fetch blocked users" });
         }
     });
+
+    fastify.put("/update", async (request, reply) => {
+        const userId = request.user.userId; // From auth middleware
+        const { username, password, email, avatar } = request.body;
+
+        try {
+            // Récupérer l'utilisateur actuel
+            const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
+            if (!currentUser) {
+                return reply.code(404).send({ error: "User not found" });
+            }
+
+            // Préparer les champs à mettre à jour
+            const updates = {};
+            const params = [];
+            
+            // Vérifier et ajouter chaque champ s'il est fourni
+            if (username) {
+                // Vérifier si le nouveau username est déjà pris
+                const usernameExists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?")
+                    .get(username, userId);
+                if (usernameExists) {
+                    return reply.code(400).send({ error: "Username already taken" });
+                }
+                updates.username = username;
+            }
+            
+            if (password) {
+                // Hasher le nouveau mot de passe
+                const hashedPassword = await bcrypt.hash(password, 10);
+                updates.password = hashedPassword;
+            }
+            
+            if (email) {
+                // Valider le format de l'email
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    return reply.code(400).send({ error: "Invalid email format" });
+                }
+                updates.email = email;
+            }
+            
+            if (avatar) {
+                // Valider le format de l'URL de l'avatar
+                const urlRegex = /^\/assets\/.*\.(jpg|jpeg|png|gif)$/i;
+                if (!urlRegex.test(avatar)) {
+                    return reply.code(400).send({ error: "Invalid avatar format" });
+                }
+                updates.avatar = avatar;
+            }
+
+            // Si aucun champ à mettre à jour
+            if (Object.keys(updates).length === 0) {
+                return reply.code(400).send({ error: "No fields to update" });
+            }
+
+            // Construire la requête SQL
+            const setClause = Object.keys(updates)
+                .map(key => `${key} = ?`)
+                .join(", ");
+            const updateValues = Object.values(updates);
+            
+            // Exécuter la mise à jour
+            db.prepare(`
+                UPDATE users 
+                SET ${setClause}
+                WHERE id = ?
+            `).run(...updateValues, userId);
+
+            // Récupérer et retourner les informations mises à jour
+            const updatedUser = db.prepare(`
+                SELECT id, username, email, avatar
+                FROM users
+                WHERE id = ?
+            `).get(userId);
+
+            fastify.log.info(`User ${userId} updated successfully`);
+            return reply.send({
+                success: true,
+                message: "User updated successfully",
+                user: updatedUser
+            });
+
+        } catch (error) {
+            fastify.log.error(error, "Error updating user");
+            return reply.code(500).send({
+                error: "Failed to update user"
+            });
+        }
+    });
 }
