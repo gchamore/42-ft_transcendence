@@ -9,6 +9,7 @@ import { gameRoutes } from "./routes/game.routes.js";
 import { userRoutes } from "./routes/user.routes.js";
 import { wsRoutes } from "./routes/ws.routes.js";
 import { oauthRoutes } from "./routes/oauth.routes.js";
+import { twofaroutes } from "./routes/twofa.routes.js";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 
@@ -64,10 +65,9 @@ const publicRoutes = [
 ];
 
 // Redirect root route to /home
-// app.get("/", (request, reply) => {
-//     // reply.redirect("/home");
-// 	return { status: "api is running" };
-// });
+app.get("/", (request, reply) => {
+    reply.redirect("/home");
+});
 
 // Middleware d'authentification
 app.addHook('onRequest', (request, reply, done) => {
@@ -90,6 +90,7 @@ app.register(gameRoutes);
 app.register(userRoutes);
 app.register(wsRoutes);
 app.register(oauthRoutes);
+app.register(twofaroutes);
 
 
 const cleanup = async (signal) => {
