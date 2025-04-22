@@ -9,8 +9,7 @@ WORKDIR /app
 COPY ./tools/package*.json ./
 
 # Installer les dépendances
-RUN npm install --production && \
-    npm install ws@8.13.0 --save
+RUN npm install --production
 
 # Copier le reste des fichiers de l'application
 COPY . .
