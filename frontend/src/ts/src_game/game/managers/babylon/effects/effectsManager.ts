@@ -1,4 +1,4 @@
-import { GameConfig } from "../../../../../../../../shared/config/gameConfig.js";
+import { GameConfig } from "../../../../../shared/config/gameConfig.js";
 
 export class EffectsManager {
 	private activeParticleSystems: BABYLON.ParticleSystem[] = [];

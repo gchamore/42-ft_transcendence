@@ -1,4 +1,4 @@
-import { GameConfig } from "../../../../../../shared/config/gameConfig.js";
+import { GameConfig } from "../../../shared/config/gameConfig.js";
 
 export class Paddle {
 	x: number = 0;

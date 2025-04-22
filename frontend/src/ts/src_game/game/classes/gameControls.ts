@@ -2,7 +2,7 @@ import { Paddle } from './paddle';
 import { Ball } from './ball';
 import { PaddleInput, ServerPaddleState } from '../../types/gameTypes';
 import { BabylonManager } from '../managers/babylonManager';
-import { GameConfig } from "../../../../../../shared/config/gameConfig.js";
+import { GameConfig } from "../../../shared/config/gameConfig.js";
 
 export class GameControls {
 	localPaddle: Paddle;

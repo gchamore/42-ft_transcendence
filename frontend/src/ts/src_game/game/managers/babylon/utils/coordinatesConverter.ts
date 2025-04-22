@@ -1,4 +1,4 @@
-import { GameConfig } from '../../../../../../../../shared/config/gameConfig.js';
+import { GameConfig } from '../../../../../shared/config/gameConfig.js';
 
 export class CoordinateConverter {
 	private readonly scaleX: number = 20 / GameConfig.CANVAS_WIDTH;

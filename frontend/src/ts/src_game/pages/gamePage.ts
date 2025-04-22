@@ -5,7 +5,7 @@ import { ScoreBoard } from "../game/classes/scoreBoard.js";
 import { GameControls } from "../game/classes/gameControls.js";
 import { InputManager } from "../game/managers/inputManager.js";
 import { UIManager } from "../game/managers/uiManager.js";
-import { GameState } from "@shared/types/gameState";
+import { GameState } from "../../shared/types/gameState.js";
 import { WebSocketService } from "../services/webSocketService.js";
 import { BabylonManager } from "../game/managers/babylonManager.js";
 import { FPSManager } from "../game/managers/fpsManager.js";

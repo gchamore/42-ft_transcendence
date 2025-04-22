@@ -1,8 +1,8 @@
 /// <reference path="../../types/babylon.d.ts" />
 import { Ball } from "../classes/ball.js";
 import { Paddle } from "../classes/paddle.js";
-import { GameState } from "@shared/types/gameState.js";
-import { GameConfig } from '../../../../../../shared/config/gameConfig.js';
+import { GameState } from "../../../shared/types/gameState.js";
+import { GameConfig } from '../../../shared/config/gameConfig.js';
 
 // Import all managers
 import { EngineManager } from "./babylon/core/engineManager.js";

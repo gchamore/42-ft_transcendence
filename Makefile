@@ -40,6 +40,9 @@ down:
 		echo "$(YELLOW)Conservation du volume$(RESET)"; \
 	fi
 
+reload-server:
+	@echo "$(YELLOW)Rechargement des conteneurs...$(RESET)"
+	@docker exec transcendence-nginx-1 nginx -s reload
 
 up: check_deps
 	@echo "$(YELLOW)Démarrage des conteneurs...$(RESET)"

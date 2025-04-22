@@ -1,4 +1,4 @@
-import { GameConfig, PowerUpTypes } from '../../../../../../shared/config/gameConfig.js';
+import { GameConfig, PowerUpTypes } from '../../../shared/config/gameConfig.js';
 
 export class UIManager {
 	private lastBlink: number = 0;

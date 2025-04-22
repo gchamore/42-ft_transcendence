@@ -1,5 +1,5 @@
 import { Ball } from "../../../classes/ball.js";
-import { GameConfig } from "../../../../../../../../shared/config/gameConfig.js";
+import { GameConfig } from "../../../../../shared/config/gameConfig.js";
 import { CoordinateConverter } from "../utils/coordinatesConverter.js";
 
 export class BallManager {

@@ -1,4 +1,4 @@
-import { GameConfig, PowerUpTypes, PowerUpType } from '../../../../../../../../shared/config/gameConfig.js';
+import { GameConfig, PowerUpTypes, PowerUpType } from '../../../../../shared/config/gameConfig.js';
 import { CoordinateConverter } from '../utils/coordinatesConverter.js';
 import { EffectsManager } from '../effects/effectsManager.js';
 
