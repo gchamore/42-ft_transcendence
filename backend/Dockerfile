@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:16-alpine
 
 # Installer SQLite et Redis
 RUN apk add --no-cache sqlite redis

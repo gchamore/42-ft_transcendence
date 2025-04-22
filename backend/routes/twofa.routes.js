@@ -1,7 +1,7 @@
 import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
-import authService from '../auth/auth.service';
-import TwofaService from '../2fa/twofa.service';
+import authService from '../auth/auth.service.js';
+import TwofaService from '../2fa/twofa.service.js';
 
 export async function twofaroutes(fastify, options) {
     const { db } = fastify;
