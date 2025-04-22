@@ -128,8 +128,57 @@ export class GameInstance {
 		return this;
 	}
 
-	cleanup() {
-		//stocker donnees de game avant de clean 
+	async cleanup() {
+		const gameState = this.gameStateManager.getState();
+		const score = gameState.score;
+		
+		// Get player IDs from sockets
+		const [player1, player2] = Array.from(this.players.values());
+		const player1Id = player1.userId;
+		const player2Id = player2.userId;
+		
+		// Determine winner
+		const winnerId = score.player1Score > score.player2Score ? player1Id : player2Id;
+		
+		try {
+			// Insert game record
+			const gameQuery = `
+				INSERT INTO games (
+					player1_id, 
+					player2_id, 
+					score_player1, 
+					score_player2, 
+					winner_id
+				) VALUES (?, ?, ?, ?, ?)
+			`;
+			db.prepare(gameQuery).run(
+				player1Id,
+				player2Id,
+				score.player1Score,
+				score.player2Score,
+				winnerId
+			);
+
+			// Update player stats
+			const updateWinnerQuery = `
+				UPDATE users 
+				SET wins = wins + 1 
+				WHERE id = ?
+			`;
+			const updateLoserQuery = `
+				UPDATE users 
+				SET losses = losses + 1 
+				WHERE id = ?
+			`;
+			
+			db.prepare(updateWinnerQuery).run(winnerId);
+			db.prepare(updateLoserQuery).run(winnerId === player1Id ? player2Id : player1Id);
+			
+		} catch (error) {
+			console.error('Error saving game statistics:', error);
+		}
+
+		// Close connections and cleanup
 		this.players.forEach((player) => player.close());
 		this.players.clear();
 	}
