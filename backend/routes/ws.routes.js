@@ -1,5 +1,5 @@
 import * as wsUtils from '../ws/ws.utils.js';
-import * as wsService from '../ws/ws.service.js';
+import wsService from '../ws/ws.service.js';
 
 export async function wsRoutes(fastify, options) {
 	// Route for live chat messages

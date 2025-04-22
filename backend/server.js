@@ -99,7 +99,7 @@ const cleanup = async (signal) => {
 		await new Promise(res => setTimeout(res, 200));
 
 		// Fermeture des WebSockets
-		await wsUtils.closeAllWebSockets(fastify, 1001, "Server shutting down");
+		await wsUtils.closeAllWebSockets(app, 1001, "Server shutting down");
 
 		// Fermeture du serveur Fastify
 		await app.close();
@@ -113,7 +113,8 @@ const cleanup = async (signal) => {
 		if (redis && redis.status !== 'end') {
 			await redis.quit();
 		}
-
+		console.log("✅ Cleanup complete. Exiting now.");
+		process.exit(0);
 
 	} catch (error) {
 		console.error('❌ Cleanup error:', error);

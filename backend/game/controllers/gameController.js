@@ -5,8 +5,8 @@ import { handleNewLobbyPlayer } from '../handlers/lobbyMessageHandler.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { GameConfig } from "../shared/config/gameConfig.js";
 import { handleDisconnect } from "../handlers/disconnectHandler.js";
-import cookie from 'cookie';
-import authService from '../../services/auth.service.js'; // adapte le chemin si besoin
+import wsService from '../../ws/ws.service.js';
+
 
 
 export const games = new Map();
@@ -17,28 +17,31 @@ export function resetlobbies() {
 	lobbies.clear();
 }
 
-export function handleGameConnection(connection, request) {
+export async function handleGameConnection(connection, request) {
 	const socket = connection.socket;
 	const { gameId } = request.params;
 	const mode = request.query.mode;
+	const accessToken = request.cookies?.accessToken;
+	
+	const validation = await wsService.validateConnectionToken(fastify, connection, accessToken);
+	if (!validation) return;
 
-	console.log('WebSocket connection established for game:', { gameId, mode });
+	const userId = validation.userId;
+	socket.userId = userId;
 
 	const clientId = request.query.clientId || Math.random().toString(36).substring(2, 8);
+	socket.clientId = clientId;
+
+	console.log('🎮 Game WS connection:', { gameId, mode, userId });
 
 	if (mode === 'lobby') {
-		let lobby;
-		if (lobbies.has(gameId)) {
-			lobby = lobbies.get(gameId);
-		} else {
-			lobby = new LobbyManager(gameId);
-			lobbies.set(gameId, lobby);
-		}
+		let lobby = lobbies.get(gameId) || new LobbyManager(gameId);
+		lobbies.set(gameId, lobby);
 		handleNewLobbyPlayer(socket, lobby, clientId);
 	} else if (mode === 'game') {
-		// Handle actual game connections
 		let game = games.get(gameId);
 		let lobby = lobbies.get(gameId);
+
 		if (!game) {
 			if (!lobby) {
 				console.error(`Lobby not found for gameId: ${gameId}`);
@@ -50,13 +53,14 @@ export function handleGameConnection(connection, request) {
 			game = new GameInstance(gameId, lobbySettings, safeSend);
 			games.set(gameId, game);
 		}
-		handleNewGamePlayer(socket, game);
+
+		handleNewGamePlayer(socket, game); // ← socket.userId est dispo ici
 	} else {
 		console.error('Invalid mode:', mode);
 		socket.close();
-		return;
 	}
 }
+
 
 export function setupGameUpdateInterval() {
 	let lastUpdateTime = Date.now();
