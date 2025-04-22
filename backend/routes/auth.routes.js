@@ -8,11 +8,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret_key';
 export async function authRoutes(fastify, options) {
 	const { db } = fastify;
 
-	// Route racine
-	fastify.get("/", async (request, reply) => {
-		return { status: "API is running" };
-	});
-
 	/*** 📌 Route: REGISTER ***/
 	fastify.post("/register", async (request, reply) => {
 		const { username, password } = request.body;

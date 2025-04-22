@@ -2,3 +2,4 @@ front_pong_game/node_modules/
 frontend/node_modules/
 .env
 frontend/src/dist/
+backend/tools/node_modules/
