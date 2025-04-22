@@ -27,10 +27,7 @@ export async function handleGameConnection(connection, request) {
 	if (!validation) return;
 
 	const userId = validation.userId;
-	socket.userId = userId;
-
-	const clientId = request.query.clientId || Math.random().toString(36).substring(2, 8);
-	socket.clientId = clientId;
+	socket.clientId = userId;
 
 	console.log('🎮 Game WS connection:', { gameId, mode, userId });
 

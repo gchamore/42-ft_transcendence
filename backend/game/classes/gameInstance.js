@@ -134,11 +134,9 @@ export class GameInstance {
 		
 		// Get player IDs from sockets
 		const [player1, player2] = Array.from(this.players.values());
-		const player1Id = player1.userId;
-		const player2Id = player2.userId;
 		
 		// Determine winner
-		const winnerId = score.player1Score > score.player2Score ? player1Id : player2Id;
+		const winnerId = score.player1Score > score.player2Score ? player1.clientId : player2.clientId;
 		
 		try {
 			// Insert game record
@@ -152,8 +150,8 @@ export class GameInstance {
 				) VALUES (?, ?, ?, ?, ?)
 			`;
 			db.prepare(gameQuery).run(
-				player1Id,
-				player2Id,
+				player1.clientId ,
+				player2.clientId,
 				score.player1Score,
 				score.player2Score,
 				winnerId
@@ -172,7 +170,7 @@ export class GameInstance {
 			`;
 			
 			db.prepare(updateWinnerQuery).run(winnerId);
-			db.prepare(updateLoserQuery).run(winnerId === player1Id ? player2Id : player1Id);
+			db.prepare(updateLoserQuery).run(winnerId === player1.clientId  ? player2.clientId : player1.clientId );
 			
 		} catch (error) {
 			console.error('Error saving game statistics:', error);
