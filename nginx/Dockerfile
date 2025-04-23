@@ -1,6 +1,6 @@
 FROM nginx:alpine
 
-# ⬇️ Ajouter openssl via apk (le gestionnaire de paquets Alpine)
+# Ajouter openssl via apk (le gestionnaire de paquets Alpine)
 RUN apk add --no-cache openssl
 
 # Crée le dossier pour les certificats
@@ -16,4 +16,4 @@ RUN openssl req -x509 -nodes -days 365 \
 # Copie la config nginx
 COPY nginx.conf /etc/nginx/nginx.conf
 
-CMD ["sh", "-c", "envsubst '${LOCAL_IP}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]
+CMD ["sh", "-c", "envsubst '${LOCAL_IP}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]
