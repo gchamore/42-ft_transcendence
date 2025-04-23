@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import authService from '../auth/auth.service.js';
+import authUtils from '../auth/auth.utils.js';
 import TwofaService from'../2fa/twofa.service.js';
 import jwt from 'jsonwebtoken';
 import * as wsUtils from '../ws/ws.utils.js';
@@ -26,7 +27,7 @@ export async function authRoutes(fastify, options) {
 			return reply.code(400).send({ error: "Username and password are required" });
 		}
 		// Verify if the username already exists in the database
-		const userExists = await authService.getFromDatabase(db, 'users', ['id'], { username });
+		const userExists = await authUtils.getFromDatabase(db, 'users', ['id'], { username });
 		if (userExists) {
 			fastify.log.warn(`Échec d'inscription : Username déjà pris (${username})`);
 			return reply.code(400).send({ error: "Username already taken" });
@@ -35,10 +36,10 @@ export async function authRoutes(fastify, options) {
 		// Register the user in the database
 		try {
 			// Hash the password using bcrypt
-			const hashedPassword = await authService.hashPassword(password);
+			const hashedPassword = await authUtils.hashPassword(password);
 
 			// Add the user to the database
-			const userId = await authService.addToDatabase(db, 'users', { username: username, password: hashedPassword });
+			const userId = await authUtils.addToDatabase(db, 'users', { username: username, password: hashedPassword });
 
 			// Generate the access and refresh tokens for the user
 			const { accessToken, refreshToken } = await authService.generateTokens(userId);
@@ -47,14 +48,15 @@ export async function authRoutes(fastify, options) {
 			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Set the cookies for the tokens
-			authService.setCookie(reply, accessToken, 15, isLocal); // accessToken : 15 min
-			authService.setCookie(reply, refreshToken, 7, isLocal); // refreshToken : 7 jours
+			authUtils.setCookie(reply, accessToken, 15, isLocal); // accessToken : 15 min
+			authUtils.setCookie(reply, refreshToken, 7, isLocal); // refreshToken : 7 jours
 
 			return reply.code(201).send({
 				success: true,
 				message: "User registered and logged in successfully",
 				username: username,
-				id: userId
+				id: userId,
+				avatar: '/assets/avatar.png',
 			});
 
 		} catch (error) {
@@ -87,7 +89,7 @@ export async function authRoutes(fastify, options) {
 			}
 
 			// Check if the user exists in the database
-			const user = await authService.getFromDatabase(db, 'users', ['id'], { username });
+			const user = await authUtils.getFromDatabase(db, 'users', ['id'], { username });
 			if (!user) {
 				fastify.log.warn(`Utilisateur non trouvé : ${username}`);
 				return reply.code(404).send({ error: "User not found" });
@@ -162,7 +164,7 @@ export async function authRoutes(fastify, options) {
 		const { username } = request.params;
 		fastify.log.debug(`Vérification de l'existence de l'utilisateur : ${username}`);
 
-		const user = await authService.getFromDatabase(db, 'users', ['id', 'username'], { username });
+		const user = await authUtils.getFromDatabase(db, 'users', ['id', 'username'], { username });
 		const exists = !!user;
 
 		if (exists) {
@@ -189,7 +191,7 @@ export async function authRoutes(fastify, options) {
 
 		fastify.log.info(`Recherche de l'ID pour l'utilisateur: ${username}`);
 
-		const user = await authService.getFromDatabase(db, 'users', ['id', 'username'], { username });
+		const user = await authUtils.getFromDatabase(db, 'users', ['id', 'username'], { username });
 		if (!user) {
 			fastify.log.warn(`Utilisateur non trouvé: ${username}`);
 			return reply.code(404).send({ error: "User not found" });
@@ -214,7 +216,7 @@ export async function authRoutes(fastify, options) {
 			fastify.log.info({ username }, "Tentative de connexion");
 
 			// Verify if user and password are provided and if password is valid using bcrypt
-			const user = await authService.getFromDatabase(db, 'users', ['id', 'username', 'password', 'twofa_secret'], { username });
+			const user = await authUtils.getFromDatabase(db, 'users', ['id', 'username', 'password', 'twofa_secret'], { username });
 			if (!user || !(await bcrypt.compare(password, user.password))) {
 				fastify.log.warn(`Échec de connexion pour: ${username}`);
 				return reply.code(401).send({ error: "Invalid credentials" });
@@ -238,8 +240,8 @@ export async function authRoutes(fastify, options) {
 			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Set the cookies for the tokens
-			authService.setCookie(reply, accessToken, 15, isLocal); // accessToken : 15 min
-			authService.setCookie(reply, refreshToken, 7, isLocal); // refreshToken : 7 jours
+			authUtils.setCookie(reply, accessToken, 15, isLocal); // accessToken : 15 min
+			authUtils.setCookie(reply, refreshToken, 7, isLocal); // refreshToken : 7 jours
 
 			reply.code(201).send({
 				success: true,
@@ -281,13 +283,13 @@ export async function authRoutes(fastify, options) {
 			const decoded = jwt.verify(newAccessToken, JWT_SECRET);
 
 			// Récupérer les informations de l'utilisateur
-			const user = await authService.getFromDatabase(db, 'users', ['id', 'username'], { id: decoded.userId });
+			const user = await authUtils.getFromDatabase(db, 'users', ['id', 'username'], { id: decoded.userId });
 
 			// Check if the application is running locally or in production
 			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Définir le nouveau cookie avec le même format que verify_token
-			authService.setCookie(reply, newAccessToken, 15, isLocal); // accessToken : 15 min
+			authUtils.setCookie(reply, newAccessToken, 15, isLocal); // accessToken : 15 min
 
 			fastify.log.info('Access token refreshed successfully for user:', user.username);
 
@@ -374,7 +376,7 @@ export async function authRoutes(fastify, options) {
 
 		try {
 			// Verify if the user exists in the database
-			const user = await authService.getFromDatabase(db, 'users', ['id', 'username'], { id: userId });
+			const user = await authUtils.getFromDatabase(db, 'users', ['id', 'username'], { id: userId });
 			if (!user) {
 				fastify.log.warn(`Utilisateur non trouvé pour la révocation: ID ${userId}`);
 				return reply.code(404).send({ error: "User not found" });
@@ -473,11 +475,11 @@ export async function authRoutes(fastify, options) {
 			fastify.log.info('New access token generated, updating cookie');
 
 			const isLocal = request.headers.host.startsWith("localhost");
-			authService.setCookie(reply, result.newAccessToken, 15, isLocal); // accessToken : 15 min
+			authUtils.setCookie(reply, result.newAccessToken, 15, isLocal); // accessToken : 15 min
 		}
 
 		// Récupérer l'utilisateur et retourner la réponse
-		const user = await authService.getFromDatabase(db, 'users', ['id', 'username'], { id: result.userId });
+		const user = await authUtils.getFromDatabase(db, 'users', ['id', 'username'], { id: result.userId });
 		fastify.log.info('Token verified successfully for user:', user.username);
 		return reply.send({
 			valid: true,
