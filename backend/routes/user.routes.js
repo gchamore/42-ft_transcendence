@@ -1,3 +1,7 @@
+import { pipeline } from 'stream/promises';
+import fs from 'fs';
+import path from 'path';
+
 export async function userRoutes(fastify, options) {
     const { db } = fastify;
 
@@ -246,80 +250,75 @@ export async function userRoutes(fastify, options) {
 
     fastify.put("/update", async (request, reply) => {
 		const userId = request.user.userId;
-		const { username, password, email, avatar } = request.body;
+	
+		const avatar = await request.file(); // ← Récupère le fichier si présent
+		const fields = await request.fields(); // ← Récupère les autres champs texte
 	
 		try {
-			// Get the current user
 			const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 			if (!currentUser) {
 				return reply.code(404).send({ error: "User not found" });
 			}
 	
 			let somethingUpdated = false;
-	
-			// Check and update the username
+
+			// Exemple: update username
+			const username = fields.username?.value;
 			if (username && username !== currentUser.username) {
-				const usernameExists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?")
-					.get(username, userId);
-				if (usernameExists) {
-					return reply.code(400).send({ error: "Username already taken" });
-				}
-	
+				const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(username, userId);
+				if (exists) return reply.code(400).send({ error: "Username already taken" });
+
 				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(username, userId);
 				somethingUpdated = true;
 			}
-	
+
 			// Check and update the password
+			const password = fields.password?.value;
 			if (password && !bcrypt.compareSync(password, currentUser.password)) {
 				const hashedPassword = await bcrypt.hash(password, 10);
 				db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
 				somethingUpdated = true;
 			}
-	
+
 			// Check and update the email
+			const email = fields.email?.value;
 			if (email && email !== currentUser.email) {
 				const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 				if (!emailRegex.test(email)) {
 					return reply.code(400).send({ error: "Invalid email format" });
 				}
-	
+
 				db.prepare("UPDATE users SET email = ? WHERE id = ?").run(email, userId);
 				somethingUpdated = true;
 			}
-	
-			// Check and update the avatar
-			if (avatar && avatar !== currentUser.avatar) {
-				const urlRegex = /^\/assets\/.*\.(jpg|jpeg|png|gif)$/i;
-				if (!urlRegex.test(avatar)) {
+
+			// Avatar upload
+			if (avatar && avatar.filename) {
+				const ext = path.extname(avatar.filename);
+				const allowed = ['.jpg', '.jpeg', '.png', '.gif'];
+				if (!allowed.includes(ext.toLowerCase())) {
 					return reply.code(400).send({ error: "Invalid avatar format" });
 				}
 	
-				db.prepare("UPDATE users SET avatar = ? WHERE id = ?").run(avatar, userId);
+				const filePath = `/data/avatar/${userId}${ext}`;
+				const fullPath = path.resolve(filePath);
+	
+				await pipeline(avatar.file, fs.createWriteStream(fullPath));
+	
+				db.prepare("UPDATE users SET avatar = ? WHERE id = ?").run(`/avatar/${userId}${ext}`, userId);
 				somethingUpdated = true;
 			}
 	
 			if (!somethingUpdated) {
-				return reply.code(400).send({ error: "No valid fields to update or values are unchanged" });
+				return reply.code(400).send({ error: "Nothing was updated" });
 			}
 	
-			// Get the updated user
-			const updatedUser = db.prepare(`
-				SELECT id, username, email, avatar
-				FROM users
-				WHERE id = ?
-			`).get(userId);
+			const updatedUser = db.prepare("SELECT id, username, email, avatar FROM users WHERE id = ?").get(userId);
+			return reply.send({ success: true, message: "User updated", user: updatedUser });
 	
-			fastify.log.info(`User ${userId} updated successfully`);
-			return reply.send({
-				success: true,
-				message: "User updated successfully",
-				user: updatedUser
-			});
-	
-		} catch (error) {
-			fastify.log.error(error, "Error updating user");
-			return reply.code(500).send({ error: "Failed to update user" });
+		} catch (err) {
+			fastify.log.error(err);
+			return reply.code(500).send({ error: "Server error" });
 		}
 	});
-	
 }
