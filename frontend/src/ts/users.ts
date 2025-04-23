@@ -57,7 +57,7 @@ class User {
         this.onlines = [];
     }
     connect_to_ws() {
-        this.web_socket = new WebSocket('wss://10.32.7.11:8443/api/ws');
+        this.web_socket = new WebSocket(`wss://${window.location.host}/api/ws`);
 
         this.web_socket.onopen = () => {
             console.log('Connected to WebSocket');

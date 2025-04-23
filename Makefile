@@ -32,9 +32,11 @@ update_env_ip:
 	fi
 # Lancer l'infrastructure
 run: check_deps update_env_ip
+
 	@npm run build --prefix ./frontend
 	@$(DOCKER_COMPOSE) up --build -d
-	@echo "$(GREEN)Application disponible sur : https://10.32.7.11:8443$(RESET)"
+	@LOCAL_IP=$$(grep LOCAL_IP .env | cut -d '=' -f2); \
+	echo "$(GREEN)Application disponible sur : https://$$LOCAL_IP:8443$(RESET)"
 
 # Arrêter les conteneurs et supprimer les volumes
 down:

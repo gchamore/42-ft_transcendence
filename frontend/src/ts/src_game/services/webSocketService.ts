@@ -32,7 +32,7 @@ export class WebSocketService {
 		}
 
 		console.log(`Creating new WebSocket connection for game: ${gameId} in mode ${mode}`);
-		this.socket = new WebSocket(`wss://10.32.7.11:8443/game/${gameId}?mode=${mode}`);
+		this.socket = new WebSocket(`${window.location.host}/game/${gameId}?mode=${mode}`);
 		return this.socket;
 	}
 
