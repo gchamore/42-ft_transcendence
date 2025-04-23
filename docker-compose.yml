@@ -7,7 +7,7 @@ services:
       - backend_data:/data
     environment:
       - DATABASE_URL=/data/database.db
-      - CORS_ORIGIN=http://localhost:8080
+      - CORS_ORIGIN=https://${LOCAL_IP}:8443
     networks:
       - app_network
 
@@ -23,7 +23,8 @@ services:
       - app_network
     environment:
       - BACKEND_URL=http://backend:3000
-      - FRONTEND_URL=https://localhost
+      - FRONTEND_URL=https://${LOCAL_IP}
+      - LOCAL_IP=${LOCAL_IP}
 
 networks:
   app_network:

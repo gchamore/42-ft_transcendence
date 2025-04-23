@@ -348,7 +348,7 @@ export async function authRoutes(fastify, options) {
 				.clearCookie('accessToken', cookieOptions)
 				.clearCookie('refreshToken', cookieOptions)
 				.header('Access-Control-Allow-Credentials', 'true')
-				.header('Access-Control-Allow-Origin', request.headers.origin || 'http://localhost:8080')
+				.header('Access-Control-Allow-Origin', request.headers.origin || 'https://10.32.7.11:8443')
 				.send({ success: true, message: "Logged out successfully" });
 
 		} catch (error) {
@@ -410,7 +410,7 @@ export async function authRoutes(fastify, options) {
 				.clearCookie('accessToken', cookieOptions)
 				.clearCookie('refreshToken', cookieOptions)
 				.header('Access-Control-Allow-Credentials', 'true')
-				.header('Access-Control-Allow-Origin', request.headers.origin || 'http://localhost:8080')
+				.header('Access-Control-Allow-Origin', request.headers.origin || 'https://10.32.7.11:8443')
 				.send({ success: true, message: "Logged out successfully" });
 
 		} catch (error) {

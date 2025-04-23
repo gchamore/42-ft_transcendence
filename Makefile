@@ -20,11 +20,21 @@ check_deps:
 	@command -v docker >/dev/null 2>&1 || { echo "Docker n'est pas installé. Veuillez l'installer."; exit 1; }
 	@command -v docker-compose >/dev/null 2>&1 || { echo "Docker Compose n'est pas installé. Veuillez l'installer."; exit 1; }
 
+update_env_ip:
+	@echo "$(YELLOW)Updating LOCAL_IP in .env file...$(RESET)"
+	@LOCAL_IP=$$(ip addr show enp0s31f6 | grep 'inet ' | awk '{print $$2}' | cut -d'/' -f1); \
+	if [ -z "$$LOCAL_IP" ]; then \
+		echo "$(ORANGE)⚠ Could not retrieve local IP. Please check your network configuration.$(RESET)"; \
+	else \
+		echo "$(GREEN)✓ Local IP detected: $$LOCAL_IP$(RESET)"; \
+		sed -i "s/^LOCAL_IP=.*/LOCAL_IP=$$LOCAL_IP/" .env; \
+		echo "$(GREEN)✓ .env file updated with LOCAL_IP=$$LOCAL_IP$(RESET)"; \
+	fi
 # Lancer l'infrastructure
-run: check_deps
+run: check_deps update_env_ip
 	@npm run build --prefix ./frontend
 	@$(DOCKER_COMPOSE) up --build -d
-	@echo "$(GREEN)Application disponible sur : http://localhost:8080$(RESET)"
+	@echo "$(GREEN)Application disponible sur : https://10.32.7.11:8443$(RESET)"
 
 # Arrêter les conteneurs et supprimer les volumes
 down:
@@ -75,16 +85,16 @@ BACKEND_DOCKER_NAME = $(shell docker ps --format "{{.Names}}" | grep backend)
 database:
 	@echo "$(YELLOW)Création d'une copie de la base de données...$(RESET)"
 	@if [ -f ./backend/tools/database.db ]; then \
-        rm ./backend/tools/database.db && \
-        echo "$(GREEN)✓ Ancienne copie supprimée$(RESET)"; \
-    fi
+		rm ./backend/tools/database.db && \
+		echo "$(GREEN)✓ Ancienne copie supprimée$(RESET)"; \
+	fi
 	@if [ $$(docker ps -q -f name=$(BACKEND_DOCKER_NAME)) ]; then \
-        docker cp $(BACKEND_DOCKER_NAME):/data/database.db ./backend/tools/ && \
-        echo "$(GREEN)✓ Base de données copiée dans ./backend/tools/database.db$(RESET)"; \
-    else \
-        echo "$(ORANGE)⚠ Le conteneur backend n'est pas en cours d'exécution$(RESET)"; \
-        echo "$(YELLOW)→ Démarrez d'abord les conteneurs et verifiez avec make logs si vous avez une erreur$(RESET)"; \
-    fi
+		docker cp $(BACKEND_DOCKER_NAME):/data/database.db ./backend/tools/ && \
+		echo "$(GREEN)✓ Base de données copiée dans ./backend/tools/database.db$(RESET)"; \
+	else \
+		echo "$(ORANGE)⚠ Le conteneur backend n'est pas en cours d'exécution$(RESET)"; \
+		echo "$(YELLOW)→ Démarrez d'abord les conteneurs et verifiez avec make logs si vous avez une erreur$(RESET)"; \
+	fi
 	@code ./backend/tools/database.db
 
 # Logs des services
