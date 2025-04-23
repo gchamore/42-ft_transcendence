@@ -1,8 +1,9 @@
+import {update_friends_status, update_sections, HOME_INDEX, Chat, Actions, get_section_index, sections, section_index, set_section_index} from "./sections";
 /* Global variables */
-var user : undefined | User = undefined;
+export var user : undefined | User = undefined;
 /* --------- */
 
-class Message {
+export class Message {
     readonly date : Date;
     readonly username : string;
     readonly message : string;
@@ -40,7 +41,7 @@ function nb_to_str(nb : number) : string {
 
 
 /* User */
-class User {
+export class User {
     readonly name: string;
     readonly avatar_path: string;
     web_socket: WebSocket | undefined;
@@ -103,7 +104,7 @@ class User {
 	}
 }
 
-function add_online(username : string) {
+export function add_online(username : string) {
     if (!(user?.onlines.includes(username) === false && user?.name !== username))
         return;
 
@@ -112,7 +113,7 @@ function add_online(username : string) {
         (sections[section_index] as Actions).add_user(username);
 }
 
-function update_user(new_user_value : User | undefined) {
+export function update_user(new_user_value : User | undefined) {
     user = new_user_value;
 
     try {
@@ -126,16 +127,16 @@ function update_user(new_user_value : User | undefined) {
 
     if (user === undefined) {
         let profile_i = get_section_index('profile')!;
-        section_index = (section_index === profile_i) ? profile_i : HOME_INDEX;
+        set_section_index(section_index === profile_i ? profile_i : HOME_INDEX);
     }
     update_sections();
 }
 
-function get_user_messages() : Array<Message> | undefined {
+export function get_user_messages() : Array<Message> | undefined {
     return user?.livechat;
 }
 
-function add_message(username : string, message : string, type : string) {
+export function add_message(username : string, message : string, type : string) {
     let new_message : Message = new Message(username, message);
     let messages : Array<Message> | undefined;
     
@@ -161,7 +162,7 @@ function add_message(username : string, message : string, type : string) {
 
 
 /* OtherUser */
-class OtherUser {
+export class OtherUser {
     readonly username: string;
     readonly is_friend: boolean;
     readonly is_connected: boolean;

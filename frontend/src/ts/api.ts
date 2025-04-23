@@ -1,4 +1,6 @@
-async function verify_token(): Promise<void> {
+import { user, User,  update_user, OtherUser } from './users';
+
+export async function verify_token(): Promise<void> {
 	console.log('verify_token()');
 	try {
 		const response = await fetch(`/api/verify_token`, {
@@ -31,7 +33,7 @@ async function verify_token(): Promise<void> {
 	update_user(undefined);
 }
 
-async function register(username: string, password: string) {
+export async function register(username: string, password: string) {
 	try {
 		const response = await fetch(`/api/register`, {
 			method: "POST",
@@ -55,7 +57,7 @@ async function register(username: string, password: string) {
     }
 }
 
-async function login(username: string, password: string) {
+export async function login(username: string, password: string) {
 	try {
         const response = await fetch(`/api/login`, {
             method: "POST",
@@ -79,7 +81,7 @@ async function login(username: string, password: string) {
     }
 }
 
-async function logout() {
+export async function logout() {
 	try {
 		const response = await fetch(`/api/logout`, {
 			method: "POST",
@@ -100,7 +102,7 @@ async function logout() {
     }
 }
 
-async function search(friend_username : string): Promise<OtherUser | Error | undefined> {
+export async function search(friend_username : string): Promise<OtherUser | Error | undefined> {
 	try {
         const response = await fetch(`/api/search/${friend_username}`, {
             method: "GET",
@@ -134,7 +136,7 @@ async function search(friend_username : string): Promise<OtherUser | Error | und
 	return undefined;
 }
 
-async function add(friend_username : string): Promise<boolean | Error> {
+export async function add(friend_username : string): Promise<boolean | Error> {
 	try {
         const response = await fetch(`/api/add/${friend_username}`, {
             method: "POST",
@@ -162,7 +164,7 @@ async function add(friend_username : string): Promise<boolean | Error> {
 	return false;
 }
 
-async function remove(friend_username : string): Promise<boolean | Error> {
+export async function remove(friend_username : string): Promise<boolean | Error> {
 	try {
         const response = await fetch(`/api/remove/${friend_username}`, {
             method: "DELETE",
@@ -190,7 +192,7 @@ async function remove(friend_username : string): Promise<boolean | Error> {
 	return false;
 }
 
-async function send(message : string, type : string, to : string = '') : Promise<boolean> {
+export async function send(message : string, type : string, to : string = '') : Promise<boolean> {
 	let url;
 	let body;
 
@@ -234,7 +236,7 @@ async function send(message : string, type : string, to : string = '') : Promise
 	return false;
 }
 
-async function get_blocked_users() : Promise<Array<string> | Error> {
+export async function get_blocked_users() : Promise<Array<string> | Error> {
 	try {
         const response = await fetch(`/api/blocked_users`, {
             method: "GET",

@@ -1,7 +1,14 @@
+import { SettingsPage } from './src_game/pages/settingsPage.js';
+import { Game } from './src_game/pages/gamePage.js';
+import { add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
+import { login, register, add , remove, search, send, get_blocked_users } from './api.js';
 /* Global variables */
-var sections : ASection[] = [];
-var HOME_INDEX : number = 0;
-var section_index : number = HOME_INDEX;
+export var sections : ASection[] = [];
+export var HOME_INDEX : number = 0;
+export var section_index : number = HOME_INDEX;
+var activeGameId: string | null = null; // Store the active game ID
+var settingsPage: SettingsPage | null = null;
+var gamePage: Game | null = null;
 /* --------- */
 
 
@@ -90,19 +97,13 @@ class Home extends ASection {
 		this.logged_in_view();
 		this.friends_btn.setAttribute('onclick', "go_section('friends')");
 		this.chat_btn.setAttribute('onclick', "go_section('chat')");
-		this.play1v1_btn.onclick = () => this.play1v1();
-		this.playTournament_btn.onclick = () => this.playTournament();
-	}
-	async play1v1() {
-		go_section('game');
-	}
-	async playTournament() {
-		go_section('game');
+		this.play1v1_btn.onclick = () => (sections[get_section_index('game')!]as GameSection).play1v1();
+		this.playTournament_btn.onclick = () => (sections[get_section_index('game')!]as GameSection).playTournament();
 	}
 }
 
 
-class Game extends ASection {
+export class GameSection extends ASection {
 	/* ASection */
 	type = 'game';
 	protected = true;
@@ -111,15 +112,61 @@ class Game extends ASection {
 	logged_in: NodeListOf<Element> = document.querySelectorAll('');
 	dependencies = ['home'];
 
+
+	readonly settingsPage = document.getElementById('settings-page') as HTMLElement;
+    readonly gamePage = document.getElementById('gameCanvas') as HTMLCanvasElement;
+    readonly gameContainer = document.getElementById('game-container') as HTMLElement;
+    readonly fpsCounter = document.getElementById('fps-counter') as HTMLElement;
+
+
 	/* Methods */
 	enter(verified: boolean) {
-			if (verified !== true) {
+		if (verified !== true) {
 			console.log("Try to enter Game section as unauthenticated");
 			return;
 		}
 
 		this.activate_section();
 
+		if (activeGameId) {
+			if (!settingsPage) {
+				settingsPage = new SettingsPage(activeGameId);
+				this.settingsPage.style.display = 'block';
+				this.gamePage.style.display = 'none';
+				this.gameContainer.style.display = 'none';
+				this.fpsCounter.style.display = 'none';
+			} else if (!gamePage) {
+				gamePage = new Game(activeGameId);
+				this.settingsPage.style.display = 'none';
+				this.gamePage.style.display = 'block';
+				this.gameContainer.style.display = 'block';
+				this.fpsCounter.style.display = 'block';
+			}
+		} else {
+			console.error('No active game ID found');
+		}
+	}
+	transitionToGame(gameId: string) {
+		// Hide settings page and show game page
+		this.settingsPage.style.display = 'none';
+		this.gamePage.style.display = 'block';
+		this.gameContainer.style.display = 'block';
+		this.fpsCounter.style.display = 'block';
+
+		// Initialize the game
+		gamePage = new Game(gameId);
+	}
+	leave() {
+		super.leave();
+		if (settingsPage) {
+			settingsPage.cleanup();
+			settingsPage = null;
+		}
+		if (gamePage) {
+			gamePage.stopGame();
+			gamePage = null;
+		}
+		this.deactivate_section();
 	}
 	switch_logged_off() {
 		this.logged_off_view();
@@ -145,7 +192,8 @@ class Game extends ASection {
 				alert('waiting for an opponent');
 			} else if (resp.ok) { 
 				const { gameId } = await resp.json();
-				window.location.hash = `game/${gameId}`;
+				activeGameId = gameId;
+				go_section('game');
 			} else { 
 				const err = await resp.json();
 				alert(`Queue error: ${err.error}`);
@@ -194,7 +242,8 @@ class Game extends ASection {
 			if (joinResp.status === 202) {
 				alert(`Joined tournament ${tid}, waiting for players…`);
 			} else if (joinResp.ok) {
-				window.location.hash = `game/${tid}`;
+				activeGameId = tid;
+				go_section('game');
 			} else {
 				const err = await joinResp.json();
 				alert(`Tournament join error: ${err.error}`);
@@ -412,7 +461,7 @@ class Friends extends ASection {
 	}
 }
 
-class Chat extends ASection {
+export class Chat extends ASection {
 	/* ASection */
 	type = 'chat';
 	protected = true;
@@ -486,7 +535,7 @@ class Chat extends ASection {
 	}
 }
 
-class Actions extends ASection {
+export class Actions extends ASection {
 	/* ASection */
 	type = 'actions';
 	protected = true;
@@ -589,12 +638,12 @@ class Actions extends ASection {
 		}
 	}
 }
-sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions()];
+sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(), new GameSection()];
 /* --------- */
 
 
 /* Utils */
-function get_section_index(type : string): number | undefined {
+export function get_section_index(type : string): number | undefined {
 	for (let i = 0; i < sections.length; i++) {
 		if (sections[i].type === type)
 			return i;
@@ -602,7 +651,7 @@ function get_section_index(type : string): number | undefined {
 	return undefined;
 }
 
-function set_new_section_index(type : string): void {
+export function set_new_section_index(type : string): void {
 	let index : number | undefined = get_section_index(type);
 	section_index = (index !== undefined && is_section_accessible(index)) ? index : HOME_INDEX;
 }
@@ -611,7 +660,7 @@ function is_section_accessible(index : number): boolean {
 	return !(user === undefined && sections[index].protected === true);
 }
 
-function update_sections(): void {
+export function update_sections(): void {
 	for (let i = 0; i < sections.length; i++) {
 		if (i !== section_index)
 			sections[i].leave();
@@ -619,12 +668,12 @@ function update_sections(): void {
 	sections[section_index].enter(user !== undefined);
 };
 
-function update_section(): void {
-	if (user === undefined)
-		sections[section_index].switch_logged_off();
-	else
-		sections[section_index].switch_logged_in();
-}
+// function update_section(): void {
+// 	if (user === undefined)
+// 		sections[section_index].switch_logged_off();
+// 	else
+// 		sections[section_index].switch_logged_in();
+// }
 
 function go_section(section : string) {
 	if (section === sections[section_index].type)
@@ -647,11 +696,15 @@ function deactivate(list : NodeListOf<Element>): void {
 	});
 }
 
-function update_friends_status(username : string, online : boolean) {
+export function update_friends_status(username : string, online : boolean) {
 	add_online(username);
 	if (section_index == get_section_index('friends')
 		&& (sections[section_index] as Friends).anotherUser?.username === username) {
 		(sections[section_index] as Friends).update_status(online);
 	}
+}
+
+export function set_section_index(index : number): void {
+	section_index = index;
 }
 /* --------- */

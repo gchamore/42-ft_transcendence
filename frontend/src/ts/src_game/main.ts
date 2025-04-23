@@ -12,14 +12,14 @@ class App {
 
 	constructor() {
 		this.webSocketService = WebSocketService.getInstance();
-		this.setupRouting().catch(error => {
+		this.setupRouting().catch((error: unknown) => {
 			console.error('Failed to setup routing:', error);
 			this.navigateToDefault();
 		});
 	}
 
 
-	async setupRouting() {
+	async setupRouting(): Promise<void> {
 		const urlParams = new URLSearchParams(window.location.search);
 		const mode = urlParams.get('mode') || this.DEFAULT_MODE;
 		const gameId = window.location.pathname.split('/')[2];

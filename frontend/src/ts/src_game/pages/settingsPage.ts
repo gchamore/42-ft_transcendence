@@ -1,5 +1,6 @@
 import { SettingsService } from '../services/settingsServices.js';
 import { WebSocketService } from '../services/webSocketService.js';
+import { sections, get_section_index, GameSection } from '../../sections.js';
 
 export class SettingsPage {
 	private ballSpeedSlider: HTMLInputElement;
@@ -75,7 +76,8 @@ export class SettingsPage {
 					break;
 				case 'gameStart':
 					if (data.gameId){
-						window.location.hash = `game/${data.gameId}`;
+						const gameSection = sections[get_section_index('game')!] as GameSection;
+						gameSection.transitionToGame(data.gameId);
 					} else {
 						console.error('Game ID not provided');
 					}

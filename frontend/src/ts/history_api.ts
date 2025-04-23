@@ -1,3 +1,6 @@
+import {set_new_section_index, update_sections, sections, section_index} from "./sections";
+import {verify_token} from "./api";
+
 /* Event listeners */
 window.addEventListener("popstate", async function(event) {
 	await verify_token();
