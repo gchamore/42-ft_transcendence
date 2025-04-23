@@ -5,17 +5,12 @@ services:
       - "3000"
     volumes:
       - backend_data:/data
-      - ./.env:/app/.env:ro
-    environment:
-      - DATABASE_URL=/data/database.db
-      - CORS_ORIGIN=https://${LOCAL_IP}:8443
-      - LOCAL_IP=${LOCAL_IP}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    env_file:
-      - .env
     networks:
       - app_network
+    environment:
+      - DATABASE_URL=/data/database.db
+    env_file:
+      - .env
 
   nginx:
     build: ./nginx

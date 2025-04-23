@@ -43,16 +43,6 @@ try {
     process.exit(1);
 }
 
-// ====== Configuration CORS et Cookies ======
-app.register(cors, {
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept'],
-    exposedHeaders: ['Set-Cookie'],
-    preflight: true
-});
-
 app.register(cookie);
 
 // Liste des routes publiques
