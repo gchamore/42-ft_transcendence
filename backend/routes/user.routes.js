@@ -8,25 +8,26 @@ export async function userRoutes(fastify, options) {
         fastify.log.info(`Tentative d'ajout d'ami: ${friendUsername}`);
 
         try {
+			// Check if the user to be added exists
             const friend = db.prepare("SELECT id, username FROM users WHERE username = ?").get(friendUsername);
             if (!friend) {
                 fastify.log.warn(`Utilisateur non trouvé: ${friendUsername}`);
                 return reply.code(404).send({ error: "User not found" });
             }
-
+			// Check if the user is trying to add themselves
             const currentUser = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
             if (currentUser.username === friendUsername) {
                 return reply.code(400).send({ error: "Cannot add yourself as friend" });
             }
-
+			// Check if the user is already a friend
             const existingFriendship = db.prepare(
                 "SELECT * FROM friendships WHERE user_id = ? AND friend_id = ?"
             ).get(userId, friend.id);
 
-            if (existingFriendship) {
+			if (existingFriendship) {
                 return reply.code(400).send({ error: "Already friends" });
             }
-
+			// Add the friendship
             db.prepare(
                 "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)"
             ).run(userId, friend.id);
@@ -45,15 +46,17 @@ export async function userRoutes(fastify, options) {
         const userId = request.user.userId;
 
         try {
+			// Check if the user to be removed exists
             const friend = db.prepare("SELECT id FROM users WHERE username = ?").get(friendUsername);
             if (!friend) {
                 return reply.code(404).send({ error: "User not found" });
             }
-
+			// Check if the friendship exists
             const result = db.prepare(
                 "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?"
             ).run(userId, friend.id);
 
+			// If no rows were changed, the friendship doesn't exist
             if (result.changes === 0) {
                 return reply.code(404).send({ error: "Friendship not found" });
             }
@@ -71,7 +74,7 @@ export async function userRoutes(fastify, options) {
         const userId = request.user.userId;
 
         try {
-            // Rechercher l'utilisateur
+			// Check if the user exists
             const searchedUser = db.prepare(`
                 SELECT id, username, 
                        strftime('%d-%m-%Y', created_at) as created_at,
@@ -86,14 +89,14 @@ export async function userRoutes(fastify, options) {
                 });
             }
 
-            // Vérifier si c'est un ami
+			// Check if the user is a friend
             const friendship = db.prepare(`
                 SELECT strftime('%d-%m-%Y', date) as friend_since
                 FROM friendships 
                 WHERE user_id = ? AND friend_id = ?
             `).get(userId, searchedUser.id);
 
-            // Calculer les statistiques de jeu
+			// Calculate game statistics
             const gameStats = db.prepare(`
                 SELECT 
                     COUNT(*) as total_games,
@@ -102,12 +105,12 @@ export async function userRoutes(fastify, options) {
                 WHERE (player1_id = ? OR player2_id = ?)
             `).get(searchedUser.id, searchedUser.id, searchedUser.id);
 
-            // Calculer le win rate
+			// Calculate win rate
             const winRate = gameStats.total_games > 0 
                 ? ((searchedUser.wins / gameStats.total_games) * 100).toFixed(1) 
                 : 0;
 
-            // Si c'est un ami, ajouter les stats communes
+			// If it's a friend, add common stats
             if (friendship) {
                 const commonGames = db.prepare(`
                     SELECT 
@@ -133,7 +136,7 @@ export async function userRoutes(fastify, options) {
                 };
             }
 
-            // Si ce n'est pas un ami
+			// If not a friend, return basic info
             return {
                 success: true,
                 isFriend: false,
@@ -157,13 +160,13 @@ export async function userRoutes(fastify, options) {
         const blockerId = request.user.userId;
 
         try {
-            // Vérifier si l'utilisateur à bloquer existe
+			// Check if the user to block exists
             const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(blockedUsername);
             if (!blockedUser) {
                 return reply.code(404).send({ error: "User not found" });
             }
 
-            // Vérifier si le blocage existe déjà
+			// Check if the block already exists
             const existingBlock = db.prepare(
                 "SELECT * FROM blocks WHERE blocker_id = ? AND blocked_id = ?"
             ).get(blockerId, blockedUser.id);
@@ -172,12 +175,12 @@ export async function userRoutes(fastify, options) {
                 return reply.code(400).send({ error: "User already blocked" });
             }
 
-            // Ajouter le blocage
+			// Add the block
             db.prepare(
                 "INSERT INTO blocks (blocker_id, blocked_id) VALUES (?, ?)"
             ).run(blockerId, blockedUser.id);
 
-            // Si les utilisateurs sont amis, supprimer l'amitié
+			// If the users are friends, remove the friendship
             db.prepare(
                 "DELETE FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)"
             ).run(blockerId, blockedUser.id, blockedUser.id, blockerId);
@@ -195,13 +198,13 @@ export async function userRoutes(fastify, options) {
         const blockerId = request.user.userId;
 
         try {
-            // Vérifier si l'utilisateur existe
+			// Check if the user to unblock exists
             const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(blockedUsername);
             if (!blockedUser) {
                 return reply.code(404).send({ error: "User not found" });
             }
 
-            // Supprimer le blocage
+			// Remove the block
             const result = db.prepare(
                 "DELETE FROM blocks WHERE blocker_id = ? AND blocked_id = ?"
             ).run(blockerId, blockedUser.id);
@@ -242,92 +245,81 @@ export async function userRoutes(fastify, options) {
     });
 
     fastify.put("/update", async (request, reply) => {
-        const userId = request.user.userId; // From auth middleware
-        const { username, password, email, avatar } = request.body;
-
-        try {
-            // Récupérer l'utilisateur actuel
-            const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
-            if (!currentUser) {
-                return reply.code(404).send({ error: "User not found" });
-            }
-
-            // Préparer les champs à mettre à jour
-            const updates = {};
-            const params = [];
-            
-            // Vérifier et ajouter chaque champ s'il est fourni
-            if (username) {
-                // Vérifier si le nouveau username est déjà pris
-                const usernameExists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?")
-                    .get(username, userId);
-                if (usernameExists) {
-                    return reply.code(400).send({ error: "Username already taken" });
-                }
-                updates.username = username;
-            }
-            
-            if (password) {
-                // Hasher le nouveau mot de passe
-                const hashedPassword = await bcrypt.hash(password, 10);
-                updates.password = hashedPassword;
-            }
-            
-            if (email) {
-                // Valider le format de l'email
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(email)) {
-                    return reply.code(400).send({ error: "Invalid email format" });
-                }
-                updates.email = email;
-            }
-            
-            if (avatar) {
-                // Valider le format de l'URL de l'avatar
-                const urlRegex = /^\/assets\/.*\.(jpg|jpeg|png|gif)$/i;
-                if (!urlRegex.test(avatar)) {
-                    return reply.code(400).send({ error: "Invalid avatar format" });
-                }
-                updates.avatar = avatar;
-            }
-
-            // Si aucun champ à mettre à jour
-            if (Object.keys(updates).length === 0) {
-                return reply.code(400).send({ error: "No fields to update" });
-            }
-
-            // Construire la requête SQL
-            const setClause = Object.keys(updates)
-                .map(key => `${key} = ?`)
-                .join(", ");
-            const updateValues = Object.values(updates);
-            
-            // Exécuter la mise à jour
-            db.prepare(`
-                UPDATE users 
-                SET ${setClause}
-                WHERE id = ?
-            `).run(...updateValues, userId);
-
-            // Récupérer et retourner les informations mises à jour
-            const updatedUser = db.prepare(`
-                SELECT id, username, email, avatar
-                FROM users
-                WHERE id = ?
-            `).get(userId);
-
-            fastify.log.info(`User ${userId} updated successfully`);
-            return reply.send({
-                success: true,
-                message: "User updated successfully",
-                user: updatedUser
-            });
-
-        } catch (error) {
-            fastify.log.error(error, "Error updating user");
-            return reply.code(500).send({
-                error: "Failed to update user"
-            });
-        }
-    });
+		const userId = request.user.userId;
+		const { username, password, email, avatar } = request.body;
+	
+		try {
+			// Get the current user
+			const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
+			if (!currentUser) {
+				return reply.code(404).send({ error: "User not found" });
+			}
+	
+			let somethingUpdated = false;
+	
+			// Check and update the username
+			if (username && username !== currentUser.username) {
+				const usernameExists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?")
+					.get(username, userId);
+				if (usernameExists) {
+					return reply.code(400).send({ error: "Username already taken" });
+				}
+	
+				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(username, userId);
+				somethingUpdated = true;
+			}
+	
+			// Check and update the password
+			if (password && !bcrypt.compareSync(password, currentUser.password)) {
+				const hashedPassword = await bcrypt.hash(password, 10);
+				db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
+				somethingUpdated = true;
+			}
+	
+			// Check and update the email
+			if (email && email !== currentUser.email) {
+				const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+				if (!emailRegex.test(email)) {
+					return reply.code(400).send({ error: "Invalid email format" });
+				}
+	
+				db.prepare("UPDATE users SET email = ? WHERE id = ?").run(email, userId);
+				somethingUpdated = true;
+			}
+	
+			// Check and update the avatar
+			if (avatar && avatar !== currentUser.avatar) {
+				const urlRegex = /^\/assets\/.*\.(jpg|jpeg|png|gif)$/i;
+				if (!urlRegex.test(avatar)) {
+					return reply.code(400).send({ error: "Invalid avatar format" });
+				}
+	
+				db.prepare("UPDATE users SET avatar = ? WHERE id = ?").run(avatar, userId);
+				somethingUpdated = true;
+			}
+	
+			if (!somethingUpdated) {
+				return reply.code(400).send({ error: "No valid fields to update or values are unchanged" });
+			}
+	
+			// Get the updated user
+			const updatedUser = db.prepare(`
+				SELECT id, username, email, avatar
+				FROM users
+				WHERE id = ?
+			`).get(userId);
+	
+			fastify.log.info(`User ${userId} updated successfully`);
+			return reply.send({
+				success: true,
+				message: "User updated successfully",
+				user: updatedUser
+			});
+	
+		} catch (error) {
+			fastify.log.error(error, "Error updating user");
+			return reply.code(500).send({ error: "Failed to update user" });
+		}
+	});
+	
 }
