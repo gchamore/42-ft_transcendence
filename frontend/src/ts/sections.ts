@@ -94,6 +94,42 @@ class Home extends ASection {
 		this.playTournament_btn.onclick = () => this.playTournament();
 	}
 	async play1v1() {
+		go_section('game');
+	}
+	async playTournament() {
+		go_section('game');
+	}
+}
+
+
+class Game extends ASection {
+	/* ASection */
+	type = 'game';
+	protected = true;
+	parent = document.getElementById('game-overlay') as HTMLElement;
+	logged_off: NodeListOf<Element> = document.querySelectorAll('');
+	logged_in: NodeListOf<Element> = document.querySelectorAll('');
+	dependencies = ['home'];
+
+	/* Methods */
+	enter(verified: boolean) {
+			if (verified !== true) {
+			console.log("Try to enter Game section as unauthenticated");
+			return;
+		}
+
+		this.activate_section();
+
+	}
+	switch_logged_off() {
+		this.logged_off_view();
+	}
+	switch_logged_in() {
+		this.logged_in_view();
+	}
+
+
+	async play1v1() {
 		if (!user) { 
 			console.error('play1v1: not logged in');
 			return ;
@@ -120,6 +156,8 @@ class Home extends ASection {
 		}
 
 	}
+
+
 	async playTournament() {
 		if (!user) {
 			console.error('playTournament: not logged in');
@@ -168,6 +206,7 @@ class Home extends ASection {
 
 	}
 }
+
 
 class Profile extends ASection {
 	/* ASection */

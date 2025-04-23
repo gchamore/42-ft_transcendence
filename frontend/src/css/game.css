@@ -102,17 +102,4 @@
     margin-bottom: 5px;
 }
 
-.game-start-button {
-	background-color: rgb(164, 103, 103);
-	color:rgb(0, 0, 0);
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.game-start-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
 ```

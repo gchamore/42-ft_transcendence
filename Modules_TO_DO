@@ -1,0 +1,43 @@
+reste a faire : 
+
+front 
+- check browser compatibility 
+- handle errors and warnings 
+- tournament handling 
+- matchmaking 
+- direct message , invite to games, notify players of the games in tournaments (live chat)
+- 2FA 
+- google signin 
+- update user info and avatar
+- display stats / match history 
+
+back 
+- tournament handling 
+- matchmaking 
+- update avatar and store profile image avatar.png
+- bloquer messages chat all user bloques 
+- check option 2FA
+
+docker : 
+• Your runtime needs to be located in /goinfre or /sgoinfre.
+• You are not able to use “bind-mount volumes” between the host
+and the container if non-root UIDs are used in the container.
+
+
+modules : 
+major -> backen framework ok 
+major -> standard user management 
+major ->  remote auth google signin 
+major -> remote player ok
+major -> live chat (direct message, invite to games)
+major -> 2FA JWT 
+major -> babylon ok 
+
+minor -> game custo ok
+minor -> database ok 
+minor -> browser compatibility ok 
+(minor -> multiple langage)
+(minor -> GDPR)
+
+(major -> server side pong )
+(minor -> gameState dashboard)
