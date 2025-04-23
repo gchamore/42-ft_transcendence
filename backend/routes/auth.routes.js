@@ -19,16 +19,18 @@ export async function authRoutes(fastify, options) {
 	// The tokens are stored in Redis with the userId as key
 	fastify.post("/register", async (request, reply) => {
 		const { username, password } = request.body;
-
+	
 		fastify.log.info({ body: request.body }, "Tentative d'inscription");
+		
 		// Verify if the required fields are present
 		if (!username || !password) {
 			fastify.log.warn("Échec d'inscription : username ou password manquant");
 			return reply.code(400).send({ error: "Username and password are required" });
 		}
+	
 		// Verify if the username already exists in the database
-		const userExists = await authUtils.getFromDatabase(db, 'users', ['id'], { username });
-		if (userExists) {
+		const existingUser = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
+		if (existingUser) {
 			fastify.log.warn(`Échec d'inscription : Username déjà pris (${username})`);
 			return reply.code(400).send({ error: "Username already taken" });
 		}
@@ -37,28 +39,30 @@ export async function authRoutes(fastify, options) {
 		try {
 			// Hash the password using bcrypt
 			const hashedPassword = await authUtils.hashPassword(password);
-
-			// Add the user to the database
-			const userId = await authUtils.addToDatabase(db, 'users', { username: username, password: hashedPassword });
-
+	
+			// Insert the user into the database
+			const result = db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, hashedPassword);
+			const newUserId = result.lastInsertRowid;
+	
+			// Get the newly created user from the database
+			const newUser = db.prepare("SELECT id, username FROM users WHERE id = ?").get(newUserId);
+	
 			// Generate the access and refresh tokens for the user
-			const { accessToken, refreshToken } = await authService.generateTokens(userId);
-
-			// Check if the application is running locally or in production
+			const { accessToken, refreshToken } = await authService.generateTokens(newUser.id);
 			const isLocal = request.headers.host.startsWith("localhost");
-
-			// Set the cookies for the tokens
-			authUtils.setCookie(reply, accessToken, 15, isLocal); // accessToken : 15 min
-			authUtils.setCookie(reply, refreshToken, 7, isLocal); // refreshToken : 7 jours
-
+	
+			// Send the response with the tokens in cookies
+			authUtils.setCookie(reply, accessToken, 15, isLocal);
+			authUtils.setCookie(reply, refreshToken, 7, isLocal);
+	
 			return reply.code(201).send({
 				success: true,
 				message: "User registered and logged in successfully",
-				username: username,
-				id: userId,
+				username: newUser.username,
+				id: newUser.id,
 				avatar: '/assets/avatar.png',
 			});
-
+	
 		} catch (error) {
 			fastify.log.error(error, "Erreur lors de l'inscription");
 			return reply.code(500).send({
@@ -67,6 +71,7 @@ export async function authRoutes(fastify, options) {
 			});
 		}
 	});
+	
 
 	/*** 📌 Route: UNREGISTER ***/
 	// Unregister a user
@@ -89,7 +94,7 @@ export async function authRoutes(fastify, options) {
 			}
 
 			// Check if the user exists in the database
-			const user = await authUtils.getFromDatabase(db, 'users', ['id'], { username });
+			const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
 			if (!user) {
 				fastify.log.warn(`Utilisateur non trouvé : ${username}`);
 				return reply.code(404).send({ error: "User not found" });
@@ -164,7 +169,7 @@ export async function authRoutes(fastify, options) {
 		const { username } = request.params;
 		fastify.log.debug(`Vérification de l'existence de l'utilisateur : ${username}`);
 
-		const user = await authUtils.getFromDatabase(db, 'users', ['id', 'username'], { username });
+		const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
 		const exists = !!user;
 
 		if (exists) {
@@ -191,7 +196,7 @@ export async function authRoutes(fastify, options) {
 
 		fastify.log.info(`Recherche de l'ID pour l'utilisateur: ${username}`);
 
-		const user = await authUtils.getFromDatabase(db, 'users', ['id', 'username'], { username });
+		const user = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
 		if (!user) {
 			fastify.log.warn(`Utilisateur non trouvé: ${username}`);
 			return reply.code(404).send({ error: "User not found" });
@@ -216,7 +221,7 @@ export async function authRoutes(fastify, options) {
 			fastify.log.info({ username }, "Tentative de connexion");
 
 			// Verify if user and password are provided and if password is valid using bcrypt
-			const user = await authUtils.getFromDatabase(db, 'users', ['id', 'username', 'password', 'twofa_secret'], { username });
+			const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
 			if (!user || !(await bcrypt.compare(password, user.password))) {
 				fastify.log.warn(`Échec de connexion pour: ${username}`);
 				return reply.code(401).send({ error: "Invalid credentials" });
@@ -283,7 +288,7 @@ export async function authRoutes(fastify, options) {
 			const decoded = jwt.verify(newAccessToken, JWT_SECRET);
 
 			// Récupérer les informations de l'utilisateur
-			const user = await authUtils.getFromDatabase(db, 'users', ['id', 'username'], { id: decoded.userId });
+			const user = db.prepare("SELECT username FROM users WHERE id = ?").get(decoded.userId);
 
 			// Check if the application is running locally or in production
 			const isLocal = request.headers.host.startsWith("localhost");
@@ -348,7 +353,7 @@ export async function authRoutes(fastify, options) {
 				.clearCookie('accessToken', cookieOptions)
 				.clearCookie('refreshToken', cookieOptions)
 				.header('Access-Control-Allow-Credentials', 'true')
-				.header('Access-Control-Allow-Origin', request.headers.origin || 'https://10.32.7.11:8443')
+				.header('Access-Control-Allow-Origin', request.headers.origin || 'http://localhost:8080')
 				.send({ success: true, message: "Logged out successfully" });
 
 		} catch (error) {
@@ -376,7 +381,7 @@ export async function authRoutes(fastify, options) {
 
 		try {
 			// Verify if the user exists in the database
-			const user = await authUtils.getFromDatabase(db, 'users', ['id', 'username'], { id: userId });
+			const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 			if (!user) {
 				fastify.log.warn(`Utilisateur non trouvé pour la révocation: ID ${userId}`);
 				return reply.code(404).send({ error: "User not found" });
@@ -410,7 +415,7 @@ export async function authRoutes(fastify, options) {
 				.clearCookie('accessToken', cookieOptions)
 				.clearCookie('refreshToken', cookieOptions)
 				.header('Access-Control-Allow-Credentials', 'true')
-				.header('Access-Control-Allow-Origin', request.headers.origin || 'https://10.32.7.11:8443')
+				.header('Access-Control-Allow-Origin', request.headers.origin || 'http://localhost:8080')
 				.send({ success: true, message: "Logged out successfully" });
 
 		} catch (error) {
@@ -479,7 +484,7 @@ export async function authRoutes(fastify, options) {
 		}
 
 		// Récupérer l'utilisateur et retourner la réponse
-		const user = await authUtils.getFromDatabase(db, 'users', ['id', 'username'], { id: result.userId });
+		const user = db.prepare("SELECT username FROM users WHERE id = ?").get(result.userId);
 		fastify.log.info('Token verified successfully for user:', user.username);
 		return reply.send({
 			valid: true,
