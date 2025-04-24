@@ -1,4 +1,4 @@
-import {update_friends_status, update_sections, HOME_INDEX, Chat, Actions, get_section_index, sections, section_index, set_section_index} from "./sections";
+import {update_friends_status, update_sections, HOME_INDEX, Chat, Actions, get_section_index, sections, section_index, set_section_index} from "./sections.js";
 /* Global variables */
 export var user : undefined | User = undefined;
 /* --------- */

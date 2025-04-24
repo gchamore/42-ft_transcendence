@@ -1,5 +1,5 @@
-import {set_new_section_index, update_sections, sections, section_index} from "./sections";
-import {verify_token} from "./api";
+import {set_new_section_index, update_sections, sections, section_index} from "./sections.js";
+import {verify_token} from "./api.js";
 
 /* Event listeners */
 window.addEventListener("popstate", async function(event) {

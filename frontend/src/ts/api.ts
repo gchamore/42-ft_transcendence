@@ -1,4 +1,4 @@
-import { user, User,  update_user, OtherUser } from './users';
+import { user, User,  update_user, OtherUser } from './users.js';
 
 export async function verify_token(): Promise<void> {
 	console.log('verify_token()');

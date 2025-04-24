@@ -108,8 +108,8 @@ export class GameSection extends ASection {
 	type = 'game';
 	protected = true;
 	parent = document.getElementById('game-overlay') as HTMLElement;
-	logged_off: NodeListOf<Element> = document.querySelectorAll('');
-	logged_in: NodeListOf<Element> = document.querySelectorAll('');
+	logged_off = this.parent.querySelectorAll('.non-existent-class') as NodeListOf<Element>;
+	logged_in = this.parent.querySelectorAll('.non-existent-class') as NodeListOf<Element>;
 	dependencies = ['home'];
 
 
@@ -675,7 +675,7 @@ export function update_sections(): void {
 // 		sections[section_index].switch_logged_in();
 // }
 
-function go_section(section : string) {
+export function go_section(section : string) {
 	if (section === sections[section_index].type)
 		section = 'home';
 	set_new_section_index(section);
