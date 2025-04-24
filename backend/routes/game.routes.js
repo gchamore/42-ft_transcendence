@@ -22,13 +22,14 @@ export async function gameRoutes(fastify, options) {
 
 	// 1v1
 	fastify.post('/game/queue', async (request, reply) => {
-		const userId = request.user?.userId;
+		const { userId } = request.body;
 	
 		if (!userId) {
 			return reply.code(401).send({ error: 'Unauthorized' });
 		}
 	
 		// Vérifie s'il est déjà dans la file d'attente
+		console.log('Current queue:', gameQueue, 'Trying to add:', userId);
 		if (gameQueue.includes(userId)) {
 			return reply.code(400).send({ error: 'Already in queue' });
 		}

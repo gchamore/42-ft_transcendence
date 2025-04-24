@@ -43,14 +43,19 @@ function nb_to_str(nb : number) : string {
 /* User */
 export class User {
     readonly name: string;
+	readonly userId: number = 0;
     readonly avatar_path: string;
     web_socket: WebSocket | undefined;
     livechat: Array<Message>;
     direct_messages: Array<Message>;
     onlines: Array<string>;
 
-    constructor(username:string) {
+    constructor(username:string, userId?:number) {
+		if (userId !== undefined) {
+            this.userId = userId;
+        }
         this.name = username;
+		console.log('UserId:', this.userId, this.name);
         this.avatar_path = 'assets/avatar.png';
         this.web_socket = undefined;
         this.livechat = [];

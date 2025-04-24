@@ -156,7 +156,7 @@ export class GameSection extends ASection {
 		// Initialize the game
 		gamePage = new Game(gameId);
 	}
-	leave() {
+	async leave() {
 		super.leave();
 		if (settingsPage) {
 			settingsPage.cleanup();
@@ -182,11 +182,11 @@ export class GameSection extends ASection {
 			return ;
 		}
 		try { 
-			const resp = await fetch('/game/queue', {
+			const resp = await fetch('/api/game/queue', {
 				method: 'POST',
 				credentials: 'include',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ playerId: user.name })
+				headers: { "Content-Type": "application/json"},
+				body: JSON.stringify({ userId: user.userId })
 			});
 			if (resp.status === 202) { 
 				alert('waiting for an opponent');
@@ -217,10 +217,9 @@ export class GameSection extends ASection {
 			return;
 		}
 		try {
-			const createResp = await fetch('/game/tournament', {
+			const createResp = await fetch('/api/game/tournament', {
 				method: 'POST',
 				credentials: 'include',
-				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					creatorId: user.name,
 					name: '',
@@ -233,7 +232,7 @@ export class GameSection extends ASection {
 				return;
 			}
 			const { tournamentId: tid } = await createResp.json();
-			const joinResp = await fetch(`/tournament/${tid}/join`, {
+			const joinResp = await fetch(`/api/tournament/${tid}/join`, {
 				method: 'POST',
 				credentials: 'include',
 				headers: { 'Content-Type': 'application/json' },

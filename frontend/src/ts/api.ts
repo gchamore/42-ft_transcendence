@@ -47,7 +47,7 @@ export async function register(username: string, password: string) {
 		if (!response.ok)
 			console.error("/api/register failed:", data.error);
         else if (data.success) {
-			update_user(new User(data.username));
+			update_user(new User(data.username, data.id));
 
 			console.log(username, "registered");
 		}

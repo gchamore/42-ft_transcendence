@@ -55,10 +55,6 @@ const publicRoutes = [
 	'/ws'
 ];
 
-// Redirect root route to /home
-app.get("/", (request, reply) => {
-    reply.redirect("/home");
-});
 
 // Middleware d'authentification
 app.addHook('onRequest', (request, reply, done) => {
