@@ -8,6 +8,17 @@ const tournaments = new Map();
 const tournamentQueues = new Map();
 const invites = [];
 
+function notifyPlayers(fastify, gameId, playerId) {
+	const socket = fastify.connections.get(playerId);
+	if (socket) {
+		socket.send(JSON.stringify({
+			type: 'matchFound',
+			gameId,
+			players: playerId
+		}));
+	}
+}
+
 export async function gameRoutes(fastify, options) {
 	const { db } = fastify;
 
@@ -41,7 +52,10 @@ export async function gameRoutes(fastify, options) {
 	
 			const gameId = Math.random().toString(36).substring(2, 8);
 			settingsManagers.set(gameId, new SettingsManager());
-	
+		
+			notifyPlayers(fastify, gameId, p1);
+			notifyPlayers(fastify, gameId, p2);
+			
 			return reply.send({ matched: true, gameId, players: [p1, p2] });
 		}
 	
