@@ -2,6 +2,7 @@
 var sections : ASection[] = [];
 var HOME_INDEX : number = 0;
 var section_index : number = HOME_INDEX;
+
 /* --------- */
 
 
@@ -14,7 +15,8 @@ abstract class ASection {
     abstract readonly logged_off: NodeListOf<Element>;
     abstract readonly logged_in: NodeListOf<Element>;
     abstract readonly dependencies: Array<string>;
-
+	
+	abstract is_option_valid(option : string | undefined): boolean;
     abstract enter(verified: boolean): void;
 	abstract switch_logged_off(): void;
 	abstract switch_logged_in(): void;
@@ -70,6 +72,9 @@ class Home extends ASection {
 	readonly chat_btn = document.getElementById('chat-btn') as HTMLButtonElement;
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
 		if (verified === true)
 			this.switch_logged_in();
@@ -107,6 +112,9 @@ class Profile extends ASection {
 	readonly btn2 = document.getElementById('profile-btn2') as HTMLButtonElement;
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
 		if (verified === true)
 			this.switch_logged_in();
@@ -179,6 +187,9 @@ class Friends extends ASection {
 	anotherUser : OtherUser | undefined = undefined;
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Friends section as unauthenticated");
@@ -315,6 +326,9 @@ class Chat extends ASection {
 	readonly btn3 = document.getElementById('chat-btn3') as HTMLButtonElement;
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Chat section as unauthenticated");
@@ -396,6 +410,9 @@ class Actions extends ASection {
 	load_mutex : boolean = false;
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Actions section as unauthenticated");
@@ -543,6 +560,9 @@ class Settings extends ASection {
 	dependencies = [];
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Settings section as unauthenticated");
