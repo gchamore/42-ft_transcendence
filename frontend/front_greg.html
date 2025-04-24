@@ -327,6 +327,13 @@
 			margin: 10px auto;
 			display: block;
 		}
+
+		.user-avatar {
+			width: 50px;
+			height: 50px;
+			border-radius: 50%;
+			margin-right: 10px;
+		}
 	</style>
 </head>
 
@@ -366,7 +373,10 @@
 		</div>
 
 		<div id="welcome" class="hidden">
-			<h2>Welcome, <span id="username"></span>!</h2>
+			<div style="display: flex; align-items: center;">
+				<img id="user-avatar" class="user-avatar" src="" alt="User avatar">
+				<h2>Welcome, <span id="username"></span>!</h2>
+			</div>
 			<!-- Ajouter le bouton 2FA juste après le titre -->
 			<button id="twofa-btn" style="margin: 1rem 0;">Activate 2FA</button>
 
@@ -545,12 +555,11 @@
 				const data = await response.json();
 
 				if (response.ok) {
-					// Ajouter cette ligne pour mettre à jour le localStorage lors du register
 					localStorage.setItem('currentUser', username);
-
 					showMessage('Registration and login successful!', false);
 					document.getElementById('register-form').reset();
-					// Directement afficher le welcome puisque l'utilisateur est connecté
+					// Mettre à jour l'avatar avec l'avatar par défaut
+					document.getElementById('user-avatar').src = `https://${window.location.host}/avatar/avatar.png`;
 					showWelcome(data.username);
 				} else {
 					showMessage(data.error || 'Registration failed', true);
@@ -954,6 +963,7 @@
 
 		function showWelcome(username) {
 			document.getElementById('username').textContent = username;
+			document.getElementById('user-avatar').src = `https://${window.location.host}/avatar/avatar.png`;
 			authForms.classList.add('hidden');
 			welcome.classList.remove('hidden');
 
