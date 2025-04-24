@@ -14,6 +14,9 @@ RUN npm install --production
 # Copier le reste des fichiers de l'application
 COPY . .
 
+# Créer les dossiers de stockage
+RUN mkdir -p /data/avatar && chown -R node:node /data
+
 # Script de démarrage pour lancer Redis et Node
 COPY start.sh /start.sh
 RUN chmod +x /start.sh

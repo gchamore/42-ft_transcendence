@@ -6,6 +6,7 @@ services:
     volumes:
       - backend_data:/data
       - avatar_image:/data/avatar
+      - ./backend/db/public/avatar.png:/data/avatar/avatar.png:ro
     networks:
       - app_network
     environment:
@@ -20,6 +21,7 @@ services:
     volumes:
       - ./frontend:/usr/share/nginx/html  # Cette ligne est correcte, monte le dossier frontend vers le bon chemin
       - avatar_image:/data/avatar
+      - ./backend/db/public/avatar.png:/data/avatar/avatar.png:ro
     depends_on:
       - backend
     networks:
