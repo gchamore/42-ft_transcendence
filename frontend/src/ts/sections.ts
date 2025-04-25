@@ -130,6 +130,7 @@ export class GameSection extends ASection {
 
 		if (activeGameId) {
 			if (!settingsPage) {
+				console.log('sections settingpage userID:', user?.userId);
 				settingsPage = new SettingsPage(activeGameId);
 				this.settingsPage.style.display = 'block';
 				this.gamePage.style.display = 'none';

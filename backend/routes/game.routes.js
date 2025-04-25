@@ -51,12 +51,12 @@ export async function gameRoutes(fastify, options) {
 			const gameId = Math.random().toString(36).substring(2, 8);
 			settingsManagers.set(gameId, new SettingsManager());
 		
-			notifyPlayers(fastify, gameId, p1);
-			notifyPlayers(fastify, gameId, p2);
 			playerNumbers.set(p1, 1);
 			console.log('Player 1:', p1);
 			playerNumbers.set(p2, 2);
 			console.log('Player 2:', p2);
+			notifyPlayers(fastify, gameId, p1);
+			notifyPlayers(fastify, gameId, p2);
 			
 			return reply.send({ matched: true});
 		}

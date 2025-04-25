@@ -25,9 +25,9 @@ export async function handleGameConnection(fastify, connection, request) {
 	const accessToken = request.cookies?.accessToken;
 	
 	const validation = await wsService.validateConnectionToken(fastify, connection, accessToken);
-	if (!validation) return;
+	if (!validation) return(console.log('validation undefined'));
 
-	const userId = validation.userId;
+	const userId = validation.userId; // always the same id
 	socket.clientId = userId;
 	const playerNumber = playerNumbers.get(userId);
 	console.log('playerId:', userId, ' playerNumber:', playerNumber);

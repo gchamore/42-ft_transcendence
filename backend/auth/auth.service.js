@@ -54,7 +54,7 @@ export class AuthService {
 			// Verify if the token is the latest
 			const currentToken = await redis.get(`access_${decoded.userId}`);
 			if (accessToken !== currentToken) return null;
-
+			
 			return { userId: decoded.userId };
 
 		} catch (error) {

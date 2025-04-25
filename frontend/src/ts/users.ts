@@ -72,6 +72,7 @@ export class User {
         this.web_socket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
+				console.log('USERS WebSocket message:', data);
                 switch (data.type) {
                     case 'status_update':
                         update_friends_status(data.username, data.online);

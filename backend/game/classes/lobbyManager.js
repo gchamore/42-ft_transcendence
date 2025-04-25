@@ -10,6 +10,7 @@ export class LobbyManager {
 
 	addPlayer(socket, clientId, playerNumber) {
 		socket.clientId = clientId;
+		console.log('addPlayer clientId:', clientId);
 
 		if (this.players.size >= 2) {
 			console.error(`Lobby ${this.lobbyId} is full. Cannot add client ${clientId} size: ${this.players.size}`);
