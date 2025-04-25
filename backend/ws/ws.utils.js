@@ -2,6 +2,20 @@ import redis from '../redis/redisClient.js';
 import authService from '../auth/auth.service.js';
 
 
+
+// This function checks if a user has blocked another user
+// It takes the fastify instance, blockerId, and blockedId as parameters
+// It queries the database to check if the blocker has blocked the blocked user
+export function hasUserBlocked(fastify, blockerId, blockedId) {
+	const result = fastify.db.prepare(`
+		SELECT 1 FROM blocks
+		WHERE blocker_id = ? AND blocked_id = ?
+	`).get(blockerId, blockedId);
+
+	return !!result;
+}
+
+
 // This function closes a WebSocket connection for a specific user
 // It takes the userId, close code, reason, and whether to update the status
 // It removes the connection from the map and updates Redis
@@ -99,7 +113,14 @@ export function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
 	let sentCount = 0;
 
 	for (const [userId, socket] of fastify.connections) {
-		if (userId.toString() !== excludeUserId.toString() && socket.readyState === 1) {
+		// Skip sender
+		if (userId.toString() === excludeUserId.toString()) continue;
+
+		// Vérifie si l'utilisateur a bloqué l'expéditeur
+		const blocked = hasUserBlocked(fastify, userId, excludeUserId);
+		if (blocked) continue;
+
+		if (socket.readyState === 1) {
 			socket.send(message);
 			sentCount++;
 		}
@@ -107,6 +128,7 @@ export function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
 
 	return sentCount;
 }
+
 
 // This function sends a message to a specific user
 // It takes the fastify instance, userId, and payload
