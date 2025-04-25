@@ -8,7 +8,7 @@ export class LobbyManager {
 		this.players = new Map();
 	}
 
-	addPlayer(socket, clientId) {
+	addPlayer(socket, clientId, playerNumber) {
 		socket.clientId = clientId;
 
 		if (this.players.size >= 2) {
@@ -18,13 +18,11 @@ export class LobbyManager {
 
 		// If the client reconnects, update their existing connection.
 		if (this.players.has(clientId)) {
-			const existingSocket = this.players.get(clientId);
 			this.players.set(clientId, socket);
-			socket.playerNumber = existingSocket.playerNumber;
+			socket.playerNumber = playerNumber;
 			console.log(`Client ${clientId} reconnected to lobby ${this.lobbyId}`);
 			return true;
 		} else {
-			const playerNumber = this.players.size + 1;
 			socket.playerNumber = playerNumber;
 			this.players.set(clientId, socket);
 			console.log(`Client ${clientId} joined lobby ${this.lobbyId}`);

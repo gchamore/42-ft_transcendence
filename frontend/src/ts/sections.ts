@@ -6,7 +6,7 @@ import { login, register, add , remove, search, send, get_blocked_users } from '
 export var sections : ASection[] = [];
 export var HOME_INDEX : number = 0;
 export var section_index : number = HOME_INDEX;
-var activeGameId: string | null = null; // Store the active game ID
+export var activeGameId: string | null = null; // Store the active game ID
 var settingsPage: SettingsPage | null = null;
 var gamePage: Game | null = null;
 /* --------- */
@@ -146,6 +146,7 @@ export class GameSection extends ASection {
 			console.error('No active game ID found');
 		}
 	}
+
 	transitionToGame(gameId: string) {
 		// Hide settings page and show game page
 		this.settingsPage.style.display = 'none';
@@ -156,6 +157,7 @@ export class GameSection extends ASection {
 		// Initialize the game
 		gamePage = new Game(gameId);
 	}
+
 	async leave() {
 		super.leave();
 		if (settingsPage) {
@@ -191,9 +193,7 @@ export class GameSection extends ASection {
 			if (resp.status === 202) { 
 				alert('waiting for an opponent');
 			} else if (resp.ok) { 
-				const { gameId } = await resp.json();
-				activeGameId = gameId;
-				go_section('game');
+				alert('Match found! Waiting for game to start...');
 			} else { 
 				const err = await resp.json();
 				alert(`Queue error: ${err.error}`);
@@ -705,5 +705,9 @@ export function update_friends_status(username : string, online : boolean) {
 
 export function set_section_index(index : number): void {
 	section_index = index;
+}
+
+export function set_active_game_id(gameId: string): void {
+	activeGameId = gameId;
 }
 /* --------- */

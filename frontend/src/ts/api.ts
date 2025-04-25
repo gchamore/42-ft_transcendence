@@ -71,7 +71,7 @@ export async function login(username: string, password: string) {
 		if (!response.ok)
 			console.error("/api/login failed:", data.error);
         else if (data.success) {
-			update_user(new User(data.username));
+			update_user(new User(data.username, data.id));
 
 			console.log(username, "logged-in");
 		}

@@ -6,6 +6,7 @@ import { safeSend } from '../utils/socketUtils.js';
 import { GameConfig } from "../shared/config/gameConfig.js";
 import { handleDisconnect } from "../handlers/disconnectHandler.js";
 import wsService from '../../ws/ws.service.js';
+import { playerNumbers } from "../../routes/game.routes.js";
 
 
 
@@ -17,7 +18,7 @@ export function resetlobbies() {
 	lobbies.clear();
 }
 
-export async function handleGameConnection(connection, request) {
+export async function handleGameConnection(fastify, connection, request) {
 	const socket = connection.socket;
 	const { gameId } = request.params;
 	const mode = request.query.mode;
@@ -28,13 +29,15 @@ export async function handleGameConnection(connection, request) {
 
 	const userId = validation.userId;
 	socket.clientId = userId;
+	const playerNumber = playerNumbers.get(userId);
+	console.log('playerId:', userId, ' playerNumber:', playerNumber);
 
 	console.log('🎮 Game WS connection:', { gameId, mode, userId });
 
 	if (mode === 'lobby') {
 		let lobby = lobbies.get(gameId) || new LobbyManager(gameId);
 		lobbies.set(gameId, lobby);
-		handleNewLobbyPlayer(socket, lobby, clientId);
+		handleNewLobbyPlayer(socket, lobby, userId, playerNumber);
 	} else if (mode === 'game') {
 		let game = games.get(gameId);
 		let lobby = lobbies.get(gameId);

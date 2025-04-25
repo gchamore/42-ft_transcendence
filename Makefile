@@ -100,9 +100,14 @@ database:
 	@code ./backend/tools/database.db
 
 # Logs des services
-logs:
+logs: logs_backend logs_nginx
+
+
+logs_backend:
 	@echo "$(YELLOW)Logs du backend:$(RESET)"
 	@$(DOCKER_COMPOSE) logs backend
+
+logs_nginx:
 	@echo "$(YELLOW)Logs de nginx:$(RESET)"
 	@$(DOCKER_COMPOSE) logs nginx
 

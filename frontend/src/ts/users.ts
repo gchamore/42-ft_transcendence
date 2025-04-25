@@ -1,4 +1,4 @@
-import {update_friends_status, update_sections, HOME_INDEX, Chat, Actions, get_section_index, sections, section_index, set_section_index} from "./sections.js";
+import {update_friends_status, update_sections, HOME_INDEX, Chat, Actions, get_section_index, sections, section_index, set_section_index, set_active_game_id , go_section} from "./sections.js";
 /* Global variables */
 export var user : undefined | User = undefined;
 /* --------- */
@@ -82,6 +82,9 @@ export class User {
                     case 'direct_message':
                         add_message(data.user, data.message, 'direct_message');
                         break;
+					case  'matchFound':
+						matchFound(data.gameId);
+						break;
                 }
             } catch (error) {
                 console.error('WebSocket message parsing error:', error);
@@ -109,6 +112,11 @@ export class User {
 	}
 }
 
+function matchFound(matchId : string) {
+	set_active_game_id(matchId);
+	go_section('game');
+}
+
 export function add_online(username : string) {
     if (!(user?.onlines.includes(username) === false && user?.name !== username))
         return;
@@ -122,7 +130,7 @@ export function update_user(new_user_value : User | undefined) {
     user = new_user_value;
 
     try {
-        if (user !== undefined)
+        if (user !== undefined && (!user.web_socket || user.web_socket.readyState !== WebSocket.OPEN))
             user.connect_to_ws();
     }
     catch (error) {

@@ -6,20 +6,19 @@ import { handleNewGamePlayer } from './gameMessageHandlers.js';
 import { lobbies } from '../controllers/gameController.js';
 import WebSocket from 'ws';
 
-export function handleNewLobbyPlayer(socket, lobby, clientId) {
+export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber) {
 	// Verify socket is open
 	if (socket.readyState !== WebSocket.OPEN) {
 		console.error('Socket not in OPEN state');
 		return;
 	}
 
-	if (!lobby.addPlayer(socket, clientId)) {
+	if (!lobby.addPlayer(socket, clientId, playerNumber)) {
 		console.error('Lobby is full');
 		socket.close();
 		return;
 	}
 
-	const playerNumber = socket.playerNumber;
 	console.log(`Player ${playerNumber} joined lobby ${lobby.lobbyId}`);
 
 	// Send welcome messages

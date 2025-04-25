@@ -2,6 +2,7 @@ import { SettingsManager } from '../game/classes/settingsManager.js';
 import { setupGameUpdateInterval, handleGameConnection } from '../game/controllers/gameController.js';
 
 export const settingsManagers = new Map();
+export const playerNumbers = new Map();
 const gameQueue = [];
 let tournamentId = 0;
 const tournaments = new Map();
@@ -14,7 +15,6 @@ function notifyPlayers(fastify, gameId, playerId) {
 		socket.send(JSON.stringify({
 			type: 'matchFound',
 			gameId,
-			players: playerId
 		}));
 	}
 }
@@ -39,8 +39,6 @@ export async function gameRoutes(fastify, options) {
 			return reply.code(401).send({ error: 'Unauthorized' });
 		}
 	
-		// Vérifie s'il est déjà dans la file d'attente
-		console.log('Current queue:', gameQueue, 'Trying to add:', userId);
 		if (gameQueue.includes(userId)) {
 			return reply.code(400).send({ error: 'Already in queue' });
 		}
@@ -55,10 +53,13 @@ export async function gameRoutes(fastify, options) {
 		
 			notifyPlayers(fastify, gameId, p1);
 			notifyPlayers(fastify, gameId, p2);
+			playerNumbers.set(p1, 1);
+			console.log('Player 1:', p1);
+			playerNumbers.set(p2, 2);
+			console.log('Player 2:', p2);
 			
-			return reply.send({ matched: true, gameId, players: [p1, p2] });
+			return reply.send({ matched: true});
 		}
-	
 		return reply.code(202).send({ queued: true });
 	});
 
@@ -184,7 +185,9 @@ export async function gameRoutes(fastify, options) {
 
 	// WebSocket route
 	fastify.register(async function (fastify) {
-		fastify.get('/game/:gameId', { websocket: true }, handleGameConnection);
+		fastify.get('/game/:gameId', { websocket: true }, (connection, request) =>
+			handleGameConnection(fastify, connection, request)
+		);
 	});
 	// Start game update loop
 	setupGameUpdateInterval();
