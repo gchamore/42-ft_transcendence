@@ -2,7 +2,7 @@
 NAME = transcendence
 
 # Commandes
-DOCKER_COMPOSE = docker-compose
+DOCKER_COMPOSE = docker compose
 DOCKER = docker
 
 # Variables pour les logs colorés
@@ -18,7 +18,7 @@ all: first_header run
 # Vérification des dépendances
 check_deps:
 	@command -v docker >/dev/null 2>&1 || { echo "Docker n'est pas installé. Veuillez l'installer."; exit 1; }
-	@command -v docker-compose >/dev/null 2>&1 || { echo "Docker Compose n'est pas installé. Veuillez l'installer."; exit 1; }
+	@command -v docker compose >/dev/null 2>&1 || { echo "Docker Compose n'est pas installé. Veuillez l'installer."; exit 1; }
 
 update_env_ip:
 	@echo "$(YELLOW)Updating LOCAL_IP in .env file...$(RESET)"
@@ -31,7 +31,7 @@ update_env_ip:
 		echo "$(GREEN)✓ .env file updated with LOCAL_IP=$$LOCAL_IP$(RESET)"; \
 	fi
 # Lancer l'infrastructure
-run: check_deps update_env_ip
+run: check_deps 
 
 	@npm run build --prefix ./frontend
 	@$(DOCKER_COMPOSE) up --build -d

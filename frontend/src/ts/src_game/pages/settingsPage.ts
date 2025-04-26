@@ -16,6 +16,7 @@ export class SettingsPage {
 	private playerReady: boolean = false;
 	private startButton: HTMLButtonElement;
 	private lobbyId: string;
+	private userId: string;
 
 	private handleBallSpeedChange!: (event: Event) => void;
 	private handlePaddleSpeedChange!: (event: Event) => void;
@@ -24,8 +25,9 @@ export class SettingsPage {
 	private handlePowerUpsChange!: (event: Event) => void;
 	private startButtonClickHandler!: (event: Event) => void;
 
-	constructor(activeGameId: string) {
+	constructor(activeGameId: string, userId: string) {
 		this.lobbyId = activeGameId
+		this.userId = userId;
 		this.ballSpeedSlider = document.getElementById('ball-speed') as HTMLInputElement;
 		this.ballSpeedValue = document.getElementById('ball-speed-value')!;
 		this.paddleLengthSlider = document.getElementById('paddle-length') as HTMLInputElement;
@@ -44,7 +46,7 @@ export class SettingsPage {
 	}
 
 	private connectWebSocket() {
-		this.socket = WebSocketService.getInstance().connect(this.lobbyId, 'lobby');
+		this.socket = WebSocketService.getInstance().connect(this.lobbyId, 'lobby', this.userId);
 		this.socket.onopen = () => {
 			console.log('Settings socket connected');
 			if (this.playerNumber === 1) {

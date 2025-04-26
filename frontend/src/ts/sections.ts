@@ -131,13 +131,15 @@ export class GameSection extends ASection {
 		if (activeGameId) {
 			if (!settingsPage) {
 				console.log('sections settingpage userID:', user?.userId);
-				settingsPage = new SettingsPage(activeGameId);
+				if (user && user.userId)
+					settingsPage = new SettingsPage(activeGameId, user.userId.toString());
 				this.settingsPage.style.display = 'block';
 				this.gamePage.style.display = 'none';
 				this.gameContainer.style.display = 'none';
 				this.fpsCounter.style.display = 'none';
 			} else if (!gamePage) {
-				gamePage = new Game(activeGameId);
+				if (user && user.userId)
+					gamePage = new Game(activeGameId, user.userId.toString());
 				this.settingsPage.style.display = 'none';
 				this.gamePage.style.display = 'block';
 				this.gameContainer.style.display = 'block';
@@ -156,7 +158,8 @@ export class GameSection extends ASection {
 		this.fpsCounter.style.display = 'block';
 
 		// Initialize the game
-		gamePage = new Game(gameId);
+		if (user && user.userId)
+			gamePage = new Game(gameId, user.userId.toString());
 	}
 
 	async leave() {
@@ -711,4 +714,6 @@ export function set_section_index(index : number): void {
 export function set_active_game_id(gameId: string): void {
 	activeGameId = gameId;
 }
+
+(window as any).go_section = go_section;
 /* --------- */

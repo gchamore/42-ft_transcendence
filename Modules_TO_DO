@@ -2,6 +2,7 @@ reste a faire :
 
 front 
 - check browser compatibility 
+- a websocket message is sent when a player is connecting that is not part of the friends 
 - handle errors and warnings 
 - tournament handling 
 - matchmaking 

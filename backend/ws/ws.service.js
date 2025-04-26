@@ -72,26 +72,26 @@ export class WebSocketService {
 	// It validates the access token and handles the connection events
 	setupWebSocketEvents(fastify, connection, accessToken, userId, username, connectionId) {
 		// Configuration of the ping-pong and token validation
-		let lastPong = Date.now();
-		const pingInterval = setInterval(async () => {
-			// Check if the tokens are still valid
-			const isTokenValid = await authService.validateToken(accessToken, null, 'access');
-			// if the token is invalid or the pong timeout is reached
-			if (!isTokenValid || Date.now() - lastPong > 35000) {
-				this.handleInvalidToken(fastify, connection, connectionId, pingInterval);
-				return;
-			}
-			// If the connection is still open, send a ping
-			if (connection.socket.readyState === 1) {
-				connection.socket.ping();
-			}
-		}, 30000);
+		// let lastPong = Date.now();
+		// const pingInterval = setInterval(async () => {
+		// 	// Check if the tokens are still valid
+		// 	const isTokenValid = await authService.validateToken(accessToken, null, 'access');
+		// 	// if the token is invalid or the pong timeout is reached
+		// 	if (!isTokenValid || Date.now() - lastPong > 35000) {
+		// 		this.handleInvalidToken(fastify, connection, connectionId, pingInterval);
+		// 		return;
+		// 	}
+		// 	// If the connection is still open, send a ping
+		// 	if (connection.socket.readyState === 1) {
+		// 		connection.socket.ping();
+		// 	}
+		// }, 30000);
 
-		// WebSocket event handling
-		connection.socket.on('pong', () => {
-			lastPong = Date.now();
-			fastify.log.debug(`Pong received from user: ${username} [ID: ${connectionId}]`);
-		});
+		// // WebSocket event handling
+		// connection.socket.on('pong', () => {
+		// 	lastPong = Date.now();
+		// 	fastify.log.debug(`Pong received from user: ${username} [ID: ${connectionId}]`);
+		// });
 
 		// Connection close handling
 		connection.socket.on('close', async (code, reason) => {
