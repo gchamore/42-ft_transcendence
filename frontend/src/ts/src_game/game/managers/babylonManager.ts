@@ -51,6 +51,7 @@ export class BabylonManager {
 		private ball: Ball,
 		private mapType: string,
 		private powerUpsEnabled: boolean,
+		private playerNumber: number,
 		private onLoadingComplete?: () => void
 	) {
 		// Initialize loading screen first
@@ -60,7 +61,7 @@ export class BabylonManager {
 		// Initialize core systems
 		this.engineManager = new EngineManager(canvas);
 		this.sceneManager = new SceneManager(this.engineManager.getEngine());
-		this.cameraManager = new CameraManager(this.sceneManager.getScene());
+		this.cameraManager = new CameraManager(this.sceneManager.getScene(), this.playerNumber);
 		this.lightManager = new LightManager(this.sceneManager.getScene());
 
 		// Initialize utilities

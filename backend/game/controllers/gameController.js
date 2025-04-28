@@ -101,23 +101,24 @@ export function setupGameUpdateInterval() {
 }
 
 function processGameUpdate(game, deltaTime) {
-	if (game.players.length !== 2) return;
+	if (game.players.size !== 2) return;
 
 	const result = game.update(deltaTime);
 
-	if (game.gameState.gameStarted && result.scored && result.winner) {
+	if (game.getState().gameStarted && result.scored && result.winner) {
 		game.players.forEach((player) => {
 			safeSend(player, {
 				type: 'gameOver',
 				reason: 'scoreLimit',
 				winner: result.winner,
 				finalScore: {
-					player1Score: game.gameState.score.player1Score,
-					player2Score: game.gameState.score.player2Score,
+					player1Score: game.getState().score.player1Score,
+					player2Score: game.getState().score.player2Score,
 				},
 			});
 		});
-		game.gameState.gameStarted = false;
+		game.getState().gameStarted = false;
+		return;
 	}
 }
 

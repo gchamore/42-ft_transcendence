@@ -60,9 +60,9 @@ function handleRemainingPlayers(game, disconnectedPlayerNumber) {
 
 			// Update scores to reflect the disconnect
 			if (disconnectedPlayerNumber === 1) {
-				game.gameState.score.player2Score = game.settings.maxScore || 5;
+				game.getState().score.player2Score = game.settings.maxScore || 5;
 			} else {
-				game.gameState.score.player1Score = game.settings.maxScore || 5;
+				game.getState().score.player1Score = game.settings.maxScore || 5;
 			}
 
 			// Notify remaining player about the disconnect
@@ -70,8 +70,8 @@ function handleRemainingPlayers(game, disconnectedPlayerNumber) {
 				type: 'gameOver',
 				reason: 'opponentDisconnected',
 				winner: winnerNumber,
-				score1: game.gameState.score.player1Score,
-				score2: game.gameState.score.player2Score,
+				score1: game.getState().score.player1Score,
+				score2: game.getState().score.player2Score,
 				message: `Player ${disconnectedPlayerNumber} disconnected. You win!`
 			});
 

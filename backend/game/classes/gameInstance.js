@@ -70,11 +70,10 @@ export class GameInstance {
 
 	update(deltaTime) {
 		const gameState = this.gameStateManager.getState();
-		const ball = this.gameState.ball;
 
 		if (gameState.gameStarted) {
 			// Update ball position
-			this.physicManager.updateBallPosition(ball, deltaTime);
+			this.physicManager.updateBallPosition(gameState.ball, deltaTime);
 
 			// Handle powerups if enabled
 			if (this.settings.powerUpsEnabled) {
@@ -82,24 +81,25 @@ export class GameInstance {
 				this.powerUpManager.checkPowerupCollision(gameState, this.players);
 			}
 
-			if (this.mapType === 'custom') {
-				this.physicManager.checkCustomMapCollision(ball, this.players);
+			if (this.settings.mapType === 'custom') {
+				this.physicManager.checkCustomMapCollision(gameState.ball, this.players);
 			}
 			// Check collisions
-			this.physicManager.checkWallCollision(ball,  this.players.values());
-			this.physicManager.checkPaddleCollision(ball, gameState.paddle1, gameState.paddle2, this.players);
+			this.physicManager.checkWallCollision(gameState.ball,  Array.from(this.players.values()));
+			this.physicManager.checkPaddleCollision(gameState.ball, gameState.paddle1, gameState.paddle2, this.players);
 
 			// Check if someone scored
-			const scoringResult = this.physicManager.checkScoring(ball, gameState);
+			const scoringResult = this.physicManager.checkScoring(gameState.ball, gameState);
 
 			if (scoringResult.scored) {
-				this.resetBall(scoringResult.scorer);
-
+				
 				// Check for game winner
-				const winner = gameStateManager.checkWin();
+				const winner = this.gameStateManager.checkWin();
 				if (winner) {
 					scoringResult.winner = winner;
+					return scoringResult;
 				}
+				this.resetBall(scoringResult.scorer);
 			}
 
 			return scoringResult;

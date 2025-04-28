@@ -117,6 +117,7 @@ export class GameSection extends ASection {
     readonly gamePage = document.getElementById('gameCanvas') as HTMLCanvasElement;
     readonly gameContainer = document.getElementById('game-container') as HTMLElement;
     readonly fpsCounter = document.getElementById('fps-counter') as HTMLElement;
+	readonly queueMessage = document.getElementById('queue-message') as HTMLElement;
 
 
 	/* Methods */
@@ -127,6 +128,8 @@ export class GameSection extends ASection {
 		}
 
 		this.activate_section();
+		if (this.queueMessage)
+			this.queueMessage.style.display = 'none';
 
 		if (activeGameId) {
 			if (!settingsPage) {
@@ -137,13 +140,6 @@ export class GameSection extends ASection {
 				this.gamePage.style.display = 'none';
 				this.gameContainer.style.display = 'none';
 				this.fpsCounter.style.display = 'none';
-			} else if (!gamePage) {
-				if (user && user.userId)
-					gamePage = new Game(activeGameId, user.userId.toString());
-				this.settingsPage.style.display = 'none';
-				this.gamePage.style.display = 'block';
-				this.gameContainer.style.display = 'block';
-				this.fpsCounter.style.display = 'block';
 			}
 		} else {
 			console.error('No active game ID found');
@@ -163,6 +159,18 @@ export class GameSection extends ASection {
 	}
 
 	async leave() {
+		// if (user && user.userId) {
+		// 	try { 
+		// 		await fetch(`/api/game/queue/leave`, {
+		// 			method: 'DELETE',
+		// 			credentials: 'include',
+		// 			headers: { "Content-Type": "application/json"},
+		// 			body: JSON.stringify({ userId: user.userId })
+		// 		});
+		// 	} catch (err) {
+		// 		console.error('Error leaving queue:', err);
+		// 	}
+		// }
 		super.leave();
 		if (settingsPage) {
 			settingsPage.cleanup();
@@ -187,6 +195,17 @@ export class GameSection extends ASection {
 			console.error('play1v1: not logged in');
 			return ;
 		}
+		const showQueueMessage = (msg: string) => {
+			if (this.queueMessage) {
+				this.queueMessage.textContent = msg;
+				this.queueMessage.style.display = 'block';
+			}
+		};
+		const hideQueueMessage = () => {
+			if (this.queueMessage) {
+				this.queueMessage.style.display = 'none';
+			}
+		};
 		try { 
 			const resp = await fetch('/api/game/queue', {
 				method: 'POST',
@@ -195,18 +214,18 @@ export class GameSection extends ASection {
 				body: JSON.stringify({ userId: user.userId })
 			});
 			if (resp.status === 202) { 
-				alert('waiting for an opponent');
+				showQueueMessage('Waiting for an opponent...');
 			} else if (resp.ok) { 
-				alert('Match found! Waiting for game to start...');
+				return ;
 			} else { 
 				const err = await resp.json();
-				alert(`Queue error: ${err.error}`);
+				showQueueMessage(`Queue error: ${err.error}`);
 			}
 		} catch (err) {
 			console.error('play1v1: error', err);
-			alert('Failed to join 1v1 queue');
+			showQueueMessage('Failed to join 1v1 queue');
+			setTimeout(hideQueueMessage, 2000);
 		}
-
 	}
 
 

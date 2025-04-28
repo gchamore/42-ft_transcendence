@@ -10,6 +10,7 @@ import { WebSocketService } from "../services/webSocketService.js";
 import { BabylonManager } from "../game/managers/babylonManager.js";
 import { FPSManager } from "../game/managers/fpsManager.js";
 import { SettingsService } from "../services/settingsServices.js";
+import {go_section} from "../../sections.js";
 
 export class Game {
 	private babylonManager: BabylonManager | null = null;
@@ -92,6 +93,7 @@ export class Game {
 				this.ball,
 				this.mapType,
 				this.powerUpsEnabled,
+				this.playerNumber,
 				() => {
 					console.log("3D scene loading complete");
 					this.isLoading = false;
@@ -120,7 +122,7 @@ export class Game {
 				this.babylonManager!
 			);
 			this.scoreBoard = new ScoreBoard();
-			this.uiManager = new UIManager(this.context, this.uiCanvas);
+			this.uiManager = new UIManager(this.context, this.uiCanvas, this.powerUpsEnabled);
 			this.inputManager = new InputManager(this.controls);
 		}
 
@@ -143,12 +145,6 @@ export class Game {
 					break;
 				case "connected":
 					console.log(data.message);
-					break;
-				case "rematchRequested":
-					this.handleRematchRequest(data);
-					break;
-				case "rematch":
-					this.handleRematch();
 					break;
 				case "error":
 					console.error("Game error:", data.message);
@@ -330,7 +326,7 @@ export class Game {
 			);
 			setTimeout(() => {
 				this.stopGame();
-				window.location.href = "/";
+				go_section('home');
 			}, 5000);
 		} else {
 			this.uiManager.drawGameOverMessage(
@@ -348,10 +344,6 @@ export class Game {
 		const container = document.getElementById("game-over-menu") as HTMLElement;
 		const messageEl = document.getElementById("game-over-message") as HTMLElement;
 	
-		// Clear any previous states
-		document.getElementById("waiting-rematch")!.style.display = "none";
-		document.getElementById("rematch-request")!.style.display = "none";
-	
 		// Show main content elements
 		document.getElementById("game-over-title")!.style.display = "block";
 		document.getElementById("game-over-buttons")!.style.display = "flex";
@@ -361,72 +353,6 @@ export class Game {
 		container.style.display = "block";
 	
 		// Set up event listeners
-		document.getElementById("rematch-button")!.onclick = () => this.requestRematch();
-		document.getElementById("home-button")!.onclick = () => window.location.href = "/";
-	}
-	
-	private requestRematch() {
-		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-			this.socket.send(
-				JSON.stringify({
-					type: "rematchRequest",
-					player: this.playerNumber,
-				})
-			);
-	
-			// Hide main content elements
-			document.getElementById("game-over-title")!.style.display = "none";
-			document.getElementById("game-over-message")!.style.display = "none";
-			document.getElementById("game-over-buttons")!.style.display = "none";
-	
-			document.getElementById("waiting-rematch")!.style.display = "block";
-	
-			let waitingAnimationId: number | null = null;
-	
-			const waitingAnimation = (timestamp: number) => {
-				this.uiManager.drawWaitingForRematch(timestamp);
-				waitingAnimationId = requestAnimationFrame(waitingAnimation);
-			};
-			waitingAnimationId = requestAnimationFrame(waitingAnimation);
-	
-			const originalHandleRematch = this.handleRematch;
-			this.handleRematch = () => {
-				if (waitingAnimationId) {
-					cancelAnimationFrame(waitingAnimationId);
-					waitingAnimationId = null;
-				}
-				this.handleRematch = originalHandleRematch;
-				originalHandleRematch.call(this);
-			};
-		}
-	}
-	
-	private handleRematchRequest(data: any): void {
-		// Hide main content elements
-		document.getElementById("game-over-title")!.style.display = "none";
-		document.getElementById("game-over-message")!.style.display = "none";
-		document.getElementById("game-over-buttons")!.style.display = "none";
-	
-		const messageEl = document.getElementById("rematch-request-message") as HTMLElement;
-		messageEl.textContent = `Player ${data.player} has requested a rematch`;
-	
-		document.getElementById("rematch-request")!.style.display = "block";
-		document.getElementById("game-over-menu")!.style.display = "block";
-	
-		// Set up event listeners
-		document.getElementById("accept-rematch")!.onclick = () => this.requestRematch();
-		document.getElementById("decline-rematch")!.onclick = () => window.location.href = "/";
-	}
-	
-	private handleRematch(): void {
-		console.log("Rematch accepted");
-		this.uiManager.clearOverlay();
-		const container = document.getElementById("game-over-menu");
-		if (container) {
-			container.style.display = "none";
-		}
-		if (!this.animationFrameId) {
-			this.start();
-		}
+		document.getElementById("home-button")!.onclick = () => go_section('home');
 	}
 }

@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   physicManager.js                                   :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: anferre <anferre@student.42.fr>            +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/04/28 16:45:49 by anferre           #+#    #+#             */
+/*   Updated: 2025/04/28 16:45:53 by anferre          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 import { GameConfig } from '../shared/config/gameConfig.js';
 import { safeSend } from '../utils/socketUtils.js';
 
@@ -67,20 +79,16 @@ export class PhysicManager {
 				const currentSpeed = Math.sqrt(ball.speedX * ball.speedX + ball.speedY * ball.speedY);
 
 				if (isHorizontalCollision) {
-					// LEFT/RIGHT COLLISION
-					// Flip X direction
-					ball.speedX *= -1;
+					const relativeIntersectY = (ball.y - paddle.y) / (paddle.height / 2);
+					const clamped = Math.max(-1, Math.min(1, relativeIntersectY));
+					const angle = clamped * GameConfig.MAX_ANGLE;
 
-					// Calculate hit position along the paddle (0 = top, 1 = bottom)
-					const hitPoint = (ball.y - paddle.y) / paddle.height;
+					const speed = Math.sqrt(ball.speedX * ball.speedX + ball.speedY * ball.speedY);
 
-					const rawAngle = (hitPoint - 0.5) * Math.PI / 2;
-					const constrainedAngle = Math.max(GameConfig.MIN_ANGLE, Math.min(GameConfig.MAX_ANGLE, rawAngle));
-
-					const speedMagnitude = Math.sqrt(ball.speedX * ball.speedX + ball.speedY * ball.speedY);
-					ball.speedY = Math.sin(constrainedAngle) * speedMagnitude;
-					ball.speedX = Math.sign(ball.speedX) * Math.abs(Math.cos(constrainedAngle) * speedMagnitude);
-
+					// For left paddle, bounce right; for right paddle, bounce left
+					const direction = playerNumber === 1 ? 1 : -1;
+					ball.speedX = direction * Math.abs(Math.cos(angle) * speed);
+					ball.speedY = Math.sin(angle) * speed;
 					// Ensure the ball is outside the paddle
 					if (playerNumber === 1) {
 						ball.x = paddle.x + paddle.width + ball.radius + 1;

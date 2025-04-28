@@ -1,7 +1,8 @@
 /* General */
 #sidebar {
     min-height: 300px;
-    min-width: 100px;
+    min-width: 75px;
+	max-width: 150px;
     
     flex-grow: 0;
 }

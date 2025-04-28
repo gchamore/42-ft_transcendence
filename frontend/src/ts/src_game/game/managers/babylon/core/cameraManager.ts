@@ -1,18 +1,20 @@
 export class CameraManager {
 	private camera: BABYLON.ArcRotateCamera | null = null;
 
-	constructor(private scene: BABYLON.Scene | null) {
+	constructor(private scene: BABYLON.Scene | null, private playerNumber: number) {
 		this.createCamera();
 	}
 
 	private createCamera(): void {
-		if (!this.scene) return;
+		if (!this.scene || !this.playerNumber) return;
 
+		const alpha = this.playerNumber === 1 ? 0 : Math.PI ; // player 1: Math.PI, player 2: 0
+		
 		this.camera = new BABYLON.ArcRotateCamera(
 			"camera",
-			Math.PI / 2,    // Alpha - rotation around Y-axis
+			alpha,    // Alpha - rotation around Y-axis
 			Math.PI / 3.5,  // Beta - rotation around X-axis
-			26,             // Radius - distance from target
+			20,             // Radius - distance from target
 			new BABYLON.Vector3(0, 0, 0),
 			this.scene
 		);

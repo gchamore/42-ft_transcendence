@@ -68,9 +68,6 @@ export function handleGameMessage(socket, game, data) {
 		case 'movePaddle':
 			handleMovePaddle(socket, game, playerNumber, data);
 			break;
-		case 'rematchRequest':
-			handleRematchRequest(socket, game, playerNumber);
-			break;
 		case 'pong':
 			socket.isAlive = true;
 			break;
@@ -82,7 +79,8 @@ export function handleGameMessage(socket, game, data) {
 function handleStartGame(socket, game, playerNumber) {
 	const gameState = game.gameStateManager.getState();
 	if (playerNumber === gameState.servingPlayer) {
-		if (game.players.length === 2) {
+		console.log('players length', game.players.size);
+		if (game.players.size === 2) {
 			console.log(`Player ${playerNumber} starting game ${game.gameId}`);
 			gameState.gameStarted = true;
 		} else {
@@ -119,30 +117,4 @@ function handleMovePaddle(socket, game, playerNumber, data) {
 
 	paddle.y = data.paddlePosition;
 	paddle.lastProcessedInput = data.inputSequence;
-}
-
-
-function handleRematchRequest(socket, game, playerNumber) {
-	const otherPlayer = game.players.find(player => player.playerNumber !== playerNumber);
-
-	if (!game.rematchRequested) {
-		game.rematchRequested = playerNumber;
-		if (otherPlayer) {
-			safeSend(otherPlayer, {
-				type: 'rematchRequested',
-				player: playerNumber
-			});
-		}
-		return;
-	}
-
-	if (game.rematchRequested && game.rematchRequested !== playerNumber) {
-		game.resetForRematch();
-		game.players.forEach((player) => {
-			safeSend(player, {
-				type: 'rematch'
-			});
-		});
-		game.rematchRequested = null;
-	}
 }
