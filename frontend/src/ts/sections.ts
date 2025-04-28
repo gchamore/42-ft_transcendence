@@ -1,8 +1,15 @@
+/* Custom types */
+const ACCEPTED = 1;
+const REFUSED = 0;
+type OptionStatus : ACCEPTED | REFUSED;
+/* --------- */
+
+
+
 /* Global variables */
 var sections : ASection[] = [];
 var HOME_INDEX : number = 0;
 var section_index : number = HOME_INDEX;
-
 /* --------- */
 
 
