@@ -117,6 +117,8 @@ export class GameSection extends ASection {
     readonly gamePage = document.getElementById('gameCanvas') as HTMLCanvasElement;
     readonly gameContainer = document.getElementById('game-container') as HTMLElement;
     readonly fpsCounter = document.getElementById('fps-counter') as HTMLElement;
+	readonly queueMessageContainer = document.getElementById('queue-message-container') as HTMLElement;
+	readonly leaveQueueBtn = document.getElementById('leave-queue-btn') as HTMLButtonElement;
 	readonly queueMessage = document.getElementById('queue-message') as HTMLElement;
 
 
@@ -128,8 +130,8 @@ export class GameSection extends ASection {
 		}
 
 		this.activate_section();
-		if (this.queueMessage)
-			this.queueMessage.style.display = 'none';
+		if (this.queueMessageContainer)
+			this.queueMessageContainer.style.display = 'none';
 
 		if (activeGameId) {
 			if (!settingsPage) {
@@ -199,17 +201,31 @@ export class GameSection extends ASection {
 			console.error('play1v1: not logged in');
 			return ;
 		}
+		
 		const showQueueMessage = (msg: string) => {
-			if (this.queueMessage) {
+			if (this.queueMessage) 
 				this.queueMessage.textContent = msg;
-				this.queueMessage.style.display = 'block';
-			}
+			if (this.queueMessageContainer) 
+				this.queueMessageContainer.style.display = 'block';
 		};
 		const hideQueueMessage = () => {
-			if (this.queueMessage) {
-				this.queueMessage.style.display = 'none';
-			}
+			if (this.queueMessageContainer) 
+				this.queueMessageContainer.style.display = 'none';
 		};
+		if (this.leaveQueueBtn) {
+			this.leaveQueueBtn.onclick = async () => {
+				try {
+					await fetch('/api/game/queue/leave', {
+						method: 'DELETE',
+						credentials: 'include',
+						headers: { "Content-Type": "application/json" }
+					});
+				} catch (err) {
+					console.error('Error leaving queue:', err);
+				}
+				hideQueueMessage();
+			};
+		}
 		try { 
 			const resp = await fetch('/api/game/queue', {
 				method: 'POST',

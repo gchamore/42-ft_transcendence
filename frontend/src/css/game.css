@@ -90,23 +90,48 @@
     color: #fff;
 }
 
-#queue-message {
+#queue-message-container {
     display: none;
-    color: #000;
-    background-color: rgb(153, 29, 35);
-    border: 2px solid #000;
-    padding: 12px 24px;
-    border-radius: 12px;
-    text-align: center;
     position: absolute;
     left: 50%;
     top: 5%;
     transform: translateX(-50%);
     z-index: 1200;
+    text-align: center;
+    background-color: rgb(145, 83, 83);
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    padding: 18px 32px 18px 32px;
+}
+
+#queue-message {
+    color: #000;
+    background-color: rgb(153, 29, 35);
+    border: 2px solid #000;
+    padding: 12px 24px;
+    border-radius: 12px;
     font-size: 1.4rem;
     font-weight: bold;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     letter-spacing: 0.5px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+#leave-queue-btn {
+    background-color: #ef4444;
+    color: #fff;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.6rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: background 0.2s;
+    display: inline-block;
+}
+#leave-queue-btn:hover {
+    background-color: #b91c1c;
 }
 
 #home-button {

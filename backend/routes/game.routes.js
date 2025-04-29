@@ -185,9 +185,20 @@ export async function gameRoutes(fastify, options) {
 
 	// WebSocket route
 	fastify.register(async function (fastify) {
-		fastify.get('/game/:gameId', { websocket: true }, (connection, request) =>
+		fastify.get('/game/:gameId', { websocket: true }, (connection, request) =>{
+			const userId = request.query?.userId;
+			if (userId) {
+				fastify.connections.set(userId, connection.socket);
+				connection.socket.on('close', () => {
+					const idx = gameQueue.indexOf(userId);
+					if (idx !== -1) {
+						gameQueue.splice(idx, 1);
+					}
+					fastify.connections.delete(userId);
+				});
+			}
 			handleGameConnection(fastify, connection, request)
-		);
+		});
 	});
 	// Start game update loop
 	setupGameUpdateInterval();

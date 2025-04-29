@@ -310,6 +310,7 @@ export class Game {
 
 	private handleGameOver(data: any) {
 		this.gameStarted = false;
+		this.pauseGame();
 
 		const finalScore = data.finalScore || { player1Score: 0, player2Score: 0 };
 	

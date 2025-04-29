@@ -21,17 +21,19 @@ export async function authRoutes(fastify, options) {
 		const { username, password } = request.body;
 	
 		fastify.log.info({ body: request.body }, "Tentative d'inscription");
+
+		const trimmedUsername = username ? username.trim() : '';
 		
 		// Verify if the required fields are present
-		if (!username || !password) {
+		if (!trimmedUsername || !password) {
 			fastify.log.warn("Échec d'inscription : username ou password manquant");
 			return reply.code(400).send({ error: "Username and password are required" });
 		}
 	
 		// Verify if the username already exists in the database
-		const existingUser = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
+		const existingUser = db.prepare("SELECT id FROM users WHERE username = ?").get(trimmedUsername);
 		if (existingUser) {
-			fastify.log.warn(`Échec d'inscription : Username déjà pris (${username})`);
+			fastify.log.warn(`Échec d'inscription : Username déjà pris (${trimmedUsername})`);
 			return reply.code(400).send({ error: "Username already taken" });
 		}
 
@@ -41,7 +43,7 @@ export async function authRoutes(fastify, options) {
 			const hashedPassword = await authUtils.hashPassword(password);
 	
 			// Insert the user into the database
-			const result = db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, hashedPassword);
+			const result = db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(trimmedUsername, hashedPassword);
 			const newUserId = result.lastInsertRowid;
 	
 			// Get the newly created user from the database
