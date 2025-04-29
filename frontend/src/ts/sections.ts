@@ -171,7 +171,11 @@ export class GameSection extends ASection {
 		// 		console.error('Error leaving queue:', err);
 		// 	}
 		// }
-		super.leave();
+
+		this.settingsPage.style.display = 'none';
+		this.gamePage.style.display = 'none';
+		this.gameContainer.style.display = 'none';
+		this.fpsCounter.style.display = 'none';
 		if (settingsPage) {
 			settingsPage.cleanup();
 			settingsPage = null;

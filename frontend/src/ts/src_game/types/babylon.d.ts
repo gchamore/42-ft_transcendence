@@ -222,6 +222,11 @@ declare namespace BABYLON {
 			options: any | null,
 			scene: Scene
 		): Mesh;
+		function CreatePlane(
+            name: string,
+            options: PlaneOptions,
+            scene: Scene
+        ): Mesh;
 	}
 
 	interface CylinderOptions {
@@ -240,4 +245,14 @@ declare namespace BABYLON {
 		height?: number;
 		depth?: number;
 	}
+
+	interface PlaneOptions {
+        width?: number;
+        height?: number;
+        sideOrientation?: number;
+        frontUVs?: any;
+        backUVs?: any;
+        updatable?: boolean;
+        sourcePlane?: any;
+    }
 }

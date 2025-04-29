@@ -52,14 +52,14 @@ export class GameControls {
 			case " ":
 				this.handleSpacePress();
 				break;
-			case "w":
-			case "W":
-			case "ArrowUp":
+			case "d":
+			case "D":
+			case "ArrowRight":
 				this.keysPressed[event.key] = true;
 				break;
-			case "s":
-			case "S":
-			case "ArrowDown":
+			case "a":
+			case "A":
+			case "ArrowLeft":
 				this.keysPressed[event.key] = true;
 				break;
 		}
@@ -77,18 +77,18 @@ export class GameControls {
 
 	handleKeyUp(event: KeyboardEvent): void {
 		switch (event.key) {
-			case "w":
-			case "W":
-			case "ArrowUp":
+			case "d":
+			case "D":
+			case "ArrowRight":
 				delete this.keysPressed[event.key];
 				if (!this.isAnyMovementKeyPressed()) {
 					this.localPaddle.velocity = 0;
 					this.sendPaddleMovements();
 				}
 				break;
-			case "s":
-			case "S":
-			case "ArrowDown":
+				case "a":
+					case "A":
+					case "ArrowLeft":
 				delete this.keysPressed[event.key];
 				if (!this.isAnyMovementKeyPressed()) {
 					this.localPaddle.velocity = 0;
@@ -100,12 +100,12 @@ export class GameControls {
 
 	private isAnyMovementKeyPressed(): boolean {
 		return (
-			this.keysPressed["w"] ||
-			this.keysPressed["W"] ||
-			this.keysPressed["s"] ||
-			this.keysPressed["S"] ||
-			this.keysPressed["ArrowUp"] ||
-			this.keysPressed["ArrowDown"]
+			this.keysPressed["d"] ||
+			this.keysPressed["D"] ||
+			this.keysPressed["a"] ||
+			this.keysPressed["A"] ||
+			this.keysPressed["ArrowRight"] ||
+			this.keysPressed["ArrowLeft"]
 		);
 	}
 
@@ -123,19 +123,23 @@ export class GameControls {
 		let oldVelocity = this.localPaddle.velocity;
 
 		if (
-			this.keysPressed["w"] ||
-			this.keysPressed["W"] ||
-			this.keysPressed["ArrowUp"]
+			this.keysPressed["d"] ||
+			this.keysPressed["D"] ||
+			this.keysPressed["ArrowRight"]
 		) {
 			this.localPaddle.velocity = -this.localPaddle.speed;
+			if (this.playerNumber === 2)
+				this.localPaddle.velocity *= -1;
 			needsUpdate = true;
 		}
 		else if (
-			this.keysPressed["s"] ||
-			this.keysPressed["S"] ||
-			this.keysPressed["ArrowDown"]
+			this.keysPressed["a"] ||
+			this.keysPressed["A"] ||
+			this.keysPressed["ArrowLeft"]
 		) {
 			this.localPaddle.velocity = this.localPaddle.speed;
+			if (this.playerNumber === 2)
+				this.localPaddle.velocity *= -1;
 			needsUpdate = true;
 		}
 
@@ -173,7 +177,7 @@ export class GameControls {
 				console.error("Error sending message:", e);
 			}
 		} else {
-			console.warn("Cannot send message, socket state:", {
+			console.log("Cannot send message, socket state:", {
 				current: socket.readyState,
 				states: {
 					CONNECTING: WebSocket.CONNECTING,

@@ -17,16 +17,16 @@ export class EnvironmentFactory {
 		tableMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.3);
 		tableMaterial.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
 
-		this.tableMesh = BABYLON.MeshBuilder.CreateBox(
+		this.tableMesh = BABYLON.MeshBuilder.CreatePlane(
 			"table",
 			{
 				width: 22,
-				height: 0.5,
-				depth: 15,
+				height: 15,
 			},
 			this.scene
 		);
 		this.tableMesh.position.y = -1;
+		this.tableMesh.rotation.x = Math.PI / 2;
 		this.tableMesh.material = tableMaterial;
 		this.tableMesh.receiveShadows = true;
 	}
@@ -48,7 +48,7 @@ export class EnvironmentFactory {
 			},
 			this.scene
 		);
-		this.topWall.position = new BABYLON.Vector3(0, -0.5, 7.75);
+		this.topWall.position = new BABYLON.Vector3(0, -0.8, 7.75);
 		this.topWall.material = wallMaterial;
 
 		// Bottom wall
@@ -61,7 +61,7 @@ export class EnvironmentFactory {
 			},
 			this.scene
 		);
-		this.bottomWall.position = new BABYLON.Vector3(0, -0.5, -7.75);
+		this.bottomWall.position = new BABYLON.Vector3(0, -0.8, -7.75);
 		this.bottomWall.material = wallMaterial;
 	}
 

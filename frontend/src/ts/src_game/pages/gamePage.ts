@@ -10,7 +10,6 @@ import { WebSocketService } from "../services/webSocketService.js";
 import { BabylonManager } from "../game/managers/babylonManager.js";
 import { FPSManager } from "../game/managers/fpsManager.js";
 import { SettingsService } from "../services/settingsServices.js";
-import {go_section} from "../../sections.js";
 
 export class Game {
 	private babylonManager: BabylonManager | null = null;
@@ -130,7 +129,7 @@ export class Game {
 		this.socket = WebSocketService.getInstance().connect(this.gameId, 'game', this.userId);
 		
 		this.socket.onopen = () => {
-			console.log("Connected to server");
+			console.log("Connected to the game");
 		};
 		//listen for messages
 		this.socket.onmessage = (message) => {
@@ -196,14 +195,12 @@ export class Game {
 		};
 
 		this.socket.onclose = () => {
-			console.log("Disconnected from server");
+			console.log("Disconnected from the game");
 			if (this.gameStarted) {
 				this.uiManager.drawErrorMessage("Connection to server lost");
-				this.pauseGame();
 			}
 			setTimeout(() => {
-				this.stopGame();
-				window.location.href = "/";
+				(window as any).go_section('home');
 			}, 3000);
 		};
 	}
@@ -266,7 +263,8 @@ export class Game {
 					this.servingPlayer
 				);
 			}
-			this.uiManager.drawPowerupStatus();
+			if (this.powerUpsEnabled)
+				this.uiManager.drawPowerupStatus();
 		}
 		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
 	}
@@ -293,7 +291,9 @@ export class Game {
 			this.babylonManager.dispose();
 			this.babylonManager = null;
 		}
-		
+		 if (this.socket && this.socket.readyState === WebSocket.OPEN)
+			this.socket.close();
+
 	}
 
 	private updateSettings() {
@@ -325,8 +325,7 @@ export class Game {
 				data.winner === this.playerNumber
 			);
 			setTimeout(() => {
-				this.stopGame();
-				go_section('home');
+				(window as any).go_section('home');
 			}, 5000);
 		} else {
 			this.uiManager.drawGameOverMessage(
@@ -337,7 +336,6 @@ export class Game {
 			// Regular game over message
 			this.createGameOverMenu(`Player ${data.winner} wins!`);
 		}
-		this.pauseGame();
 	}
 	
 	private createGameOverMenu(message: string) {
@@ -353,6 +351,10 @@ export class Game {
 		container.style.display = "block";
 	
 		// Set up event listeners
-		document.getElementById("home-button")!.onclick = () => go_section('home');
+		document.getElementById("home-button")!.onclick = () => {
+			container.style.display = "none";
+			console.log("Going to home");
+			(window as any).go_section('home');
+		}	
 	}
 }

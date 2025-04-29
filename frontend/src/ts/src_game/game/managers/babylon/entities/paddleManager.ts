@@ -79,7 +79,7 @@ export class PaddleManager {
 		this.paddleMesh1.position = this.coordinateConverter.toScenePosition(
 			this.paddle1.x + this.paddle1.width / 2,
 			this.paddle1.y,
-			-0.25
+			-0.5
 		);
 	}
 
@@ -89,7 +89,7 @@ export class PaddleManager {
 		this.paddleMesh2.position = this.coordinateConverter.toScenePosition(
 			this.paddle2.x + this.paddle2.width / 2,
 			this.paddle2.y,
-			-0.25
+			-0.5
 		);
 	}
 
@@ -107,7 +107,7 @@ export class PaddleManager {
 		this.paddleMesh1.position = this.coordinateConverter.toScenePosition(
 			paddleState.x + paddleState.width / 2,
 			paddleState.y,
-			-0.25
+			-0.5
 		);
 	}
 
@@ -120,7 +120,7 @@ export class PaddleManager {
 		this.paddleMesh2.position = this.coordinateConverter.toScenePosition(
 			paddleState.x + paddleState.width / 2,
 			paddleState.y,
-			-0.25
+			-0.5
 		);
 	}
 
