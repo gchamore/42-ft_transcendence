@@ -3,7 +3,7 @@ import { games } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleGameMessage, handleGameDisconnect } from './gameMessageHandlers.js';
 import { handleNewGamePlayer } from './gameMessageHandlers.js';
-import { lobbies } from '../controllers/gameController.js';
+import { lobbies, cleanupLobby } from '../controllers/gameController.js';
 import WebSocket from 'ws';
 
 export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber) {
@@ -69,7 +69,7 @@ function handleLobbyDisconnect(socket, lobby) {
 	console.log(`Player ${socket.playerNumber} disconnected from lobby ${lobby.lobbyId}`);
 	lobby.removePlayer(socket);
 	if (lobby.players.size === 0) {
-		lobbies.delete(lobby.lobbyId);
+		cleanupLobby(lobby.lobbyId);
 		console.log(`Lobby ${lobby.lobbyId} deleted due to emptyness`);
 	}
 }

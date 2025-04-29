@@ -168,11 +168,11 @@ export async function gameRoutes(fastify, options) {
 			if (userId) {
 				fastify.connections.set(userId, connection.socket);
 				connection.socket.on('close', () => {
-					let queue = tournamentQueues.get(tid) || [];
+					let queue = tournamentQueues.get(tid) || []; //need to modify to array
 					const idx = queue.indexOf(userId);
 					if (idx !== -1) {
 						queue.splice(idx, 1);
-						tournamentQueues.set(tid, queue);
+						tournamentQueues.set(tid, queue); //need to modify to array
 					}
 					fastify.connections.delete(userId);
 				});

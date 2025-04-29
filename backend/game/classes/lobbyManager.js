@@ -48,4 +48,9 @@ export class LobbyManager {
 	getSettings() {
 		return this.settingsManager.getSettings();
 	}
+
+	cleanup() {
+		this.players.clear();
+		this.settingsManager = null;
+	}
 }

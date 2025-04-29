@@ -7,6 +7,7 @@ import { GameConfig } from "../shared/config/gameConfig.js";
 import { handleDisconnect } from "../handlers/disconnectHandler.js";
 import wsService from '../../ws/ws.service.js';
 import { playerNumbers } from "../../routes/game.routes.js";
+import { settingsManagers } from "../../routes/game.routes.js";
 
 
 
@@ -23,7 +24,7 @@ export async function handleGameConnection(fastify, connection, request) {
 	const { gameId } = request.params;
 	const mode = request.query.mode;
 	const accessToken = request.cookies?.accessToken;
-	
+
 	// const validation = await wsService.validateConnectionToken(fastify, connection, accessToken);
 	// if (!validation) return(console.log('validation undefined'));
 	// const userId = validation.userId; // always the same id
@@ -53,6 +54,7 @@ export async function handleGameConnection(fastify, connection, request) {
 			const lobbySettings = lobby.getSettings();
 			game = new GameInstance(gameId, lobbySettings, safeSend);
 			games.set(gameId, game);
+			cleanupLobby(gameId);
 		}
 
 		handleNewGamePlayer(socket, game); // ← socket.userId est dispo ici
@@ -71,7 +73,7 @@ export function setupGameUpdateInterval() {
 		lastUpdateTime = now;
 		games.forEach((game) => {
 			if (game.players.size === 0) {
-				games.delete(game.gameId);
+				cleanupGame(game.gameId);
 				return;
 			};
 
@@ -129,4 +131,42 @@ export function broadcastGameState(game) {
 			gameState: game.getState()
 		});
 	});
-} 
+}
+
+function cleanupGame(gameId) {
+	const game = games.get(gameId);
+	if (game) {
+		if (typeof game.cleanup === 'function') {
+			// Await cleanup if it's async
+			Promise.resolve(game.cleanup()).then(() => {
+				games.delete(gameId);
+			});
+		} else {
+			games.delete(gameId);
+		}
+	}
+	if (settingsManagers.has(gameId)) {
+		settingsManagers.delete(gameId);
+	}
+}
+
+export function cleanupLobby(gameId) {
+	const lobby = lobbies.get(gameId);
+	if (lobby) {
+		if (typeof lobby.cleanup === 'function') {
+			lobby.cleanup(); // Custom cleanup logic for lobby
+		}
+		lobbies.delete(gameId);
+	}
+}
+
+export function cleanupAllGamesAndLobbies() {
+	// Clean up all games
+	for (const gameId of games.keys()) {
+		cleanupGame(gameId);
+	}
+	// Clean up all lobbies
+	for (const lobbyId of lobbies.keys()) {
+		cleanupLobby(lobbyId);
+	}
+}

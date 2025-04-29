@@ -10,6 +10,7 @@ import { userRoutes } from "./routes/user.routes.js";
 import { wsRoutes } from "./routes/ws.routes.js";
 import { oauthRoutes } from "./routes/oauth.routes.js";
 import { twofaroutes } from "./routes/twofa.routes.js";
+import { cleanupAllGamesAndLobbies } from "./game/controllers/gameController.js";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 
@@ -84,6 +85,9 @@ const cleanup = async (signal) => {
 	console.log(`\n${signal} received. Cleaning up...`);
 
 	try {
+        // Nettoyage des games et des lobbies
+        cleanupAllGamesAndLobbies();
+        
 		// Petite pause pour laisser le temps aux signaux en attente de se propager
 		await new Promise(res => setTimeout(res, 200));
 
