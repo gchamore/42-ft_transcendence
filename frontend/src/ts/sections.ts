@@ -7,6 +7,9 @@ export var sections : ASection[] = [];
 export var HOME_INDEX : number = 0;
 export var section_index : number = HOME_INDEX;
 export var activeGameId: string | null = null; // Store the active game ID
+export var activeTournamentId: string | null = null; // Store the active tournament ID
+let tournamentSettingsChosen = false; // Store the tournament settings chosen
+let tournamentBracket: any = null; // Store the tournament bracket
 var settingsPage: SettingsPage | null = null;
 var gamePage: Game | null = null;
 /* --------- */
@@ -137,15 +140,31 @@ export class GameSection extends ASection {
 			if (!settingsPage) {
 				console.log('sections settingpage userID:', user?.userId);
 				if (user && user.userId)
-					settingsPage = new SettingsPage(activeGameId, user.userId.toString());
+					settingsPage = new SettingsPage(activeGameId, user.userId.toString(), false);
 				this.settingsPage.style.display = 'block';
 				this.gamePage.style.display = 'none';
 				this.gameContainer.style.display = 'none';
 				this.fpsCounter.style.display = 'none';
 			}
+		} else if (activeTournamentId) {
+			const isCreator = user?.isTournamentCreator;
+			if (isCreator && !tournamentSettingsChosen &&  settingsPage && user && user.userId) {
+				settingsPage = new SettingsPage(activeTournamentId, user.userId.toString(), true);
+				this.settingsPage.style.display = 'block';
+				this.gamePage.style.display = 'none';
+				this.gameContainer.style.display = 'none';
+				this.fpsCounter.style.display = 'none';
+				tournamentSettingsChosen = true;
+			}
 		} else {
 			console.error('No active game ID found');
 		}
+	}
+
+	resetTournamentState() {
+		tournamentSettingsChosen = false;
+		if (user) user.isTournamentCreator = false;
+		activeTournamentId = null;
 	}
 
 	transitionToGame(gameId: string) {
@@ -195,6 +214,19 @@ export class GameSection extends ASection {
 		this.logged_in_view();
 	}
 
+	showQueueMessage(msg: string, type: 'game' | 'tournament' = 'game') {
+		if (this.queueMessage) 
+			this.queueMessage.textContent = msg;
+		if (this.queueMessageContainer) {
+			this.queueMessageContainer.style.display = 'block';
+			this.queueMessageContainer.setAttribute('data-queue-type', type);
+		}
+	}
+
+	hideQueueMessage() {
+		if (this.queueMessageContainer) 
+			this.queueMessageContainer.style.display = 'none';
+	};
 
 	async play1v1() {
 		if (!user) { 
@@ -202,16 +234,6 @@ export class GameSection extends ASection {
 			return ;
 		}
 		
-		const showQueueMessage = (msg: string) => {
-			if (this.queueMessage) 
-				this.queueMessage.textContent = msg;
-			if (this.queueMessageContainer) 
-				this.queueMessageContainer.style.display = 'block';
-		};
-		const hideQueueMessage = () => {
-			if (this.queueMessageContainer) 
-				this.queueMessageContainer.style.display = 'none';
-		};
 		if (this.leaveQueueBtn) {
 			this.leaveQueueBtn.onclick = async () => {
 				try {
@@ -223,7 +245,7 @@ export class GameSection extends ASection {
 				} catch (err) {
 					console.error('Error leaving queue:', err);
 				}
-				hideQueueMessage();
+				this.hideQueueMessage();
 			};
 		}
 		try { 
@@ -234,17 +256,17 @@ export class GameSection extends ASection {
 				body: JSON.stringify({ userId: user.userId })
 			});
 			if (resp.status === 202) { 
-				showQueueMessage('Waiting for an opponent...');
+				this.showQueueMessage('Waiting for an opponent...');
 			} else if (resp.ok) { 
 				return ;
 			} else { 
 				const err = await resp.json();
-				showQueueMessage(`Queue error: ${err.error}`);
+				this.showQueueMessage(`Queue error: ${err.error}`);
 			}
 		} catch (err) {
 			console.error('play1v1: error', err);
-			showQueueMessage('Failed to join 1v1 queue');
-			setTimeout(hideQueueMessage, 2000);
+			this.showQueueMessage('Failed to join 1v1 queue');
+			setTimeout(this.hideQueueMessage, 2000);
 		}
 	}
 
@@ -254,50 +276,44 @@ export class GameSection extends ASection {
 			console.error('playTournament: not logged in');
 			return;
 		}
-		const maxPlayers = parseInt(prompt('Enter max players:', '4') || '4', 10);
-		if (isNaN(maxPlayers) || maxPlayers < 2) {
-			alert('Invalid number of players');
-			return;
+		if (this.leaveQueueBtn) {
+			this.leaveQueueBtn.onclick = async () => {
+				try {
+					await fetch('/api/tournament/queue/leave', {
+						method: 'DELETE',
+						credentials: 'include',
+						headers: { "Content-Type": "application/json" }
+					});
+				} catch (err) {
+					console.error('Error leaving tournament queue:', err);
+				}
+				this.hideQueueMessage();
+			};
 		}
 		try {
-			const createResp = await fetch('/api/game/tournament', {
+			const resp = await fetch('/api/tournament/queue', {
 				method: 'POST',
 				credentials: 'include',
-				body: JSON.stringify({
-					creatorId: user.name,
-					name: '',
-					maxPlayers
-				})
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ userId: user.userId })
 			});
-			if (!createResp.ok) {
-				const err = await createResp.json();
-				alert(`Tournament creation error: ${err.error}`);
-				return;
-			}
-			const { tournamentId: tid } = await createResp.json();
-			const joinResp = await fetch(`/api/tournament/${tid}/join`, {
-				method: 'POST',
-				credentials: 'include',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ playerId: user.name })
-			});
-			if (joinResp.status === 202) {
-				alert(`Joined tournament ${tid}, waiting for players…`);
-			} else if (joinResp.ok) {
-				activeGameId = tid;
-				go_section('game');
+			const data = await resp.json();
+			if (user)
+				user.isTournamentCreator = !!data.isCreator;
+			if (resp.status === 202) {
+				this.showQueueMessage('Waiting for tournament players...', 'tournament');
+			} else if (resp.ok) {
+				return ;
 			} else {
-				const err = await joinResp.json();
-				alert(`Tournament join error: ${err.error}`);
+				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament');
 			}
 		} catch (err) {
 			console.error('playTournament: error', err);
-			alert('Failed to create / join tournament');
+			this.showQueueMessage('Failed to join tournament queue', 'tournament');
+			setTimeout(this.hideQueueMessage, 2000);
 		}
-
 	}
 }
-
 
 class Profile extends ASection {
 	/* ASection */
@@ -752,6 +768,15 @@ export function set_section_index(index : number): void {
 
 export function set_active_game_id(gameId: string): void {
 	activeGameId = gameId;
+}
+
+export function set_active_tournament_id(tournamentId: string): void {
+	activeTournamentId = tournamentId;
+}
+
+export function set_tournament_bracket(bracket: string): void {
+	tournamentBracket = bracket;
+	console.log('Tournament bracket set:', tournamentBracket);
 }
 
 (window as any).go_section = go_section;

@@ -1,4 +1,4 @@
-import {update_friends_status, update_sections, HOME_INDEX, Chat, Actions, get_section_index, sections, section_index, set_section_index, set_active_game_id , go_section} from "./sections.js";
+import {update_friends_status, update_sections, HOME_INDEX, Chat, Actions, set_tournament_bracket, get_section_index, sections, section_index, set_section_index, set_active_game_id, set_active_tournament_id, go_section} from "./sections.js";
 /* Global variables */
 export var user : undefined | User = undefined;
 /* --------- */
@@ -45,6 +45,7 @@ export class User {
     readonly name: string;
 	readonly userId: number = 0;
     readonly avatar_path: string;
+	isTournamentCreator?: boolean = false;
     web_socket: WebSocket | undefined;
     livechat: Array<Message>;
     direct_messages: Array<Message>;
@@ -86,6 +87,9 @@ export class User {
 					case  'matchFound':
 						matchFound(data.gameId);
 						break;
+					case 'tournamentStart':
+						tournamentStart(data.tournamentId, data.bracket);
+						break;
                 }
             } catch (error) {
                 console.error('WebSocket message parsing error:', error);
@@ -111,6 +115,12 @@ export class User {
 
 		return users;
 	}
+}
+
+function tournamentStart(tournamentId : string, bracket : string) {
+	set_active_tournament_id(tournamentId);
+	set_tournament_bracket(bracket);
+	go_section('tournament');
 }
 
 function matchFound(matchId : string) {

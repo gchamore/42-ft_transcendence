@@ -17,6 +17,8 @@ export class SettingsPage {
 	private startButton: HTMLButtonElement;
 	private lobbyId: string;
 	private userId: string;
+	private isTournament: boolean;
+	private readyPlayers: Set<number> = new Set();
 
 	private handleBallSpeedChange!: (event: Event) => void;
 	private handlePaddleSpeedChange!: (event: Event) => void;
@@ -25,9 +27,10 @@ export class SettingsPage {
 	private handlePowerUpsChange!: (event: Event) => void;
 	private startButtonClickHandler!: (event: Event) => void;
 
-	constructor(activeGameId: string, userId: string) {
+	constructor(activeGameId: string, userId: string, isTournament: boolean) {
 		this.lobbyId = activeGameId
 		this.userId = userId;
+		this.isTournament = isTournament;
 		this.ballSpeedSlider = document.getElementById('ball-speed') as HTMLInputElement;
 		this.ballSpeedValue = document.getElementById('ball-speed-value')!;
 		this.paddleLengthSlider = document.getElementById('paddle-length') as HTMLInputElement;
@@ -84,11 +87,9 @@ export class SettingsPage {
 						console.error('Game ID not provided');
 					}
 					break;
-				case 'player2Ready':
-					if (this.playerNumber === 1) {
-						this.startButton.disabled = false;
-						this.startButton.textContent = 'Start Game';
-					}
+				case 'playerReady':
+					this.readyPlayers.add(data.playerNumber);
+					this.updateStartButtonState();
 					break;
 				case 'ping':
 					this.socket.send(JSON.stringify({ type: 'pong' }));
@@ -243,7 +244,7 @@ export class SettingsPage {
 				this.playerReady = true;
 				this.socket.send(JSON.stringify({
 					type: 'playerReady',
-					playerNumber: 2
+					playerNumber: this.playerNumber
 				}));
 				this.updateStartButtonState();
 			} else if (this.playerNumber === 1 && !this.startButton.disabled) {
@@ -262,19 +263,26 @@ export class SettingsPage {
 
 	private  updateStartButtonState() {
 		if (!this.startButton) return;
+		let totalPlayers = 0;
+		if (this.isTournament) {
+			totalPlayers = 4;
+		} else {
+			totalPlayers = 2;
+		}
 
-		switch (this.playerNumber) {
-			case 1:
-				this.startButton.textContent = 'Waiting for Player 2...';
+		if (this.playerNumber === 1) {
+			// Creator: can start only if all others are ready
+			if (this.readyPlayers.size === totalPlayers - 1) {
+				this.startButton.textContent = 'Start Game';
+				this.startButton.disabled = false;
+			} else {
+				this.startButton.textContent = `Waiting for ${totalPlayers - 1 - this.readyPlayers.size} players...`;
 				this.startButton.disabled = true;
-				break;
-			case 2:
-				this.startButton.textContent = this.playerReady ? 'Waiting for Player 1...' : 'Ready to Play';
-				this.startButton.disabled = this.playerReady;
-				break;
-			default:
-				this.startButton.disabled = true;
-				this.startButton.textContent = 'Connecting...';
+			}
+		} else {
+			// Non-creator: can click Ready if not already ready
+			this.startButton.textContent = this.playerReady ? 'Waiting for Player 1...' : 'Ready';
+			this.startButton.disabled = this.playerReady;
 		}
 	}
 

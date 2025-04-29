@@ -95,7 +95,8 @@ function handleLobbyMessage(socket, lobby, data) {
 				const player1 = Array.from(lobby.players.values()).find((player) => player.playerNumber === 1);
 				if (player1) {
 					safeSend(player1, {
-						type: 'player2Ready',
+						type: 'playerReady',
+						playerNumber: playerNumber,
 					});
 				}
 			}
