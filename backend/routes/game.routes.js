@@ -2,9 +2,10 @@ import { SettingsManager } from '../game/classes/settingsManager.js';
 import { setupGameUpdateInterval, handleGameConnection } from '../game/controllers/gameController.js';
 
 export const settingsManagers = new Map();
-export const playerNumbers = new Map();
+export const gamePlayerNumbers = new Map();
+export const tournamentPlayerNumbers = new Map();
 const gameQueue = [];
-let tournamentId = 0;
+let tournamentId = 1;
 const tournaments = new Map();
 const tournamentQueue = [];
 const invites = [];
@@ -25,15 +26,19 @@ export async function gameRoutes(fastify, options) {
 	// 1v1
 	fastify.post('/game/queue', async (request, reply) => {
 		const { userId } = request.body;
-	
+
 		if (!userId) {
 			return reply.code(401).send({ error: 'Unauthorized' });
 		}
-	
+
+		if (tournamentQueue.includes(userId)) {
+			return reply.code(400).send({ error: 'Cannot join game queue while in tournament queue' });
+		}
+
 		if (gameQueue.includes(userId)) {
 			return reply.code(400).send({ error: 'Already in queue' });
 		}
-	
+
 		gameQueue.push(userId);
 	
 		if (gameQueue.length >= 2) {
@@ -42,9 +47,9 @@ export async function gameRoutes(fastify, options) {
 			const gameId = Math.random().toString(36).substring(2, 8);
 			settingsManagers.set(gameId, new SettingsManager());
 		
-			playerNumbers.set(String(p1), 1);
+			gamePlayerNumbers.set(String(p1), 1);
 			console.log('Player 1:', p1);
-			playerNumbers.set(String(p2), 2);
+			gamePlayerNumbers.set(String(p2), 2);
 			console.log('Player 2:', p2);
 			notifyPlayers(fastify, gameId, p1);
 			notifyPlayers(fastify, gameId, p2);
@@ -70,10 +75,15 @@ export async function gameRoutes(fastify, options) {
 
 	// —— TOURNAMENT ——
 	fastify.post('/tournament/queue', async (request, reply) => {
-		const userId = request.user?.userId;
+		const { userId } = request.body;
 		if (!userId) {
 			return reply.code(401).send({ error: 'Unauthorized' });
 		}
+
+		if (gameQueue.includes(userId)) {
+			return reply.code(400).send({ error: 'Cannot join tournament queue while in game queue' });
+		}
+
 		if (tournamentQueue.includes(userId)) {
 			return reply.code(400).send({ error: 'Already in tournament queue' });
 		}
@@ -85,12 +95,15 @@ export async function gameRoutes(fastify, options) {
 			const tid = tournamentId++;
 			tournaments.set(tid, {
 				id: tid,
-				creatorId: players[0],
 				maxPlayers: 4,
 				players: players.slice(),
 				bracket: [],
 				status: 'started',
 				ready: new Map()
+			});
+			players.forEach((pid , idx) => {
+				tournamentPlayerNumbers.set(String(pid), idx + 1);
+				console.log('Tournament Player:', pid, 'Number:', idx + 1);
 			});
 			// Randomize player order
 			const shuffled = players.slice().sort(() => Math.random() - 0.5);
@@ -151,9 +164,13 @@ export async function gameRoutes(fastify, options) {
 			if (userId) {
 				fastify.connections.set(userId, connection.socket);
 				connection.socket.on('close', () => {
-					const idx = gameQueue.indexOf(userId);
-					if (idx !== -1) {
-						gameQueue.splice(idx, 1);
+					const idxG = gameQueue.indexOf(userId);
+					if (idxG  !== -1) {
+						gameQueue.splice(idxG , 1);
+					}
+					const idxT = tournamentQueue.indexOf(userId);
+					if (idxT !== -1) {
+						queue.splice(idxT, 1);
 					}
 					fastify.connections.delete(userId);
 				});
@@ -162,22 +179,20 @@ export async function gameRoutes(fastify, options) {
 		});
 
 		// New: Tournament match notification route
-		fastify.get('/tournament/:tournamentId/notify', { websocket: true }, (connection, request) => {
-			const userId = request.query?.userId;
-			const tid = Number(request.params.tournamentId);
-			if (userId) {
-				fastify.connections.set(userId, connection.socket);
-				connection.socket.on('close', () => {
-					let queue = tournamentQueues.get(tid) || []; //need to modify to array
-					const idx = queue.indexOf(userId);
-					if (idx !== -1) {
-						queue.splice(idx, 1);
-						tournamentQueues.set(tid, queue); //need to modify to array
-					}
-					fastify.connections.delete(userId);
-				});
-			}
-		});
+		// fastify.get('/tournament/:tournamentId', { websocket: true }, (connection, request) => {
+		// 	const userId = request.query?.userId;
+		// 	if (userId) {
+		// 		fastify.connections.set(userId, connection.socket);
+		// 		connection.socket.on('close', () => {
+		// 			const idx = tournamentQueue.indexOf(userId);
+		// 			if (idx !== -1) {
+		// 				queue.splice(idx, 1);
+		// 			}
+		// 			fastify.connections.delete(userId);
+		// 		});
+		// 	}
+
+		// });
 	});
 	
 	// Start game update loop

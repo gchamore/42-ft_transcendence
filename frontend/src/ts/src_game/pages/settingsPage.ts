@@ -239,7 +239,7 @@ export class SettingsPage {
 	private setupStartButtonListener() {
 		// Start game listener
 		this.startButtonClickHandler = () => {
-			if (this.playerNumber === 2 && !this.playerReady) {
+			if (this.playerNumber !== 1 && !this.playerReady) {
 				console.log('Player 2 ready');
 				this.playerReady = true;
 				this.socket.send(JSON.stringify({

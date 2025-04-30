@@ -95,7 +95,7 @@ export class WebSocketService {
 
 		// Connection close handling
 		connection.socket.on('close', async (code, reason) => {
-			this.handleConnectionClose(fastify, connection, pingInterval, code, reason, userId, username, connectionId);
+			this.handleConnectionClose(fastify, connection, code, reason, userId, username, connectionId);
 		});
 	}
 
@@ -105,7 +105,8 @@ export class WebSocketService {
 	// It handles the connection close event
 	handleInvalidToken(fastify, connection, connectionId, pingInterval) {
 		// Log the invalid token and close the connection
-		clearInterval(pingInterval);
+		if (pingInterval)
+			clearInterval(pingInterval);
 		try {
 			if (connection.socket.readyState < 2) {
 				connection.socket.close(1001, "Token invalid or ping timeout");
@@ -122,7 +123,8 @@ export class WebSocketService {
 	// It handles the connection close event
 	async handleConnectionClose(fastify, connection, pingInterval, code, reason, userId, username, connectionId) {
 		// Log the connection close event
-		clearInterval(pingInterval);
+		if (pingInterval)
+			clearInterval(pingInterval);
 		fastify.log.info(`WebSocket connection [ID: ${connectionId}] closed for user: ${username} (${userId}) with code ${code}${reason ? ` and reason: ${reason}` : ''}`);
 
 		// Ensure this connection is still active before removing it

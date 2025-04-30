@@ -34,7 +34,7 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber) {
 	});
 
 	// Player 1 sends settings to Player 2
-	if (playerNumber === 2) {
+	if (playerNumber !== 1) {
 		safeSend(socket, {
 			type: 'settingsUpdate',
 			settings: lobby.getSettings(),
@@ -91,7 +91,7 @@ function handleLobbyMessage(socket, lobby, data) {
 
 		case 'playerReady':
 			console.log(`Player ${playerNumber} is ready`);
-			if (playerNumber === 2) {
+			if (playerNumber !== 1) {
 				const player1 = Array.from(lobby.players.values()).find((player) => player.playerNumber === 1);
 				if (player1) {
 					safeSend(player1, {

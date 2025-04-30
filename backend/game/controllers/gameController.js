@@ -6,7 +6,7 @@ import { safeSend } from '../utils/socketUtils.js';
 import { GameConfig } from "../shared/config/gameConfig.js";
 import { handleDisconnect } from "../handlers/disconnectHandler.js";
 import wsService from '../../ws/ws.service.js';
-import { playerNumbers } from "../../routes/game.routes.js";
+import { gamePlayerNumbers, tournamentPlayerNumbers } from "../../routes/game.routes.js";
 import { settingsManagers } from "../../routes/game.routes.js";
 
 
@@ -24,6 +24,7 @@ export async function handleGameConnection(fastify, connection, request) {
 	const { gameId } = request.params;
 	const mode = request.query.mode;
 	const accessToken = request.cookies?.accessToken;
+	let isTournament = false;
 
 	// const validation = await wsService.validateConnectionToken(fastify, connection, accessToken);
 	// if (!validation) return(console.log('validation undefined'));
@@ -31,16 +32,37 @@ export async function handleGameConnection(fastify, connection, request) {
 	let userId = request.query?.userId;
 
 	socket.clientId = userId;
-	const playerNumber = playerNumbers.get(userId);
+	let playerNumber = null;
+	if (gamePlayerNumbers.has(userId)) {
+		playerNumber = gamePlayerNumbers.get(userId);
+	} else if (tournamentPlayerNumbers.has(userId)) {
+		playerNumber = tournamentPlayerNumbers.get(userId);
+		isTournament = true;
+	} else {
+		console.error('User is not in any player number map:', userId);
+		// Optionally close the socket or handle error
+	}
 	console.log('playerId:', userId, ' playerNumber:', playerNumber);
 
 	console.log('🎮 Game WS connection:', { gameId, mode, userId });
 
+	
+
 	if (mode === 'lobby') {
-		let lobby = lobbies.get(gameId) || new LobbyManager(gameId);
+		let lobby = lobbies.get(gameId) || new LobbyManager(gameId, isTournament);
 		lobbies.set(gameId, lobby);
 		handleNewLobbyPlayer(socket, lobby, userId, playerNumber);
-	} else if (mode === 'game') {
+	} else if (isTournament && mode === 'game') {
+        // Tournament: skip lobby, go straight to game
+        let game = games.get(gameId);
+        if (!game) {
+            const settings = settingsManagers.get(gameId)?.getSettings() || {}; // or get from tournament object
+            game = new GameInstance(gameId, settings, safeSend);
+            games.set(gameId, game);
+        }
+        handleNewGamePlayer(socket, game);
+        return;
+    } else if (!isTournament && mode === 'game') {
 		let game = games.get(gameId);
 		let lobby = lobbies.get(gameId);
 

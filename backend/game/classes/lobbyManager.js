@@ -2,17 +2,21 @@ import { SettingsManager } from './settingsManager.js';
 import { safeSend } from '../utils/socketUtils.js';
 
 export class LobbyManager {
-	constructor(lobbyId) {
+	constructor(lobbyId, isTournament = false) {
 		this.lobbyId = lobbyId;
 		this.settingsManager = new SettingsManager();
 		this.players = new Map();
+		this.nbPlayers = 2;
+		if (isTournament) {
+			this.nbPlayers = 4;
+		}
 	}
 
 	addPlayer(socket, clientId, playerNumber) {
 		socket.clientId = clientId;
 		console.log('addPlayer clientId:', clientId);
 
-		if (this.players.size >= 2) {
+		if (this.players.size >= this.nbPlayers) {
 			console.error(`Lobby ${this.lobbyId} is full. Cannot add client ${clientId} size: ${this.players.size}`);
 			return false;
 		}
