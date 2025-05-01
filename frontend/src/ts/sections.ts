@@ -1,7 +1,7 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
-import { login, register, add , remove, search, send, get_blocked_users } from './api.js';
+import { login, register, logout, add , remove, search, send, get_blocked_users } from './api.js';
 /* Global variables */
 export var sections : ASection[] = [];
 export var HOME_INDEX : number = 0;
@@ -351,7 +351,8 @@ class Profile extends ASection {
 		this.btn1.textContent = "Settings";
 		this.btn2.setAttribute("onclick", "verify_token()");
 		this.btn2.textContent = "Logout";
-		this.btn2.setAttribute("onclick", "logout()");
+		this.btn2.onclick = () => logout();
+
 
 		this.logged_in_view();
 	}

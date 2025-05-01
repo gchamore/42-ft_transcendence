@@ -21,7 +21,7 @@ export async function authRoutes(fastify, options) {
 		const { username, password } = request.body;
 	
 		fastify.log.info({ body: request.body }, "Tentative d'inscription");
-
+		
 		const trimmedUsername = username ? username.trim() : '';
 		
 		// Verify if the required fields are present
@@ -320,36 +320,37 @@ export async function authRoutes(fastify, options) {
 	// Clear the cookies for the tokens
 	// Close the WebSocket connection for the user
 	fastify.post("/logout", async (request, reply) => {
-		// Middleware used because the user is already authenticated
 		const userId = request.user.userId;
-		const token = request.cookies?.accessToken;
+		const db = request.server.db;
 
 		fastify.log.info('Processing logout for user:', userId);
-
+	
 		try {
-			// Update the user's online status in the database before closing the WebSocket
+			// Vérifier si l'utilisateur existe dans la base de données
+			const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+			if (!user) {
+				fastify.log.warn(`Utilisateur non trouvé pour la révocation: ID ${userId}`);
+				return reply.code(404).send({ error: "User not found" });
+			}
+			// Mise à jour de l'état de l'utilisateur avant de fermer la connexion WebSocket
 			await wsUtils.updateUserOnlineStatus(userId, false);
 			await wsUtils.broadcastUserStatus(fastify, userId, false);
-
-			// Close the WebSocket connection for the user
-			await wsUtils.closeUserWebSocket(fastify, userId, 1000, "User logged out");
-
-			// Revoke the user's tokens
+			// Fermer la connexion WebSocket pour l'utilisateur
+			await wsUtils.handleAllUserConnectionsClose(fastify, userId, user.username, 'User Logged Out');
+			// Révoquer les tokens de l'utilisateur
 			await authService.revokeTokens(userId);
-
-			// Check if the application is running locally or in production
+			// Vérification de l'environnement local ou de production
 			const isLocal = request.headers.host.startsWith("localhost");
-
 			const cookieOptions = {
 				path: '/',
 				secure: !isLocal,
 				httpOnly: true,
 				sameSite: 'None'
 			};
-
+	
 			fastify.log.info('Logout successful for user:', userId);
 			
-			// Clear the cookies for accessToken and refreshToken
+			// Effacer les cookies pour accessToken et refreshToken
 			return reply
 				.code(200)
 				.clearCookie('accessToken', cookieOptions)
@@ -357,14 +358,16 @@ export async function authRoutes(fastify, options) {
 				.header('Access-Control-Allow-Credentials', 'true')
 				.header('Access-Control-Allow-Origin', request.headers.origin || 'https://localhost:8443')
 				.send({ success: true, message: "Logged out successfully" });
-
+	
 		} catch (error) {
 			fastify.log.error('Logout error:', error);
 			return reply.code(500).send({
-				error: 'Logout failed'
+				error: 'Logout failed',
+				details: error.message // Ajout d'un message d'erreur détaillé
 			});
 		}
 	});
+	
 
 	/*** 📌 Route: REVOKE TOKEN ***/
 	// Revoke a user's tokens
@@ -396,7 +399,7 @@ export async function authRoutes(fastify, options) {
 			await wsUtils.broadcastUserStatus(fastify, userId, false);
 
 			// Close the WebSocket connection for the user
-			await wsUtils.closeUserWebSocket(fastify, userId, 1000, "Tokens revoked");
+			await wsUtils.handleAllUserConnectionsClose(fastify, userId, user.username, 'User Revoked');
 
 			// Revoke the user's tokens
 			await authService.revokeTokens(userId);
@@ -437,6 +440,7 @@ export async function authRoutes(fastify, options) {
 	fastify.post("/verify_token", async (request, reply) => {
 		const accessToken = request.cookies?.accessToken;
 		const refreshToken = request.cookies?.refreshToken;
+		const db = request.server.db;
 
 		fastify.log.info('Verify Token Request:', {
 			hasAccessToken: !!accessToken,

@@ -6,20 +6,27 @@ import { handleNewGamePlayer } from './gameMessageHandlers.js';
 import { lobbies } from '../controllers/gameController.js';
 import WebSocket from 'ws';
 
-export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber) {
+export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fastify) {
 	// Verify socket is open
 	if (socket.readyState !== WebSocket.OPEN) {
 		console.error('Socket not in OPEN state');
 		return;
 	}
-
-	if (!lobby.addPlayer(socket, clientId, playerNumber)) {
-		console.error('Lobby is full');
+	socket.currentCloseHandler = () => handleLobbyDisconnect(socket, lobby);
+	// Handle disconnect
+	socket.on('close', () => {
+		if (socket.currentCloseHandler) {
+			socket.currentCloseHandler();
+		} else {
+			console.error('No close handler set for socket');
+		}
+	});
+	if (!lobby.addPlayer(socket, clientId, playerNumber, fastify)) {
+		fastify.log.error('Lobby is full');
 		socket.close();
 		return;
 	}
-
-	console.log(`Player ${playerNumber} joined lobby ${lobby.lobbyId}`);
+	fastify.log.info(`Player ${playerNumber} joined lobby ${lobby.lobbyId}`);
 
 	// Send welcome messages
 	safeSend(socket, {
@@ -42,7 +49,6 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber) {
 	}
 
 	socket.currentHandler = (data) => handleLobbyMessage(socket, lobby, data);
-	socket.currentCloseHandler = () => handleLobbyDisconnect(socket, lobby);
 
 	// Set up socket message handler
 	socket.on('message', (message) => {
@@ -54,14 +60,6 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber) {
 		}
 	});
 
-	// Handle disconnect
-	socket.on('close', () => {
-		if (socket.currentCloseHandler) {
-			socket.currentCloseHandler();
-		} else {
-			console.error('No close handler set for socket');
-		}
-	});
 }
 
 function handleLobbyDisconnect(socket, lobby) {

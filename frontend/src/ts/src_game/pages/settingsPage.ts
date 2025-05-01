@@ -42,7 +42,7 @@ export class SettingsPage {
 			return;
 		}
 		
-		this.connectWebSocket();
+		this.connectWebSocket(); //first game ws 
 	}
 
 	private connectWebSocket() {

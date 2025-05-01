@@ -7,23 +7,23 @@ import authService from '../../auth/auth.service.js';
 export async function authMiddleware(request, reply, done) {
     const accessToken = request.cookies?.accessToken;
     const refreshToken = request.cookies?.refreshToken;
-    
+    const db = request.server.db;
     request.log.debug({
         hasAccessToken: !!accessToken,
         hasRefreshToken: !!refreshToken,
-        path: request.routerPath,
+        path: request.routeOptions?.url,
         cookies: request.cookies
     }, 'Auth middleware check');
 
     if (!accessToken && !refreshToken) {
         return reply.code(401).send({ 
             error: 'No token provided',
-            path: request.routerPath
+            path: request.routeOptions?.url
         });
     }
 
     try {
-        const result = await authService.validateToken(accessToken, refreshToken, 'access', request.server.db);
+        const result = await authService.validateToken(accessToken, refreshToken, 'access', db);
 
         if (!result) {
             request.log.warn('Invalid or expired token');

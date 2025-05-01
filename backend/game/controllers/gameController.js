@@ -8,8 +8,6 @@ import { handleDisconnect } from "../handlers/disconnectHandler.js";
 import wsService from '../../ws/ws.service.js';
 import { playerNumbers } from "../../routes/game.routes.js";
 
-
-
 export const games = new Map();
 export const lobbies = new Map();
 const broadcastTimeout = {};
@@ -19,48 +17,50 @@ export function resetlobbies() {
 }
 
 export async function handleGameConnection(fastify, connection, request) {
-	const socket = connection.socket;
-	const { gameId } = request.params;
-	const mode = request.query.mode;
-	const accessToken = request.cookies?.accessToken;
-	
-	// const validation = await wsService.validateConnectionToken(fastify, connection, accessToken);
-	// if (!validation) return(console.log('validation undefined'));
-	// const userId = validation.userId; // always the same id
-	let userId = request.query?.userId;
+	try {
+		const socket = connection.socket;
+		const { gameId } = request.params;
+		const mode = request.query.mode;
+		const userId = String(request.query?.userId || connection.socket.userId);
 
-	socket.clientId = userId;
-	const playerNumber = playerNumbers.get(userId);
-	console.log('playerId:', userId, ' playerNumber:', playerNumber);
+		// Log pour déboguer
+		fastify.log.info(`WebSocket connection for gameId: ${gameId}, mode: ${mode}, userId: ${userId}`);
 
-	console.log('🎮 Game WS connection:', { gameId, mode, userId });
+		// Gérer la logique du jeu en fonction du mode (lobby ou game)
+		if (mode === 'lobby') {
+			fastify.log.info(`User ${userId} is joining lobby mode for gameId: ${gameId}`);
+			let lobby = lobbies.get(gameId) || new LobbyManager(gameId);
+			lobbies.set(gameId, lobby);
+			fastify.log.info(`socket = ${socket}, lobby = ${lobby}, userId = ${userId}, playerNumber = ${playerNumbers.get(userId)}`);
+			handleNewLobbyPlayer(socket, lobby, userId, playerNumbers.get(userId), fastify);
+		} else if (mode === 'game') {
+			fastify.log.info(`User ${userId} is joining game mode for gameId: ${gameId}`);
+			let game = games.get(gameId);
+			let lobby = lobbies.get(gameId);
 
-	if (mode === 'lobby') {
-		let lobby = lobbies.get(gameId) || new LobbyManager(gameId);
-		lobbies.set(gameId, lobby);
-		handleNewLobbyPlayer(socket, lobby, userId, playerNumber);
-	} else if (mode === 'game') {
-		let game = games.get(gameId);
-		let lobby = lobbies.get(gameId);
+			if (!game) {
+				if (!lobby) {
+					console.error(`Lobby not found for gameId: ${gameId}`);
+					socket.close(); // Fermer si aucun lobby trouvé
+					return;
+				}
 
-		if (!game) {
-			if (!lobby) {
-				console.error(`Lobby not found for gameId: ${gameId}`);
-				socket.close();
-				return;
+				const lobbySettings = lobby.getSettings();
+				game = new GameInstance(gameId, lobbySettings, safeSend);
+				games.set(gameId, game);
 			}
 
-			const lobbySettings = lobby.getSettings();
-			game = new GameInstance(gameId, lobbySettings, safeSend);
-			games.set(gameId, game);
+			handleNewGamePlayer(socket, game); // ← socket.userId est dispo ici
+		} else {
+			console.error('Invalid mode:', mode);
+			socket.close();
 		}
-
-		handleNewGamePlayer(socket, game); // ← socket.userId est dispo ici
-	} else {
-		console.error('Invalid mode:', mode);
-		socket.close();
+	} catch (error) {
+		console.error('Error in handleGameConnection:', error);
+		connection.socket.close();
 	}
 }
+
 
 
 export function setupGameUpdateInterval() {

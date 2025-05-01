@@ -54,38 +54,55 @@ export async function wsRoutes(fastify, options) {
 	// It also handles reconnections and disconnections
 	// It returns a success message if the connection is established successfully
 	// It uses the ws library to handle WebSocket connections
-    fastify.get('/ws', { websocket: true }, async (connection, req) => {
-        try {
-			// Validate the access token
-			const accessToken = req.cookies?.accessToken;
-			console.log('Token reçu:', accessToken);
-			const validation = await wsService.validateConnectionToken(fastify, connection, accessToken);
-			if (!validation) {
-				console.warn('Access token invalide ERROR');
+    fastify.get('/ws', { websocket: true }, async (connection, request) => {
+		try {
+			fastify.log.info('Starting WebSocket connection setup...');
+			
+			// Validate the tokens
+			const accessToken = request.cookies?.accessToken;
+			const refreshToken = request.cookies?.refreshToken;
+			const db = request.server.db;
+	
+			if (!accessToken && !refreshToken) {
+				console.warn('No access and refresh token provided');
 				return;
 			}
-
-			console.log('3');
+	
+			const validation = await wsService.validateConnectionToken(fastify, connection, accessToken, refreshToken, db);
+			if (!validation) {
+				console.warn('Invalid access token');
+				return;
+			}
+	
+			fastify.log.info('Token validated, fetching user info...');
 			const userId = validation.userId;
-			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-
+			const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+			if (!user) {
+				console.warn('User not found');
+				return;
+			}
+	
+			fastify.log.info(`User found: ${user.username}`);
+	
 			// Generate a unique ID for the connection
 			const connectionId = wsService.generateConnectionId();
-            fastify.log.info(`New WebSocket connection [ID: ${connectionId}] for user: ${user.username} (${userId})`);
-            
-			// Handle existing connections
-            await wsService.handleExistingConnections(fastify, userId, user.username, connectionId);
-            
+			fastify.log.info(`Generated connection ID: ${connectionId}`);
+	
+			fastify.log.info(`New WebSocket connection [ID: ${connectionId}] for user: ${user.username} (${userId})`);
+
 			// Establish the new connection
-            await wsService.establishConnection(fastify, connection, userId, user.username, connectionId);
-            
+			await wsService.establishConnection(fastify, connection, userId, user.username, connectionId);
+			fastify.log.info('New connection established');
+	
 			// Set up WebSocket events
-            wsService.setupWebSocketEvents(fastify, connection, accessToken, userId, user.username, connectionId);
-            
-			} catch (error) {
-				console.error('🔥 WebSocket /ws error caught:', error?.message || error);
-				wsService.handleConnectionError(fastify, connection, error);
-			}
-			
-    });
+			wsService.setupWebSocketEvents(fastify, connection, accessToken, refreshToken, userId, user.username, connectionId, db);
+			fastify.log.info('WebSocket events setup');
+	
+		} catch (error) {
+			console.error('WebSocket /ws error caught:', error?.message || error);
+			wsUtils.handleConnectionError(fastify, connection, error);
+		}
+	});
+	
 }
+

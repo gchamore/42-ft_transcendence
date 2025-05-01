@@ -1,5 +1,6 @@
 import { SettingsManager } from '../game/classes/settingsManager.js';
 import { setupGameUpdateInterval, handleGameConnection } from '../game/controllers/gameController.js';
+import wsService from '../ws/ws.service.js';
 
 export const settingsManagers = new Map();
 export const playerNumbers = new Map();
@@ -10,20 +11,29 @@ const tournamentQueues = new Map();
 const invites = [];
 
 function notifyPlayers(fastify, gameId, playerId) {
-	const socket = fastify.connections.get(playerId);
-	if (socket) {
-		socket.send(JSON.stringify({
-			type: 'matchFound',
-			gameId,
-		}));
+	const connections = fastify.connections.get(playerId);
+
+	if (connections) {
+		for (const [, socket] of connections.entries()) {
+			if (socket.readyState === 1) {
+				socket.send(JSON.stringify({
+					type: 'matchFound',
+					gameId,
+				}));
+				break;
+			}
+		}
+	} else {
+		console.warn(`No WebSocket connection found for player ${playerId}`);
 	}
 }
+
 
 export async function gameRoutes(fastify, options) {
 	const { db } = fastify;
 
 	// create a new game
-	fastify.post('/game/create', async (request, reply) => { //envoyer les deux joueurs
+	fastify.post('/game/create', async (request, reply) => {
 		const gameId = Math.random().toString(36).substring(2, 8);
 		const settingsManager = new SettingsManager();
 		settingsManagers.set(gameId, settingsManager);
@@ -184,22 +194,64 @@ export async function gameRoutes(fastify, options) {
 
 
 	// WebSocket route
-	fastify.register(async function (fastify) {
-		fastify.get('/game/:gameId', { websocket: true }, (connection, request) =>{
-			const userId = request.query?.userId;
-			if (userId) {
-				fastify.connections.set(userId, connection.socket);
-				connection.socket.on('close', () => {
-					const idx = gameQueue.indexOf(userId);
-					if (idx !== -1) {
-						gameQueue.splice(idx, 1);
-					}
-					fastify.connections.delete(userId);
-				});
+	fastify.get('/game/:gameId', { websocket: true }, async (connection, request) => {
+		try {
+			fastify.log.info('Starting WebSocket connection setup...');
+			
+			const accessToken = request.cookies?.accessToken;
+			const refreshToken = request.cookies?.refreshToken;
+	
+			if (!accessToken && !refreshToken) {
+				console.warn('No access and refresh token provided');
+				return;
 			}
-			handleGameConnection(fastify, connection, request)
-		});
+	
+			const validation = await wsService.validateConnectionToken(fastify, connection, accessToken, refreshToken, fastify.db);
+			if (!validation) {
+				console.warn('Invalid access token');
+				return;
+			}
+			
+			fastify.log.info('Token validated, fetching user info...');
+			const userId = validation.userId;
+
+			// Récupère l'userId depuis la query params
+			if (!userId) {
+				fastify.log.warn('No userId provided in query');
+				return;
+			}
+			fastify.log.info(`User ID from query: ${userId}`);
+			
+			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+			if (!user) {
+				console.warn('User not found');
+				return;
+			}
+	
+			// Vérifie si l'utilisateur a déjà une connexion active
+			const existingConnections = fastify.connections.get(userId);
+			if (!existingConnections) {
+				fastify.log.warn(`User ${userId} does not have any active connections`);
+				return;
+			}
+	
+			// Ajouter la nouvelle connexion à la map de l'utilisateur
+			const connectionId = wsService.generateConnectionId();
+			fastify.log.info(`Generated connection ID: ${connectionId}`);
+	
+			// Ajoute cette nouvelle connexion à la map des connexions de l'utilisateur
+			existingConnections.set(connectionId, connection.socket);
+			fastify.log.info(`New WebSocket connection [ID: ${connectionId}] for user: ${userId}`);
+				
+			// Appel de la fonction handleGameConnection pour gérer la logique de jeu spécifique
+			await handleGameConnection(fastify, connection, request);
+
+		} catch (error) {
+			fastify.log.error('Error setting up WebSocket connection:', error);
+		}
 	});
+	
+	
 	// Start game update loop
 	setupGameUpdateInterval();
 }

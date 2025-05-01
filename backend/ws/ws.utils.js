@@ -16,74 +16,118 @@ export function hasUserBlocked(fastify, blockerId, blockedId) {
 }
 
 
-// This function closes a WebSocket connection for a specific user
-// It takes the userId, close code, reason, and whether to update the status
-// It removes the connection from the map and updates Redis
-// It broadcasts the offline status to other clients
-// It returns true if the connection was closed successfully, false otherwise
-export async function closeUserWebSocket(fastify, userId, code = 1000, reason = "Connection closed", updateStatus = false) {
-	const wsConnection = fastify.connections.get(userId);
-	if (wsConnection) {
-		fastify.log.info(`Closing WebSocket connection for user: ${userId} with reason: ${reason}`);
-		try {
-			// Only close if connection is open or connecting
-			if (wsConnection.readyState < 2) { // 0 = CONNECTING, 1 = OPEN
-				wsConnection.close(code, reason);
-			}
-			fastify.connections.delete(userId);
+// Handle the connection close event
+// It clears the ping interval and removes the connection from the map
+// It updates the online status and broadcasts the offline status to other clients
+// It requires the user to be authenticated
+// It handles the connection close event
+export async function handleSingleUserConnectionClose(fastify, connection, pingInterval, code, reason, userId, username, connectionId) {
+	clearInterval(pingInterval);
 
-			// Update Redis and broadcast status only if requested
-			// (This allows the logout route to broadcast status first)
-			if (updateStatus) {
-				await redis.srem('online_users', userId.toString());
-				fastify.log.info(`Removed user ${userId} from online_users in Redis`);
-				broadcastUserStatus(fastify, userId, false);
-			}
-
-			return true;
-		} catch (error) {
-			fastify.log.error(`Error closing WebSocket connection: ${error.message}`);
-			return false;
-		}
+	const userConnections = fastify.connections.get(userId);
+	if (!userConnections) {
+		fastify.log.info(`No active connections found for user: ${username}`);
+		return;
 	}
-	return false;
+
+	const existingConnection = userConnections.get(connectionId);
+	if (existingConnection === connection.socket) {
+		fastify.log.info(`Removing Single connection [ID: ${connectionId}] for user: ${username}`);
+		userConnections.delete(connectionId);
+
+		if (userConnections.size === 0) {
+			fastify.connections.delete(userId);
+			await updateUserOnlineStatus(userId, false); // Redis
+			await broadcastUserStatus(fastify, userId, false);
+		}
+	} else {
+		fastify.log.info(`Connection [ID: ${connectionId}] already replaced or removed for user: ${username}`);
+	}
 }
 
-// This function closes all WebSocket connections
-// It takes the fastify instance, close code, and reason
-// It clears the connections map and Redis online users set
-// It returns the number of closed connections
-export async function closeAllWebSockets(fastify, code = 1000, reason = "Server shutdown") {
-	fastify.log.info(`Closing all WebSocket connections with reason: ${reason}`);
+export async function handleAllUserConnectionsClose(fastify, userId, username, reason = 'Disconnected by server') {
+	
+	fastify.log.info(`🚪 Closing ALL WebSocket connections for current user with reason: "${reason}"`);
+	
+	const userConnections = fastify.connections.get(userId);
+	if (!userConnections) {
+		fastify.log.info(`No active connections to close for user: ${username} (${userId})`);
+		return;
+	}
 
-	const closedConnections = [];
-	let errorCount = 0;
-
-	// Close all connections
-	for (const [userId, ws] of fastify.connections) {
-		try {
-			if (ws.readyState < 2) { // Only if CONNECTING or OPEN
-				ws.close(code, reason);
-				closedConnections.push(userId);
+	for (const [connectionId, socket] of userConnections.entries()) {
+		if (socket.readyState < 2) {
+			fastify.log.info(`Closing connection [ID: ${connectionId}] for user: ${username}`);
+			try {
+				socket.close(1000, reason);
+			} catch (err) {
+				fastify.log.error(`Error closing connection [ID: ${connectionId}]: ${err}`);
 			}
-		} catch (error) {
-			fastify.log.error(`Error closing WebSocket for user ${userId}: ${error.message}`);
-			errorCount++;
 		}
 	}
 
-	// Clear the connections map
+	fastify.connections.delete(userId);
+	await updateUserOnlineStatus(userId, false); // Redis
+	await broadcastUserStatus(fastify, userId, false);
+}
+
+export async function handleAllConnectionsCloseForAllUsers(fastify, reason = 'Disconnected by server') {
+	clearInterval(pingInterval);
+
+	fastify.log.info(`🚪 Closing ALL WebSocket connections with reason: "${reason}"`);
+
+	for (const [userId, userConnections] of fastify.connections.entries()) {
+		for (const [connectionId, socket] of userConnections.entries()) {
+			if (socket.readyState < 2) {
+				try {
+					socket.close(1000, reason);
+					fastify.log.info(`Closed connection [ID: ${connectionId}] for user: ${userId}`);
+				} catch (err) {
+					fastify.log.error(`Error closing connection [ID: ${connectionId}] for user: ${userId}: ${err}`);
+				}
+			}
+		}
+	}
+
+	// 1. Vider fastify.connections
 	fastify.connections.clear();
 
-	// Clear Redis online users set
-	const onlineUsers = await redis.smembers('online_users');
-	if (onlineUsers.length > 0) {
+	// 2. Vider Redis
+	try {
 		await redis.del('online_users');
+		fastify.log.info('✅ Cleared online_users from Redis');
+	} catch (err) {
+		fastify.log.error('❌ Failed to clear Redis online_users:', err);
+	}
+}
+
+
+export async function handleConnectionError(fastify, connection, error, userId, connectionId, username) {
+	fastify.log.error(`WebSocket connection error [ID: ${connectionId}] for user: ${username} (${userId}):`, error);
+
+	if (connection.socket.readyState === 1) {
+		try {
+			connection.socket.close(1011, 'Internal server error');
+		} catch (err) {
+			fastify.log.error(`Error closing connection [ID: ${connectionId}]:`, err);
+		}
 	}
 
-	fastify.log.info(`Closed ${closedConnections.length} WebSocket connections with ${errorCount} errors`);
-	return closedConnections.length;
+	// Nettoyage dans la map
+	const userConnections = fastify.connections.get(userId);
+	if (userConnections && userConnections.get(connectionId) === connection.socket) {
+		userConnections.delete(connectionId);
+		fastify.log.info(`Removed faulty connection [ID: ${connectionId}] for user: ${username}`);
+
+		// Si c'était la dernière connexion
+		if (userConnections.size === 0) {
+			fastify.connections.delete(userId);
+			await updateUserOnlineStatus(userId, false);
+			broadcastUserStatus(fastify, userId, false);
+		}
+	}
 }
+
 
 // This function broadcasts a message to all connected clients
 // It takes the fastify instance and the payload
@@ -132,20 +176,28 @@ export function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
 
 // This function sends a message to a specific user
 // It takes the fastify instance, userId, and payload
-// It converts the payload to a string if it's not already
+// It converts the payload to a string if it's not alreadywsService.
 // It checks if the socket is open before sending the message
 // It returns true if the message was sent, false otherwise
 export function sendToUser(fastify, userId, payload) {
-	const socket = fastify.connections.get(userId);
+    // Récupérer la map des connexions de l'utilisateur
+    const userConnections = fastify.connections.get(userId);
+    
+    // Si l'utilisateur a des connexions actives
+    if (userConnections) {
+        // Parcourir toutes les connexions actives de l'utilisateur
+        for (const [socket] of userConnections) {
+            if (socket.readyState === 1) { // WebSocket.OPEN === 1
+                const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
+                socket.send(message);
+                return true;
+            }
+        }
+    }
 
-	if (socket && socket.readyState === 1) {
-		const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
-		socket.send(message);
-		return true;
-	}
-
-	return false;
+    return false;
 }
+
 
 // This function broadcasts the user's online status to all clients
 // It takes the fastify instance, userId, and online status
@@ -193,9 +245,10 @@ export async function isUserOnline(userId) {
 
 // This function validates the WebSocket token
 // It checks if the token is valid using the authService
-export async function validateWebSocketToken(accessToken) {
-	if (!accessToken) return null;
-	return await authService.validateToken(accessToken, null, 'access');
+export async function validateWebSocketToken(accessToken, refreshToken, db) {
+	if (!accessToken && !refreshToken)
+		return null;
+	return await authService.validateToken(accessToken, refreshToken, 'access', db);
 }
 
 // This function handles live chat messages

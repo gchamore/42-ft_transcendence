@@ -10,7 +10,7 @@ import { userRoutes } from "./routes/user.routes.js";
 import { wsRoutes } from "./routes/ws.routes.js";
 import { oauthRoutes } from "./routes/oauth.routes.js";
 import { twofaroutes } from "./routes/twofa.routes.js";
-import cors from "@fastify/cors";
+
 import cookie from "@fastify/cookie";
 
 const app = fastify({ 
@@ -55,18 +55,17 @@ const publicRoutes = [
 	'/ws'
 ];
 
-
 // Middleware d'authentification
 app.addHook('onRequest', (request, reply, done) => {
     // Log pour debug
     app.log.debug({
-        path: request.routerPath,
+        path: request.routeOptions?.url,
         method: request.method,
-        isPublic: publicRoutes.some(route => request.routerPath?.startsWith(route))
+        isPublic: publicRoutes.some(route => request.routeOptions?.url?.startsWith(route))
     }, 'Route check');
 
     if (request.method === 'OPTIONS' || 
-        publicRoutes.some(route => request.routerPath?.startsWith(route))) {
+        publicRoutes.some(route => request.routeOptions?.url?.startsWith(route))) {
         return done();
     }
 	authMiddleware(request, reply, done);
@@ -87,28 +86,41 @@ const cleanup = async (signal) => {
 		// Petite pause pour laisser le temps aux signaux en attente de se propager
 		await new Promise(res => setTimeout(res, 200));
 
-		// Fermeture des WebSockets
-		await wsUtils.closeAllWebSockets(app, 1001, "Server shutting down");
+
+		// Fermeture des connexions WebSocket utilisateur par utilisateur
+		for (const [userId] of app.connections.entries()) {
+			const user = app.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+			const username = user?.username || 'Unknown';
+			await wsUtils.handleAllUserConnectionsClose(app, userId, username , 'Server shutting down');
+		}
+
+		// Vider Redis : supprime tous les utilisateurs en ligne
+		const onlineUsers = await redis.smembers('online_users');
+		if (onlineUsers.length > 0) {
+			await redis.del('online_users');
+			console.log(`🧹 Redis online_users list cleaned (${onlineUsers.length})`);
+		}
 
 		// Fermeture du serveur Fastify
 		await app.close();
 
-        // Fermeture SQLite
-        if (app.db?.close) {
-            app.db.close(); // SQLite est sync
-        }
-	
-        // Fermeture Redis
+		// Fermeture SQLite
+		if (app.db?.close) {
+			app.db.close(); // SQLite est sync
+		}
+
+		// Fermeture Redis
 		if (redis && redis.status !== 'end') {
 			await redis.quit();
 		}
+
 		console.log("✅ Cleanup complete. Exiting now.");
 		process.exit(0);
 
 	} catch (error) {
 		console.error('❌ Cleanup error:', error);
-        process.exit(1);
-    }
+		process.exit(1);
+	}
 };
 
 
