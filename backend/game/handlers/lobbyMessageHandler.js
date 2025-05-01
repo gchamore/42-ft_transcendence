@@ -1,9 +1,9 @@
 import { GameInstance } from '../classes/gameInstance.js';
-import { games } from '../controllers/gameController.js';
+import { games, lobbies, cleanupLobby  } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleGameMessage, handleGameDisconnect } from './gameMessageHandlers.js';
 import { handleNewGamePlayer } from './gameMessageHandlers.js';
-import { lobbies, cleanupLobby } from '../controllers/gameController.js';
+import { tournaments } from '../../routes/game.routes.js';
 import WebSocket from 'ws';
 
 export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber) {
@@ -104,8 +104,9 @@ function handleLobbyMessage(socket, lobby, data) {
 
 		case 'startGameRequest':
 			if (playerNumber === 1) {
+				const tournament = tournaments.get(lobby.lobbyId);
 				console.log(`Starting game from lobby ${lobby.lobbyId}`);
-				startGameFromLobby(lobby);
+				startGameFromLobby(lobby, tournament);
 			}
 			break;
 
@@ -114,7 +115,7 @@ function handleLobbyMessage(socket, lobby, data) {
 	}
 }
 
-function startGameFromLobby(lobby) {
+function startGameFromLobby(lobby, tournament) {
 	const gameId = lobby.lobbyId;
 	const settings = lobby.getSettings();
 	const game = new GameInstance(gameId, settings);
