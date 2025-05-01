@@ -1,5 +1,5 @@
 import { GameInstance } from '../classes/gameInstance.js';
-import { games, lobbies, cleanupLobby  } from '../controllers/gameController.js';
+import { games, lobbies, cleanupLobby } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleGameMessage, handleGameDisconnect } from './gameMessageHandlers.js';
 import { handleNewGamePlayer } from './gameMessageHandlers.js';
@@ -63,7 +63,7 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 }
 
 function handleLobbyDisconnect(socket, lobby) {
-	
+
 	console.log(`Player ${socket.playerNumber} disconnected from lobby ${lobby.lobbyId}`);
 	lobby.removePlayer(socket);
 	if (lobby.players.size === 0) {
@@ -113,9 +113,17 @@ function handleLobbyMessage(socket, lobby, data) {
 	}
 }
 
-function startGameFromLobby(lobby, tournament) {
+function startGameFromLobby(lobby, tournament = null) {
 	const gameId = lobby.lobbyId;
 	const settings = lobby.getSettings();
+
+	if (tournament)
+		startTournamentGame(lobby, tournament, gameId, settings);
+	else
+		startNormalGame(lobby, gameId, settings);
+}
+
+function startNormalGame(lobby, gameId, settings) {
 	const game = new GameInstance(gameId, settings);
 	console.log(`Transitioning game from Lobby ${lobby.lobbyId} to ${gameId}`);
 
@@ -137,4 +145,96 @@ function startGameFromLobby(lobby, tournament) {
 	lobby.players.clear();
 	lobbies.delete(lobby.lobbyId);
 	console.log(`Game successfully transitioned  to ${gameId}`);
+}
+
+function startTournamentGame(lobby, tournament, gameId, settings) {
+	const bracket = tournament.bracket;
+	const ready = tournament.ready || new Map();
+	tournament.ready = ready;
+
+	// Find the match for this lobby
+	const match = bracket.find(m => m.matchId === gameId);
+	if (!match) {
+		console.error(`No match found for lobby ${gameId} in tournament ${tournament.id}`);
+		return;
+	}
+
+	// Start the game as usual
+	const game = new GameInstance(gameId, settings);
+	games.set(gameId, game);
+
+	lobby.players.forEach((player) => {
+		safeSend(player, {
+			type: 'gameStart',
+			gameId: gameId,
+			settings: settings,
+			tournamentId: tournament.id,
+			matchId: match.matchId,
+			round: match.round,
+		});
+		player.currentHandler = (data) => handleGameMessage(player, game, data);
+		player.currentCloseHandler = () => handleGameDisconnect(player, game);
+		handleNewGamePlayer(player, game);
+	});
+
+	// Clean up the lobby
+	lobby.players.clear();
+	lobbies.delete(lobby.lobbyId);
+
+	// Listen for game end to update bracket
+	game.onEnd = (result) => {
+		match.winner = result.winnerId;
+		match.loser = result.loserId;
+		ready.set(match.matchId, true);
+
+		// If both semifinals are done, create finals and 3rd place
+		const semisDone = bracket.filter(m => m.round === 'semifinal' && m.winner).length === 2;
+		if (semisDone && !bracket.some(m => m.round === 'final')) {
+			const [semi1, semi2] = bracket.filter(m => m.round === 'semifinal');
+			const finalMatch = {
+				matchId: `${tournament.id}-final`,
+				round: 'final',
+				players: [semi1.winner, semi2.winner],
+				winner: null,
+				loser: null,
+			};
+			const thirdMatch = {
+				matchId: `${tournament.id}-third`,
+				round: 'third',
+				players: [semi1.loser, semi2.loser],
+				winner: null,
+				loser: null,
+			};
+			bracket.push(finalMatch, thirdMatch);
+
+			// Create lobbies and start games for finals and 3rd place
+			[finalMatch, thirdMatch].forEach(match => {
+				const newLobby = createLobbyForMatch(match, settings); // You need to implement this
+				lobbies.set(match.matchId, newLobby);
+				startGameFromLobby(newLobby, tournament);
+			});
+		}
+
+		// If finals and third are done, announce results
+		const finalsDone = bracket.filter(m => ['final', 'third'].includes(m.round) && m.winner).length === 2;
+		if (finalsDone) {
+			const final = bracket.find(m => m.round === 'final');
+			const third = bracket.find(m => m.round === 'third');
+			// Announce tournament results
+			tournament.players.forEach(pid => {
+				const playerSocket = findPlayerSocket(pid); // You need to implement this
+				if (playerSocket) {
+					safeSend(playerSocket, {
+						type: 'tournamentResults',
+						placement: getTournamentPlacement(pid, final, third),
+						finals: final,
+						thirdPlace: third,
+					});
+				}
+			});
+		}
+	};
+
+	console.log(`Tournament match ${match.matchId} started for round ${match.round}`);
+	return;
 }

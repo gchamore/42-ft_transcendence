@@ -5,9 +5,9 @@ import wsService from '../ws/ws.service.js';
 export const settingsManagers = new Map();
 export const gamePlayerNumbers = new Map();
 export const tournamentPlayerNumbers = new Map();
+export const tournaments = new Map();
 const gameQueue = [];
 let tournamentId = 1;
-export const tournaments = new Map();
 const tournamentQueue = [];
 const invites = [];
 
@@ -108,8 +108,6 @@ export async function gameRoutes(fastify, options) {
 				maxPlayers: 4,
 				players: players.slice(),
 				bracket: [],
-				status: 'started',
-				ready: new Map()
 			});
 			players.forEach((pid , idx) => {
 				tournamentPlayerNumbers.set(String(pid), idx + 1);
