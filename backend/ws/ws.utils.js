@@ -67,7 +67,7 @@ export async function handleAllUserConnectionsClose(fastify, userId, username, r
 	}
 
 	fastify.connections.delete(userId);
-	await updateUserOnlineStatus(userId, false); // Redis
+	await updateUserOnlineStatus(userId, false);
 	await broadcastUserStatus(fastify, userId, false);
 }
 
@@ -138,15 +138,20 @@ export function broadcastToAllClients(fastify, payload) {
 	const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
 	let sentCount = 0;
 
-	for (const [, socket] of fastify.connections) {
-		if (socket.readyState === 1) { // WebSocket.OPEN === 1
-			socket.send(message);
-			sentCount++;
+	for (const [userId, connectionsMap] of fastify.connections.entries()) {
+		for (const [, socket] of connectionsMap.entries()) {
+			if (socket.readyState === 1) {
+				socket.send(message);
+				sentCount++;
+				break;
+			}
 		}
 	}
 
+	// fastify.log.info(`Broadcasted to ${sentCount} first sockets (1 per user).`);
 	return sentCount;
 }
+
 
 // This function broadcasts a message to all connected clients except the sender
 // It takes the fastify instance, payload, and the userId of the sender
@@ -156,17 +161,19 @@ export function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
 	const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
 	let sentCount = 0;
 
-	for (const [userId, socket] of fastify.connections) {
-		// Skip sender
+	for (const [userId, connectionsMap] of fastify.connections.entries()) {
 		if (userId.toString() === excludeUserId.toString()) continue;
 
 		// Vérifie si l'utilisateur a bloqué l'expéditeur
 		const blocked = hasUserBlocked(fastify, userId, excludeUserId);
 		if (blocked) continue;
 
-		if (socket.readyState === 1) {
-			socket.send(message);
-			sentCount++;
+		for (const [, socket] of connectionsMap.entries()) {
+			if (socket.readyState === 1) {
+				socket.send(message);
+				sentCount++;
+				break;
+			}
 		}
 	}
 
@@ -180,23 +187,20 @@ export function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
 // It checks if the socket is open before sending the message
 // It returns true if the message was sent, false otherwise
 export function sendToUser(fastify, userId, payload) {
-    // Récupérer la map des connexions de l'utilisateur
-    const userConnections = fastify.connections.get(userId);
-    
-    // Si l'utilisateur a des connexions actives
-    if (userConnections) {
-        // Parcourir toutes les connexions actives de l'utilisateur
-        for (const [socket] of userConnections) {
-            if (socket.readyState === 1) { // WebSocket.OPEN === 1
-                const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
-                socket.send(message);
-                return true;
-            }
-        }
-    }
+	const userConnections = fastify.connections.get(String(userId));
+	if (!userConnections) return false;
 
-    return false;
+	for (const [, socket] of userConnections.entries()) {
+		if (socket.readyState === 1) {
+			const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
+			socket.send(message);
+			return true;
+		}
+	}
+
+	return false;
 }
+
 
 
 // This function broadcasts the user's online status to all clients

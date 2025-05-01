@@ -332,10 +332,7 @@ export async function authRoutes(fastify, options) {
 				fastify.log.warn(`Utilisateur non trouvé pour la révocation: ID ${userId}`);
 				return reply.code(404).send({ error: "User not found" });
 			}
-			// Mise à jour de l'état de l'utilisateur avant de fermer la connexion WebSocket
-			await wsUtils.updateUserOnlineStatus(userId, false);
-			await wsUtils.broadcastUserStatus(fastify, userId, false);
-			// Fermer la connexion WebSocket pour l'utilisateur
+			// Fermer la connexion WebSocket pour l'utilisateur et mettre à jour son statut
 			await wsUtils.handleAllUserConnectionsClose(fastify, userId, user.username, 'User Logged Out');
 			// Révoquer les tokens de l'utilisateur
 			await authService.revokeTokens(userId);

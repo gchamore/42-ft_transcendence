@@ -52,6 +52,7 @@ const publicRoutes = [
     '/refresh',
     '/verify_token',
 	'/auth/google/token',
+	'/2fa/verify',
 	'/ws'
 ];
 
