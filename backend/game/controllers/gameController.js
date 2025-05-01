@@ -6,7 +6,10 @@ import { safeSend } from '../utils/socketUtils.js';
 import { GameConfig } from "../shared/config/gameConfig.js";
 import { handleDisconnect } from "../handlers/disconnectHandler.js";
 import wsService from '../../ws/ws.service.js';
-import { playerNumbers } from "../../routes/game.routes.js";
+import { gamePlayerNumbers, tournamentPlayerNumbers } from "../../routes/game.routes.js";
+import { settingsManagers } from "../../routes/game.routes.js";
+
+
 
 export const games = new Map();
 export const lobbies = new Map();
@@ -17,26 +20,51 @@ export function resetlobbies() {
 }
 
 export async function handleGameConnection(fastify, connection, request) {
-	try {
-		const socket = connection.socket;
-		const { gameId } = request.params;
-		const mode = request.query.mode;
-		const userId = String(request.query?.userId || connection.socket.userId);
+	const socket = connection.socket;
+	const { gameId } = request.params;
+	const mode = request.query.mode;
+	const accessToken = request.cookies?.accessToken;
+	let isTournament = false;
 
-		// Log pour déboguer
-		fastify.log.info(`WebSocket connection for gameId: ${gameId}, mode: ${mode}, userId: ${userId}`);
+	// const validation = await wsService.validateConnectionToken(fastify, connection, accessToken);
+	// if (!validation) return(console.log('validation undefined'));
+	// const userId = validation.userId; // always the same id
+	let userId = request.query?.userId;
 
-		// Gérer la logique du jeu en fonction du mode (lobby ou game)
-		if (mode === 'lobby') {
-			fastify.log.info(`User ${userId} is joining lobby mode for gameId: ${gameId}`);
-			let lobby = lobbies.get(gameId) || new LobbyManager(gameId);
-			lobbies.set(gameId, lobby);
-			fastify.log.info(`socket = ${socket}, lobby = ${lobby}, userId = ${userId}, playerNumber = ${playerNumbers.get(userId)}`);
-			handleNewLobbyPlayer(socket, lobby, userId, playerNumbers.get(userId), fastify);
-		} else if (mode === 'game') {
-			fastify.log.info(`User ${userId} is joining game mode for gameId: ${gameId}`);
-			let game = games.get(gameId);
-			let lobby = lobbies.get(gameId);
+	socket.clientId = userId;
+	let playerNumber = null;
+	if (gamePlayerNumbers.has(userId)) {
+		playerNumber = gamePlayerNumbers.get(userId);
+	} else if (tournamentPlayerNumbers.has(userId)) {
+		playerNumber = tournamentPlayerNumbers.get(userId);
+		isTournament = true;
+	} else {
+		console.error('User is not in any player number map:', userId);
+		// Optionally close the socket or handle error
+	}
+	console.log('playerId:', userId, ' playerNumber:', playerNumber);
+
+	console.log('🎮 Game WS connection:', { gameId, mode, userId });
+
+	
+
+	if (mode === 'lobby') {
+		let lobby = lobbies.get(gameId) || new LobbyManager(gameId, isTournament);
+		lobbies.set(gameId, lobby);
+		handleNewLobbyPlayer(socket, lobby, userId, playerNumber);
+	} else if (isTournament && mode === 'game') {
+        // Tournament: skip lobby, go straight to game
+        let game = games.get(gameId);
+        if (!game) {
+            const settings = settingsManagers.get(gameId)?.getSettings() || {}; // or get from tournament object
+            game = new GameInstance(gameId, settings, safeSend);
+            games.set(gameId, game);
+        }
+        handleNewGamePlayer(socket, game);
+        return;
+    } else if (!isTournament && mode === 'game') {
+		let game = games.get(gameId);
+		let lobby = lobbies.get(gameId);
 
 			if (!game) {
 				if (!lobby) {
@@ -45,10 +73,11 @@ export async function handleGameConnection(fastify, connection, request) {
 					return;
 				}
 
-				const lobbySettings = lobby.getSettings();
-				game = new GameInstance(gameId, lobbySettings, safeSend);
-				games.set(gameId, game);
-			}
+			const lobbySettings = lobby.getSettings();
+			game = new GameInstance(gameId, lobbySettings, safeSend);
+			games.set(gameId, game);
+			cleanupLobby(gameId);
+		}
 
 			handleNewGamePlayer(socket, game); // ← socket.userId est dispo ici
 		} else {
@@ -71,7 +100,7 @@ export function setupGameUpdateInterval() {
 		lastUpdateTime = now;
 		games.forEach((game) => {
 			if (game.players.size === 0) {
-				games.delete(game.gameId);
+				cleanupGame(game.gameId);
 				return;
 			};
 
@@ -129,4 +158,42 @@ export function broadcastGameState(game) {
 			gameState: game.getState()
 		});
 	});
-} 
+}
+
+function cleanupGame(gameId) {
+	const game = games.get(gameId);
+	if (game) {
+		if (typeof game.cleanup === 'function') {
+			// Await cleanup if it's async
+			Promise.resolve(game.cleanup()).then(() => {
+				games.delete(gameId);
+			});
+		} else {
+			games.delete(gameId);
+		}
+	}
+	if (settingsManagers.has(gameId)) {
+		settingsManagers.delete(gameId);
+	}
+}
+
+export function cleanupLobby(gameId) {
+	const lobby = lobbies.get(gameId);
+	if (lobby) {
+		if (typeof lobby.cleanup === 'function') {
+			lobby.cleanup(); // Custom cleanup logic for lobby
+		}
+		lobbies.delete(gameId);
+	}
+}
+
+export function cleanupAllGamesAndLobbies() {
+	// Clean up all games
+	for (const gameId of games.keys()) {
+		cleanupGame(gameId);
+	}
+	// Clean up all lobbies
+	for (const lobbyId of lobbies.keys()) {
+		cleanupLobby(lobbyId);
+	}
+}

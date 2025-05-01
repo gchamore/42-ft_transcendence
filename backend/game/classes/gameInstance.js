@@ -179,8 +179,17 @@ export class GameInstance {
 		}
 
 		// Close connections and cleanup
-		this.players.forEach((player) => player.close());
+		this.players.forEach((player) => {
+			if (player.removeAllListeners)
+				player.removeAllListeners();
+			player.close();
+		});
 		this.players.clear();
+		
+		this.gameStateManager = null;
+		this.physicManager = null;
+		this.powerUpManager = null;
+		this.settings = null;
 	}
 
 	getState() {

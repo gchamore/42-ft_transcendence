@@ -44,6 +44,8 @@ export class BabylonManager {
 	private lastRenderTime: number = 0;
 	private readonly frameInterval: number = 1000 / GameConfig.TARGET_FPS;
 
+	private boundHandleResize: () => void;
+
 	constructor(
 		canvas: HTMLCanvasElement,
 		private paddle1: Paddle,
@@ -121,6 +123,7 @@ export class BabylonManager {
 		}, 1000);
 
 		// Set up event handlers
+		this.boundHandleResize = this.handleResize.bind(this);
 		this.setupEventHandlers();
 	}
 
@@ -134,7 +137,7 @@ export class BabylonManager {
 	}
 
 	private setupEventHandlers(): void {
-		window.addEventListener("resize", this.handleResize.bind(this));
+		window.addEventListener("resize", this.boundHandleResize);
 	}
 
 	private handleResize(): void {
@@ -238,7 +241,7 @@ export class BabylonManager {
 
 	public dispose(): void {
 		// Remove event listeners
-		window.removeEventListener("resize", this.handleResize);
+		window.removeEventListener("resize", this.boundHandleResize);
 
 		// Dispose all managers
 		this.loadingScreen.hide();

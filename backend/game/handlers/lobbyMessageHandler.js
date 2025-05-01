@@ -1,9 +1,9 @@
 import { GameInstance } from '../classes/gameInstance.js';
-import { games } from '../controllers/gameController.js';
+import { games, lobbies, cleanupLobby  } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleGameMessage, handleGameDisconnect } from './gameMessageHandlers.js';
 import { handleNewGamePlayer } from './gameMessageHandlers.js';
-import { lobbies } from '../controllers/gameController.js';
+import { tournaments } from '../../routes/game.routes.js';
 import WebSocket from 'ws';
 
 export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fastify) {
@@ -41,7 +41,7 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 	});
 
 	// Player 1 sends settings to Player 2
-	if (playerNumber === 2) {
+	if (playerNumber !== 1) {
 		safeSend(socket, {
 			type: 'settingsUpdate',
 			settings: lobby.getSettings(),
@@ -67,7 +67,7 @@ function handleLobbyDisconnect(socket, lobby) {
 	console.log(`Player ${socket.playerNumber} disconnected from lobby ${lobby.lobbyId}`);
 	lobby.removePlayer(socket);
 	if (lobby.players.size === 0) {
-		lobbies.delete(lobby.lobbyId);
+		cleanupLobby(lobby.lobbyId);
 		console.log(`Lobby ${lobby.lobbyId} deleted due to emptyness`);
 	}
 }
@@ -89,11 +89,12 @@ function handleLobbyMessage(socket, lobby, data) {
 
 		case 'playerReady':
 			console.log(`Player ${playerNumber} is ready`);
-			if (playerNumber === 2) {
+			if (playerNumber !== 1) {
 				const player1 = Array.from(lobby.players.values()).find((player) => player.playerNumber === 1);
 				if (player1) {
 					safeSend(player1, {
-						type: 'player2Ready',
+						type: 'playerReady',
+						playerNumber: playerNumber,
 					});
 				}
 			}
@@ -101,8 +102,9 @@ function handleLobbyMessage(socket, lobby, data) {
 
 		case 'startGameRequest':
 			if (playerNumber === 1) {
+				const tournament = tournaments.get(lobby.lobbyId);
 				console.log(`Starting game from lobby ${lobby.lobbyId}`);
-				startGameFromLobby(lobby);
+				startGameFromLobby(lobby, tournament);
 			}
 			break;
 
@@ -111,7 +113,7 @@ function handleLobbyMessage(socket, lobby, data) {
 	}
 }
 
-function startGameFromLobby(lobby) {
+function startGameFromLobby(lobby, tournament) {
 	const gameId = lobby.lobbyId;
 	const settings = lobby.getSettings();
 	const game = new GameInstance(gameId, settings);

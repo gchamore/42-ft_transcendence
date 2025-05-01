@@ -3,10 +3,13 @@ import { Game } from './src_game/pages/gamePage.js';
 import { add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
 import { login, register, logout, add , remove, search, send, get_blocked_users } from './api.js';
 /* Global variables */
-export var sections : ASection[] = [];
-export var HOME_INDEX : number = 0;
-export var section_index : number = HOME_INDEX;
+export var sections: ASection[] = [];
+export var HOME_INDEX: number = 0;
+export var section_index: number = HOME_INDEX;
 export var activeGameId: string | null = null; // Store the active game ID
+export var activeTournamentId: string | null = null; // Store the active tournament ID
+let tournamentSettingsChosen = false; // Store the tournament settings chosen
+let tournamentBracket: any = null; // Store the tournament bracket
 var settingsPage: SettingsPage | null = null;
 var gamePage: Game | null = null;
 /* --------- */
@@ -15,14 +18,14 @@ var gamePage: Game | null = null;
 
 /* Classes */
 abstract class ASection {
-    abstract readonly type: string;
-    abstract readonly protected: boolean;
-    abstract readonly parent: HTMLElement;
-    abstract readonly logged_off: NodeListOf<Element>;
-    abstract readonly logged_in: NodeListOf<Element>;
-    abstract readonly dependencies: Array<string>;
+	abstract readonly type: string;
+	abstract readonly protected: boolean;
+	abstract readonly parent: HTMLElement;
+	abstract readonly logged_off: NodeListOf<Element>;
+	abstract readonly logged_in: NodeListOf<Element>;
+	abstract readonly dependencies: Array<string>;
 
-    abstract enter(verified: boolean): void;
+	abstract enter(verified: boolean): void;
 	abstract switch_logged_off(): void;
 	abstract switch_logged_in(): void;
 	activate_section() {
@@ -38,7 +41,7 @@ abstract class ASection {
 			container.classList.remove('active');
 		});
 	}
-    leave() {
+	leave() {
 		this.deactivate_section();
 		this.switch_logged_off();
 	};
@@ -97,8 +100,8 @@ class Home extends ASection {
 		this.logged_in_view();
 		this.friends_btn.setAttribute('onclick', "go_section('friends')");
 		this.chat_btn.setAttribute('onclick', "go_section('chat')");
-		this.play1v1_btn.onclick = () => (sections[get_section_index('game')!]as GameSection).play1v1();
-		this.playTournament_btn.onclick = () => (sections[get_section_index('game')!]as GameSection).playTournament();
+		this.play1v1_btn.onclick = () => (sections[get_section_index('game')!] as GameSection).play1v1();
+		this.playTournament_btn.onclick = () => (sections[get_section_index('game')!] as GameSection).playTournament();
 	}
 }
 
@@ -114,9 +117,9 @@ export class GameSection extends ASection {
 
 
 	readonly settingsPage = document.getElementById('settings-page') as HTMLElement;
-    readonly gamePage = document.getElementById('gameCanvas') as HTMLCanvasElement;
-    readonly gameContainer = document.getElementById('game-container') as HTMLElement;
-    readonly fpsCounter = document.getElementById('fps-counter') as HTMLElement;
+	readonly gamePage = document.getElementById('gameCanvas') as HTMLCanvasElement;
+	readonly gameContainer = document.getElementById('game-container') as HTMLElement;
+	readonly fpsCounter = document.getElementById('fps-counter') as HTMLElement;
 	readonly queueMessageContainer = document.getElementById('queue-message-container') as HTMLElement;
 	readonly leaveQueueBtn = document.getElementById('leave-queue-btn') as HTMLButtonElement;
 	readonly queueMessage = document.getElementById('queue-message') as HTMLElement;
@@ -137,15 +140,38 @@ export class GameSection extends ASection {
 			if (!settingsPage) {
 				console.log('sections settingpage userID:', user?.userId);
 				if (user && user.userId)
-					settingsPage = new SettingsPage(activeGameId, user.userId.toString());
+					settingsPage = new SettingsPage(activeGameId, user.userId.toString(), false);
 				this.settingsPage.style.display = 'block';
 				this.gamePage.style.display = 'none';
 				this.gameContainer.style.display = 'none';
 				this.fpsCounter.style.display = 'none';
 			}
+		} else if (activeTournamentId) {
+			if (!tournamentSettingsChosen && !settingsPage && user && user.userId) {
+				settingsPage = new SettingsPage(activeTournamentId, user.userId.toString(), true);
+				this.settingsPage.style.display = 'block';
+				this.gamePage.style.display = 'none';
+				this.gameContainer.style.display = 'none';
+				this.fpsCounter.style.display = 'none';
+				tournamentSettingsChosen = true;
+			}
+			else if (settingsPage) {
+				this.settingsPage.style.display = 'block';
+				this.gamePage.style.display = 'none';
+				this.gameContainer.style.display = 'none';
+				this.fpsCounter.style.display = 'none';
+				if (user && user.userId)
+					gamePage = new Game(activeTournamentId, user.userId.toString());
+			}
 		} else {
-			console.error('No active game ID found');
+			console.error('No active game ID or tournament ID found');
 		}
+	}
+
+	resetTournamentState() {
+		tournamentSettingsChosen = false;
+		if (user) user.isTournamentCreator = false;
+		activeTournamentId = null;
 	}
 
 	transitionToGame(gameId: string) {
@@ -195,23 +221,26 @@ export class GameSection extends ASection {
 		this.logged_in_view();
 	}
 
+	showQueueMessage(msg: string, type: 'game' | 'tournament' = 'game') {
+		if (this.queueMessage)
+			this.queueMessage.textContent = msg;
+		if (this.queueMessageContainer) {
+			this.queueMessageContainer.style.display = 'block';
+			this.queueMessageContainer.setAttribute('data-queue-type', type);
+		}
+	}
+
+	hideQueueMessage() {
+		if (this.queueMessageContainer)
+			this.queueMessageContainer.style.display = 'none';
+	};
 
 	async play1v1() {
-		if (!user) { 
+		if (!user) {
 			console.error('play1v1: not logged in');
-			return ;
+			return;
 		}
-		
-		const showQueueMessage = (msg: string) => {
-			if (this.queueMessage) 
-				this.queueMessage.textContent = msg;
-			if (this.queueMessageContainer) 
-				this.queueMessageContainer.style.display = 'block';
-		};
-		const hideQueueMessage = () => {
-			if (this.queueMessageContainer) 
-				this.queueMessageContainer.style.display = 'none';
-		};
+
 		if (this.leaveQueueBtn) {
 			this.leaveQueueBtn.onclick = async () => {
 				try {
@@ -223,28 +252,28 @@ export class GameSection extends ASection {
 				} catch (err) {
 					console.error('Error leaving queue:', err);
 				}
-				hideQueueMessage();
+				this.hideQueueMessage();
 			};
 		}
-		try { 
+		try {
 			const resp = await fetch('/api/game/queue', {
 				method: 'POST',
 				credentials: 'include',
-				headers: { "Content-Type": "application/json"},
+				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ userId: user.userId })
 			});
-			if (resp.status === 202) { 
-				showQueueMessage('Waiting for an opponent...');
-			} else if (resp.ok) { 
-				return ;
-			} else { 
+			if (resp.status === 202) {
+				this.showQueueMessage('Waiting for an opponent...');
+			} else if (resp.ok) {
+				return;
+			} else {
 				const err = await resp.json();
-				showQueueMessage(`Queue error: ${err.error}`);
+				this.showQueueMessage(`Queue error: ${err.error}`);
 			}
 		} catch (err) {
 			console.error('play1v1: error', err);
-			showQueueMessage('Failed to join 1v1 queue');
-			setTimeout(hideQueueMessage, 2000);
+			this.showQueueMessage('Failed to join 1v1 queue');
+			setTimeout(this.hideQueueMessage, 2000);
 		}
 	}
 
@@ -254,50 +283,44 @@ export class GameSection extends ASection {
 			console.error('playTournament: not logged in');
 			return;
 		}
-		const maxPlayers = parseInt(prompt('Enter max players:', '4') || '4', 10);
-		if (isNaN(maxPlayers) || maxPlayers < 2) {
-			alert('Invalid number of players');
-			return;
+		if (this.leaveQueueBtn) {
+			this.leaveQueueBtn.onclick = async () => {
+				try {
+					await fetch('/api/tournament/queue/leave', {
+						method: 'DELETE',
+						credentials: 'include',
+						headers: { "Content-Type": "application/json" }
+					});
+				} catch (err) {
+					console.error('Error leaving tournament queue:', err);
+				}
+				this.hideQueueMessage();
+			};
 		}
 		try {
-			const createResp = await fetch('/api/game/tournament', {
+			const resp = await fetch('/api/tournament/queue', {
 				method: 'POST',
 				credentials: 'include',
-				body: JSON.stringify({
-					creatorId: user.name,
-					name: '',
-					maxPlayers
-				})
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ userId: user.userId })
 			});
-			if (!createResp.ok) {
-				const err = await createResp.json();
-				alert(`Tournament creation error: ${err.error}`);
+			const data = await resp.json();
+			if (user)
+				user.isTournamentCreator = !!data.isCreator;
+			if (resp.status === 202) {
+				this.showQueueMessage('Waiting for tournament players...', 'tournament');
+			} else if (resp.ok) {
 				return;
-			}
-			const { tournamentId: tid } = await createResp.json();
-			const joinResp = await fetch(`/api/tournament/${tid}/join`, {
-				method: 'POST',
-				credentials: 'include',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ playerId: user.name })
-			});
-			if (joinResp.status === 202) {
-				alert(`Joined tournament ${tid}, waiting for players…`);
-			} else if (joinResp.ok) {
-				activeGameId = tid;
-				go_section('game');
 			} else {
-				const err = await joinResp.json();
-				alert(`Tournament join error: ${err.error}`);
+				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament');
 			}
 		} catch (err) {
 			console.error('playTournament: error', err);
-			alert('Failed to create / join tournament');
+			this.showQueueMessage('Failed to join tournament queue', 'tournament');
+			setTimeout(this.hideQueueMessage, 2000);
 		}
-
 	}
 }
-
 
 class Profile extends ASection {
 	/* ASection */
@@ -340,9 +363,9 @@ class Profile extends ASection {
 	switch_logged_in() {
 		if (user === undefined) {
 			console.error("Profile.switch_logged_off: user undefined");
-			return ;
+			return;
 		}
-		
+
 		this.avatar.src = user.avatar_path;
 		this.username.textContent = user.name;
 		this.username_i.value = "";
@@ -366,7 +389,7 @@ class Friends extends ASection {
 	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
 	dependencies = ['home'];
-	
+
 	/* Properties */
 	readonly founds = this.parent.querySelectorAll('.found') as NodeListOf<Element>;
 	readonly not_founds = this.parent.querySelectorAll('.not-found') as NodeListOf<Element>;
@@ -375,18 +398,18 @@ class Friends extends ASection {
 
 	readonly avatar = document.getElementById('friend-avatar') as HTMLImageElement;
 	readonly status = document.getElementById('status') as HTMLLabelElement;
-	
+
 	readonly stat1 = document.getElementById('friend-stat1') as HTMLLabelElement;
 	readonly stat2 = document.getElementById('friend-stat2') as HTMLLabelElement;
 	readonly stat3 = document.getElementById('friend-stat3') as HTMLLabelElement;
 	readonly stat4 = document.getElementById('friend-stat4') as HTMLLabelElement;
-	
+
 	readonly btn1 = document.getElementById('friends-btn1') as HTMLButtonElement;
 	readonly btn2 = document.getElementById('friends-btn2') as HTMLButtonElement;
 	readonly btn3 = document.getElementById('friends-btn3') as HTMLButtonElement;
 	readonly FriendsClass = sections[get_section_index('friends')!] as Friends;
 
-	anotherUser : OtherUser | undefined = undefined;
+	anotherUser: OtherUser | undefined = undefined;
 
 	/* Methods */
 	enter(verified: boolean) {
@@ -407,8 +430,8 @@ class Friends extends ASection {
 		this.btn2.removeAttribute('onclick');
 		this.btn3.removeAttribute('onclick');
 	}
-	switch_logged_off() {}
-	switch_logged_in() {}
+	switch_logged_off() { }
+	switch_logged_in() { }
 
 	reset() {
 		deactivate(this.founds);
@@ -432,17 +455,17 @@ class Friends extends ASection {
 		this.status.textContent = '';
 		this.status.style.color = 'black';
 	}
-	async search(user : string = this.username_i.value) {
-		let status : OtherUser | Error | undefined = await search(user);
+	async search(user: string = this.username_i.value) {
+		let status: OtherUser | Error | undefined = await search(user);
 		if (status instanceof Error)
-			return ;
+			return;
 
 		this.anotherUser = (status as OtherUser | undefined);
 		this.username_i.value = '';
 
 		if (this.anotherUser !== undefined) {
 			this.avatar.src = this.anotherUser.avatar;
-			
+
 			if (this.anotherUser.is_friend === true) {
 				this.btn2.onclick = () => this.remove();
 				this.btn2.textContent = 'Remove';
@@ -452,13 +475,13 @@ class Friends extends ASection {
 				this.btn2.textContent = 'Add';
 			}
 
-			
+
 			const stats = this.anotherUser.format_stats();
 			this.stat1.textContent = stats[0];
 			this.stat2.textContent = stats[1];
 			this.stat3.textContent = stats[2];
 			this.stat4.textContent = stats[3];
-			
+
 			activate(this.founds);
 			deactivate(this.not_founds);
 
@@ -475,21 +498,21 @@ class Friends extends ASection {
 	}
 	async add() {
 		if (await add(this.anotherUser!.username) instanceof Error)
-			return ;
+			return;
 		let user = this.anotherUser!.username;
 		this.anotherUser = undefined;
 		this.search(user);
 	}
 	async remove() {
 		if (await remove(this.anotherUser!.username) instanceof Error)
-			return ;
+			return;
 		let user = this.anotherUser!.username;
 		this.reset();
 		this.search(user);
 	}
-	update_status(online : boolean) {
+	update_status(online: boolean) {
 		this.status.textContent = (online) ? 'Online' : 'Offline';
-		this.status.style.color = (online) ? 'rgb(32, 96, 32)': 'rgb(153, 0, 0)';
+		this.status.style.color = (online) ? 'rgb(32, 96, 32)' : 'rgb(153, 0, 0)';
 
 		if (online) {
 			this.btn3.onclick = () => this.message();
@@ -512,7 +535,7 @@ export class Chat extends ASection {
 	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
 	dependencies = ['home'];
-	
+
 	/* Properties */
 	readonly chat_box = document.getElementById('chat-box') as HTMLUListElement;
 	readonly msg_input = document.getElementById('msg-input') as HTMLButtonElement;
@@ -531,10 +554,10 @@ export class Chat extends ASection {
 
 		this.btn2.onclick = () => this.send();
 		this.btn2.textContent = 'Send';
-	
+
 		this.btn3.onclick = () => go_section('actions');
 		this.btn3.textContent = 'Actions';
-		
+
 		this.load_messages(get_user_messages());
 		this.msg_input.value = '';
 		this.activate_section();
@@ -550,13 +573,13 @@ export class Chat extends ASection {
 		});
 		this.msg_input.value = '';
 	}
-	switch_logged_off() {}
-	switch_logged_in() {}
-	load_messages(messages : Array<Message> | undefined) {
+	switch_logged_off() { }
+	switch_logged_in() { }
+	load_messages(messages: Array<Message> | undefined) {
 		if (messages == undefined)
 			return;
 
-		let chat_box_childNodes : Array<ChildNode> = [];
+		let chat_box_childNodes: Array<ChildNode> = [];
 		this.chat_box.childNodes.forEach((childNode) => { chat_box_childNodes.push(childNode); });
 		for (let i = 0; i < chat_box_childNodes.length; ++i)
 			chat_box_childNodes[i].remove();
@@ -586,7 +609,7 @@ export class Actions extends ASection {
 	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
 	dependencies = ['home'];
-	
+
 	/* Properties */
 	readonly free_box = document.getElementById('free_box') as HTMLUListElement;
 	readonly blocked_box = document.getElementById('blocked_box') as HTMLUListElement;
@@ -595,8 +618,8 @@ export class Actions extends ASection {
 	readonly btn2 = document.getElementById('actions-btn2') as HTMLButtonElement;
 	readonly btn3 = document.getElementById('actions-btn3') as HTMLButtonElement;
 
-	blocked_users : Array<string> = [];
-	free_users : Array<string> = [];
+	blocked_users: Array<string> = [];
+	free_users: Array<string> = [];
 
 	/* Methods */
 	enter(verified: boolean) {
@@ -606,7 +629,7 @@ export class Actions extends ASection {
 		}
 		this.btn1.onclick = () => history.back();
 		this.btn1.textContent = 'Back';
-		
+
 		this.btn2.setAttribute('onclick', '');
 		this.btn3.setAttribute('onclick', '');
 		this.btn3.parentElement?.classList.add('hidden');
@@ -626,27 +649,27 @@ export class Actions extends ASection {
 		this.btn2.setAttribute('textContent', '');
 		this.btn3.setAttribute('textContent', '');
 	}
-	switch_logged_off() {}
-	switch_logged_in() {}
-	
+	switch_logged_off() { }
+	switch_logged_in() { }
+
 	clear_boxes() {
-		let childs : Array<ChildNode>;
+		let childs: Array<ChildNode>;
 
 		childs = [];
 		this.free_box.childNodes.forEach(child => { childs.push(child); });
 		for (let i = 0; i < childs.length; ++i)
 			childs[i].remove();
-		
+
 		childs = [];
 		this.blocked_box.childNodes.forEach(child => { childs.push(child); });
 		for (let i = 0; i < childs.length; ++i)
 			childs[i].remove();
 	}
 	async load_boxes() {
-		let blocked_users : Array<string> | Error = await get_blocked_users();
+		let blocked_users: Array<string> | Error = await get_blocked_users();
 		if (blocked_users instanceof Error)
 			return;
-		let free_users : Array<string> | undefined = user?.get_free_users();
+		let free_users: Array<string> | undefined = user?.get_free_users();
 		if (free_users === undefined)
 			return;
 
@@ -686,7 +709,7 @@ sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(),
 
 
 /* Utils */
-export function get_section_index(type : string): number | undefined {
+export function get_section_index(type: string): number | undefined {
 	for (let i = 0; i < sections.length; i++) {
 		if (sections[i].type === type)
 			return i;
@@ -694,12 +717,12 @@ export function get_section_index(type : string): number | undefined {
 	return undefined;
 }
 
-export function set_new_section_index(type : string): void {
-	let index : number | undefined = get_section_index(type);
+export function set_new_section_index(type: string): void {
+	let index: number | undefined = get_section_index(type);
 	section_index = (index !== undefined && is_section_accessible(index)) ? index : HOME_INDEX;
 }
 
-function is_section_accessible(index : number): boolean {
+function is_section_accessible(index: number): boolean {
 	return !(user === undefined && sections[index].protected === true);
 }
 
@@ -718,28 +741,28 @@ export function update_sections(): void {
 // 		sections[section_index].switch_logged_in();
 // }
 
-export function go_section(section : string) {
+export function go_section(section: string) {
 	if (section === sections[section_index].type)
 		section = 'home';
 	set_new_section_index(section);
 	update_sections();
-	history.pushState({ section : sections[section_index].type }, "",
+	history.pushState({ section: sections[section_index].type }, "",
 		sections[section_index].type);
 }
 
-function activate(list : NodeListOf<Element>): void {
+function activate(list: NodeListOf<Element>): void {
 	list.forEach(element => {
 		element.classList.add('active');
 	});
 }
 
-function deactivate(list : NodeListOf<Element>): void {
+function deactivate(list: NodeListOf<Element>): void {
 	list.forEach(element => {
 		element.classList.remove('active');
 	});
 }
 
-export function update_friends_status(username : string, online : boolean) {
+export function update_friends_status(username: string, online: boolean) {
 	add_online(username);
 	if (section_index == get_section_index('friends')
 		&& (sections[section_index] as Friends).anotherUser?.username === username) {
@@ -747,12 +770,22 @@ export function update_friends_status(username : string, online : boolean) {
 	}
 }
 
-export function set_section_index(index : number): void {
+export function set_section_index(index: number): void {
 	section_index = index;
 }
 
 export function set_active_game_id(gameId: string): void {
 	activeGameId = gameId;
+}
+
+export function set_active_tournament_id(tournamentId: string): void {
+	activeTournamentId = tournamentId;
+	console.log('Active tournament ID set:', activeTournamentId);
+}
+
+export function set_tournament_bracket(bracket: string): void {
+	tournamentBracket = bracket;
+	console.log('Tournament bracket set:', tournamentBracket);
 }
 
 (window as any).go_section = go_section;

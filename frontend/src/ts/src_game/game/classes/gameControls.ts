@@ -332,7 +332,7 @@ export class GameControls {
 				// Lower for faster response, higher for smoother movement
 				this.ballInterpolationDelay = Math.min(
 					Math.max(this.avgPacketInterval * 2, 50), // Min 50ms
-					150 // Max 150ms
+					100 // Max 100ms
 				);
 			}
 		}
@@ -348,9 +348,7 @@ export class GameControls {
 		// Keep buffer time-ordered
 		this.ballPositionBuffer.sort((a, b) => a.time - b.time);
 
-		// Dynamic buffer size based on network conditions
-		const bufferTimeWindow = Math.max(500, this.avgPacketInterval * 5);
-		const maxBufferSize = Math.max(10, Math.ceil(bufferTimeWindow / this.avgPacketInterval));
+		const maxBufferSize = 10;
 
 		if (this.ballPositionBuffer.length > maxBufferSize) {
 			this.ballPositionBuffer = this.ballPositionBuffer.slice(-maxBufferSize);
@@ -409,7 +407,7 @@ export class GameControls {
 				if (isNearWall && previousToLatest) {
 					// Near collision - be conservative with extrapolation 
 					// Reduce extrapolation time when near boundaries
-					const reducedTimeElapsed = safeTimeElapsed * 0.5;
+					const reducedTimeElapsed = safeTimeElapsed * 0.3;
 
 					// Use a blend of positions to smooth the transition
 					this.ball.x = latest.position.x + latest.speedX * reducedTimeElapsed;
@@ -442,10 +440,10 @@ export class GameControls {
 		const rightPaddle = this.playerNumber === 1 ? this.remotePaddle : this.localPaddle;
 
 
-		const nearTopWall = y - ballRadius < 20;
-		const nearBottomWall = y + ballRadius > canvasHeight - 20;
-		const nearLeftPaddle = x - ballRadius < leftPaddle.width + 20 && Math.abs(y - leftPaddle.y) < leftPaddle.height / 2 + 20;
-		const nearRightPaddle = x + ballRadius > canvasWidth - rightPaddle.width - 20 && Math.abs(y - rightPaddle.y) < rightPaddle.height / 2 + 20;
+		const nearTopWall = y - ballRadius < 5;
+		const nearBottomWall = y + ballRadius > canvasHeight - 5;
+		const nearLeftPaddle = x - ballRadius < leftPaddle.width + 5 && Math.abs(y - leftPaddle.y) < leftPaddle.height / 2 + 5;
+		const nearRightPaddle = x + ballRadius > canvasWidth - rightPaddle.width - 5 && Math.abs(y - rightPaddle.y) < rightPaddle.height / 2 + 5;
 		return nearTopWall || nearBottomWall || nearLeftPaddle || nearRightPaddle;
 	}
 
