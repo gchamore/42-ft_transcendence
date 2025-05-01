@@ -7,7 +7,7 @@ export const gamePlayerNumbers = new Map();
 export const tournamentPlayerNumbers = new Map();
 const gameQueue = [];
 let tournamentId = 1;
-const tournaments = new Map();
+export const tournaments = new Map();
 const tournamentQueue = [];
 const invites = [];
 
@@ -218,7 +218,7 @@ export async function gameRoutes(fastify, options) {
 			fastify.log.info(`New WebSocket connection [ID: ${connectionId}] for user: ${userId}`);
 				
 			// Appel de la fonction handleGameConnection pour gérer la logique de jeu spécifique
-			await handleGameConnection(fastify, connection, request);
+			await handleGameConnection(fastify, connection, request, userId);
 
 		} catch (error) {
 			fastify.log.error('Error setting up WebSocket connection:', error);

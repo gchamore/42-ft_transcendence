@@ -35,10 +35,8 @@ export class Game {
 	private playerNumber: number = 0;
 	private gameId: string;
 	private isLoading: boolean = true;
-	private userId: string;
 
-	constructor(gameId: string, userId: string) {
-		this.userId = userId;
+	constructor(gameId: string) {
 		this.gameId = gameId;
 		this.playerNumber = WebSocketService.getInstance().getPlayerNumber();
 		this.connectWebSocket();
@@ -126,7 +124,7 @@ export class Game {
 		}
 
 	private connectWebSocket() {
-		this.socket = WebSocketService.getInstance().connect(this.gameId, 'game', this.userId);
+		this.socket = WebSocketService.getInstance().connect(this.gameId, 'game');
 		
 		this.socket.onopen = () => {
 			console.log("Connected to the game");

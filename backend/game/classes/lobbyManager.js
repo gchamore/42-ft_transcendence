@@ -14,7 +14,7 @@ export class LobbyManager {
 
 	addPlayer(socket, clientId, playerNumber, fastify) {
 		socket.clientId = clientId;
-		fastify.log.info('addPlayer clientId:', clientId);
+		fastify.log.info(`addPlayer clientId: ${clientId}`);
 
 		if (this.players.size >= this.nbPlayers) {
 			console.error(`Lobby ${this.lobbyId} is full. Cannot add client ${clientId} size: ${this.players.size}`);

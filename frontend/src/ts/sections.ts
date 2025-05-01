@@ -140,7 +140,7 @@ export class GameSection extends ASection {
 			if (!settingsPage) {
 				console.log('sections settingpage userID:', user?.userId);
 				if (user && user.userId)
-					settingsPage = new SettingsPage(activeGameId, user.userId.toString(), false);
+					settingsPage = new SettingsPage(activeGameId, false);
 				this.settingsPage.style.display = 'block';
 				this.gamePage.style.display = 'none';
 				this.gameContainer.style.display = 'none';
@@ -148,7 +148,7 @@ export class GameSection extends ASection {
 			}
 		} else if (activeTournamentId) {
 			if (!tournamentSettingsChosen && !settingsPage && user && user.userId) {
-				settingsPage = new SettingsPage(activeTournamentId, user.userId.toString(), true);
+				settingsPage = new SettingsPage(activeTournamentId, true);
 				this.settingsPage.style.display = 'block';
 				this.gamePage.style.display = 'none';
 				this.gameContainer.style.display = 'none';
@@ -161,7 +161,7 @@ export class GameSection extends ASection {
 				this.gameContainer.style.display = 'none';
 				this.fpsCounter.style.display = 'none';
 				if (user && user.userId)
-					gamePage = new Game(activeTournamentId, user.userId.toString());
+					gamePage = new Game(activeTournamentId);
 			}
 		} else {
 			console.error('No active game ID or tournament ID found');
@@ -183,7 +183,7 @@ export class GameSection extends ASection {
 
 		// Initialize the game
 		if (user && user.userId)
-			gamePage = new Game(gameId, user.userId.toString());
+			gamePage = new Game(gameId);
 	}
 
 	async leave() {
