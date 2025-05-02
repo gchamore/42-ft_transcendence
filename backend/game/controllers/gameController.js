@@ -56,7 +56,7 @@ export async function handleGameConnection(fastify, connection, request, userId)
 				game = new GameInstance(gameId, settings, safeSend);
 				games.set(gameId, game);
 			}
-			handleNewGamePlayer(socket, game);
+			handleNewGamePlayer(socket, game, fastify); // ← socket.userId est dispo ici
 			return;
 		} else if (!isTournament && mode === 'game') {
 			let game = games.get(gameId);
@@ -75,7 +75,7 @@ export async function handleGameConnection(fastify, connection, request, userId)
 				cleanupLobby(gameId);
 			}
 
-			handleNewGamePlayer(socket, game); // ← socket.userId est dispo ici
+			handleNewGamePlayer(socket, game, fastify); // ← socket.userId est dispo ici
 		} else {
 			console.error('Invalid mode:', mode);
 			socket.close();

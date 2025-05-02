@@ -1,9 +1,10 @@
 import WebSocket from 'ws';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleDisconnect } from './disconnectHandler.js';
+import { tournaments } from '../../routes/game.routes.js';
 
 
-export function handleNewGamePlayer(socket, game) {
+export function handleNewGamePlayer(socket, game, fastify) {
 	// Verify socket is open
 	if (socket.readyState !== WebSocket.OPEN) {
 		console.error('Socket not in OPEN state');
@@ -20,6 +21,9 @@ export function handleNewGamePlayer(socket, game) {
 	socket.gameInstance = game;
 	const playerNumber = socket.playerNumber;
 	socket.isAlive = true;
+
+	socket.currentHandler = (data) => handleGameMessage(socket, game, data, fastify);
+	socket.currentCloseHandler = () => handleGameDisconnect(socket, game);
 
 	console.log(`Player ${playerNumber} joined game ${game.gameId}`);
 
@@ -59,7 +63,7 @@ export function handleGameDisconnect(socket, game) {
 	}
 }
 
-export function handleGameMessage(socket, game, data) {
+export function handleGameMessage(socket, game, data, fastify) {
 	const playerNumber = socket.playerNumber;
 	switch (data.type) {
 		case 'startGame':
@@ -71,6 +75,8 @@ export function handleGameMessage(socket, game, data) {
 		case 'pong':
 			socket.isAlive = true;
 			break;
+		case 'gameOver':
+			handleGameOver(data.matchId, data.winner, fastifty);
 		default:
 			console.error(`Unknown message type: ${data.type}`);
 	}
@@ -117,4 +123,75 @@ function handleMovePaddle(socket, game, playerNumber, data) {
 
 	paddle.y = data.paddlePosition;
 	paddle.lastProcessedInput = data.inputSequence;
+}
+
+function handleGameOver(matchId, winner, fastify) {
+	const tournament = tournaments.get(matchId);
+	if (tournament) {
+		const match = tournament.bracket.find((match) => match.matchId === matchId);
+		if (match) {
+			match.winner = winner;
+			console.log(`Match ${matchId} winner: ${winner}`);
+		} else {
+			console.error(`Match ${matchId} not found in tournament bracket`);
+		}
+		const semis = tournament.bracket.filter((match) => match.round === 'semifinal');
+		if (semis.length === 2 && semis.every((match) => match.winner)) {
+			const finalMatch = {
+				matchId: `${matchId}-final`,
+				round: 'final',
+				players: [semis[0].winner, semis[1].winner],
+				winner: null,
+				loser: null
+			};
+			const thirdPlaceMatch = {
+				matchId: `${tournament.id}-third`,
+				round: 'third',
+				players: [
+					semis[0].players.find(p => p !== semis[0].winner),
+					semis[1].players.find(p => p !== semis[1].winner)
+				],
+				winner: null,
+				loser: null
+			};
+			tournament.bracket.push(finalMatch, thirdPlaceMatch);
+			console.log(`Final match created: ${finalMatch.matchId}`);
+			// Notify final players
+			finalMatch.players.forEach(playerId => {
+				const userConnections = fastify.connections.get(playerId);
+				if (userConnections) {
+					for (const [, socket] of userConnections.entries()) {
+						if (socket.readyState === 1) {
+							safeSend(socket, {
+								type: 'TournamentGameStart',
+								gameId: finalMatch.matchId,
+								round: finalMatch.round,
+								players: finalMatch.players,
+							});
+							socket.close();
+							break; // Only notify the first open socket
+						}
+					}
+				}
+			});
+			// Notify third place players
+			thirdPlaceMatch.players.forEach(playerId => {
+				const userConnections = fastify.connections.get(playerId);
+				if (userConnections) {
+					for (const [, socket] of userConnections.entries()) {
+						if (socket.readyState === 1) {
+							safeSend(socket, {
+								type: 'TournamentGameStart',
+								gameId: thirdPlaceMatch.matchId,
+								round: thirdPlaceMatch.round,
+								players: thirdPlaceMatch.players,
+							});
+							socket.close();
+							break;
+						}
+					}
+				}
+			});
+		}
+	}
 }

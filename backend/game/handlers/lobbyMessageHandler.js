@@ -48,7 +48,7 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 		});
 	}
 
-	socket.currentHandler = (data) => handleLobbyMessage(socket, lobby, data);
+	socket.currentHandler = (data) => handleLobbyMessage(socket, lobby, data, fastify);
 
 	// Set up socket message handler
 	socket.on('message', (message) => {
@@ -72,7 +72,7 @@ function handleLobbyDisconnect(socket, lobby) {
 	}
 }
 
-function handleLobbyMessage(socket, lobby, data) {
+function handleLobbyMessage(socket, lobby, data, fastify) {
 	const playerNumber = socket.playerNumber;
 
 	switch (data.type) {
@@ -102,9 +102,9 @@ function handleLobbyMessage(socket, lobby, data) {
 
 		case 'startGameRequest':
 			if (playerNumber === 1) {
-				const tournament = tournaments.get(lobby.lobbyId);
+				const tournament = tournaments.get(Number(lobby.lobbyId));
 				console.log(`Starting game from lobby ${lobby.lobbyId}`);
-				startGameFromLobby(lobby, tournament);
+				startGameFromLobby(lobby, tournament, fastify);
 			}
 			break;
 
@@ -113,7 +113,7 @@ function handleLobbyMessage(socket, lobby, data) {
 	}
 }
 
-function startGameFromLobby(lobby, tournament = null) {
+function startGameFromLobby(lobby, tournament = null, fastify) {
 	const gameId = lobby.lobbyId;
 	const settings = lobby.getSettings();
 
@@ -123,7 +123,7 @@ function startGameFromLobby(lobby, tournament = null) {
 		startNormalGame(lobby, gameId, settings);
 }
 
-function startNormalGame(lobby, gameId, settings) {
+function startNormalGame(lobby, gameId, settings, fastify) {
 	const game = new GameInstance(gameId, settings);
 	console.log(`Transitioning game from Lobby ${lobby.lobbyId} to ${gameId}`);
 
@@ -136,105 +136,33 @@ function startNormalGame(lobby, gameId, settings) {
 			gameId: gameId,
 			settings: settings,
 		});
-		player.currentHandler = (data) => handleGameMessage(player, game, data);
-		player.currentCloseHandler = () => handleGameDisconnect(player, game);
-		handleNewGamePlayer(player, game);
+		handleNewGamePlayer(player, game, fastify);
 	});
 
-	// Clean up the lobby
-	lobby.players.clear();
-	lobbies.delete(lobby.lobbyId);
 	console.log(`Game successfully transitioned  to ${gameId}`);
 }
 
 function startTournamentGame(lobby, tournament, gameId, settings) {
-	const bracket = tournament.bracket;
-	const ready = tournament.ready || new Map();
-	tournament.ready = ready;
-
-	// Find the match for this lobby
-	const match = bracket.find(m => m.matchId === gameId);
-	if (!match) {
-		console.error(`No match found for lobby ${gameId} in tournament ${tournament.id}`);
-		return;
-	}
-
-	// Start the game as usual
-	const game = new GameInstance(gameId, settings);
-	games.set(gameId, game);
-
-	lobby.players.forEach((player) => {
-		safeSend(player, {
-			type: 'gameStart',
-			gameId: gameId,
-			settings: settings,
-			tournamentId: tournament.id,
-			matchId: match.matchId,
-			round: match.round,
+	tournament.settings = settings;
+	const matches = tournament.bracket
+	
+	matches.forEach(match => {
+		const game = new GameInstance(match.matchId, settings);
+		games.set(match.matchId, game);
+		match.players.forEach(playerId => {
+			const playerSocket = lobby.players.get(playerId);
+			if (playerSocket) {
+				safeSend(playerSocket, {
+					type: 'TournamentGameStart',
+					gameId: match.matchId,
+					settings: settings,
+					round: match.round,
+					players: match.players,
+				});
+				playerSocket.close();
+			}
 		});
-		player.currentHandler = (data) => handleGameMessage(player, game, data);
-		player.currentCloseHandler = () => handleGameDisconnect(player, game);
-		handleNewGamePlayer(player, game);
+		console.log(`starting tournament game ${match.matchId} with players ${match.players}`);
 	});
-
-	// Clean up the lobby
-	lobby.players.clear();
-	lobbies.delete(lobby.lobbyId);
-
-	// Listen for game end to update bracket
-	game.onEnd = (result) => {
-		match.winner = result.winnerId;
-		match.loser = result.loserId;
-		ready.set(match.matchId, true);
-
-		// If both semifinals are done, create finals and 3rd place
-		const semisDone = bracket.filter(m => m.round === 'semifinal' && m.winner).length === 2;
-		if (semisDone && !bracket.some(m => m.round === 'final')) {
-			const [semi1, semi2] = bracket.filter(m => m.round === 'semifinal');
-			const finalMatch = {
-				matchId: `${tournament.id}-final`,
-				round: 'final',
-				players: [semi1.winner, semi2.winner],
-				winner: null,
-				loser: null,
-			};
-			const thirdMatch = {
-				matchId: `${tournament.id}-third`,
-				round: 'third',
-				players: [semi1.loser, semi2.loser],
-				winner: null,
-				loser: null,
-			};
-			bracket.push(finalMatch, thirdMatch);
-
-			// Create lobbies and start games for finals and 3rd place
-			[finalMatch, thirdMatch].forEach(match => {
-				const newLobby = createLobbyForMatch(match, settings); // You need to implement this
-				lobbies.set(match.matchId, newLobby);
-				startGameFromLobby(newLobby, tournament);
-			});
-		}
-
-		// If finals and third are done, announce results
-		const finalsDone = bracket.filter(m => ['final', 'third'].includes(m.round) && m.winner).length === 2;
-		if (finalsDone) {
-			const final = bracket.find(m => m.round === 'final');
-			const third = bracket.find(m => m.round === 'third');
-			// Announce tournament results
-			tournament.players.forEach(pid => {
-				const playerSocket = findPlayerSocket(pid); // You need to implement this
-				if (playerSocket) {
-					safeSend(playerSocket, {
-						type: 'tournamentResults',
-						placement: getTournamentPlacement(pid, final, third),
-						finals: final,
-						thirdPlace: third,
-					});
-				}
-			});
-		}
-	};
-
-	console.log(`Tournament match ${match.matchId} started for round ${match.round}`);
 	return;
 }

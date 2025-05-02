@@ -1,7 +1,7 @@
 import { SettingsManager } from '../game/classes/settingsManager.js';
 import { setupGameUpdateInterval, handleGameConnection } from '../game/controllers/gameController.js';
+import { safeSend } from '../game/utils/socketUtils.js';
 import wsService from '../ws/ws.service.js';
-
 export const settingsManagers = new Map();
 export const gamePlayerNumbers = new Map();
 export const tournamentPlayerNumbers = new Map();
@@ -121,16 +121,19 @@ export async function gameRoutes(fastify, options) {
 			];
 			tournaments.get(tid).bracket = matches;
 			tournaments.get(tid).ready = new Map();
-	
+
 			// Notify all players (WebSocket or HTTP response)
 			players.forEach(pid => {
-				const socket = fastify.connections.get(pid);
-				if (socket) {
-					socket.send(JSON.stringify({
-						type: 'tournamentStart',
-						tournamentId: tid,
-						bracket: matches,
-					}));
+				const userConnections = fastify.connections.get(pid);
+				if (userConnections) {
+					for (const [, socket] of userConnections.entries()) {
+						safeSend(socket, {
+							type: 'tournamentStart',
+							tournamentId: tid,
+							bracket: matches,
+						});
+						break;
+					}
 				}
 			});
 			return reply.send({ matched: true, tournamentId: tid, isCreator: players[0] === userId });

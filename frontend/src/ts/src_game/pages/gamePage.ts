@@ -9,7 +9,6 @@ import { GameState } from "../../shared/types/gameState.js";
 import { WebSocketService } from "../services/webSocketService.js";
 import { BabylonManager } from "../game/managers/babylonManager.js";
 import { FPSManager } from "../game/managers/fpsManager.js";
-import { SettingsService } from "../services/settingsServices.js";
 
 export class Game {
 	private babylonManager: BabylonManager | null = null;
@@ -36,12 +35,12 @@ export class Game {
 	private gameId: string;
 	private isLoading: boolean = true;
 
-	constructor(gameId: string) {
+	constructor(gameId: string, settings: any) {
 		this.gameId = gameId;
 		this.playerNumber = WebSocketService.getInstance().getPlayerNumber();
 		this.connectWebSocket();
 		this.initializeCanvas();
-		this.initializeComponents();
+		this.initializeComponents(settings);
 		this.initializeBabylonScene();
 		this.initializeGameManagers();
 		
@@ -60,11 +59,11 @@ export class Game {
 		this.context = this.uiCanvas.getContext("2d")!;
 	}
 
-	private initializeComponents() {
+	private initializeComponents(settings: any) {
 		this.ball = new Ball();
 		this.paddle1 = new Paddle(10, 250);
 		this.paddle2 = new Paddle(780, 250);
-		this.updateSettings();
+		this.updateSettings(settings);
 	}
 	
 	private initializeBabylonScene() {
@@ -294,16 +293,18 @@ export class Game {
 
 	}
 
-	private updateSettings() {
-		const savedSettings = SettingsService.loadSettings();
-		this.ball.speedX = savedSettings.ballSpeed;
-		this.ball.speedY = savedSettings.ballSpeed;
-		this.paddle1.speed = savedSettings.paddleSpeed;
-		this.paddle2.speed = savedSettings.paddleSpeed;
-		this.paddle1.height = savedSettings.paddleLength;
-		this.paddle2.height = savedSettings.paddleLength;
-		this.mapType = savedSettings.mapType;
-		this.powerUpsEnabled = savedSettings.powerUpsEnabled;
+	private updateSettings(settings: any = null) {
+		if (settings) {
+			this.ball.speedX = settings.ballSpeed;
+			this.ball.speedY = settings.ballSpeed;
+			this.paddle1.speed = settings.paddleSpeed;
+			this.paddle2.speed = settings.paddleSpeed;
+			this.paddle1.height = settings.paddleLength;
+			this.paddle2.height = settings.paddleLength;
+			this.mapType = settings.mapType;
+			this.powerUpsEnabled = settings.powerUpsEnabled;
+			return;
+		}
 	}
 
 	private handleGameOver(data: any) {
@@ -316,6 +317,15 @@ export class Game {
 			player1Score: finalScore.player1Score,
 			player2Score: finalScore.player2Score,
 		});
+
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+			this.socket.send(
+				JSON.stringify({
+					type: "gameOver",
+					matchId: this.gameId,
+					winner: data.winner,
+				}));
+		}
 	
 		if (data.reason === "opponentDisconnected") {
 			//distinct message for opponent disconnection

@@ -155,14 +155,6 @@ export class GameSection extends ASection {
 				this.fpsCounter.style.display = 'none';
 				tournamentSettingsChosen = true;
 			}
-			else if (settingsPage) {
-				this.settingsPage.style.display = 'block';
-				this.gamePage.style.display = 'none';
-				this.gameContainer.style.display = 'none';
-				this.fpsCounter.style.display = 'none';
-				if (user && user.userId)
-					gamePage = new Game(activeTournamentId);
-			}
 		} else {
 			console.error('No active game ID or tournament ID found');
 		}
@@ -174,7 +166,7 @@ export class GameSection extends ASection {
 		activeTournamentId = null;
 	}
 
-	transitionToGame(gameId: string) {
+	transitionToGame(gameId: string, settings: any) {
 		// Hide settings page and show game page
 		this.settingsPage.style.display = 'none';
 		this.gamePage.style.display = 'block';
@@ -183,7 +175,7 @@ export class GameSection extends ASection {
 
 		// Initialize the game
 		if (user && user.userId)
-			gamePage = new Game(gameId);
+			gamePage = new Game(gameId, settings);
 	}
 
 	async leave() {

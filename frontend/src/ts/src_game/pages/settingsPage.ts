@@ -80,11 +80,21 @@ export class SettingsPage {
 				case 'gameStart':
 					if (data.gameId){
 						const gameSection = sections[get_section_index('game')!] as GameSection;
-						gameSection.transitionToGame(data.gameId);
+						gameSection.transitionToGame(data.gameId, data.settings);
 					} else {
 						console.error('Game ID not provided');
 					}
 					break;
+				case 'TournamentGameStart':
+					if (data.gameId){
+						const gameSection = sections[get_section_index('game')!] as GameSection;
+						gameSection.transitionToGame(data.gameId, data.settings);
+						/*need to print the tournament match on screen using data.round and data.players */
+					} else {
+						console.error('Game ID not provided');
+					}
+					break;
+
 				case 'playerReady':
 					this.readyPlayers.add(data.playerNumber);
 					this.updateStartButtonState();

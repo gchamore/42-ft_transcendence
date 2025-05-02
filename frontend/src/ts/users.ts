@@ -1,4 +1,6 @@
-import { update_friends_status, update_sections, HOME_INDEX, Chat, Actions, set_tournament_bracket, get_section_index, sections, section_index, set_section_index, set_active_game_id, set_active_tournament_id, go_section } from "./sections.js";
+import { update_friends_status, update_sections, HOME_INDEX, Chat, Actions, set_tournament_bracket, get_section_index, sections, section_index, set_section_index, set_active_game_id, set_active_tournament_id, go_section, GameSection } from "./sections.js";
+
+
 /* Global variables */
 export var user: undefined | User = undefined;
 /* --------- */
@@ -89,6 +91,15 @@ export class User {
 						break;
 					case 'tournamentStart':
 						tournamentStart(data.tournamentId, data.bracket);
+						break;
+					case 'TournamentGameStart':
+						if (data.gameId) {
+							const gameSection = sections[get_section_index('game')!] as GameSection;
+							gameSection.transitionToGame(data.gameId, data.settings);
+							/*need to print the tournament match on screen using data.round and data.players */
+						} else {
+							console.error('Game ID not provided');
+						}
 						break;
 				}
 			} catch (error) {
