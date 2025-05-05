@@ -151,4 +151,4 @@ export HEADER
 first_header:
 	@echo "\n$$HEADER\n"
 
-.PHONY: all check_deps run down up clean status logs restart_service re first_header get_database check_redis
+.PHONY: all check_deps run down up clean status logs restart_service re first_header get_database check_redis live_back
