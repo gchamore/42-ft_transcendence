@@ -76,7 +76,7 @@ export function handleGameMessage(socket, game, data, fastify) {
 			socket.isAlive = true;
 			break;
 		case 'gameOver':
-			handleGameOver(data.matchId, data.winner, fastifty);
+			handleGameOver(data.matchId, data.winner, fastify);
 		default:
 			console.error(`Unknown message type: ${data.type}`);
 	}
