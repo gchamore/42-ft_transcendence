@@ -839,7 +839,7 @@ class DirectMessage extends ASection {
 	switch_logged_off() {}
 	switch_logged_in() {}
 }
-sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(),
+sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(), new GameSection(),
 			new Settings(), new DirectMessage()];
 /* --------- */
 
