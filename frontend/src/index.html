@@ -99,11 +99,11 @@
 				<h2 id="game-over-title" class="mb-2">Game Over</h2>
 				<p id="game-over-message" class="mb-5"></p>
 				<div id="game-over-buttons">
-					<button id="home-button">Return	Home</button>
+					<button id="home-button">Return Home</button>
 				</div>
 			</div>
 		</main>
-	</section> 
+	</section>
 	<!-- Modals Container -->
 	<div id="modals-container">
 		<article class="modal item section profile" id="profile-parent">
@@ -205,41 +205,34 @@
 				</nav>
 			</section>
 		</article>
+
+		<!-- DirectMessage Modal -->
+		<article class="modal item section directmessage logged-in" id="directmessage-parent">
+
+		</article>
 	</div>
 
+
+	<article class="modal item section settings" id="settings-parent">
+		<aside id="settings-sidebar">
+			<nav>
+				<ul>
+					<li>Account</li>
+					<li>Stats</li>
+					<li>Confidentiality</li>
+					<li onclick="history.back()">Back</li>
+				</ul>
+			</nav>
+		</aside>
+
+		<div id="settings-content"></div>
+	</article>
+
 	<!-- <div id="pages-btns">
-        <section>
-          <nav>
-            <ul class="modal row">
-              <li class="l1 actions"><button id="actions-btn1"></button></li>
-              <li class="l2 actions"><button id="actions-btn2"></button></li>
-              <li class="l3 actions"><button id="actions-btn3"></button></li>
-            </ul>
-          </nav>
-        </section>
-      </article>
-    </div>
-
-    <article class="modal item section settings" id="settings-parent">
-      <aside id="settings-sidebar">
-        <nav>
-          <ul>
-            <li>Account</li>
-            <li>Stats</li>
-            <li>Confidentiality</li>
-            <li onclick="history.back()">Back</li>
-          </ul>
-        </nav>
-      </aside>
-
-      <div id="settings-content"></div>
-    </article>
-
-    <!-- <div id="pages-btns">
-      <button id="home-page">HOME</button>
-      <button id="profile-page">PROFILE</button>
-      <button id="friends-page">FRIENDS</button>
-    </div> -->
+		<button id="home-page">HOME</button>
+		<button id="profile-page">PROFILE</button>
+		<button id="friends-page">FRIENDS</button>
+	</div> -->
 
 	<script type="module" src="/dist/main.js"></script>
 </body>

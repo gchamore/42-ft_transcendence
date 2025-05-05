@@ -1,15 +1,15 @@
-/* Custom types */
-const ACCEPTED = 1;
-const REFUSED = 0;
-type OptionStatus = typeof ACCEPTED | typeof REFUSED;
-/* --------- */
-
-
-
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
-import { login, register, logout, add , remove, search, send, get_blocked_users } from './api.js';
+import { login, register, logout, add , remove, search, send, get_blocked_users, block, unblock } from './api.js';
+
+/* Custom types */
+// const ACCEPTED = 1;
+// const REFUSED = 0;
+// type OptionStatus = typeof ACCEPTED | typeof REFUSED;
+/* --------- */
+
+
 /* Global variables */
 export var sections: ASection[] = [];
 export var HOME_INDEX: number = 0;
@@ -138,6 +138,9 @@ export class GameSection extends ASection {
 
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Game section as unauthenticated");
@@ -820,8 +823,11 @@ class DirectMessage extends ASection {
 	dependencies = ['home'];
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
-		if (verified !== true || ) {
+		if (verified !== true) {
 			console.log("Try to enter DirectMessage section as unauthenticated");
 			return;
 		}
@@ -840,7 +846,7 @@ sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(),
 
 
 /* Utils */
-function	get_url_type(url : string) : string {
+export function	get_url_type(url : string) : string {
 	let end;
 	for (end = 0; end < url.length; ++end) {
 		if (url[end] == '/')
@@ -854,7 +860,7 @@ function	get_url_type(url : string) : string {
 	return type;
 }
 
-function	get_url_option(url : string) : string | undefined {
+export function	get_url_option(url : string) : string | undefined {
 	let start;
 	for (start = 0; start < url.length; ++start) {
 		if (url[start] == '/')
@@ -872,7 +878,7 @@ function	get_url_option(url : string) : string | undefined {
 	return option;
 }
 
-function get_section_index(type : string): number | undefined {
+export function get_section_index(type : string): number | undefined {
 	for (let i = 0; i < sections.length; i++) {
 		if (sections[i].type === type)
 				return i;
@@ -880,18 +886,20 @@ function get_section_index(type : string): number | undefined {
 	return undefined;
 }
 
-function set_section_index(type : string, option : string | undefined): void {
+export function set_section_index(type : string): void {
 	let index : number | undefined = get_section_index(type);
 	if (index === undefined)
 		section_index = HOME_INDEX;
 	else if (!is_section_accessible(index))
 		section_index = HOME_INDEX;
-	else if (sections[index].option !== undefined
-		&& sections[index].option !== option)
-		section_index = HOME_INDEX;
-	else if (sections[index].option === undefined
-		|| sections[index].option === option)
-		sections_index = index;
+	else
+		section_index = index;
+	
+	//  if (sections[index].option !== undefined
+	// 	&& sections[index].option !== option)
+	// 	section_index = HOME_INDEX;
+	// else if (sections[index].option === undefined
+	// 	|| sections[index].option === option)
 }
 
 function is_section_accessible(index: number): boolean {
@@ -913,10 +921,10 @@ export function update_sections(): void {
 // 		sections[section_index].switch_logged_in();
 // }
 
-function go_section(section : string, type : string) {
+export function go_section(section : string) {
 	if (section === sections[section_index].type)
 		section = 'home';
-	set_section_index(section, type);
+	set_section_index(section);
 	update_sections();
 	history.pushState({ section: sections[section_index].type }, "",
 		sections[section_index].type);
@@ -947,10 +955,6 @@ export  function update_status(username : string, online : boolean) {
 
 	if (sections[section_index].type === 'actions')
         (sections[section_index] as Actions).load_boxes();
-}
-
-export function set_section_index(index: number): void {
-	section_index = index;
 }
 
 export function set_active_game_id(gameId: string): void {

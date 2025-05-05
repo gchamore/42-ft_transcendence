@@ -239,7 +239,7 @@ export async function send(message: string, type: string, to: string = ''): Prom
 	return true;
 }
 
-export async function get_blocked_users(): Promise<Array<string> | Error> {
+export async function get_blocked_users(): Promise<Array<string> | undefined> {
 	try {
         const response = await fetch(`/api/blocked`, {
             method: "GET",
@@ -269,7 +269,7 @@ export async function get_blocked_users(): Promise<Array<string> | Error> {
 	return undefined;
 }
 
-async function block(username : string): Promise<boolean> {
+export async function block(username : string): Promise<boolean> {
 	try {
         const response = await fetch(`/api/block/${username}`, {
             method: "POST",
@@ -299,7 +299,7 @@ async function block(username : string): Promise<boolean> {
 	return false;
 }
 
-async function unblock(username : string): Promise<boolean> {
+export async function unblock(username : string): Promise<boolean> {
 	try {
         const response = await fetch(`/api/unblock/${username}`, {
             method: "DELETE",

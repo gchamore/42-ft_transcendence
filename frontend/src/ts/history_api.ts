@@ -1,4 +1,5 @@
-import {set_new_section_index, update_sections, sections, section_index} from "./sections.js";
+import {set_section_index, update_sections,  get_url_type} from "./sections.js";
+/*sections, section_index, get_url_option*/
 import {verify_token} from "./api.js";
 
 /* Event listeners */
@@ -6,11 +7,11 @@ window.addEventListener("popstate", async function(event) {
 	await verify_token();
 	if (event.state && event.state.section) {
 		let type = get_url_type(event.state.section);
-		let option = get_url_option(event.state.section);
+		// let option = get_url_option(event.state.section);
 
 		await verify_token();
 
-		set_section_index(type, option);
+		set_section_index(type);
 		update_sections();
 
 	}
@@ -25,19 +26,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 	console.log(window.location.pathname);
 
 	let type = get_url_type(window.location.pathname);
-	let option = get_url_option(window.location.pathname);
+	// let option = get_url_option(window.location.pathname);
 
 	await verify_token();
 
-	set_section_index(type, option);
+	set_section_index(type);
 
 	update_sections();
 
-	let url : string;
-	if (sections[section_index].option === undefined)
-		url = sections[section_index];
-	else
-		url = sections[section_index] + '/' + sections[section_index].option;
-	history.replaceState({ section : url }, "", url);
+	// let url : string;
+	// if (sections[section_index].option === undefined)
+	// 	url = sections[section_index];
+	// else
+	// 	url = sections[section_index] + '/' + sections[section_index].option;
+	// history.replaceState({ section : url }, "", url);
 });
 /* --------- */

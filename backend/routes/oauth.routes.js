@@ -107,9 +107,6 @@ export async function oauthRoutes(fastify, options) {
                 error: 'Failed to authenticate with Google',
                 details: error.message,
                 step: error.step || 'unknown'
-                error: 'Failed to authenticate with Google',
-                details: error.message,
-                step: error.step || 'unknown'
             });
         }
     });

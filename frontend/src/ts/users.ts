@@ -1,8 +1,8 @@
-import { update_friends_status, update_sections, HOME_INDEX, Chat, Actions, set_tournament_bracket, get_section_index, sections, section_index, set_section_index, set_active_game_id, set_active_tournament_id, go_section, GameSection } from "./sections.js";
+import { update_status, update_sections, Chat, Actions, set_tournament_bracket, get_section_index, sections, section_index, set_section_index, set_active_game_id, set_active_tournament_id, go_section, GameSection } from "./sections.js";
 
 
 /* Global variables */
-var user : undefined | User = undefined;
+export var user : undefined | User = undefined;
 
 const options: Intl.DateTimeFormatOptions = {
 timeZone: 'Europe/Paris',
@@ -21,7 +21,7 @@ const formatter = new Intl.DateTimeFormat('fr-FR', options);
 
 
 /* Message */
-class Message {
+export class Message {
     readonly date : string;
     readonly username : string;
     readonly message : string;
@@ -79,22 +79,38 @@ export class User {
 		}
 
         this.web_socket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                switch (data.type) {
-                    case 'onlines':
-                        this.init_status(data.users);
-                        break;
-                        case 'status_update':
-                        update_status(data.username, data.online);
-                        break;
-                    case 'livechat':
-                        add_message(data.user, data.message, 'livechat');
-                        break;
-                    case 'direct_message':
-                        add_message(data.user, data.message, 'direct_message');
-                        break;            }
-            } catch (error) {
+			try {
+				const data = JSON.parse(event.data);
+				switch (data.type) {
+					case 'onlines':
+						this.init_status(data.users);
+						break;
+					case 'status_update':
+						update_status(data.username, data.online);
+						break;
+					case 'livechat':
+						add_message(data.user, data.message, 'livechat');
+						break;
+					case 'direct_message':
+						add_message(data.user, data.message, 'direct_message');
+						break;
+						case 'matchFound':
+						matchFound(data.gameId);
+						break;
+					case 'tournamentStart':
+						tournamentStart(data.tournamentId, data.bracket);
+						break;
+					case 'TournamentGameStart':
+						if (data.gameId) {
+							const gameSection = sections[get_section_index('game')!] as GameSection;
+							gameSection.transitionToGame(data.gameId, data.settings);
+							/*need to print the tournament match on screen using data.round and data.players */
+						} else {
+							console.error('Game ID not provided');
+						}
+						break;
+				}
+			} catch (error) {
                 console.error('WebSocket message parsing error:', error);
             }
         };
@@ -108,6 +124,7 @@ export class User {
 			console.log('WebSocket error:', error);
 		};
 	}
+	
 	get_free_users(): Array<string> {
 		let users: Array<string> = [];
 
@@ -139,7 +156,18 @@ export class User {
     }
 }
 
-async function add_online(username : string) {
+function tournamentStart(tournamentId: string, bracket: string) {
+	set_active_tournament_id(tournamentId);
+	set_tournament_bracket(bracket);
+	go_section('game');
+}
+
+function matchFound(matchId: string) {
+	set_active_game_id(matchId);
+	go_section('game');
+}
+
+export async function add_online(username : string) {
     user!.onlines.push(username);
 }
 
@@ -157,7 +185,7 @@ export function update_user(new_user_value: User | undefined) {
 
 	if (user === undefined) {
 		let profile_i = get_section_index('profile')!;
-		set_section_index(section_index === profile_i ? profile_i : HOME_INDEX);
+		set_section_index(section_index === profile_i ? 'profile' : 'home');
 	}
 	update_sections();
 }

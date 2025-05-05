@@ -18,7 +18,6 @@ export async function twofaroutes(fastify, options) {
 	// The QR code is displayed in the front-end for the user to scan
 	fastify.post("/2fa/setup", async (request, reply) => {
 		const userId = request.user.userId;
-		const userId = request.user.userId;
 		const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 		if (!user) return reply.code(404).send({ error: "User not found" });
 	
@@ -42,7 +41,6 @@ export async function twofaroutes(fastify, options) {
 	// The user must enter the verification code from their authenticator app
 	fastify.post("/2fa/activate", async (request, reply) => {
 		const { secret, token } = request.body;
-		const userId = request.user.userId;
 		const userId = request.user.userId;
 	
 		const isValid = speakeasy.totp.verify({
@@ -116,7 +114,6 @@ export async function twofaroutes(fastify, options) {
 	// It does not require the verification code
 	// The user must be authenticated to disable 2FA
 	fastify.post("/2fa/disable", async (request, reply) => {
-		const userId = request.user.userId;
 		const userId = request.user.userId;
 		db.prepare("UPDATE users SET twofa_secret = NULL WHERE id = ?").run(userId);
 		return reply.send({ success: true, message: "2FA disabled" });
