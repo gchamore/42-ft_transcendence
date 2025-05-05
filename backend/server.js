@@ -44,12 +44,20 @@ app.decorate('connections', new Map());
 
 // Base de données SQLite
 try {
-    const db = initializeDatabase(process.env.DATABASE_URL);
-    app .decorate('db', db);
+	const db = initializeDatabase(process.env.DATABASE_URL);
+
+	// 🔐 Forcer la création de l'utilisateur "deleted"
+	db.prepare(`
+		INSERT OR IGNORE INTO users (id, username, password)
+		VALUES (0, '[deleted]', '')
+	`).run();
+
+	app.decorate('db', db);
 } catch (error) {
-    console.error('Database initialization error:', error);
-    process.exit(1);
+	console.error('Database initialization error:', error);
+	process.exit(1);
 }
+
 
 app.register(cookie);
 
@@ -60,7 +68,6 @@ const publicRoutes = [
     '/refresh',
     '/verify_token',
 	'/auth/google/token',
-	'/2fa/verify',
 	'/2fa/verify',
 	'/ws'
 ];

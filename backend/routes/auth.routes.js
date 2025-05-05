@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import authService from '../auth/auth.service.js';
 import authUtils from '../auth/auth.utils.js';
-import TwofaService from'../2fa/twofa.service.js';
+import TwofaService from '../2fa/twofa.service.js';
 import jwt from 'jsonwebtoken';
 import * as wsUtils from '../ws/ws.utils.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret_key';
@@ -19,17 +19,17 @@ export async function authRoutes(fastify, options) {
 	// The tokens are stored in Redis with the userId as key
 	fastify.post("/register", async (request, reply) => {
 		const { username, password } = request.body;
-	
+
 		fastify.log.info({ body: request.body }, "Tentative d'inscription");
-		
+
 		const trimmedUsername = username ? username.trim() : '';
-		
+
 		// Verify if the required fields are present
 		if (!trimmedUsername || !password) {
 			fastify.log.warn("Échec d'inscription : username ou password manquant");
 			return reply.code(400).send({ error: "Username and password are required" });
 		}
-	
+
 		// Verify if the username already exists in the database
 		const existingUser = db.prepare("SELECT id FROM users WHERE username = ?").get(trimmedUsername);
 		if (existingUser) {
@@ -41,22 +41,22 @@ export async function authRoutes(fastify, options) {
 		try {
 			// Hash the password using bcrypt
 			const hashedPassword = await authUtils.hashPassword(password);
-	
+
 			// Insert the user into the database
 			const result = db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(trimmedUsername, hashedPassword);
 			const newUserId = result.lastInsertRowid;
-	
+
 			// Get the newly created user from the database
 			const newUser = db.prepare("SELECT id, username FROM users WHERE id = ?").get(newUserId);
-	
+
 			// Generate the access and refresh tokens for the user
 			const { accessToken, refreshToken } = await authService.generateTokens(newUser.id);
 			const isLocal = request.headers.host.startsWith("localhost");
-	
+
 			// Send the response with the tokens in cookies
 			authUtils.setCookie(reply, accessToken, 15, isLocal);
 			authUtils.setCookie(reply, refreshToken, 7, isLocal);
-	
+
 			return reply.code(201).send({
 				success: true,
 				message: "User registered and logged in successfully",
@@ -64,7 +64,7 @@ export async function authRoutes(fastify, options) {
 				id: newUser.id,
 				avatar: '/assets/avatar.png',
 			});
-	
+
 		} catch (error) {
 			fastify.log.error(error, "Erreur lors de l'inscription");
 			return reply.code(500).send({
@@ -73,7 +73,7 @@ export async function authRoutes(fastify, options) {
 			});
 		}
 	});
-	
+
 
 	/*** 📌 Route: UNREGISTER ***/
 	// Unregister a user
@@ -116,23 +116,24 @@ export async function authRoutes(fastify, options) {
 
 				fastify.log.info("Début de la suppression des données utilisateur");
 
-				// Anonymize the user's games instead of deleting them
+				// Anonymize the user's games by replacing their ID with 0 (deleted user)
 				db.prepare(`
-                    UPDATE games 
-                    SET player1_id = CASE 
-                            WHEN player1_id = ? THEN NULL 
-                            ELSE player1_id 
-                        END,
-                        player2_id = CASE 
-                            WHEN player2_id = ? THEN NULL 
-                            ELSE player2_id 
-                        END,
-                        winner_id = CASE 
-                            WHEN winner_id = ? THEN NULL 
-                            ELSE winner_id 
-                        END
-                    WHERE player1_id = ? OR player2_id = ?
-                `).run(user.id, user.id, user.id, user.id, user.id);
+				    UPDATE games 
+				    SET player1_id = CASE 
+				            WHEN player1_id = ? THEN 0 
+				            ELSE player1_id 
+				        END,
+				        player2_id = CASE 
+				            WHEN player2_id = ? THEN 0 
+				            ELSE player2_id 
+				        END,
+				        winner_id = CASE 
+				            WHEN winner_id = ? THEN 0 
+				            ELSE winner_id 
+				        END
+				    WHERE player1_id = ? OR player2_id = ?
+				`).run(user.id, user.id, user.id, user.id, user.id);
+
 
 				fastify.log.debug(`Parties anonymisées pour : ${username}`);
 
@@ -324,7 +325,7 @@ export async function authRoutes(fastify, options) {
 		const db = request.server.db;
 
 		fastify.log.info('Processing logout for user:', userId);
-	
+
 		try {
 			// Vérifier si l'utilisateur existe dans la base de données
 			const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
@@ -344,9 +345,9 @@ export async function authRoutes(fastify, options) {
 				httpOnly: true,
 				sameSite: 'None'
 			};
-	
+
 			fastify.log.info('Logout successful for user:', userId);
-			
+
 			// Effacer les cookies pour accessToken et refreshToken
 			return reply
 				.code(200)
@@ -355,7 +356,7 @@ export async function authRoutes(fastify, options) {
 				.header('Access-Control-Allow-Credentials', 'true')
 				.header('Access-Control-Allow-Origin', request.headers.origin || 'https://localhost:8443')
 				.send({ success: true, message: "Logged out successfully" });
-	
+
 		} catch (error) {
 			fastify.log.error('Logout error:', error);
 			return reply.code(500).send({
@@ -364,7 +365,7 @@ export async function authRoutes(fastify, options) {
 			});
 		}
 	});
-	
+
 
 	/*** 📌 Route: REVOKE TOKEN ***/
 	// Revoke a user's tokens
@@ -422,8 +423,8 @@ export async function authRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error('Revoke error:', error);
-			return reply.code(500).send({ 
-				error: 'Revoke failed' 
+			return reply.code(500).send({
+				error: 'Revoke failed'
 			});
 		}
 	});
@@ -473,7 +474,7 @@ export async function authRoutes(fastify, options) {
 				.clearCookie('accessToken', cookieOptions)
 				.clearCookie('refreshToken', cookieOptions)
 				.send({
-					valid: false, 
+					valid: false,
 					message: 'Invalid or expired token'
 				});
 		}
