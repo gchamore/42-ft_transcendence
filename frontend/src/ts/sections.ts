@@ -1,7 +1,7 @@
 /* Custom types */
 const ACCEPTED = 1;
 const REFUSED = 0;
-type OptionStatus : ACCEPTED | REFUSED;
+type OptionStatus = typeof ACCEPTED | typeof REFUSED;
 /* --------- */
 
 
