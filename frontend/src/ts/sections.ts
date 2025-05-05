@@ -1,3 +1,11 @@
+/* Custom types */
+const ACCEPTED = 1;
+const REFUSED = 0;
+type OptionStatus = typeof ACCEPTED | typeof REFUSED;
+/* --------- */
+
+
+
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
@@ -18,14 +26,15 @@ var gamePage: Game | null = null;
 
 /* Classes */
 abstract class ASection {
-	abstract readonly type: string;
-	abstract readonly protected: boolean;
-	abstract readonly parent: HTMLElement;
-	abstract readonly logged_off: NodeListOf<Element>;
-	abstract readonly logged_in: NodeListOf<Element>;
-	abstract readonly dependencies: Array<string>;
-
-	abstract enter(verified: boolean): void;
+    abstract readonly type: string;
+    abstract readonly protected: boolean;
+    abstract readonly parent: HTMLElement;
+    abstract readonly logged_off: NodeListOf<Element>;
+    abstract readonly logged_in: NodeListOf<Element>;
+    abstract readonly dependencies: Array<string>;
+	
+	abstract is_option_valid(option : string | undefined): boolean;
+    abstract enter(verified: boolean): void;
 	abstract switch_logged_off(): void;
 	abstract switch_logged_in(): void;
 	activate_section() {
@@ -82,6 +91,9 @@ class Home extends ASection {
 	readonly playTournament_btn = document.getElementById('playTournament-btn') as HTMLButtonElement;
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
 		if (verified === true)
 			this.switch_logged_in();
@@ -332,6 +344,9 @@ class Profile extends ASection {
 	readonly btn2 = document.getElementById('profile-btn2') as HTMLButtonElement;
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
 		if (verified === true)
 			this.switch_logged_in();
@@ -364,7 +379,8 @@ class Profile extends ASection {
 		this.password_i.value = "";
 
 		this.btn1.textContent = "Settings";
-		this.btn2.setAttribute("onclick", "verify_token()");
+		this.btn1.onclick = () => go_section('settings');
+
 		this.btn2.textContent = "Logout";
 		this.btn2.onclick = () => logout();
 
@@ -404,6 +420,9 @@ class Friends extends ASection {
 	anotherUser: OtherUser | undefined = undefined;
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Friends section as unauthenticated");
@@ -467,7 +486,11 @@ class Friends extends ASection {
 				this.btn2.textContent = 'Add';
 			}
 
-
+			this.btn3.onclick = () => {
+				window.location.href = "directmessage" + '/' + this.anotherUser?.username;
+			};
+			this.btn3.textContent = 'Message';
+			
 			const stats = this.anotherUser.format_stats();
 			this.stat1.textContent = stats[0];
 			this.stat2.textContent = stats[1];
@@ -536,6 +559,9 @@ export class Chat extends ASection {
 	readonly btn3 = document.getElementById('chat-btn3') as HTMLButtonElement;
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Chat section as unauthenticated");
@@ -583,7 +609,7 @@ export class Chat extends ASection {
 		}
 	}
 	async send() {
-		let input = this.msg_input.value;
+		let input : string = this.msg_input.value;
 		this.msg_input.value = '';
 		if (await send(input, 'livechat') === true) {
 			add_message(user!.name, input, 'livechat');
@@ -610,10 +636,16 @@ export class Actions extends ASection {
 	readonly btn2 = document.getElementById('actions-btn2') as HTMLButtonElement;
 	readonly btn3 = document.getElementById('actions-btn3') as HTMLButtonElement;
 
-	blocked_users: Array<string> = [];
-	free_users: Array<string> = [];
+	blocked_users : Array<string> = [];
+	free_users : Array<string> = [];
+
+	current : HTMLLIElement | undefined = undefined;
+	load_mutex : boolean = false;
 
 	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
 	enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Actions section as unauthenticated");
@@ -645,21 +677,25 @@ export class Actions extends ASection {
 	switch_logged_in() { }
 
 	clear_boxes() {
-		let childs: Array<ChildNode>;
+		while (this.free_box.firstChild) {
+			this.free_box.firstChild.remove(); 
+		}
+		while (this.blocked_box.firstChild) {
+			this.blocked_box.firstChild.remove(); 
+		}
 
-		childs = [];
-		this.free_box.childNodes.forEach(child => { childs.push(child); });
-		for (let i = 0; i < childs.length; ++i)
-			childs[i].remove();
-
-		childs = [];
-		this.blocked_box.childNodes.forEach(child => { childs.push(child); });
-		for (let i = 0; i < childs.length; ++i)
-			childs[i].remove();
+		this.current = undefined;
+		this.blocked_users = [];
+		this.free_users = [];
 	}
 	async load_boxes() {
-		let blocked_users: Array<string> | Error = await get_blocked_users();
-		if (blocked_users instanceof Error)
+		if (this.load_mutex === true)
+			return;
+		this.load_mutex = true;
+
+		this.clear_boxes();
+		let blocked_users : Array<string> | undefined = await get_blocked_users();
+		if (blocked_users === undefined)
 			return;
 		let free_users: Array<string> | undefined = user?.get_free_users();
 		if (free_users === undefined)
@@ -670,48 +706,192 @@ export class Actions extends ASection {
 
 		this.blocked_users.forEach(blocked_user => {
 			let new_li = document.createElement('li');
+			new_li.onclick = () => this.click(new_li);
 			new_li.textContent = blocked_user;
 			this.blocked_box.appendChild(new_li);
 		});
 
-		this.free_users?.forEach(free_user => {
-			if ((this.blocked_users instanceof Error) === true
-				|| this.blocked_users.includes(free_user) === false)
+		this.free_users.forEach(free_user => {
+			if (this.blocked_users.includes(free_user) === true)
 				return;
 			let new_li = document.createElement('li');
+			new_li.onclick = () => this.click(new_li);
 			new_li.textContent = free_user;
 			this.free_box.appendChild(new_li);
 		});
+		this.load_mutex = false;
 	}
-	add_user(username: string) {
-		if (!(this.blocked_users instanceof Error)
-			&& this.blocked_users.includes(username))
-			return;
+	click(element : HTMLLIElement) {
+		if (this.current?.textContent === element.textContent) {
+			element.classList.remove('active');
+			this.current = undefined;
+		}
+		else {
+			element.classList.add('active');
+			this.current?.classList.remove('active');
+			this.current = element;
+		}
+		if (this.current !== undefined) {
+			this.btn2.parentElement?.classList.remove('hidden');
+			this.btn3.parentElement?.classList.remove('hidden');
 
-		if (this.free_users.includes(username) === false) {
-			this.free_users.push(username);
-			let new_li = document.createElement('li');
-			new_li.textContent = username;
-			this.free_box.appendChild(new_li);
+			if (this.current.parentElement?.getAttribute('id') === 'free_box') {
+				this.btn2.textContent = 'Block';
+				// Here put the invite feature of the pong-game...
+				this.btn3.onclick = () => history.back();
+				this.btn3.textContent = 'Invite';
+				// ---
+			}
+			else {
+				this.btn2.textContent = 'Unblock';
+				this.btn3.parentElement?.classList.add('hidden');
+				this.btn3.removeAttribute('onclick');
+				this.btn3.textContent = '';
+			}
+			this.btn2.onclick = () => this.trigger(this.btn2.textContent);
+		}
+		else {
+			this.btn2.parentElement?.classList.add('hidden');
+			this.btn3.parentElement?.classList.add('hidden');
+			this.btn2.removeAttribute('onclick');
+			this.btn3.removeAttribute('onclick');
+			this.btn2.textContent = '';
+			this.btn3.textContent = '';
 		}
 	}
+	async trigger(action : string | null) {
+		let username : string | undefined | null = this.current?.textContent;
+
+		if (action === null || username === undefined || username === null)
+			return;
+
+		if (action === 'Block' && await block(username) === true) {
+			user?.block(username);
+			this.load_boxes();
+		}
+		
+		if (action === 'Unblock' && await unblock(username) === true) {
+			this.load_boxes();
+		}
+		this.current = undefined;
+
+		this.btn2.setAttribute('onclick', '');
+		this.btn3.setAttribute('onclick', '');
+
+		this.btn3.parentElement?.classList.add('hidden');
+		this.btn2.parentElement?.classList.add('hidden');
+	}
 }
-sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(), new GameSection()];
+
+class Settings extends ASection {
+	/* ASection */
+	type = 'settings';
+	protected = true;
+	parent = document.getElementById('settings-parent') as HTMLElement;
+	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
+	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
+	dependencies = [];
+
+	/* Methods */
+	is_option_valid(option: string | undefined): boolean {
+		return (option === undefined) ? true : false;
+	}
+	enter(verified: boolean) {
+		if (verified !== true) {
+			console.log("Try to enter Settings section as unauthenticated");
+			return;
+		}
+		this.activate_section();
+	}
+	leave() {
+		this.deactivate_section();
+	}
+	switch_logged_off() {}
+	switch_logged_in() {}
+}
+
+class DirectMessage extends ASection {
+	/* ASection */
+	type = 'directmessage';
+	protected = true;
+	parent = document.getElementById('directmessage-parent') as HTMLElement;
+	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
+	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
+	dependencies = ['home'];
+
+	/* Methods */
+	enter(verified: boolean) {
+		if (verified !== true || ) {
+			console.log("Try to enter DirectMessage section as unauthenticated");
+			return;
+		}
+		this.activate_section();
+	}
+	leave() {
+		this.deactivate_section();
+	}
+	switch_logged_off() {}
+	switch_logged_in() {}
+}
+sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(),
+			new Settings(), new DirectMessage()];
 /* --------- */
 
 
+
 /* Utils */
-export function get_section_index(type: string): number | undefined {
+function	get_url_type(url : string) : string {
+	let end;
+	for (end = 0; end < url.length; ++end) {
+		if (url[end] == '/')
+			break;
+	}
+	let type;
+
+	type = url.substring(0, end);
+	console.log('Url type:', type);
+
+	return type;
+}
+
+function	get_url_option(url : string) : string | undefined {
+	let start;
+	for (start = 0; start < url.length; ++start) {
+		if (url[start] == '/')
+			break;
+	}
+
+	let option;
+	if (start < url.length) {
+		option = url.substring(start + 1, length);
+	}
+	else
+		option = undefined;
+	console.log('Url option:', option);
+
+	return option;
+}
+
+function get_section_index(type : string): number | undefined {
 	for (let i = 0; i < sections.length; i++) {
 		if (sections[i].type === type)
-			return i;
+				return i;
 	}
 	return undefined;
 }
 
-export function set_new_section_index(type: string): void {
-	let index: number | undefined = get_section_index(type);
-	section_index = (index !== undefined && is_section_accessible(index)) ? index : HOME_INDEX;
+function set_section_index(type : string, option : string | undefined): void {
+	let index : number | undefined = get_section_index(type);
+	if (index === undefined)
+		section_index = HOME_INDEX;
+	else if (!is_section_accessible(index))
+		section_index = HOME_INDEX;
+	else if (sections[index].option !== undefined
+		&& sections[index].option !== option)
+		section_index = HOME_INDEX;
+	else if (sections[index].option === undefined
+		|| sections[index].option === option)
+		sections_index = index;
 }
 
 function is_section_accessible(index: number): boolean {
@@ -733,10 +913,10 @@ export function update_sections(): void {
 // 		sections[section_index].switch_logged_in();
 // }
 
-export function go_section(section: string) {
+function go_section(section : string, type : string) {
 	if (section === sections[section_index].type)
 		section = 'home';
-	set_new_section_index(section);
+	set_section_index(section, type);
 	update_sections();
 	history.pushState({ section: sections[section_index].type }, "",
 		sections[section_index].type);
@@ -754,12 +934,19 @@ function deactivate(list: NodeListOf<Element>): void {
 	});
 }
 
-export function update_friends_status(username: string, online: boolean) {
-	add_online(username);
+export  function update_status(username : string, online : boolean) {
 	if (section_index == get_section_index('friends')
-		&& (sections[section_index] as Friends).anotherUser?.username === username) {
+		&& (sections[section_index] as Friends).anotherUser?.username === username)
 		(sections[section_index] as Friends).update_status(online);
-	}
+
+	if (user?.onlines.includes(username) === true || user?.name === username)
+        return;
+
+	if (online === true)
+		add_online(username);
+
+	if (sections[section_index].type === 'actions')
+        (sections[section_index] as Actions).load_boxes();
 }
 
 export function set_section_index(index: number): void {

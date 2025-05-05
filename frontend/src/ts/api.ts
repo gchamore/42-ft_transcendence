@@ -228,7 +228,7 @@ export async function send(message: string, type: string, to: string = ''): Prom
 
 		if (!response.ok) {
 			console.error(url + ' error: ', data.error);
-			return false;
+			return true;
 		}
 		return data.success;
 
@@ -236,13 +236,13 @@ export async function send(message: string, type: string, to: string = ''): Prom
 		console.error(url + ' error: ', error);
 	}
 
-	return false;
+	return true;
 }
 
 export async function get_blocked_users(): Promise<Array<string> | Error> {
 	try {
-		const response = await fetch(`/api/blocked_users`, {
-			method: "GET",
+        const response = await fetch(`/api/blocked`, {
+            method: "GET",
 			credentials: 'include'
 		});
 		const data = await response.json();
@@ -253,18 +253,78 @@ export async function get_blocked_users(): Promise<Array<string> | Error> {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
-			return new Error();
-		}
+            return undefined;
+        }
 
 		if (!response.ok) {
-			console.error(`/api/blocked_users failed:`, data.error);
-			return new Error();
+			console.error(`/api/blocked failed:`, data.error);
+			return undefined;
 		}
 
-		return data.blocked_users;
-	} catch (error) {
-		console.error(`/api/blocked_users error:`, error);
+		return data.blockedUsers;
+    } catch (error) {
+		console.error(`/api/blocked error:`, error);
 	}
 
-	return new Error();
+	return undefined;
+}
+
+async function block(username : string): Promise<boolean> {
+	try {
+        const response = await fetch(`/api/block/${username}`, {
+            method: "POST",
+			credentials: 'include'
+		});
+		const data = await response.json();
+
+		if (response.status === 401) {
+            console.error("Unauthorized!");
+
+			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+				user.web_socket.close(1000);
+			update_user(undefined);
+            return false;
+        }
+
+		if (!response.ok) {
+			console.error(`/api/block/${username} failed:`, data.error);
+			return false;
+		}
+		return data.success;
+
+    } catch (error) {
+		console.error(`/api/block/${username} error:`, error);
+    }
+
+	return false;
+}
+
+async function unblock(username : string): Promise<boolean> {
+	try {
+        const response = await fetch(`/api/unblock/${username}`, {
+            method: "DELETE",
+			credentials: 'include'
+		});
+		const data = await response.json();
+
+		if (response.status === 401) {
+            console.error("Unauthorized!");
+
+			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+				user.web_socket.close(1000);
+			update_user(undefined);
+            return false;
+        }
+
+		if (!response.ok) {
+			console.error(`/api/unblock/${username} failed:`, data.error);
+			return false;
+		}
+		return data.success;
+
+    } catch (error) {
+		console.error(`/api/unblock/${username} error:`, error);
+    }
+
+	return false;
 }

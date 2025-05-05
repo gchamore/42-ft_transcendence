@@ -2,43 +2,49 @@ import { update_friends_status, update_sections, HOME_INDEX, Chat, Actions, set_
 
 
 /* Global variables */
-export var user: undefined | User = undefined;
+var user : undefined | User = undefined;
+
+const options: Intl.DateTimeFormatOptions = {
+timeZone: 'Europe/Paris',
+year: 'numeric',
+month: '2-digit',
+day: '2-digit',
+hour: '2-digit',
+minute: '2-digit',
+second: '2-digit',
+hour12: false,
+};
+  
+const formatter = new Intl.DateTimeFormat('fr-FR', options);
 /* --------- */
 
-export class Message {
-	readonly date: Date;
-	readonly username: string;
-	readonly message: string;
 
-	constructor(username: string, message: string) {
-		this.date = new Date(Date.now());
-		this.username = username;
-		this.message = message;
-	}
-	format_message(): string {
-		let message = '';
-		let days = nb_to_str(this.date.getDay());
-		let months = nb_to_str(this.date.getMonth());
-		let hours = nb_to_str(this.date.getHours());
-		let minutes = nb_to_str(this.date.getMinutes());
-		message += days + '/' + months + ' ';
-		message += hours + ':' + minutes + ' ';
-		message += this.username + ': ';
-		message += this.message;
-		return message;
-	}
-}
 
-function nb_to_str(nb: number): string {
-	let message: string;
-	if (nb < 10 && nb > 0)
-		message = "0" + nb;
-	else if (nb < 100 && nb >= 10)
-		message = "" + nb;
-	else
-		message = "00";
-	return message;
+/* Message */
+class Message {
+    readonly date : string;
+    readonly username : string;
+    readonly message : string;
+
+    constructor(username : string, message : string) {
+        this.date = formatter.format(new Date());
+        this.username = username;
+        this.message = message;
+    }
+    format_message() : string {
+        let message = '';
+        let days = this.date.substring(0, 2);
+        let months = this.date.substring(3, 5);
+        let hours = this.date.substring(11, 13);
+        let minutes = this.date.substring(14, 16);
+        message += days + '/' + months + ' ';
+        message += hours + ':' + minutes + ' ';
+        message += this.username + ': ';
+        message += this.message;
+        return message;
+    }
 }
+/* --------- */
 
 
 
@@ -72,40 +78,26 @@ export class User {
 			console.log('Connected to WebSocket');
 		}
 
-		this.web_socket.onmessage = (event) => {
-			try {
-				const data = JSON.parse(event.data);
-				console.log('USERS WebSocket message:', data);
-				switch (data.type) {
-					case 'status_update':
-						update_friends_status(data.username, data.online);
-						break;
-					case 'livechat':
-						add_message(data.user, data.message, 'livechat');
-						break;
-					case 'direct_message':
-						add_message(data.user, data.message, 'direct_message');
-						break;
-					case 'matchFound':
-						matchFound(data.gameId);
-						break;
-					case 'tournamentStart':
-						tournamentStart(data.tournamentId, data.bracket);
-						break;
-					case 'TournamentGameStart':
-						if (data.gameId) {
-							const gameSection = sections[get_section_index('game')!] as GameSection;
-							gameSection.transitionToGame(data.gameId, data.settings);
-							/*need to print the tournament match on screen using data.round and data.players */
-						} else {
-							console.error('Game ID not provided');
-						}
-						break;
-				}
-			} catch (error) {
-				console.error('WebSocket message parsing error:', error);
-			}
-		};
+        this.web_socket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                switch (data.type) {
+                    case 'onlines':
+                        this.init_status(data.users);
+                        break;
+                        case 'status_update':
+                        update_status(data.username, data.online);
+                        break;
+                    case 'livechat':
+                        add_message(data.user, data.message, 'livechat');
+                        break;
+                    case 'direct_message':
+                        add_message(data.user, data.message, 'direct_message');
+                        break;            }
+            } catch (error) {
+                console.error('WebSocket message parsing error:', error);
+            }
+        };
 
 		this.web_socket.onclose = (event) => {
 			console.log(`WebSocket disconnected with code: ${event.code}`);
@@ -126,26 +118,29 @@ export class User {
 
 		return users;
 	}
+    init_status(status : { [key: string]: boolean }) {
+        let statusMap: Map<string, boolean>;
+        statusMap = new Map();
+        for (const key in status) {
+            if (status.hasOwnProperty(key)) {
+                statusMap.set(key, status[key]);
+            }
+        }
+        statusMap.forEach((value : boolean, key : string) => {
+            if (value === true && key !== user?.name)
+                user?.onlines.push(key);
+        });
+        if (section_index === get_section_index('actions')) {
+            (sections[section_index] as Actions).load_boxes();
+        }
+    }
+    block(username : string) {
+        this.livechat = this.livechat.filter(item => item.username !== username);
+    }
 }
 
-function tournamentStart(tournamentId: string, bracket: string) {
-	set_active_tournament_id(tournamentId);
-	set_tournament_bracket(bracket);
-	go_section('game');
-}
-
-function matchFound(matchId: string) {
-	set_active_game_id(matchId);
-	go_section('game');
-}
-
-export function add_online(username: string) {
-	if (!(user?.onlines.includes(username) === false && user?.name !== username))
-		return;
-
-	user?.onlines.push(username);
-	if (sections[section_index].type === 'actions')
-		(sections[section_index] as Actions).add_user(username);
+async function add_online(username : string) {
+    user!.onlines.push(username);
 }
 
 export function update_user(new_user_value: User | undefined) {
