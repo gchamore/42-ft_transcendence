@@ -177,16 +177,16 @@ export class GameControls {
 				console.error("Error sending message:", e);
 			}
 		} else {
-			console.log("Cannot send message, socket state:", {
-				current: socket.readyState,
-				states: {
-					CONNECTING: WebSocket.CONNECTING,
-					OPEN: WebSocket.OPEN,
-					CLOSING: WebSocket.CLOSING,
-					CLOSED: WebSocket.CLOSED,
-				},
-				expectedState: `OPEN (${WebSocket.OPEN})`,
-			});
+			// console.log("Cannot send message, socket state:", {
+			// 	current: socket.readyState,
+			// 	states: {
+			// 		CONNECTING: WebSocket.CONNECTING,
+			// 		OPEN: WebSocket.OPEN,
+			// 		CLOSING: WebSocket.CLOSING,
+			// 		CLOSED: WebSocket.CLOSED,
+			// 	},
+			// 	expectedState: `OPEN (${WebSocket.OPEN})`,
+			// });
 		}
 	}
 

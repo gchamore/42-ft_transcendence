@@ -9,15 +9,15 @@ export function safeSend(socket, message) {
 			console.error('Error sending message:', e);
 		}
 	} else {
-		console.warn('Cannot send message, socket state:', {
-			current: socket.readyState,
-			states: {
-				CONNECTING: WebSocket.CONNECTING,
-				OPEN: WebSocket.OPEN,
-				CLOSING: WebSocket.CLOSING,
-				CLOSED: WebSocket.CLOSED
-			},
-			expectedState: `OPEN (${WebSocket.OPEN})`
-		});
+		// console.warn('Cannot send message, socket state:', {
+		// 	current: socket.readyState,
+		// 	states: {
+		// 		CONNECTING: WebSocket.CONNECTING,
+		// 		OPEN: WebSocket.OPEN,
+		// 		CLOSING: WebSocket.CLOSING,
+		// 		CLOSED: WebSocket.CLOSED
+		// 	},
+		// 	expectedState: `OPEN (${WebSocket.OPEN})`
+		// });
 	}
 }

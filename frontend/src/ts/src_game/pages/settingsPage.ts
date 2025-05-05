@@ -86,7 +86,10 @@ export class SettingsPage {
 					}
 					break;
 				case 'TournamentGameStart':
-					if (data.gameId){
+					if (data.gameId) {
+						if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+							this.socket.close();
+						}
 						const gameSection = sections[get_section_index('game')!] as GameSection;
 						gameSection.transitionToGame(data.gameId, data.settings);
 						/*need to print the tournament match on screen using data.round and data.players */

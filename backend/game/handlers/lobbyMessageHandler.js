@@ -159,7 +159,6 @@ function startTournamentGame(lobby, tournament, gameId, settings) {
 					round: match.round,
 					players: match.players,
 				});
-				playerSocket.close();
 			}
 		});
 		console.log(`starting tournament game ${match.matchId} with players ${match.players}`);

@@ -44,6 +44,7 @@ export const GameConfig = {
 	TARGET_FPS: 60,
 	BROADCAST_RATE: 60,
 	PING_TIMEOUT: 5000, // 5 seconds
+	PING_INTERVAL: 1000, // 1 second
 
 	POWERUP_DURATION: 10000, // 10 seconds
 	POWERUP_SPAWN_CHANCE: 0.05,

@@ -12,6 +12,7 @@ import { settingsManagers } from "../../routes/game.routes.js";
 
 export const games = new Map();
 export const lobbies = new Map();
+const lastPingSent = {};
 const broadcastTimeout = {};
 
 export function resetlobbies() {
@@ -56,6 +57,7 @@ export async function handleGameConnection(fastify, connection, request, userId)
 				game = new GameInstance(gameId, settings, safeSend);
 				games.set(gameId, game);
 			}
+			socket.playerNumber = playerNumber;
 			handleNewGamePlayer(socket, game, fastify); // ← socket.userId est dispo ici
 			return;
 		} else if (!isTournament && mode === 'game') {
@@ -108,18 +110,24 @@ export function setupGameUpdateInterval() {
 			if (now - broadcastTimeout[game.gameId] >= 1000 / GameConfig.BROADCAST_RATE) {
 				broadcastGameState(game);
 				broadcastTimeout[game.gameId] = now;
-				game.players.forEach((socket) => {
-					if (!socket.isAlive) {
-						if (socket.lastPingTime && now - socket.lastPingTime > GameConfig.PING_TIMEOUT) {
-							console.log(`Player ${socket.playerNumber} is unresponsive, disconnecting...`);
-							handleDisconnect(socket, game);
+
+				if (!lastPingSent[game.gameId])
+					lastPingSent[game.gameId] = 0;
+				if (now - lastPingSent[game.gameId] >= GameConfig.PING_INTERVAL) {
+					game.players.forEach((socket) => {
+						if (!socket.isAlive) {
+							if (socket.lastPingTime && now - socket.lastPingTime > GameConfig.PING_TIMEOUT) {
+								console.log(`Player ${socket.playerNumber} is unresponsive, disconnecting...`);
+								handleDisconnect(socket, game);
+							}
+						} else {
+							socket.isAlive = false;
+							socket.lastPingTime = now;
+							safeSend(socket, { type: 'ping' });
 						}
-					} else {
-						socket.isAlive = false;
-						socket.lastPingTime = now;
-						safeSend(socket, { type: 'ping' });
-					}
-				});
+					});
+					lastPingSent[game.gameId] = now;
+				}
 			}
 		});
 	}, 1000 / GameConfig.TARGET_FPS);
