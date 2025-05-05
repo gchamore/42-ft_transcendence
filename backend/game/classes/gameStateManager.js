@@ -11,8 +11,6 @@ export class GameStateManager {
 	}
 
 	applySettings(gameState, settings) {
-		console.log(`settings: ${JSON.stringify(settings, null, 2)}`);
-		console.log(`gameState: ${JSON.stringify(gameState, null, 2)}`);
 		gameState.ball.speedX = Number(settings.ballSpeed) || GameConfig.DEFAULT_BALL_SPEED;
 		gameState.ball.speedY = Number(settings.ballSpeed) || GameConfig.DEFAULT_BALL_SPEED;
 		gameState.paddle1.speed = Number(settings.paddleSpeed) || GameConfig.DEFAULT_PADDLE_SPEED;

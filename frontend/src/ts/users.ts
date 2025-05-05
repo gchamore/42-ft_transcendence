@@ -116,7 +116,7 @@ export class User {
         };
 
 		this.web_socket.onclose = (event) => {
-			console.log(`WebSocket disconnected with code: ${event.code}`);
+			console.log(`User WebSocket disconnected with code: ${event.code} and reason: ${event.reason}`);
 			update_user(undefined);
 		};
 

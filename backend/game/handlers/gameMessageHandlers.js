@@ -23,7 +23,7 @@ export function handleNewGamePlayer(socket, game, fastify) {
 	socket.isAlive = true;
 
 	socket.currentHandler = (data) => handleGameMessage(socket, game, data, fastify);
-	socket.currentCloseHandler = () => handleGameDisconnect(socket, game);
+	socket.currentCloseHandler = () => handleGameDisconnect(socket, game, fastify);
 
 	console.log(`Player ${playerNumber} joined game ${game.gameId}`);
 
@@ -48,7 +48,7 @@ export function handleNewGamePlayer(socket, game, fastify) {
 	}
 }
 
-export function handleGameDisconnect(socket, game) {
+export function handleGameDisconnect(socket, game, fastify) {
 	if (!socket || socket.isDisconnecting) return;
 	socket.isDisconnecting = true;
 
@@ -57,7 +57,7 @@ export function handleGameDisconnect(socket, game) {
 	console.log(`Player ${playerNum} disconnected`);
 
 	if (gameInst) {
-		handleDisconnect(socket, gameInst);
+		handleDisconnect(socket, gameInst, fastify);
 	} else {
 		console.error('Game instance not found for player disconnect');
 	}

@@ -88,7 +88,7 @@ export class SettingsPage {
 				case 'TournamentGameStart':
 					if (data.gameId) {
 						if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-							this.socket.close();
+							this.socket.close(1000, 'Starting tournament game');
 						}
 						const gameSection = sections[get_section_index('game')!] as GameSection;
 						gameSection.transitionToGame(data.gameId, data.settings);
@@ -117,7 +117,7 @@ export class SettingsPage {
 		};
 
 		this.socket.onclose = (event) => {
-			console.log('WebSocket connection closed:', event.code, event.reason);
+			console.log('WebSocket connection closed in settings:', event.code, event.reason);
 			this.handleConnectionIssues();
 		};
 	}
@@ -150,7 +150,7 @@ export class SettingsPage {
 
 		//redirect to home page
 		setTimeout(() => {
-			window.location.href = '/';
+			(window as any).go_section('home');
 		}, 3000);
 	}
 

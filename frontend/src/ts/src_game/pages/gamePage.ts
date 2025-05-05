@@ -192,7 +192,7 @@ export class Game {
 		};
 
 		this.socket.onclose = () => {
-			console.log("Disconnected from the game");
+			console.log("WS Disconnected from the game");
 			if (this.gameStarted) {
 				this.uiManager.drawErrorMessage("Connection to server lost");
 			}
@@ -289,7 +289,7 @@ export class Game {
 			this.babylonManager = null;
 		}
 		 if (this.socket && this.socket.readyState === WebSocket.OPEN)
-			this.socket.close();
+			this.socket.close(1000, "Game stopped");
 
 	}
 

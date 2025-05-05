@@ -228,7 +228,7 @@ export async function gameRoutes(fastify, options) {
 	
 	
 	// Start game update loop
-	setupGameUpdateInterval();
+	setupGameUpdateInterval(fastify);
 }
 
 // connection.socket.on('close', () => {

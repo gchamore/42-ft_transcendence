@@ -1,11 +1,14 @@
 import { games, broadcastGameState } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
 
-export function handleDisconnect(socket, game) {
+export function handleDisconnect(socket, game, fastify) {
 	if (!validateDisconnectParams(socket, game)) return;
 
 	const playerNumber = socket.playerNumber;
 	console.log(`Player ${playerNumber} disconnected from game ${game.gameId}`);
+
+	if (game.players.size > 1)
+		saveGameResults(game, fastify);
 
 	game.removePlayer(socket);
 	
@@ -43,6 +46,62 @@ function validateDisconnectParams(socket, game) {
 	return true;
 }
 
+function saveGameResults(game, fastify) { 
+	try {
+		const score = game.getState().score;
+		const entries = Array.from(game.players.entries());
+		if (entries.length < 2) {
+			console.error('Not enough players to save game results');
+			return;
+		}
+		// Get player IDs
+		const [player1Id] = entries[0];
+		const [player2Id] = entries[1];
+		const winnerId = score.player1Score > score.player2Score ? player1Id : player2Id;
+
+		const db = fastify.db;
+		if (!db) {
+			console.error('Database connection not found');
+			return;
+		}
+		// Insert game record
+		const gameQuery = `
+			INSERT INTO games (
+				player1_id, 
+				player2_id, 
+				score_player1, 
+				score_player2, 
+				winner_id
+			) VALUES (?, ?, ?, ?, ?)
+		`;
+		db.prepare(gameQuery).run(
+			player1Id,
+			player2Id,
+			score.player1Score,
+			score.player2Score,
+			winnerId
+		);
+
+		// Update player stats
+		const updateWinnerQuery = `
+			UPDATE users 
+			SET wins = wins + 1 
+			WHERE id = ?
+		`;
+		const updateLoserQuery = `
+			UPDATE users 
+			SET losses = losses + 1 
+			WHERE id = ?
+		`;
+
+		db.prepare(updateWinnerQuery).run(winnerId);
+		db.prepare(updateLoserQuery).run(winnerId === player1Id ? player2Id : player1Id);
+
+	} catch (error) {
+		console.error('Error saving game statistics:', error);
+	}
+}
+
 
 function handleRemainingPlayers(game, disconnectedPlayerNumber) {
 	try {
@@ -54,48 +113,7 @@ function handleRemainingPlayers(game, disconnectedPlayerNumber) {
 		if (remainingPlayer) {
 			const score = game.getState().score;
 			const winnerNumber = remainingPlayer.playerNumber;
-			const entries = Array.from(game.players.entries());
-			const [player1Id] = entries[0];
-			const [player2Id] = entries[1];
-			const winnerId = score.player1Score > score.player2Score ? player1Id : player2Id;
-
-			try {
-				// Insert game record
-				const gameQuery = `
-					INSERT INTO games (
-						player1_id, 
-						player2_id, 
-						score_player1, 
-						score_player2, 
-						winner_id
-					) VALUES (?, ?, ?, ?, ?)
-				`;
-				db.prepare(gameQuery).run(
-					player1Id,
-					player2Id,
-					score.player1Score,
-					score.player2Score,
-					winnerId
-				);
-
-				// Update player stats
-				const updateWinnerQuery = `
-					UPDATE users 
-					SET wins = wins + 1 
-					WHERE id = ?
-				`;
-				const updateLoserQuery = `
-					UPDATE users 
-					SET losses = losses + 1 
-					WHERE id = ?
-				`;
-
-				db.prepare(updateWinnerQuery).run(winnerId);
-				db.prepare(updateLoserQuery).run(winnerId === player1Id ? player2Id : player1Id);
-
-			} catch (error) {
-				console.error('Error saving game statistics:', error);
-			}
+			
 
 			// Notify remaining player about the disconnect
 			safeSend(remainingPlayer, {

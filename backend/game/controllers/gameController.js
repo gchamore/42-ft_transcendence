@@ -90,7 +90,7 @@ export async function handleGameConnection(fastify, connection, request, userId)
 
 
 
-export function setupGameUpdateInterval() {
+export function setupGameUpdateInterval(fastify) {
 	let lastUpdateTime = Date.now();
 	setInterval(() => {
 		const now = Date.now();
@@ -118,7 +118,7 @@ export function setupGameUpdateInterval() {
 						if (!socket.isAlive) {
 							if (socket.lastPingTime && now - socket.lastPingTime > GameConfig.PING_TIMEOUT) {
 								console.log(`Player ${socket.playerNumber} is unresponsive, disconnecting...`);
-								handleDisconnect(socket, game);
+								handleDisconnect(socket, game, fastify);
 							}
 						} else {
 							socket.isAlive = false;
