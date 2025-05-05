@@ -1,5 +1,6 @@
 import { pipeline } from 'stream/promises';
 import bcrypt from 'bcrypt';
+import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 
@@ -315,14 +316,14 @@ export async function userRoutes(fastify, options) {
 			const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 			if (!currentUser) {
 				return reply.code(404).send({ error: "User not found" });
-			}		
+			}
 
 			let somethingUpdated = false;
 
 			if (avatar && avatar.filename) {
-				const ext = path.extname(avatar.filename);
+				const ext = path.extname(avatar.filename).toLowerCase();
 				const allowed = ['.jpg', '.jpeg', '.png', '.gif'];
-				if (!allowed.includes(ext.toLowerCase())) {
+				if (!allowed.includes(ext)) {
 					return reply.code(400).send({ error: "Invalid avatar format" });
 				}
 
@@ -331,17 +332,20 @@ export async function userRoutes(fastify, options) {
 					if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
 				}
 
-				const fileName = `${userId}${ext}`;
+				const fileName = `${userId}.png`;
 				const relativePath = `/avatar/${fileName}`;
 				const fullPath = path.resolve(`/data${relativePath}`);
 
-				await pipeline(avatar.file, fs.createWriteStream(fullPath));
-
-				console.log("💾 Update avatar with:", relativePath, userId);
+				await pipeline(
+					avatar.file,
+					sharp().resize(120, 120).png(),
+					fs.createWriteStream(fullPath)
+				);
 
 				db.prepare("UPDATE users SET avatar = ? WHERE id = ?").run(relativePath, userId);
 				somethingUpdated = true;
 			}
+
 
 			if (!somethingUpdated) {
 				fastify.log.warn("Nothing was updated");

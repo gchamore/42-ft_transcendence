@@ -773,8 +773,11 @@
 
 					document.getElementById('username').textContent = data.user.username;
 
+					localStorage.setItem('currentUser', data.user.username);
+
 					form.reset();
-				} else {
+				}
+				else {
 					showMessage(data.error || 'Update failed', true);
 				}
 			} catch (err) {
@@ -1025,16 +1028,16 @@
 
 
 		// Vérifier régulièrement si l'utilisateur actuel est toujours valide
-		setInterval(async () => {
-			const storedUsername = localStorage.getItem('currentUser');
-			const currentUsername = document.getElementById('username').textContent;
+		// setInterval(async () => {
+		// 	const storedUsername = localStorage.getItem('currentUser');
+		// 	const currentUsername = document.getElementById('username').textContent;
 
-			if (storedUsername && currentUsername && storedUsername !== currentUsername) {
-				// L'utilisateur a changé dans un autre onglet
-				showMessage('Session expired: Another user logged in', true);
-				document.getElementById('logout-btn').click();
-			}
-		}, 1000);
+		// 	if (storedUsername && currentUsername && storedUsername !== currentUsername) {
+		// 		// L'utilisateur a changé dans un autre onglet
+		// 		showMessage('Session expired: Another user logged in', true);
+		// 		document.getElementById('logout-btn').click();
+		// 	}
+		// }, 1000);
 
 		function showMessage(text, isError = false) {
 			message.textContent = text;
