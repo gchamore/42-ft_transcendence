@@ -112,6 +112,10 @@ logs_nginx:
 	@echo "$(YELLOW)Logs de nginx:$(RESET)"
 	@$(DOCKER_COMPOSE) logs nginx
 
+live_back:
+	@echo "$(YELLOW)Logs du backend en continu... (Ctrl+C pour arrêter)$(RESET)"
+	@docker logs -f $(shell docker ps --format "{{.Names}}" | grep backend)
+
 # Voir les valeurs des clés Redis en continu
 check_redis:
 	@echo "$(YELLOW)Surveillance en temps réel des clés Redis... (Ctrl+C pour arrêter)$(RESET)"
