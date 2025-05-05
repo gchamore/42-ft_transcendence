@@ -5,6 +5,8 @@ services:
       - "3000"
     volumes:
       - backend_data:/data
+      - avatar_image:/data/avatar
+      - ./backend/db/public/avatar.png:/data/avatar/avatar.png:ro
     networks:
       - app_network
     environment:
@@ -18,6 +20,8 @@ services:
       - "8443:443"  # Exposer le port 443 de l'hôte vers le port 80 du conteneur
     volumes:
       - ./frontend:/usr/share/nginx/html  # Cette ligne est correcte, monte le dossier frontend vers le bon chemin
+      - avatar_image:/data/avatar
+      - ./backend/db/public/avatar.png:/data/avatar/avatar.png:ro
     depends_on:
       - backend
     networks:
@@ -34,5 +38,5 @@ networks:
 
 volumes:
   backend_data:
-  #avatar_image: (tips nico a regarder plus tard)
+  avatar_image:
 

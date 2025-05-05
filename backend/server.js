@@ -12,6 +12,7 @@ import { oauthRoutes } from "./routes/oauth.routes.js";
 import { twofaroutes } from "./routes/twofa.routes.js";
 import { cleanupAllGamesAndLobbies } from "./game/controllers/gameController.js";
 import cookie from "@fastify/cookie";
+import multipart from '@fastify/multipart';
 
 const app = fastify({ 
     logger: {
@@ -20,6 +21,13 @@ const app = fastify({
             options: { translateTime: 'HH:MM:ss Z' }
         }
     }
+});
+
+app.register(multipart, {
+	attachFieldsToBody: 'auto',
+	limits: {
+		fileSize: 2 * 1024 * 1024 // 2MB
+	}
 });
 
 // ====== Initialisation des services ======
@@ -52,6 +60,7 @@ const publicRoutes = [
     '/refresh',
     '/verify_token',
 	'/auth/google/token',
+	'/2fa/verify',
 	'/2fa/verify',
 	'/ws'
 ];

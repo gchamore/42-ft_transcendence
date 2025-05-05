@@ -13,6 +13,7 @@
 	"dependencies": {
 		"@fastify/cookie": "^8.3.0",
 		"@fastify/cors": "^8.3.0",
+		"@fastify/multipart": "^7.6.0",
 		"@fastify/websocket": "^8.2.0",
 		"@types/ws": "^8.5.10",
 		"babylonjs": "^7.51.3",
@@ -26,6 +27,7 @@
 		"jsonwebtoken": "^9.0.0",
 		"pino-pretty": "^10.2.0",
 		"qrcode": "^1.5.4",
+		"sharp": "^0.34.1",
 		"speakeasy": "^2.0.0",
 		"ws": "^8.13.0"
 	},
