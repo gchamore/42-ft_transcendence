@@ -376,6 +376,8 @@
 		<div id="welcome" class="hidden">
 			<div style="display: flex; align-items: center;">
 				<img id="user-avatar" class="user-avatar" src="" alt="User avatar">
+				<input type="file" id="update-avatar" name="avatar" accept="image/png, image/jpeg"
+					style="display: none;">
 				<h2>Welcome, <span id="username"></span>!</h2>
 			</div>
 			<!-- Ajouter le bouton 2FA juste après le titre -->
@@ -420,7 +422,6 @@
 				<input type="text" id="update-username" name="username" placeholder="New Username">
 				<input type="email" id="update-email" name="email" placeholder="New Email">
 				<input type="password" id="update-password" name="password" placeholder="New Password">
-				<input type="file" id="update-avatar" name="avatar" accept="image/png, image/jpeg, image/jpg">
 				<button type="submit">Update Profile</button>
 			</form>
 		</div>
@@ -751,12 +752,17 @@
 			e.preventDefault();
 
 			const form = document.getElementById('update-form');
-			const formData = new FormData(form);
+			const userdata = {
+				username: form.username.value,
+				email: form.email.value,
+				password: form.password.value
+			};
 
 			try {
 				const response = await fetch(`${API_URL}/update`, {
 					method: 'PUT',
-					body: formData,
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(userdata),
 					credentials: 'include'
 				});
 
@@ -766,7 +772,6 @@
 					showMessage('Profile updated successfully!', false);
 
 					document.getElementById('username').textContent = data.user.username;
-					document.getElementById('user-avatar').src = `https://${window.location.host}${data.user.avatar}?${Date.now()}`;
 
 					form.reset();
 				} else {
@@ -777,6 +782,40 @@
 				showMessage('Server error during update', true);
 			}
 		});
+
+		// Lorsqu'on clique sur l'avatar, on déclenche l'input file caché
+		document.getElementById('user-avatar').addEventListener('click', () => {
+			document.getElementById('update-avatar').click();
+		});
+
+		// Lorsqu'on sélectionne un nouveau fichier avatar, on l'upload immédiatement
+		document.getElementById('update-avatar').addEventListener('change', async (e) => {
+			const file = e.target.files[0];
+			if (!file) return;
+
+			const formData = new FormData();
+			formData.append('avatar', file);
+
+			try {
+				const response = await fetch(`${API_URL}/update_avatar`, {
+					method: 'PUT',
+					body: formData,
+					credentials: 'include'
+				});
+				const data = await response.json();
+
+				if (response.ok && data.success) {
+					showMessage('Avatar updated successfully!', false);
+					document.getElementById('user-avatar').src = `https://${window.location.host}${data.user.avatar}?${Date.now()}`;
+				} else {
+					showMessage(data.error || 'Avatar update failed', true);
+				}
+			} catch (error) {
+				console.error('Avatar update error:', error);
+				showMessage('Server error during avatar update', true);
+			}
+		});
+
 
 
 		// Remplacer les deux event listeners de recherche par celui-ci

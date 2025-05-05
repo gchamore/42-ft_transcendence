@@ -23,6 +23,7 @@ const app = fastify({
 });
 
 app.register(multipart, {
+	attachFieldsToBody: 'auto',
 	limits: {
 		fileSize: 2 * 1024 * 1024 // 2MB
 	}
@@ -58,6 +59,7 @@ const publicRoutes = [
     '/refresh',
     '/verify_token',
 	'/auth/google/token',
+	'/2fa/verify',
 	'/ws'
 ];
 

@@ -1,4 +1,5 @@
 import { pipeline } from 'stream/promises';
+import bcrypt from 'bcrypt';
 import fs from 'fs';
 import path from 'path';
 
@@ -250,10 +251,8 @@ export async function userRoutes(fastify, options) {
 
 	fastify.put("/update", async (request, reply) => {
 		const userId = request.user.userId;
-
-		const avatar = await request.file();
-
-		const fields = request.body || {};
+		const { username, email, password } = request.body;
+		fastify.log.info("Update user data:", { username, email, password });
 
 		try {
 			const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -264,7 +263,6 @@ export async function userRoutes(fastify, options) {
 			let somethingUpdated = false;
 
 			// ✅ Username
-			const username = fields.username;
 			if (username && username !== currentUser.username) {
 				console.log("🔧 Update username with:", username, userId);
 				const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(username, userId);
@@ -275,7 +273,6 @@ export async function userRoutes(fastify, options) {
 			}
 
 			// ✅ Password
-			const password = fields.password;
 			if (password && !bcrypt.compareSync(password, currentUser.password)) {
 				console.log("🔧 Update password with:", password, userId);
 				const hashedPassword = await bcrypt.hash(password, 10);
@@ -284,7 +281,6 @@ export async function userRoutes(fastify, options) {
 			}
 
 			// ✅ Email
-			const email = fields.email;
 			if (email && email !== currentUser.email) {
 				console.log("🔧 Update email with:", email, userId);
 				const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -295,7 +291,34 @@ export async function userRoutes(fastify, options) {
 				somethingUpdated = true;
 			}
 
-			// ✅ Avatar
+			if (!somethingUpdated)
+				return reply.code(400).send({ error: "Nothing was updated" });
+
+			const updatedUser = db.prepare("SELECT id, username, email FROM users WHERE id = ?").get(userId);
+			return reply.send({ success: true, user: updatedUser });
+
+		} catch (err) {
+			fastify.log.error(err);
+			return reply.code(500).send({ error: "Server error" });
+		}
+	});
+
+	fastify.put("/update_avatar", async (request, reply) => {
+		const userId = request.user.userId;
+		if (!request.isMultipart()) {
+			fastify.log.warn("Request is not multipart/form-data");
+			return reply.code(400).send({ error: "Request is not multipart/form-data" });
+		}
+		const avatar = await request.file();
+		console.log("🧩 Avatar reçu:", avatar);
+		try {
+			const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
+			if (!currentUser) {
+				return reply.code(404).send({ error: "User not found" });
+			}		
+
+			let somethingUpdated = false;
+
 			if (avatar && avatar.filename) {
 				const ext = path.extname(avatar.filename);
 				const allowed = ['.jpg', '.jpeg', '.png', '.gif'];
@@ -320,10 +343,12 @@ export async function userRoutes(fastify, options) {
 				somethingUpdated = true;
 			}
 
-			if (!somethingUpdated)
+			if (!somethingUpdated) {
+				fastify.log.warn("Nothing was updated");
 				return reply.code(400).send({ error: "Nothing was updated" });
+			}
 
-			const updatedUser = db.prepare("SELECT id, username, email, avatar FROM users WHERE id = ?").get(userId);
+			const updatedUser = db.prepare("SELECT id, avatar FROM users WHERE id = ?").get(userId);
 			return reply.send({ success: true, user: updatedUser });
 
 		} catch (err) {
