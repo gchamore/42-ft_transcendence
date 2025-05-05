@@ -35,39 +35,64 @@ export class AuthService {
 	// If both tokens are invalid, it clears the cookies and returns a 401 error
 	async validateToken(accessToken, refreshToken, type = 'access', db) {
 		try {
+			console.log('Début de la validation du token...');
+	
 			// Check if the token is blacklisted
 			const isBlacklisted = await redis.get(`blacklist_${accessToken}`);
-			if (isBlacklisted) return null;
-
+			if (isBlacklisted) {
+				console.warn('Le token est dans la liste noire.');
+				return null;
+			}
+	
+			console.log('Token vérifié, vérification de sa validité...');
+	
 			// Check if the token is valid
 			const decoded = jwt.verify(accessToken, JWT_SECRET);
-
+			console.log('Token valide, décodé avec succès.', decoded);
+	
 			// Check if user exists in the database
 			if (db) {
-				const userExists = await authUtils.getFromDatabase(db, 'users', ['id'], { id: decoded.userId });
-				if (!userExists) {	
+				console.log('Vérification de l\'existence de l\'utilisateur dans la base de données...');
+				const userExists = db.prepare("SELECT id FROM users WHERE id = ?").get(decoded.userId);
+	
+				if (!userExists) {
+					console.warn('Utilisateur non trouvé dans la base de données.');
 					await this.revokeTokens(decoded.userId);
 					return null;
 				}
+				console.log('Utilisateur trouvé dans la base de données.');
 			}
-
+	
 			// Verify if the token is the latest
 			const currentToken = await redis.get(`access_${decoded.userId}`);
-			if (accessToken !== currentToken) return null;
-
+			if (accessToken !== currentToken) {
+				console.warn('Le token n\'est pas le plus récent.');
+				return null;
+			}
+	
+			console.log('Le token est valide et actuel.\n');
 			return { userId: decoded.userId };
-
+	
 		} catch (error) {
-			console.warn('Access token invalide, tentative avec le refresh token.');
-
+			console.warn('Access token invalide, tentative avec le refresh token.', error);
+	
 			// If the access token is expired, try to refresh it using the refresh token
-			if (!refreshToken) return null;
-
+			if (!refreshToken) {
+				console.warn('Aucun refresh token fourni.');
+				return null;
+			}
+	
 			try {
+				console.log('Tentative de rafraîchissement du token avec le refresh token...');
 				const newAccessToken = await this.refreshAccessToken(refreshToken);
-				if (!newAccessToken) return null;
-
+				if (!newAccessToken) {
+					console.warn('Échec du rafraîchissement du token d\'accès.');
+					return null;
+				}
+	
 				const decoded = jwt.verify(newAccessToken, JWT_SECRET);
+				console.log('Nouveau access token généré avec succès.', decoded);
+	
 				return {
 					userId: decoded.userId,
 					newAccessToken
