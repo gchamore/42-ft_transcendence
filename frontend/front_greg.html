@@ -431,7 +431,7 @@
 		const API_URL = `https://${window.location.host}/api`;
 		const WS_URL = `wss://${window.location.host}/api/ws`;
 		const GOOGLE_CLIENT_ID = '719179054785-2jaf8669fv3kj0qk6ib8cmtumlb23e8a.apps.googleusercontent.com';
-		const GOOGLE_REDIRECT_URI = `https://${window.location.host}:8443/oauth-callback`;
+		const GOOGLE_REDIRECT_URI = `https://localhost:8443/oauth-callback`;
 		let ws = null;
 		let shouldReconnect = true; // Nouveau flag pour contrôler la reconnexion
 		let reconnectTimeout = null;
