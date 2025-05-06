@@ -99,7 +99,7 @@ export async function authRoutes(fastify, options) {
 				fastify.log.warn(`Failed to delete: User not found (ID: ${userId})`);
 				return reply.code(404).send({ error: "User not found" });
 			}
-			fastify.log.info( `${user.username} Attempting to delete account`);
+			fastify.log.info(`${user.username} Attempting to delete account`);
 
 			// Check if the password is correct
 			const validPassword = await bcrypt.compare(password, user.password);
@@ -132,7 +132,7 @@ export async function authRoutes(fastify, options) {
 				        END
 				    WHERE player1_id = ? OR player2_id = ?
 				`).run(userId, userId, userId, userId, userId);
-				
+
 				fastify.log.debug(`Games anonymized for user: ${user.username}`);
 				fastify.db.prepare(`
 					DELETE FROM friendships WHERE user_id = ? OR friend_id = ?
@@ -272,6 +272,52 @@ export async function authRoutes(fastify, options) {
 			});
 		}
 	});
+
+	/*** 📌 Route: SEND COOKIES ***/
+	// Cette route renvoie les tokens actuels (s'ils existent) depuis Redis
+	// et les renvoie au client sous forme de cookies HttpOnly
+	fastify.post("/send_cookies", async (request, reply) => {
+		const { userId } = request.body;
+
+		if (!userId) {
+			return reply.code(400).send({ error: "Missing userId in request body" });
+		}
+
+		try {
+			fastify.log.info(`Sending cookies back to userId: ${userId}`);
+
+			// Récupérer les tokens actuels dans Redis
+			const accessToken = await fastify.redis.get(`access_${userId}`);
+			const refreshToken = await fastify.redis.get(`refresh_${userId}`);
+
+			if (!accessToken || !refreshToken) {
+				fastify.log.warn(`Tokens not found in Redis for userId: ${userId}`);
+				return reply.code(404).send({ error: "Tokens not found or expired" });
+			}
+
+			// Vérifier que l'utilisateur existe encore
+			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+			if (!user) {
+				return reply.code(404).send({ error: "User not found" });
+			}
+
+			// Déterminer si on est en local ou non
+			const isLocal = request.headers.host.startsWith("localhost");
+
+			// Poser les cookies
+			authUtils.setCookie(reply, accessToken, 15, isLocal);
+			authUtils.setCookie(reply, refreshToken, 7, isLocal);
+
+			fastify.log.info(`Cookies resent successfully for user: ${user.username}`);
+
+			return reply.send({ success: true, message: "Cookies sent successfully" });
+
+		} catch (error) {
+			fastify.log.error(error, "Error sending cookies");
+			return reply.code(500).send({ error: "Internal server error" });
+		}
+	});
+
 
 	/*** 📌 Route: REFRESH TOKEN ***/
 	// Refresh the access token using the refresh token
@@ -445,7 +491,7 @@ export async function authRoutes(fastify, options) {
 	fastify.post("/verify_token", async (request, reply) => {
 		const accessToken = request.cookies?.accessToken;
 		const refreshToken = request.cookies?.refreshToken;
-	
+
 		const isLocal = request.headers.host.startsWith("localhost");
 		const cookieOptions = {
 			path: '/',
@@ -453,14 +499,14 @@ export async function authRoutes(fastify, options) {
 			httpOnly: true,
 			sameSite: !isLocal ? 'None' : 'Lax'
 		};
-	
+
 		try {
 			fastify.log.info('Verify Token Request:', {
 				hasAccessToken: !!accessToken,
 				hasRefreshToken: !!refreshToken,
 				cookies: request.cookies
 			});
-	
+
 			if (!accessToken && !refreshToken) {
 				fastify.log.info('No token provided');
 				return reply.code(200).send({ valid: false, message: 'No token provided' });
@@ -486,12 +532,12 @@ export async function authRoutes(fastify, options) {
 					.clearCookie('refreshToken', cookieOptions)
 					.send({ valid: false, message: 'Invalid or expired token' });
 			}
-	
+
 			if (result.newAccessToken) {
 				fastify.log.info('New access token generated, updating cookie');
 				authUtils.setCookie(reply, result.newAccessToken, 15, isLocal);
 			}
-	
+
 			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(result.userId);
 			if (!user) {
 				fastify.log.warn(`User not found for ID: ${result.userId}`);
@@ -501,10 +547,10 @@ export async function authRoutes(fastify, options) {
 					.clearCookie('refreshToken', cookieOptions)
 					.send({ valid: false, message: 'User not found' });
 			}
-	
+
 			fastify.log.info('Token verified successfully for user:', user.username);
 			return reply.send({ valid: true, username: user.username });
-	
+
 		} catch (error) {
 			fastify.log.error(error, 'Error during token verification');
 			return reply

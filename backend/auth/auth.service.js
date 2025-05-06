@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 import redis from '../redis/redisClient.js';
-import authUtils from './auth.utils.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days
@@ -74,7 +73,7 @@ export class AuthService {
 			}
 	
 			fastify.log.info('Token is the latest one.');
-			fastify.log.info('Access Token is valid');
+			fastify.log.info('Access Token is valid\n');
 			return { userId: decoded.userId };
 	
 		} catch (error) {
@@ -151,7 +150,7 @@ export class AuthService {
 
 			// Blacklist the old access token (if provided)
 			if (oldAccessToken) {
-				await redis.setex(`blacklist_${oldAccessToken}`, ACCESS_TOKEN_EXPIRY, 'true');
+				blacklistToken(oldAccessToken);
 				fastify.log.info('Old access token has been blacklisted.');
 			}
 

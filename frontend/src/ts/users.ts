@@ -85,6 +85,9 @@ export class User {
 					case 'onlines':
 						this.init_status(data.users);
 						break;
+					case 'refresh_request':
+						refresh_cookies();
+						break;
 					case 'status_update':
 						update_status(data.username, data.online);
 						break;
@@ -155,6 +158,39 @@ export class User {
         this.livechat = this.livechat.filter(item => item.username !== username);
     }
 }
+
+export async function refresh_cookies(): Promise<void> {
+	try {
+		const username = localStorage.getItem("username");
+
+		if (!username) {
+			console.warn("No username found in localStorage.");
+			return;
+		}
+
+		const response = await fetch("/send_cookies", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json"
+			},
+			credentials: "include",
+			body: JSON.stringify({ username })
+		});
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			console.warn("❌ Failed to refresh cookies:", data.error || data.message);
+		} else {
+			console.log("✅ Cookies refreshed successfully:", data.message);
+		}
+
+	} catch (error) {
+		console.error("❌ /send_cookies request failed:", error);
+	}
+}
+
+
 
 function tournamentStart(tournamentId: string, bracket: string) {
 	set_active_tournament_id(tournamentId);

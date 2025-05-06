@@ -60,11 +60,19 @@ export class WebSocketService {
 		let lastPong = Date.now();
 		const pingInterval = setInterval(async () => {
 			// Check if the tokens are still valid
-			const newAccessToken = await authService.validateToken(fastify, accessToken, refreshToken, 'access');
+			const result = await authService.validateToken(fastify, accessToken, refreshToken, 'access');
 			// if the token is invalid or the pong timeout is reached
-			if (!newAccessToken || Date.now() - lastPong > 35000) {
+			if (!result || Date.now() - lastPong > 35000) {
 				await this.wsUtils.handleAllUserConnectionsClose(fastify, userId, username, 'Token invalid or ping timeout');
 				return;
+			}
+			if (result.newAccessToken) {
+				if (connection.socket.readyState === 1) {
+					connection.socket.send(JSON.stringify({
+						type: 'refresh_request',
+						message: 'Please refresh your token via /refresh',
+					}));
+				}
 			}
 			// If the connection is still open, send a ping
 			if (connection.socket.readyState === 1) {
