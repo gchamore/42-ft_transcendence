@@ -72,7 +72,6 @@ export async function handleAllUserConnectionsClose(fastify, userId, username, r
 }
 
 export async function handleAllConnectionsCloseForAllUsers(fastify, reason = 'Disconnected by server') {
-	clearInterval(pingInterval);
 
 	fastify.log.info(`🚪 Closing ALL WebSocket connections with reason: "${reason}"`);
 
@@ -249,10 +248,10 @@ export async function isUserOnline(userId) {
 
 // This function validates the WebSocket token
 // It checks if the token is valid using the authService
-export async function validateWebSocketToken(accessToken, refreshToken, db) {
+export async function validateWebSocketToken(fastify, accessToken, refreshToken, db) {
 	if (!accessToken && !refreshToken)
 		return null;
-	return await authService.validateToken(accessToken, refreshToken, 'access', db);
+	return await authService.validateToken(fastify, accessToken, refreshToken, 'access', db);
 }
 
 // This function handles live chat messages

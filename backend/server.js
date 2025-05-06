@@ -85,7 +85,7 @@ app.addHook('onRequest', (request, reply, done) => {
         publicRoutes.some(route => request.routeOptions?.url?.startsWith(route))) {
         return done();
     }
-	authMiddleware(request, reply, done);
+	authMiddleware(app, request, reply, done);
 });
 
 app.register(authRoutes);
@@ -97,48 +97,36 @@ app.register(twofaroutes);
 
 
 const cleanup = async (signal) => {
-	console.log(`\n${signal} received. Cleaning up...`);
+	app.log.info(`${signal} received. Cleaning up...`);
 
 	try {
-        // Nettoyage des games et des lobbies
+		// Cleanup all games and lobbies
         cleanupAllGamesAndLobbies();
         
-		// Petite pause pour laisser le temps aux signaux en attente de se propager
+		// Little break to let pending signals propagate
 		await new Promise(res => setTimeout(res, 200));
 
+		// Close all WebSocket connections
+		await wsUtils.handleAllConnectionsCloseForAllUsers(app,'Server shutting down');
 
-		// Fermeture des connexions WebSocket utilisateur par utilisateur
-		for (const [userId] of app.connections.entries()) {
-			const user = app.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-			const username = user?.username || 'Unknown';
-			await wsUtils.handleAllUserConnectionsClose(app, userId, username , 'Server shutting down');
-		}
-
-		// Vider Redis : supprime tous les utilisateurs en ligne
-		const onlineUsers = await redis.smembers('online_users');
-		if (onlineUsers.length > 0) {
-			await redis.del('online_users');
-			console.log(`🧹 Redis online_users list cleaned (${onlineUsers.length})`);
-		}
-
-		// Fermeture du serveur Fastify
+		// Fastify closure
 		await app.close();
 
-		// Fermeture SQLite
+		// SQLite closure
 		if (app.db?.close) {
-			app.db.close(); // SQLite est sync
+			app.db.close();
 		}
 
-		// Fermeture Redis
+		// Redis closure
 		if (redis && redis.status !== 'end') {
 			await redis.quit();
 		}
 
-		console.log("✅ Cleanup complete. Exiting now.");
+		app.log.info(`✅ Cleanup complete. Exiting now.`);
 		process.exit(0);
 
 	} catch (error) {
-		console.error('❌ Cleanup error:', error);
+		app.log.error(`❌ Cleanup error:'${error}`);
 		process.exit(1);
 	}
 };
@@ -153,5 +141,4 @@ app.listen({ port: 3000, host: '0.0.0.0' }, (err, address) => {
         console.error('Server start error:', err);
         process.exit(1);
     }
-    console.log(`🚀 Server ready at ${address}`);
 });

@@ -95,7 +95,7 @@ export async function wsRoutes(fastify, options) {
 			fastify.log.info('New connection established');
 	
 			// Set up WebSocket events
-			wsService.setupWebSocketEvents(fastify, connection, accessToken, refreshToken, userId, user.username, connectionId, db);
+			wsService.setupWebSocketEvents(fastify, connection, accessToken, refreshToken, userId, user.username, connectionId);
 			fastify.log.info('WebSocket events setup');
 	
 		} catch (error) {

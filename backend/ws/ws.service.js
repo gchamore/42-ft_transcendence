@@ -11,7 +11,7 @@ export class WebSocketService {
 			return null;
 		}
 
-		const validation = await wsUtils.validateWebSocketToken(accessToken, refreshToken);
+		const validation = await wsUtils.validateWebSocketToken(fastify, accessToken, refreshToken);
 		if (!validation?.userId) {
 			fastify.log.warn('WebSocket connection attempt with invalid token');
 			connection.socket.close(1008, 'Invalid access token');
@@ -55,16 +55,20 @@ export class WebSocketService {
 	// It handles the ping-pong mechanism and the connection close event
 	// It requires the user to be authenticated
 	// It validates the access token and handles the connection events
-	setupWebSocketEvents(fastify, connection, accessToken, refreshToken, userId, username, connectionId, db) {
+	setupWebSocketEvents(fastify, connection, accessToken, refreshToken, userId, username, connectionId) {
 		// Configuration of the ping-pong and token validation
 		let lastPong = Date.now();
 		const pingInterval = setInterval(async () => {
 			// Check if the tokens are still valid
-			const isTokenValid = await authService.validateToken(accessToken, refreshToken, 'access', db);
+			const newAccessToken = await authService.validateToken(fastify, accessToken, refreshToken, 'access');
 			// if the token is invalid or the pong timeout is reached
-			if (!isTokenValid || Date.now() - lastPong > 35000) {
-				this.handleInvalidToken(fastify, connection, connectionId, pingInterval);
+			if (!newAccessToken || Date.now() - lastPong > 35000) {
+				this.wsUtils.handleAllUserConnectionsClose(fastify, userId, username, 'Token invalid or ping timeout');
 				return;
+			}
+			if (newAccessToken) {
+				request.log.info('New access token generated, updating cookie');
+				authUtils.setCookie(reply, result.newAccessToken, 15, isLocal);
 			}
 			
 			// If the connection is still open, send a ping
@@ -92,42 +96,6 @@ export class WebSocketService {
 			clearInterval(pingInterval);
 		});
 	}
-
-	// Handle invalid token
-	// It closes the connection and clears the ping interval
-	// It requires the user to be authenticated
-	// It handles the connection close event
-	handleInvalidToken(fastify, connection, connectionId, pingInterval) {
-		try {
-			clearInterval(pingInterval);
-	
-			const userId = connection.socket.userId;
-			const username = connection.socket.username;
-	
-			if (connection.socket.readyState < 2) {
-				connection.socket.close(1001, "Token invalid or ping timeout");
-			}
-	
-			// ✅ on supprime la socket de la Map
-			if (userId && fastify.connections.has(userId)) {
-				const userConnections = fastify.connections.get(userId);
-				userConnections.delete(connectionId);
-	
-				// Si plus aucune connexion : suppression de la map et mise offline
-				if (userConnections.size === 0) {
-					fastify.connections.delete(userId);
-					wsUtils.updateUserOnlineStatus(userId, false);
-					wsUtils.broadcastUserStatus(fastify, userId, false);
-					fastify.log.info(`User ${userId} (${username}) is now offline`);
-				}
-			}
-	
-			fastify.log.warn(`Closed invalid WebSocket connection [${connectionId}] for user ${userId}`);
-		} catch (err) {
-			fastify.log.error(`Error closing connection on token check: ${err}`);
-		}
-	}
-	
 }
 
 export default new WebSocketService();

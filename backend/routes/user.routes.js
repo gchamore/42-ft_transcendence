@@ -12,13 +12,13 @@ export async function userRoutes(fastify, options) {
         const friendUsername = request.params.username;
         const userId = request.user.userId;
 
-		fastify.log.info(`Tentative d'ajout d'ami: ${friendUsername}`);
+		fastify.log.info(`Try to add friend: ${friendUsername}`);
 
 		try {
 			// Check if the user to be added exists
 			const friend = db.prepare("SELECT id, username FROM users WHERE username = ?").get(friendUsername);
 			if (!friend) {
-				fastify.log.warn(`Utilisateur non trouvé: ${friendUsername}`);
+				fastify.log.warn(`User not found: ${friendUsername}`);
 				return reply.code(404).send({ error: "User not found" });
 			}
 			// Check if the user is trying to add themselves
@@ -39,11 +39,11 @@ export async function userRoutes(fastify, options) {
 				"INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)"
 			).run(userId, friend.id);
 
-			fastify.log.info(`Ami ajouté avec succès: ${friendUsername}`);
+			fastify.log.info(`Friend added successfully: ${friendUsername}`);
 			return { success: true };
 
 		} catch (error) {
-			fastify.log.error(error);
+			fastify.log.error(`Error adding friend: ${friendUsername}`, error);
 			return reply.code(500).send({ error: "Failed to add friend" });
 		}
 	});
@@ -72,7 +72,7 @@ export async function userRoutes(fastify, options) {
 			return { success: true };
 
 		} catch (error) {
-			fastify.log.error(error);
+			fastify.log.error(`Error removing friend: ${friendUsername}`, error);
 			return reply.code(500).send({ error: "Failed to remove friend" });
 		}
 	});
@@ -159,7 +159,7 @@ export async function userRoutes(fastify, options) {
 			};
 
 		} catch (error) {
-			fastify.log.error(error);
+			fastify.log.error(`Error searching user: ${searchedUsername}`, error);
 			return reply.code(500).send({ error: "Failed to search user" });
 		}
 	});
@@ -317,7 +317,7 @@ export async function userRoutes(fastify, options) {
 			return reply.code(400).send({ error: "Request is not multipart/form-data" });
 		}
 		const avatar = await request.file();
-		console.log("🧩 Avatar reçu:", avatar);
+		console.log("✅ Avatar reçu:", avatar);
 		try {
 			const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 			if (!currentUser) {
