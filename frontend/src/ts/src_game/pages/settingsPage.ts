@@ -102,9 +102,6 @@ export class SettingsPage {
 					this.readyPlayers.add(data.playerNumber);
 					this.updateStartButtonState();
 					break;
-				case 'ping':
-					this.socket.send(JSON.stringify({ type: 'pong' }));
-					break;
 				case 'error':
 					console.error(data.message);
 					break;
@@ -149,9 +146,11 @@ export class SettingsPage {
 		});
 
 		//redirect to home page
-		setTimeout(() => {
-			(window as any).go_section('home');
-		}, 3000);
+		if (!this.isTournament) {
+			setTimeout(() => {
+				(window as any).go_section('home');
+			}, 3000);
+		}
 	}
 
 	private async disableSettings() {

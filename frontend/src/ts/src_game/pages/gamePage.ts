@@ -181,7 +181,7 @@ export class Game {
 					}
 					break;
 				case 'ping':
-					this.socket.send(JSON.stringify({ type: "pong" }));
+					this.socket.send(JSON.stringify({ type: 'pong' }));
 					break;
 			}
 		};
@@ -196,9 +196,6 @@ export class Game {
 			if (this.gameStarted) {
 				this.uiManager.drawErrorMessage("Connection to server lost");
 			}
-			setTimeout(() => {
-				(window as any).go_section('home');
-			}, 3000);
 		};
 	}
 
@@ -326,37 +323,24 @@ export class Game {
 					winner: data.winner,
 				}));
 		}
-	
-		if (data.reason === "opponentDisconnected") {
-			//distinct message for opponent disconnection
-			this.uiManager.drawDisconnectionMessage(
-				`${data.message}`,
-				data.winner === this.playerNumber
-			);
-			setTimeout(() => {
-				(window as any).go_section('home');
-			}, 5000);
-		} else {
-			this.uiManager.drawGameOverMessage(
-				performance.now(),
-				data.winner,
-				`${finalScore.player1Score} - ${finalScore.player2Score}`
-			);
-			// Regular game over message
-			this.createGameOverMenu(`Player ${data.winner} wins!`);
-		}
+
+		
+		// Regular game over message
+		this.createGameOverMenu(`Player ${data.winner} wins!`,`${finalScore.player1Score} - ${finalScore.player2Score}`);
 	}
 	
-	private createGameOverMenu(message: string) {
+	private createGameOverMenu(message: string, score?: string) {
 		const container = document.getElementById("game-over-menu") as HTMLElement;
 		const messageEl = document.getElementById("game-over-message") as HTMLElement;
-	
+		const scoreEl = document.getElementById("game-over-score") as HTMLElement;
+
 		// Show main content elements
 		document.getElementById("game-over-title")!.style.display = "block";
 		document.getElementById("game-over-buttons")!.style.display = "flex";
 	
 		// Set message and show main content
 		messageEl.textContent = message;
+		scoreEl.textContent = score ? `Final Score: ${score}` : "";
 		container.style.display = "block";
 	
 		// Set up event listeners

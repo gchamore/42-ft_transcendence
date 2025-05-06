@@ -37,6 +37,10 @@ export class LobbyManager {
 
 	removePlayer(clientId) {
 		this.players.delete(clientId);
+		if (this.players.size === 0) {
+			this.cleanup();
+			console.log(`Lobby ${this.lobbyId} deleted due to emptiness`);
+		}
 	}
 
 	updateSettings(newSettings) {

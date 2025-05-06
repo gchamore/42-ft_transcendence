@@ -45,7 +45,7 @@ app.decorate('connections', new Map());
 // Base de données SQLite
 try {
     const db = initializeDatabase(process.env.DATABASE_URL);
-    app .decorate('db', db);
+    app.decorate('db', db);
 } catch (error) {
     console.error('Database initialization error:', error);
     process.exit(1);

@@ -96,41 +96,6 @@ export class UIManager {
 		this.context.restore();
 	}
 
-	drawGameOverMessage(timestamp: number, winnerNumber: number, message?: string): void {
-		// Create semi-transparent background overlay
-		this.context.save();
-		this.context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-		this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-		// Set up text styling
-		this.context.font = '36px Arial';
-		this.context.textAlign = 'center';
-		this.context.fillStyle = '#FFD700'; // Gold color
-
-		// Draw the main game over text
-		this.context.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 70);
-
-		// Draw winner text
-		this.context.font = '28px Arial';
-		this.context.fillStyle = '#FFFFFF';
-		this.context.fillText(`Player ${winnerNumber} wins!`, this.canvas.width / 2, this.canvas.height / 2 - 20);
-
-		// Draw the score if provided in the message
-		if (message) {
-			this.context.font = '24px Arial';
-			this.context.fillText(message, this.canvas.width / 2, this.canvas.height / 2 + 30);
-		}
-
-		// Draw pulsing "Return to lobby" text
-		const pulseAmount = Math.sin(timestamp / 300) * 0.2 + 0.8;
-		this.context.globalAlpha = pulseAmount;
-		this.context.font = '20px Arial';
-		this.context.fillStyle = '#4CAF50';
-		this.context.fillText('Returning to lobby...', this.canvas.width / 2, this.canvas.height / 2 + 80);
-
-		this.context.restore();
-	}
-
 
 	clearOverlay(): void {
 		const gameOverMenu = document.getElementById('game-over-menu');

@@ -99,7 +99,6 @@ function handleLobbyMessage(socket, lobby, data, fastify) {
 				}
 			}
 			break;
-
 		case 'startGameRequest':
 			if (playerNumber === 1) {
 				const tournament = tournaments.get(Number(lobby.lobbyId));
@@ -150,15 +149,17 @@ function startTournamentGame(lobby, tournament, gameId, settings) {
 		const game = new GameInstance(match.matchId, settings);
 		games.set(match.matchId, game);
 		match.players.forEach(playerId => {
-			const playerSocket = lobby.players.get(playerId);
+			const playerSocket = lobby.players.get(playerId.id);
 			if (playerSocket) {
+				playerSocket.playerNumber = playerId.number;
 				safeSend(playerSocket, {
 					type: 'TournamentGameStart',
 					gameId: match.matchId,
 					settings: settings,
 					round: match.round,
-					players: match.players,
+					players: match.players.map(p => p.id)
 				});
+				lobby.removePlayer(playerSocket.clientId);
 			}
 		});
 		console.log(`starting tournament game ${match.matchId} with players ${match.players}`);

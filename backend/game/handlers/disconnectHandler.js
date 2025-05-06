@@ -11,13 +11,13 @@ export function handleDisconnect(socket, game, fastify) {
 		saveGameResults(game, fastify);
 
 	game.removePlayer(socket);
-	
+	cleanUpSocketListeners(socket);
+
 	if (game.players.size === 0) {
 		game.cleanup();
-	} else {
+	} else if (game.players.size === 1) {
 		handleRemainingPlayers(game, playerNumber);
 	}
-	cleanUpSocketListeners(socket);
 }
 
 export function removeMessageListeners(socket) {
@@ -48,6 +48,7 @@ function validateDisconnectParams(socket, game) {
 
 function saveGameResults(game, fastify) { 
 	try {
+		console.log('Saving game results...');
 		const score = game.getState().score;
 		const entries = Array.from(game.players.entries());
 		if (entries.length < 2) {
@@ -59,11 +60,6 @@ function saveGameResults(game, fastify) {
 		const [player2Id] = entries[1];
 		const winnerId = score.player1Score > score.player2Score ? player1Id : player2Id;
 
-		const db = fastify.db;
-		if (!db) {
-			console.error('Database connection not found');
-			return;
-		}
 		// Insert game record
 		const gameQuery = `
 			INSERT INTO games (
@@ -74,7 +70,7 @@ function saveGameResults(game, fastify) {
 				winner_id
 			) VALUES (?, ?, ?, ?, ?)
 		`;
-		db.prepare(gameQuery).run(
+		fastify.db.prepare(gameQuery).run(
 			player1Id,
 			player2Id,
 			score.player1Score,
@@ -94,8 +90,8 @@ function saveGameResults(game, fastify) {
 			WHERE id = ?
 		`;
 
-		db.prepare(updateWinnerQuery).run(winnerId);
-		db.prepare(updateLoserQuery).run(winnerId === player1Id ? player2Id : player1Id);
+		fastify.db.prepare(updateWinnerQuery).run(winnerId);
+		fastify.db.prepare(updateLoserQuery).run(winnerId === player1Id ? player2Id : player1Id);
 
 	} catch (error) {
 		console.error('Error saving game statistics:', error);
@@ -136,7 +132,8 @@ function handleRemainingPlayers(game, disconnectedPlayerNumber) {
 	}
 }
 
-function scheduleGameCleanup(gameId, delay = 10000) {
+function scheduleGameCleanup(gameId, delay = 5000) {
+	console.log(`Scheduling game cleanup for game ${gameId} after ${delay}ms`);
 	setTimeout(() => {
 		const game = games.get(gameId);
 		if (game) {

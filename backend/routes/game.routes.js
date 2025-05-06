@@ -116,8 +116,16 @@ export async function gameRoutes(fastify, options) {
 			// Randomize player order
 			const shuffled = players.slice().sort(() => Math.random() - 0.5);
 			const matches = [
-				{ matchId: `${tid}-semi1`, round: 'semifinal', players: [shuffled[0], shuffled[1]], winner: null, loser: null },
-				{ matchId: `${tid}-semi2`, round: 'semifinal', players: [shuffled[2], shuffled[3]], winner: null, loser: null }
+				{
+					matchId: `${tid}-semi1`, round: 'semifinal', players: [
+						{ id: shuffled[0], number: 1 },
+						{ id: shuffled[1], number: 2 }], winner: null, loser: null
+				},
+				{
+					matchId: `${tid}-semi2`, round: 'semifinal', players: [
+						{ id: shuffled[2], number: 1 },
+						{ id: shuffled[3], number: 2 }], winner: null, loser: null
+				},
 			];
 			tournaments.get(tid).bracket = matches;
 			tournaments.get(tid).ready = new Map();

@@ -5,8 +5,7 @@ import { handleNewLobbyPlayer } from '../handlers/lobbyMessageHandler.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { GameConfig } from "../shared/config/gameConfig.js";
 import { handleDisconnect } from "../handlers/disconnectHandler.js";
-import { gamePlayerNumbers, tournamentPlayerNumbers } from "../../routes/game.routes.js";
-import { settingsManagers } from "../../routes/game.routes.js";
+import { gamePlayerNumbers, tournamentPlayerNumbers, settingsManagers, tournaments } from "../../routes/game.routes.js";
 
 
 
@@ -26,6 +25,7 @@ export async function handleGameConnection(fastify, connection, request, userId)
 		const mode = request.query.mode;
 		let isTournament = false;
 
+		socket.isAlive = true;
 		socket.clientId = userId;
 		let playerNumber = null;
 		const userIdStr = String(userId);
@@ -56,9 +56,19 @@ export async function handleGameConnection(fastify, connection, request, userId)
 				const settings = settingsManagers.get(gameId)?.getSettings() || {}; // or get from tournament object
 				game = new GameInstance(gameId, settings, safeSend);
 				games.set(gameId, game);
+				cleanupLobby(gameId);
+			}
+			for (const tournament of tournaments.values()) {
+				const match = tournament.bracket.find(match => match.matchId === gameId);
+				if (match) {
+					const playerObj = match.players.find(player => String(player.id) === String(userId));
+					if (playerObj) {
+						playerNumber = playerObj.number;
+					}
+				}
 			}
 			socket.playerNumber = playerNumber;
-			handleNewGamePlayer(socket, game, fastify); // ← socket.userId est dispo ici
+			handleNewGamePlayer(socket, game, fastify, isTournament); 
 			return;
 		} else if (!isTournament && mode === 'game') {
 			let game = games.get(gameId);
@@ -77,7 +87,7 @@ export async function handleGameConnection(fastify, connection, request, userId)
 				cleanupLobby(gameId);
 			}
 
-			handleNewGamePlayer(socket, game, fastify); // ← socket.userId est dispo ici
+			handleNewGamePlayer(socket, game, fastify, isTournament); 
 		} else {
 			console.error('Invalid mode:', mode);
 			socket.close();
@@ -112,13 +122,15 @@ export function setupGameUpdateInterval(fastify) {
 				broadcastTimeout[game.gameId] = now;
 
 				if (!lastPingSent[game.gameId])
-					lastPingSent[game.gameId] = 0;
+					lastPingSent[game.gameId] = now;
 				if (now - lastPingSent[game.gameId] >= GameConfig.PING_INTERVAL) {
 					game.players.forEach((socket) => {
 						if (!socket.isAlive) {
 							if (socket.lastPingTime && now - socket.lastPingTime > GameConfig.PING_TIMEOUT) {
-								console.log(`Player ${socket.playerNumber} is unresponsive, disconnecting...`);
+								console.log(`[PING] Player ${socket.playerNumber} (clientId: ${socket.clientId}) is unresponsive for ${now - socket.lastPingTime}ms, disconnecting from game ${game.gameId}...`);
 								handleDisconnect(socket, game, fastify);
+							} else {
+								safeSend(socket, { type: 'ping' });
 							}
 						} else {
 							socket.isAlive = false;

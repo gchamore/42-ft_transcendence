@@ -59,6 +59,15 @@
     z-index: 1000;
 }
 
+#game-over-score {
+    font-size: 22px;
+    color: #ffd700;
+    margin-bottom: 18px;
+    margin-top: -10px;
+    text-align: center;
+    font-weight: bold;
+}
+
 #start-game,
 .start-button {
     background-color: #22c55e;

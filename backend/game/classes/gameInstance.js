@@ -49,6 +49,7 @@ export class GameInstance {
 
 		if (!this.players.has(cliendId)) {
 			this.players.set(cliendId, socket);
+			console.log(`Player ${playerNumber} (Client ${cliendId}) added to game ${this.gameId}`);
 		}
 		return true;
 	}
