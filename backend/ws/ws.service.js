@@ -63,14 +63,9 @@ export class WebSocketService {
 			const newAccessToken = await authService.validateToken(fastify, accessToken, refreshToken, 'access');
 			// if the token is invalid or the pong timeout is reached
 			if (!newAccessToken || Date.now() - lastPong > 35000) {
-				this.wsUtils.handleAllUserConnectionsClose(fastify, userId, username, 'Token invalid or ping timeout');
+				await this.wsUtils.handleAllUserConnectionsClose(fastify, userId, username, 'Token invalid or ping timeout');
 				return;
 			}
-			if (newAccessToken) {
-				request.log.info('New access token generated, updating cookie');
-				authUtils.setCookie(reply, result.newAccessToken, 15, isLocal);
-			}
-			
 			// If the connection is still open, send a ping
 			if (connection.socket.readyState === 1) {
 				connection.socket.ping();
