@@ -417,6 +417,7 @@
 			<button id="verify-token-logged-btn" style="margin-top: 1rem;">Verify Token</button>
 			<button id="revoke-tokens-btn" style="margin-top: 1rem;">Revoke Tokens</button>
 			<button id="logout-btn" style="margin-top: 1rem;">Logout</button>
+			<button id="unregister-btn" style="margin-top: 1rem; background-color: #c62828;">Unregister</button>
 			<form id="update-form" enctype="multipart/form-data">
 				<h2>Update Profile</h2>
 				<input type="text" id="update-username" name="username" placeholder="New Username">
@@ -744,6 +745,45 @@
 			} catch (error) {
 				console.error('Logout error:', error);
 				showMessage('Server error during logout', true);
+			}
+		});
+
+		document.getElementById('unregister-btn').addEventListener('click', async () => {
+			if (!confirm('⚠️ Are you sure you want to delete your account? This action is irreversible.')) {
+				return;
+			}
+
+			const password = prompt("Please confirm your password to delete your account:");
+
+			if (!password) {
+				showMessage('Account deletion cancelled: Password required', true);
+				return;
+			}
+
+			try {
+				shouldReconnect = false;
+
+				const response = await fetch(`${API_URL}/unregister`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ password }),
+					credentials: 'include'
+				});
+
+				const data = await response.json();
+
+				if (response.ok && data.success) {
+					showMessage('Account deleted successfully', false);
+					localStorage.clear();
+					sessionStorage.clear();
+					authForms.classList.remove('hidden');
+					welcome.classList.add('hidden');
+				} else {
+					showMessage(data.error || 'Failed to delete account', true);
+				}
+			} catch (error) {
+				console.error('Unregister error:', error);
+				showMessage('Server error during account deletion', true);
 			}
 		});
 
