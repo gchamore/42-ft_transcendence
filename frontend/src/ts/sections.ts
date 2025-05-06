@@ -14,6 +14,7 @@ import { login, register, logout, add , remove, search, send, get_blocked_users,
 export var sections: ASection[] = [];
 export var HOME_INDEX: number = 0;
 export var section_index: number = HOME_INDEX;
+
 export var activeGameId: string | null = null; // Store the active game ID
 export var activeTournamentId: string | null = null; // Store the active tournament ID
 let tournamentSettingsChosen = false; // Store the tournament settings chosen
@@ -116,7 +117,6 @@ class Home extends ASection {
 		this.playTournament_btn.onclick = () => (sections[get_section_index('game')!] as GameSection).playTournament();
 	}
 }
-
 
 export class GameSection extends ASection {
 	/* ASection */
@@ -348,7 +348,7 @@ class Profile extends ASection {
 
 	/* Methods */
 	is_option_valid(option: string | undefined): boolean {
-		return (option === undefined) ? true : false;
+		return (option === undefined || option == '') ? true : false;
 	}
 	enter(verified: boolean) {
 		if (verified === true)
@@ -839,6 +839,7 @@ class DirectMessage extends ASection {
 	switch_logged_off() {}
 	switch_logged_in() {}
 }
+
 sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(), new GameSection(),
 			new Settings(), new DirectMessage()];
 /* --------- */
@@ -878,7 +879,7 @@ export function	get_url_option(url : string) : string | undefined {
 	return option;
 }
 
-export function get_section_index(type : string): number | undefined {
+export function get_section_index_from_type(type : string): number | undefined {
 	for (let i = 0; i < sections.length; i++) {
 		if (sections[i].type === type)
 				return i;
@@ -886,20 +887,21 @@ export function get_section_index(type : string): number | undefined {
 	return undefined;
 }
 
-export function set_section_index(type : string): void {
-	let index : number | undefined = get_section_index(type);
-	if (index === undefined)
+export function set_section_index(type : string, option : string | undefined): void {
+	console.log('Set section on ', type, ' and option : ', option);
+	let index : number | undefined = get_section_index_from_type(type);
+	if (index === undefined || !is_section_accessible(index)) {
+		if (is_section_accessible())
 		section_index = HOME_INDEX;
+	}
 	else if (!is_section_accessible(index))
+		section_index = HOME_INDEX;
+	else if (!)
 		section_index = HOME_INDEX;
 	else
 		section_index = index;
-	
-	//  if (sections[index].option !== undefined
-	// 	&& sections[index].option !== option)
-	// 	section_index = HOME_INDEX;
-	// else if (sections[index].option === undefined
-	// 	|| sections[index].option === option)
+
+	console.log('Set section from ', type, ' type and ', option, ' option to section ', sections[section_index].type);
 }
 
 function is_section_accessible(index: number): boolean {
@@ -914,17 +916,10 @@ export function update_sections(): void {
 	sections[section_index].enter(user !== undefined);
 };
 
-// function update_section(): void {
-// 	if (user === undefined)
-// 		sections[section_index].switch_logged_off();
-// 	else
-// 		sections[section_index].switch_logged_in();
-// }
-
-export function go_section(section : string) {
-	if (section === sections[section_index].type)
-		section = 'home';
-	set_section_index(section);
+export function go_section(type : string, option : string) {
+	if (type === sections[section_index].type)
+		type = 'home';
+	set_section_index(type, option);
 	update_sections();
 	history.pushState({ section: sections[section_index].type }, "",
 		sections[section_index].type);
