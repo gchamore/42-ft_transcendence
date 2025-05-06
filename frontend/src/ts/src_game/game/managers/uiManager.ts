@@ -39,6 +39,18 @@ export class UIManager {
 		});
 	}
 
+	public showTournamentInfo(round: string, players: string[]) {
+		const container = document.getElementById("tournament-info");
+		if (container) {
+			container.innerHTML = `
+                <div class="tournament-info-title">Tournament ${round.charAt(0).toUpperCase() + round.slice(1)}</div>
+                <div class="tournament-info-players">${players.join(" vs ")}</div>
+            `;
+			container.style.display = "block";
+			setTimeout(() => { container.style.display = "none"; }, 5000);
+		}
+	}
+
 	drawStartMessage(timestamp: number, gameStarted: boolean, playerNumber: number, servingPlayer: number): void {
 		if (!gameStarted) {
 			if (timestamp - this.lastBlink > this.BLINK_INTERVAL) {

@@ -1,8 +1,9 @@
-import { update_status, update_sections, Chat, Actions, set_tournament_bracket, get_section_index, sections, section_index, set_section_index, set_active_game_id, set_active_tournament_id, go_section, GameSection } from "./sections.js";
-
+import { update_status, update_sections, Chat, Actions, get_section_index, sections, section_index, set_section_index, GameSection } from "./sections.js";
+import { UIManager } from "./src_game/game/managers/uiManager.js";
 
 /* Global variables */
 export var user : undefined | User = undefined;
+let uiManager: UIManager | null = null;
 
 const options: Intl.DateTimeFormatOptions = {
 timeZone: 'Europe/Paris',
@@ -102,9 +103,21 @@ export class User {
 						break;
 					case 'TournamentGameStart':
 						if (data.gameId) {
+							// Show tournament info between rounds
+							if (uiManager && typeof uiManager.showTournamentInfo === 'function') {
+								uiManager.showTournamentInfo(data.round, data.players);
+							} else {
+								// fallback: try to create UIManager if not present
+								const canvas = document.getElementById('uiCanvas') as HTMLCanvasElement;
+								const context = canvas?.getContext('2d');
+								if (canvas && context) {
+									uiManager = new UIManager(context, canvas, false);
+									uiManager.showTournamentInfo(data.round, data.players);
+								}
+							}
 							const gameSection = sections[get_section_index('game')!] as GameSection;
+							this.hideWaitingScreen();
 							gameSection.transitionToGame(data.gameId, data.settings);
-							/*need to print the tournament match on screen using data.round and data.players */
 						} else {
 							console.error('Game ID not provided');
 						}
@@ -123,6 +136,13 @@ export class User {
 		this.web_socket.onerror = (error) => {
 			console.log('WebSocket error:', error);
 		};
+	}
+
+	hideWaitingScreen() {
+		const container = document.getElementById("game-over-menu") as HTMLElement;
+		if (container) {
+			container.style.display = 'none';
+		}
 	}
 	
 	get_free_users(): Array<string> {
@@ -157,14 +177,11 @@ export class User {
 }
 
 function tournamentStart(tournamentId: string, bracket: string) {
-	set_active_tournament_id(tournamentId);
-	set_tournament_bracket(bracket);
-	go_section('game');
+	(sections[get_section_index('game')!] as GameSection).chooseTournamentSettings(tournamentId, bracket);
 }
 
 function matchFound(matchId: string) {
-	set_active_game_id(matchId);
-	go_section('game');
+	(sections[get_section_index('game')!] as GameSection).chooseGameSettings(matchId);
 }
 
 export async function add_online(username : string) {

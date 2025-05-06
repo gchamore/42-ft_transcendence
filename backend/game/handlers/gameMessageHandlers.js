@@ -34,7 +34,7 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 
 		socket.on('close', () => {
 			if (socket.currentCloseHandler) {
-				socket.currentCloseHandler();
+				socket.currentCloseHandler(fastify);
 			} else {
 				console.error('No close handler set for socket');
 			}
@@ -42,7 +42,7 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 	}
 
 	socket.currentHandler = (data) => handleGameMessage(socket, game, data, fastify);
-	socket.currentCloseHandler = () => handleGameDisconnect(socket, game, fastify);
+	socket.currentCloseHandler = (fastify) => handleGameDisconnect(socket, game, fastify);
 
 	console.log(`Player ${playerNumber} joined game ${game.gameId}`);
 
@@ -146,7 +146,8 @@ function handleMovePaddle(socket, game, playerNumber, data) {
 
 function handleGameOver(data, fastify) {
 	if (data.matchId && tournaments.has(data.matchId.split('-')[0])) {
-		const tournament = tournaments.get(matchId.split('-')[0]);
+		const tid = data.matchId.split('-')[0];
+		const tournament = tournaments.get(tid);
 		if (tournament) {
 			const match = tournament.bracket.find((match) => match.matchId === data.matchId);
 			if (match) {
@@ -158,7 +159,7 @@ function handleGameOver(data, fastify) {
 			const semis = tournament.bracket.filter((match) => match.round === 'semifinal');
 			if (semis.length === 2 && semis.every((match) => match.winner)) {
 				const finalMatch = {
-					matchId: `${matchId}-final`,
+					matchId: `${data.matchId}-final`,
 					round: 'final',
 					players: [
 						{ id: semis[0].winner, number: 1 },
@@ -191,7 +192,6 @@ function handleGameOver(data, fastify) {
 									round: finalMatch.round,
 									players: finalMatch.players.map(p => p.id),
 								});
-								socket.close();
 								break; // Only notify the first open socket
 							}
 						}
@@ -209,7 +209,6 @@ function handleGameOver(data, fastify) {
 									round: thirdPlaceMatch.round,
 									players: thirdPlaceMatch.players.map(p => p.id),
 								});
-								socket.close();
 								break;
 							}
 						}

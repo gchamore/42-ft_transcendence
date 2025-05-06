@@ -324,9 +324,26 @@ export class Game {
 				}));
 		}
 
-		
-		// Regular game over message
-		this.createGameOverMenu(`Player ${data.winner} wins!`,`${finalScore.player1Score} - ${finalScore.player2Score}`);
+		if (this.isTournamentGame(this.gameId)) {
+			this.showWaitingForNextMatch();
+		} else {
+			this.createGameOverMenu(`Player ${data.winner} wins!`, `${finalScore.player1Score} - ${finalScore.player2Score}`);
+		}
+	}
+	private isTournamentGame(gameId: string): boolean {
+		return gameId.includes('semi');
+	}
+
+	private showWaitingForNextMatch() {
+		const container = document.getElementById("game-over-menu") as HTMLElement;
+		const messageEl = document.getElementById("game-over-message") as HTMLElement;
+		const scoreEl = document.getElementById("game-over-score") as HTMLElement;
+
+		document.getElementById("game-over-title")!.style.display = "block";
+		document.getElementById("game-over-buttons")!.style.display = "none";
+		messageEl.textContent = "Waiting for other match to finish...";
+		scoreEl.textContent = "";
+		container.style.display = "block";
 	}
 	
 	private createGameOverMenu(message: string, score?: string) {

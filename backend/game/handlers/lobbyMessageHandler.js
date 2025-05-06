@@ -16,7 +16,7 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 	// Handle disconnect
 	socket.on('close', () => {
 		if (socket.currentCloseHandler) {
-			socket.currentCloseHandler();
+			socket.currentCloseHandler(fastify);
 		} else {
 			console.error('No close handler set for socket');
 		}

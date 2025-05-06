@@ -161,6 +161,33 @@
     background-color: #b91c1c; 
 }
 
+#tournament-info {
+    display: none;
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30, 30, 30, 0.95);
+    color: #fff;
+    padding: 24px 48px;
+    border-radius: 14px;
+    z-index: 2000;
+    text-align: center;
+    font-size: 1.3rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+
+.tournament-info-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.tournament-info-players {
+    font-size: 1.2rem;
+    color: #ffd700;
+}
+
 /* Spinner Animation */
 @keyframes spin {
     0% { transform: rotate(0deg); }

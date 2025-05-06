@@ -148,31 +148,38 @@ export class GameSection extends ASection {
 		}
 
 		this.activate_section();
-		if (this.queueMessageContainer)
-			this.queueMessageContainer.style.display = 'none';
+	}
 
-		if (activeGameId) {
-			if (!settingsPage) {
-				console.log('sections settingpage userID:', user?.userId);
-				if (user && user.userId)
-					settingsPage = new SettingsPage(activeGameId, false);
-				this.settingsPage.style.display = 'block';
-				this.gamePage.style.display = 'none';
-				this.gameContainer.style.display = 'none';
-				this.fpsCounter.style.display = 'none';
-			}
-		} else if (activeTournamentId) {
-			if (!tournamentSettingsChosen && !settingsPage && user && user.userId) {
-				settingsPage = new SettingsPage(activeTournamentId, true);
-				this.settingsPage.style.display = 'block';
-				this.gamePage.style.display = 'none';
-				this.gameContainer.style.display = 'none';
-				this.fpsCounter.style.display = 'none';
-				tournamentSettingsChosen = true;
-			}
+	chooseGameSettings(gameId: string) {
+		if (!settingsPage) {
+			console.log('sections settingpage userID:', user?.userId);
+			if (user && user.userId)
+				settingsPage = new SettingsPage(gameId, false);
+			this.settingsPage.style.display = 'block';
+			this.gamePage.style.display = 'none';
+			this.gameContainer.style.display = 'none';
+			this.fpsCounter.style.display = 'none';
 		} else {
 			console.error('No active game ID or tournament ID found');
 		}
+		if (this.queueMessageContainer)
+			this.queueMessageContainer.style.display = 'none';
+	}
+
+	chooseTournamentSettings(tournamentId: string, bracket: string) {
+		tournamentBracket = bracket;
+		if (!tournamentSettingsChosen && !settingsPage && user && user.userId && tournamentBracket) {
+			settingsPage = new SettingsPage(tournamentId, true);
+			this.settingsPage.style.display = 'block';
+			this.gamePage.style.display = 'none';
+			this.gameContainer.style.display = 'none';
+			this.fpsCounter.style.display = 'none';
+			tournamentSettingsChosen = true;
+		} else {
+			console.error('No active game ID or tournament ID found');
+		}
+		if (this.queueMessageContainer)
+			this.queueMessageContainer.style.display = 'none';
 	}
 
 	resetTournamentState() {
@@ -247,6 +254,7 @@ export class GameSection extends ASection {
 			console.error('play1v1: not logged in');
 			return;
 		}
+		go_section('game');
 
 		if (this.leaveQueueBtn) {
 			this.leaveQueueBtn.onclick = async () => {
@@ -280,6 +288,7 @@ export class GameSection extends ASection {
 		} catch (err) {
 			console.error('play1v1: error', err);
 			this.showQueueMessage('Failed to join 1v1 queue');
+			go_section('home');
 			setTimeout(this.hideQueueMessage, 2000);
 		}
 	}
@@ -290,6 +299,7 @@ export class GameSection extends ASection {
 			console.error('playTournament: not logged in');
 			return;
 		}
+		go_section('game');
 		if (this.leaveQueueBtn) {
 			this.leaveQueueBtn.onclick = async () => {
 				try {
@@ -324,6 +334,7 @@ export class GameSection extends ASection {
 		} catch (err) {
 			console.error('playTournament: error', err);
 			this.showQueueMessage('Failed to join tournament queue', 'tournament');
+			go_section('home');
 			setTimeout(this.hideQueueMessage, 2000);
 		}
 	}
@@ -957,19 +968,6 @@ export  function update_status(username : string, online : boolean) {
         (sections[section_index] as Actions).load_boxes();
 }
 
-export function set_active_game_id(gameId: string): void {
-	activeGameId = gameId;
-}
-
-export function set_active_tournament_id(tournamentId: string): void {
-	activeTournamentId = tournamentId;
-	console.log('Active tournament ID set:', activeTournamentId);
-}
-
-export function set_tournament_bracket(bracket: string): void {
-	tournamentBracket = bracket;
-	console.log('Tournament bracket set:', tournamentBracket);
-}
 
 (window as any).go_section = go_section;
 /* --------- */
