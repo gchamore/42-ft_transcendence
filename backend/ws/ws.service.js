@@ -2,24 +2,6 @@ import authService from '../auth/auth.service.js';
 import * as wsUtils from './ws.utils.js';
 
 export class WebSocketService {
-	// Validate the WebSocket connection
-	// It checks if the access token is valid and if the user is authenticated
-	async validateConnectionToken(fastify, connection, accessToken, refreshToken) {
-		if (!accessToken && !refreshToken) {
-			fastify.log.warn('WebSocket connection attempt without access and refresh token');
-			connection.socket.close(1008, 'No tokens provided');
-			return null;
-		}
-
-		const validation = await wsUtils.validateWebSocketToken(fastify, accessToken, refreshToken);
-		if (!validation?.userId) {
-			fastify.log.warn('WebSocket connection attempt with invalid token');
-			connection.socket.close(1008, 'Invalid access token');
-			return null;
-		}
-
-		return validation;
-	}
 
 	// Establish the WebSocket connection
 	generateConnectionId() {
@@ -31,8 +13,6 @@ export class WebSocketService {
 	// It sends the list of online users to the client
 	// It broadcasts the online status to other clients
 	async establishConnection(fastify, connection, userId, username, connectionId) {
-		fastify.log.info(`Storing WebSocket connection [ID: ${connectionId}] for user: ${username} (${userId})`);
-	
 		// Marquer l'ID sur la socket pour debug/fermeture
 		connection.socket.connectionId = connectionId;
 	
@@ -44,6 +24,8 @@ export class WebSocketService {
 		// Ajoute cette connexion dans la sous-Map du user
 		const userConnections = fastify.connections.get(userId);
 		userConnections.set(connectionId, connection.socket);
+		connection.socket.isDisconnecting = false;
+
 	
 		// Update des status utilisateurs
 		await wsUtils.updateUserOnlineStatus(userId, true);
@@ -60,44 +42,55 @@ export class WebSocketService {
 		let lastPong = Date.now();
 		const pingInterval = setInterval(async () => {
 			// Check if the tokens are still valid
-			const result = await authService.validateToken(fastify, accessToken, refreshToken, 'access');
+			fastify.log.info('###################################################################');
+
+			const result = await authService.verifyTokensOnly(fastify, accessToken, refreshToken);
 			// if the token is invalid or the pong timeout is reached
 			if (!result || Date.now() - lastPong > 35000) {
 				await this.wsUtils.handleAllUserConnectionsClose(fastify, userId, username, 'Token invalid or ping timeout');
 				return;
 			}
-			if (result.newAccessToken) {
-				if (connection.socket.readyState === 1) {
-					connection.socket.send(JSON.stringify({
-						type: 'refresh_request',
-						message: 'Please refresh your token via /refresh',
-					}));
-				}
+			// Log all active WebSocket connections for all users
+			fastify.log.info('📡 Active WebSocket connections per user:');
+			for (const [uid, connectionsMap] of fastify.connections.entries()) {
+				const connectionIds = Array.from(connectionsMap.keys());
+				fastify.log.info(`- User ${uid}: ${connectionIds.length} connection(s) [IDs: ${connectionIds.join(', ')}]`);
 			}
+			fastify.log.info('###################################################################\n');
 			// If the connection is still open, send a ping
 			if (connection.socket.readyState === 1) {
 				connection.socket.ping();
 			}
 		}, 30000);
-	
+
 		// WebSocket event handling for pong response
 		connection.socket.on('pong', () => {
 			lastPong = Date.now();
 			fastify.log.debug(`Pong received from user: ${username} [ID: ${connectionId}]`);
 		});
 
-		// Log all active WebSocket connections for all users
-		fastify.log.info('📡 Active WebSocket connections per user:');
-		for (const [uid, connectionsMap] of fastify.connections.entries()) {
-			const connectionIds = Array.from(connectionsMap.keys());
-			fastify.log.info(`- User ${uid}: ${connectionIds.length} connection(s) [IDs: ${connectionIds.join(', ')}]`);
-		}
-
 		// Connection close handling
 		connection.socket.on('close', async (code, reason) => {
-			fastify.log.warn(`❌ WebSocket closed for user ${userId} [connID: ${connectionId}] with code ${code} and reason "${reason}"`);
-			clearInterval(pingInterval);
+			try {
+				if (connection.socket.isDisconnecting) {
+					fastify.log.info(`🛑 Socket closed intentionally for user ${username} [connID: ${connectionId}]`);
+					clearInterval(pingInterval);
+					return;
+				}
+		
+				connection.socket.isDisconnecting = true;
+
+				fastify.log.warn(`❌ Unexpected WebSocket close for user ${username} [connID: ${connectionId}] - Code: ${code} Reason: "${reason}"`);
+		
+				clearInterval(pingInterval);
+		
+				await wsUtils.handleSingleUserConnectionClose( fastify, connection, code, (reason || 'Unexpected disconnect'), userId, username, connectionId);
+		
+			} catch (err) {
+				fastify.log.error(err, `Error handling WebSocket close for user ${username}`);
+			}
 		});
+		
 	}
 }
 

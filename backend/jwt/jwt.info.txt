@@ -8,7 +8,7 @@ et les stocker dans redis.
 
 ----------------
 
-📌 validateToken :
+📌 validate_and_refresh_Tokens :
 Si aucun token dans les cookies = acces refuse.
 Verifier le access token.
 Si le access token est valide et pas sur blacklist et que le user 

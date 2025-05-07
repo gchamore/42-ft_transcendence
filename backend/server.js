@@ -70,7 +70,6 @@ const publicRoutes = [
 	'/auth/google/token',
 	'/2fa/verify',
 	'/ws',
-	'/send_cookies'
 ];
 
 // Middleware d'authentification

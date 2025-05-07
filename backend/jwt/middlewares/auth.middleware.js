@@ -1,6 +1,7 @@
 import authService from '../../auth/auth.service.js';
 import authUtils from '../../auth/auth.utils.js';
 import * as wsUtils from '../../ws/ws.utils.js';
+import jwt from 'jsonwebtoken';
 
 // Middleware d'authentification for token checking
 // It verifies if the access token is valid and not expired
@@ -11,7 +12,6 @@ export async function authMiddleware(fastify, request, reply, done) {
     const refreshToken = request.cookies?.refreshToken;
 	const isLocal = request.headers.host.startsWith("localhost"); // <- placé ici
 
-
     request.log.debug({
         hasAccessToken: !!accessToken,
         hasRefreshToken: !!refreshToken,
@@ -19,19 +19,24 @@ export async function authMiddleware(fastify, request, reply, done) {
         cookies: request.cookies
     }, 'Auth middleware check');
 
-    if (!accessToken && !refreshToken) {
-        return reply.code(401).send({ 
-            error: 'No token provided',
-            path: request.routeOptions?.url
-        });
+	if (!accessToken && !refreshToken) {
+        if (!accessToken && !refreshToken) {
+			console.warn('No access and refresh token provided');
+			return reply.code(401).send({ valid: false, message: 'No token provided' });
+		}
     }
 
+	const cookieOptions = {
+		path: '/',
+		secure: !isLocal,
+		httpOnly: true,
+		sameSite: !isLocal ? 'None' : 'Lax'
+	};
+
     try {
-        const result = await authService.validateToken(fastify, accessToken, refreshToken, 'access');
-
-		if (!result) {
+        const result = await authService.validate_and_refresh_Tokens(fastify, accessToken, refreshToken);
+		if (!result.success) {
 			request.log.warn('Invalid or expired token');
-
 			const decoded = jwt.decode(accessToken || refreshToken);
 			const userId = decoded?.userId;
 
@@ -42,20 +47,12 @@ export async function authMiddleware(fastify, request, reply, done) {
 				}
 			}
 
-            const cookieOptions = {
-                path: '/',
-                secure: !isLocal,
-                httpOnly: true,
-                sameSite: !isLocal ? 'None' : 'Lax'
-            };
-
             return reply
+				.code(401)
                 .clearCookie('accessToken', cookieOptions)
                 .clearCookie('refreshToken', cookieOptions)
-                .code(401)
                 .send({ error: 'Invalid token' });
         }
-
         if (result.newAccessToken) {
             request.log.info('New access token generated, updating cookie');
             authUtils.setCookie(reply, result.newAccessToken, 15, isLocal);

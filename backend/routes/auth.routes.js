@@ -273,51 +273,6 @@ export async function authRoutes(fastify, options) {
 		}
 	});
 
-	/*** 📌 Route: SEND COOKIES ***/
-	// Cette route renvoie les tokens actuels (s'ils existent) depuis Redis
-	// et les renvoie au client sous forme de cookies HttpOnly
-	fastify.post("/send_cookies", async (request, reply) => {
-		const { userId } = request.body;
-
-		if (!userId) {
-			return reply.code(400).send({ error: "Missing userId in request body" });
-		}
-
-		try {
-			fastify.log.info(`Sending cookies back to userId: ${userId}`);
-
-			// Récupérer les tokens actuels dans Redis
-			const accessToken = await fastify.redis.get(`access_${userId}`);
-			const refreshToken = await fastify.redis.get(`refresh_${userId}`);
-
-			if (!accessToken || !refreshToken) {
-				fastify.log.warn(`Tokens not found in Redis for userId: ${userId}`);
-				return reply.code(404).send({ error: "Tokens not found or expired" });
-			}
-
-			// Vérifier que l'utilisateur existe encore
-			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-			if (!user) {
-				return reply.code(404).send({ error: "User not found" });
-			}
-
-			// Déterminer si on est en local ou non
-			const isLocal = request.headers.host.startsWith("localhost");
-
-			// Poser les cookies
-			authUtils.setCookie(reply, accessToken, 15, isLocal);
-			authUtils.setCookie(reply, refreshToken, 7, isLocal);
-
-			fastify.log.info(`Cookies resent successfully for user: ${user.username}`);
-
-			return reply.send({ success: true, message: "Cookies sent successfully" });
-
-		} catch (error) {
-			fastify.log.error(error, "Error sending cookies");
-			return reply.code(500).send({ error: "Internal server error" });
-		}
-	});
-
 
 	/*** 📌 Route: REFRESH TOKEN ***/
 	// Refresh the access token using the refresh token
@@ -509,12 +464,12 @@ export async function authRoutes(fastify, options) {
 
 			if (!accessToken && !refreshToken) {
 				fastify.log.info('No token provided');
-				return reply.code(200).send({ valid: false, message: 'No token provided' });
+				return reply.code(401).send({ valid: false, message: 'No token provided' });
 			}
 
-			const result = await authService.validateToken(fastify, accessToken, refreshToken, 'access');
+			const result = await authService.validate_and_refresh_Tokens(fastify, accessToken, refreshToken);
 
-			if (!result) {
+			if (!result.success) {
 				fastify.log.info('Invalid or expired token');
 
 				const decoded = jwt.decode(accessToken || refreshToken);
@@ -527,7 +482,7 @@ export async function authRoutes(fastify, options) {
 					}
 				}
 				return reply
-					.code(200)
+					.code(401)
 					.clearCookie('accessToken', cookieOptions)
 					.clearCookie('refreshToken', cookieOptions)
 					.send({ valid: false, message: 'Invalid or expired token' });
@@ -542,7 +497,7 @@ export async function authRoutes(fastify, options) {
 			if (!user) {
 				fastify.log.warn(`User not found for ID: ${result.userId}`);
 				return reply
-					.code(200)
+					.code(401)
 					.clearCookie('accessToken', cookieOptions)
 					.clearCookie('refreshToken', cookieOptions)
 					.send({ valid: false, message: 'User not found' });

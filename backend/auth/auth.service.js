@@ -3,6 +3,7 @@ import redis from '../redis/redisClient.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days
+// const DEBUG_TOKEN_EXPIRY = 1 * 60; // 1 minute (for debug purposes)
 
 export class AuthService {
 
@@ -32,80 +33,84 @@ export class AuthService {
 	// Verify if the access token is valid (not blacklisted, user exists, in redis, not expired)
 	// If the token is expired, it tries to refresh it using the refresh token
 	// If both tokens are invalid, it clears the cookies and returns a 401 error
-	async validateToken(fastify, accessToken, refreshToken, type = 'access') {
+	async validate_and_refresh_Tokens(fastify, accessToken, refreshToken) {
 		try {
+			if (!accessToken) {
+				fastify.log.error('No access token provided');
+				throw new Error('No access token provided');
+			}
 			fastify.log.info('ACCESS TOKEN CHECK...');
-	
 
 			// Check if the token is valid
-			fastify.log.info(`proceeding to validation...`);
+			// fastify.log.info(`proceeding to validation...`);
 			const decoded = jwt.verify(accessToken, JWT_SECRET);
-			fastify.log.info(`Token validated, decoded successfully: ${JSON.stringify(decoded)}`);
+			// fastify.log.info(`Token validated, decoded successfully: ${JSON.stringify(decoded)}`);
 
 			// Check if the token is blacklisted
-			fastify.log.info('Checking if the token is blacklisted...');
+			// fastify.log.info('Checking if the token is blacklisted...');
 			const isBlacklisted = await redis.get(`blacklist_${accessToken}`);
 			if (isBlacklisted) {
-				console.warn('Le token est dans la liste noire.');
-				return null;
+				console.warn('Token is blacklisted');
+				throw new Error('Token is blacklisted');
 			}
-			fastify.log.info('Token is not blacklisted.');
+			// fastify.log.info('Token is not blacklisted.');
 
 			// Check if user exists in the database
 			if (fastify.db) {
-				fastify.log.info(`Checking if user exists in database...`);
+				// fastify.log.info(`Checking if user exists in database...`);
 				const userExists = fastify.db.prepare("SELECT id FROM users WHERE id = ?").get(decoded.userId);
-	
+
 				if (!userExists) {
 					console.warn('User not found in the database, revoking tokens...');
 					await this.revokeTokens(decoded.userId);
-					return null;
+					throw new Error('User not found in the database, tokens revoked');
 				}
-				fastify.log.info('User found in the database.');
+				// fastify.log.info('User found in the database.');
 			}
-	
+
 			// Verify if the token is the latest
-			fastify.log.info('Checking if latest token is used...');
+			// fastify.log.info('Checking if latest token is used...');
 			const currentAccessToken = await redis.get(`access_${decoded.userId}`);
 			if (accessToken !== currentAccessToken) {
-				fastify.log.warn(`Token is not the latest one. Current access token: ${currentAccessToken}`);
-				return null;
+				fastify.log.warn(`Token is not the latest one.`);
+				throw new Error('Token is not the latest one.');
 			}
-	
-			fastify.log.info('Token is the latest one.');
+
+			// fastify.log.info('Token is the latest one.');
 			fastify.log.info('Access Token is valid\n');
-			return { userId: decoded.userId };
-	
+			return { 
+				success: true, 
+				userId: decoded.userId 
+			};
+
 		} catch (error) {
 			fastify.log.warn('Access token invalid, Attempting to refresh it...');
 			fastify.log.info('REFRESH TOKEN CHECK...');
 			// If the access token is expired, try to refresh it using the refresh token
 			if (!refreshToken) {
 				fastify.log.error(error, 'No refresh token provided.');
-				return null;
+				return { success: false, reason: 'No refresh token provided' };
 			}
-	
+
 			try {
-				const newAccessToken = await this.refreshAccessToken(fastify, refreshToken, accessToken);
-				if (!newAccessToken) {
-					console.warn(`Échec du rafraîchissement du token d'accès.`);
-					return null;
+				const result = await this.refreshAccessToken(fastify, refreshToken, accessToken);
+				if (!result.success) {
+					fastify.log.warn(`Failed to refresh access token, invalid refresh token.`);
+					return { success: false, reason: 'Failed to refresh access token, invalid refresh token.' };
 				}
-				fastify.log.info('Refresh token is valid, generating new access token...');
-				const decoded = jwt.verify(newAccessToken, JWT_SECRET);
-				fastify.log.info(`Nouveau access token généré avec succès. ${decoded}`);
-	
+				fastify.log.info(`Nouveau access token généré avec succès.`);
 				return {
-					userId: decoded.userId,
-					newAccessToken
+					success: true,
+					userId: result.userId,
+					newAccessToken: result.newAccessToken,
 				};
 			} catch (refreshError) {
-				fastify.log.error(refreshError, 'Échec de la vérification du refresh token.');
-				return null;
+				fastify.log.error(refreshError, 'Fail to verify refresh token.');
+				return { success: false, reason: 'Fail to verify refresh token.' };
 			}
 		}
 	}
-	
+
 
 	// Refresh the access token using the refresh token
 	// The refresh token is verified and if valid, a new access token is generated
@@ -114,38 +119,38 @@ export class AuthService {
 	// If the refresh token is invalid, it returns null
 	async refreshAccessToken(fastify, refreshToken, oldAccessToken) {
 		try {
-			fastify.log.info(`proceeding to validation...`);
+			// fastify.log.info(`proceeding to validation...`);
 			const decoded = jwt.verify(refreshToken, JWT_SECRET);
-			fastify.log.info(`Token validated, decoded successfully: ${JSON.stringify(decoded)}`);
+			// fastify.log.info(`Token validated, decoded successfully: ${JSON.stringify(decoded)}`);
 
 			// Check if the token is blacklisted
-			fastify.log.info('Checking if the token is blacklisted...');
+			// fastify.log.info('Checking if the refreshToken is blacklisted...');
 			const isBlacklisted = await redis.get(`blacklist_${refreshToken}`);
 			if (isBlacklisted) {
-				console.warn('Le token est dans la liste noire.');
-				return null;
+				console.warn('refreshToken is blacklisted');
+				return { success: false, reason: 'refreshToken is blacklisted' };
 			}
-			fastify.log.info('Token is not blacklisted.');
+			// fastify.log.info('Token is not blacklisted.');
 
 			// Check if user exists in the database
 			if (fastify.db) {
-				fastify.log.info(`Checking if user exists in database...`);
+				// fastify.log.info(`Checking if user exists in database...`);
 				const userExists = fastify.db.prepare("SELECT id FROM users WHERE id = ?").get(decoded.userId);
-	
+
 				if (!userExists) {
 					console.warn('User not found in the database, revoking tokens...');
 					await this.revokeTokens(decoded.userId);
-					return null;
+					return { success: false, reason: 'User not found in the database, tokens revoked' };
 				}
-				fastify.log.info('User found in the database.');
+				// fastify.log.info('User found in the database.');
 			}
-			
+
 			// Check if it's the current refresh token
-			fastify.log.info('Checking if latest token is used...');
+			// fastify.log.info('Checking if latest token is used...');
 			const currentRefreshToken = await redis.get(`refresh_${decoded.userId}`);
 			if (refreshToken !== currentRefreshToken) {
-				fastify.log.warn(`Token is not the latest one. Current refresh token: ${currentRefreshToken}`);
-				return null;
+				fastify.log.warn(`Token is not the latest one.`);
+				return { success: false, reason: 'Token is not the latest one.' };
 			}
 
 			// Blacklist the old access token (if provided)
@@ -164,10 +169,124 @@ export class AuthService {
 			// Store the new token
 			await redis.setex(`access_${decoded.userId}`, ACCESS_TOKEN_EXPIRY, newAccessToken);
 
-			return newAccessToken;
+			return {
+				success: true,
+				userId: decoded.userId,
+				newAccessToken
+			};
 		} catch (error) {
-			console.error('Refresh token error:', error);
-			return null;
+			console.error('Fail to verify refresh token.', error);
+			return { success: false, reason: 'Fail to verify refresh token.'};
+		}
+	}
+
+	// Verify if the access token is valid (not blacklisted, user exists, in redis, not expired)
+	// If the token is expired, it tries to refresh it using the refresh token
+	// If both tokens are invalid, it clears the cookies and returns a 401 error
+	async verifyTokensOnly(fastify, accessToken, refreshToken) {
+		try {
+			if (!accessToken) {
+				fastify.log.error('No access token provided');
+				throw new Error('No access token provided');
+			}
+			fastify.log.info('ACCESS TOKEN CHECK...');
+
+			// Check if the token is valid
+			// fastify.log.info(`proceeding to validation...`);
+			const decoded = jwt.verify(accessToken, JWT_SECRET);
+			// fastify.log.info(`Token validated, decoded successfully: ${JSON.stringify(decoded)}`);
+
+			// Check if the token is blacklisted
+			// fastify.log.info('Checking if the token is blacklisted...');
+			const isBlacklisted = await redis.get(`blacklist_${accessToken}`);
+			if (isBlacklisted) {
+				console.warn('Token is blacklisted');
+				throw new Error('Token is blacklisted');
+			}
+			// fastify.log.info('Token is not blacklisted.');
+
+			// Check if user exists in the database
+			if (fastify.db) {
+				// fastify.log.info(`Checking if user exists in database...`);
+				const userExists = fastify.db.prepare("SELECT id FROM users WHERE id = ?").get(decoded.userId);
+
+				if (!userExists) {
+					console.warn('User not found in the database, revoking tokens...');
+					await this.revokeTokens(decoded.userId);
+					throw new Error('User not found in the database, tokens revoked');
+				}
+				// fastify.log.info('User found in the database.');
+			}
+
+			// Verify if the token is the latest
+			// fastify.log.info('Checking if latest token is used...');
+			const currentAccessToken = await redis.get(`access_${decoded.userId}`);
+			if (accessToken !== currentAccessToken) {
+				fastify.log.warn(`Token is not the latest one.`);
+				throw new Error('Token is not the latest one.');
+			}
+
+			// fastify.log.info('Token is the latest one.');
+			fastify.log.info('Access Token is valid\n');
+			return { 
+				success: true, 
+				userId: decoded.userId 
+			};
+
+		} catch (error) {
+			fastify.log.warn('Access token invalid');
+			try {
+				fastify.log.info('REFRESH TOKEN CHECK...');
+				// If the access token is expired, try to refresh it using the refresh token
+				if (!refreshToken) {
+					fastify.log.error(error, 'No refresh token provided.');
+					throw new Error('No refresh token provided');
+				}
+
+				// fastify.log.info(`proceeding to validation...`);
+				const decoded = jwt.verify(refreshToken, JWT_SECRET);
+				// fastify.log.info(`Token validated, decoded successfully: ${JSON.stringify(decoded)}`);
+
+				// Check if the token is blacklisted
+				// fastify.log.info('Checking if the token is blacklisted...');
+				const isBlacklisted = await redis.get(`blacklist_${refreshToken}`);
+				if (isBlacklisted) {
+					console.warn('Le token est dans la liste noire.');
+					throw new Error('Token is blacklisted');
+				}
+				// fastify.log.info('Token is not blacklisted.');
+
+				// Check if user exists in the database
+				if (fastify.db) {
+					// fastify.log.info(`Checking if user exists in database...`);
+					const userExists = fastify.db.prepare("SELECT id FROM users WHERE id = ?").get(decoded.userId);
+
+					if (!userExists) {
+						console.warn('User not found in the database, revoking tokens...');
+						await this.revokeTokens(decoded.userId);
+						throw new Error('User not found in the database, tokens revoked');
+					}
+					// fastify.log.info('User found in the database.');
+				}
+
+				// Check if it's the current refresh token
+				// fastify.log.info('Checking if latest token is used...');
+				const currentRefreshToken = await redis.get(`refresh_${decoded.userId}`);
+				if (refreshToken !== currentRefreshToken) {
+					fastify.log.warn(`Token is not the latest one.`);
+					throw new Error('Token is not the one used for websocket init.');
+				}
+
+				// fastify.log.info('Token is the latest one.');
+				fastify.log.info('Refresh Token is valid\n');
+				return { 
+					success: true, 
+					userId: decoded.userId 
+				};
+			} catch (refreshError) {
+				fastify.log.error(refreshError, 'Fail to verify refresh token.');
+				return { success: false, reason: 'Fail to verify refresh token.' };
+			}
 		}
 	}
 
