@@ -43,8 +43,6 @@ export class WebSocketService {
 		const pingInterval = setInterval(async () => {
 			// Check if the tokens are still valid
 			fastify.log.info('###################################################################');
-
-			const result = await authService.verifyTokensOnly(fastify, accessToken, refreshToken);
 			// if the token is invalid or the pong timeout is reached
 			if (!result || Date.now() - lastPong > 35000) {
 				await this.wsUtils.handleAllUserConnectionsClose(fastify, userId, username, 'Token invalid or ping timeout');
