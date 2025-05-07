@@ -41,20 +41,22 @@ export class WebSocketService {
 		// Configuration of the ping-pong and token validation
 		let lastPong = Date.now();
 		const pingInterval = setInterval(async () => {
-			// Check if the tokens are still valid
-			fastify.log.info('###################################################################');
 			// if the token is invalid or the pong timeout is reached
-			if (!result || Date.now() - lastPong > 35000) {
+			if (Date.now() - lastPong > 35000) {
 				await this.wsUtils.handleAllUserConnectionsClose(fastify, userId, username, 'Token invalid or ping timeout');
 				return;
 			}
-			// Log all active WebSocket connections for all users
-			fastify.log.info('📡 Active WebSocket connections per user:');
-			for (const [uid, connectionsMap] of fastify.connections.entries()) {
-				const connectionIds = Array.from(connectionsMap.keys());
-				fastify.log.info(`- User ${uid}: ${connectionIds.length} connection(s) [IDs: ${connectionIds.join(', ')}]`);
+			fastify.log.info('========== 🔄 WebSocket Connection Check ==========');
+			fastify.log.info(`👤 User ID: ${userId}, Username: ${username}`);
+			const userConnections = fastify.connections.get(userId);
+			if (userConnections) {
+				const connectionIds = Array.from(userConnections.keys());
+				fastify.log.info(`🔗 ${connectionIds.length} active connection(s): [${connectionIds.join(', ')}]`);
+			} else {
+				fastify.log.info('❌ No active connections.');
 			}
-			fastify.log.info('###################################################################\n');
+			fastify.log.info('==================================================\n');
+
 			// If the connection is still open, send a ping
 			if (connection.socket.readyState === 1) {
 				connection.socket.ping();
