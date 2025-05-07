@@ -21,6 +21,7 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 			console.error('No close handler set for socket');
 		}
 	});
+	
 	if (!lobby.addPlayer(socket, clientId, playerNumber, fastify)) {
 		fastify.log.error('Lobby is full');
 		socket.close();
@@ -108,7 +109,7 @@ function handleLobbyMessage(socket, lobby, data, fastify) {
 			break;
 
 		default:
-			console.error(`Unknown message type: ${data.type}`);
+			console.error(`Unknown message in lobby type: ${data.type}`);
 	}
 }
 
@@ -134,6 +135,7 @@ function startNormalGame(lobby, gameId, settings, fastify) {
 			type: 'gameStart',
 			gameId: gameId,
 			settings: settings,
+			playerNumber: player.playerNumber,
 		});
 		handleNewGamePlayer(player, game, fastify);
 	});
@@ -157,7 +159,8 @@ function startTournamentGame(lobby, tournament, gameId, settings) {
 					gameId: match.matchId,
 					settings: settings,
 					round: match.round,
-					players: match.players.map(p => p.id)
+					players: match.players.map(p => p.id),
+					playerNumber: playerId.number,
 				});
 				lobby.removePlayer(playerSocket.clientId);
 			}

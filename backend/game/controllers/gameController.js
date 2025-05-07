@@ -163,11 +163,14 @@ function processGameUpdate(game, deltaTime) {
 			});
 		});
 		game.getState().gameStarted = false;
+		broadcastGameState(game);
+		game.broadcasting = false;
 		return;
 	}
 }
 
 export function broadcastGameState(game) {
+	if (!game.broadcasting) return;
 	game.players.forEach((player) => {
 		safeSend(player, {
 			type: 'gameState',

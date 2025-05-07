@@ -96,8 +96,9 @@ export function handleGameMessage(socket, game, data, fastify) {
 			break;
 		case 'gameOver':
 			handleGameOver(data, fastify);
+			break;
 		default:
-			console.error(`Unknown message type: ${data.type}`);
+			console.error(`Unknown message in game type: ${data.type}`);
 	}
 }
 
@@ -145,25 +146,28 @@ function handleMovePaddle(socket, game, playerNumber, data) {
 }
 
 function handleGameOver(data, fastify) {
-	if (data.matchId && tournaments.has(data.matchId.split('-')[0])) {
-		const tid = data.matchId.split('-')[0];
+	const tid = Number(data.matchId.split('-')[0]);
+	if (data.matchId && tournaments.has(tid)) {
 		const tournament = tournaments.get(tid);
 		if (tournament) {
 			const match = tournament.bracket.find((match) => match.matchId === data.matchId);
-			if (match) {
-				match.winner = winner;
-				console.log(`Match ${data.matchId} winner: ${winner}`);
+			if (match && !match.winner) {
+				match.winner = data.winner;
+				console.log(`Match ${data.matchId} winner: ${data.winner}`);
 			} else {
-				console.error(`Match ${data.matchId} not found in tournament bracket`);
+				console.log(`Match ${data.matchId} already has a winner: ${match.winner}, ignoring duplicate gameOver`);
+				return;
 			}
 			const semis = tournament.bracket.filter((match) => match.round === 'semifinal');
-			if (semis.length === 2 && semis.every((match) => match.winner)) {
+			const finalExists = tournament.bracket.some(m => m.round === 'final');
+            const thirdExists = tournament.bracket.some(m => m.round === 'third');
+			if (semis.length === 2 && semis.every((match) => match.winner) && !finalExists && !thirdExists) {
 				const finalMatch = {
-					matchId: `${data.matchId}-final`,
+					matchId: `${tournament.id}-final`,
 					round: 'final',
 					players: [
-						{ id: semis[0].winner, number: 1 },
-						{ id: semis[1].winner, number: 2 }
+						{ id: semis[0].players.find(p => p.number === semis[0].winner).id, number: 1 },
+						{ id: semis[1].players.find(p => p.number === semis[0].winner).id, number: 2 }
 					],
 					winner: null,
 					loser: null
@@ -172,18 +176,20 @@ function handleGameOver(data, fastify) {
 					matchId: `${tournament.id}-third`,
 					round: 'third',
 					players: [
-						{ id: semis[0].players.find(p => p.id !== semis[0].winner).id, number: 1 },
-						{ id: semis[1].players.find(p => p.id !== semis[1].winner).id, number: 2 }
+						{ id: semis[0].players.find(p => p.number !== semis[0].winner).id, number: 1 },
+						{ id: semis[1].players.find(p => p.number !== semis[1].winner).id, number: 2 }
 					],
 					winner: null,
 					loser: null
 				};
 				tournament.bracket.push(finalMatch, thirdPlaceMatch);
 				console.log(`Final match created: ${finalMatch.matchId}`);
+				console.log(`[Tournament Notify] Final:`, finalMatch.players.map(p => p.id));
 				// Notify final players
 				finalMatch.players.forEach(playerId => {
-					const userConnections = fastify.connections.get(playerId);
+					const userConnections = fastify.connections.get(playerId.id);
 					if (userConnections) {
+						console.log(`Notifying player ${playerId.id} about final match ${finalMatch.matchId}`);
 						for (const [, socket] of userConnections.entries()) {
 							if (socket.readyState === 1) {
 								safeSend(socket, {
@@ -191,6 +197,7 @@ function handleGameOver(data, fastify) {
 									gameId: finalMatch.matchId,
 									round: finalMatch.round,
 									players: finalMatch.players.map(p => p.id),
+									playerNumber: playerId.number,
 								});
 								break; // Only notify the first open socket
 							}
@@ -198,8 +205,10 @@ function handleGameOver(data, fastify) {
 					}
 				});
 				// Notify third place players
+				console.log(`Third place match created: ${thirdPlaceMatch.matchId}`);
+				console.log(`[Tournament Notify] Third:`, thirdPlaceMatch.players.map(p => p.id));
 				thirdPlaceMatch.players.forEach(playerId => {
-					const userConnections = fastify.connections.get(playerId);
+					const userConnections = fastify.connections.get(playerId.id);
 					if (userConnections) {
 						for (const [, socket] of userConnections.entries()) {
 							if (socket.readyState === 1) {
@@ -208,6 +217,7 @@ function handleGameOver(data, fastify) {
 									gameId: thirdPlaceMatch.matchId,
 									round: thirdPlaceMatch.round,
 									players: thirdPlaceMatch.players.map(p => p.id),
+									playerNumber: playerId.number,
 								});
 								break;
 							}

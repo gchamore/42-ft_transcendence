@@ -50,9 +50,6 @@ export class SettingsPage {
 		this.socket = WebSocketService.getInstance().connect(this.lobbyId, 'lobby');
 		this.socket.onopen = () => {
 			console.log('Settings socket connected');
-			if (this.playerNumber === 1) {
-				this.loadSettings();
-			}
 		};
 
 		this.socket.onmessage = (message) => {
@@ -61,7 +58,6 @@ export class SettingsPage {
 			switch (data.type) {
 				case 'playerNumber':
 					this.playerNumber = data.playerNumber;
-					WebSocketService.getInstance().setPlayerNumber(data.playerNumber);
 					if (this.playerNumber === 1) {
 						const savedSettings = SettingsService.loadSettings();
 						this.updateSettings(savedSettings);
@@ -80,7 +76,7 @@ export class SettingsPage {
 				case 'gameStart':
 					if (data.gameId){
 						const gameSection = sections[get_section_index('game')!] as GameSection;
-						gameSection.transitionToGame(data.gameId, data.settings);
+						gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
 					} else {
 						console.error('Game ID not provided');
 					}
@@ -91,8 +87,10 @@ export class SettingsPage {
 							this.socket.close(1000, 'Starting tournament game');
 						}
 						const gameSection = sections[get_section_index('game')!] as GameSection;
-						gameSection.transitionToGame(data.gameId, data.settings);
-						/*need to print the tournament match on screen using data.round and data.players */
+						if (data.round && data.players)
+							gameSection.showTournamentInfo(data.round, data.players, () => {
+								gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
+							});
 					} else {
 						console.error('Game ID not provided');
 					}
@@ -117,6 +115,7 @@ export class SettingsPage {
 			console.log('WebSocket connection closed in settings:', event.code, event.reason);
 			this.handleConnectionIssues();
 		};
+		
 	}
 
 	private handleConnectionIssues() {
@@ -189,21 +188,6 @@ export class SettingsPage {
 				}));
 			}
 		}
-	}
-
-	private loadSettings() {
-		const settings = SettingsService.loadSettings();
-
-		this.ballSpeedSlider.value = settings.ballSpeed.toString();
-		this.ballSpeedValue.textContent = settings.ballSpeed.toString();
-		this.paddleSpeedSlider.value = settings.paddleSpeed.toString();
-		this.paddleSpeedValue.textContent = settings.paddleSpeed.toString();
-		this.paddleLengthSlider.value = settings.paddleLength.toString();
-		this.paddleLengthValue.textContent = settings.paddleLength.toString();
-		this.mapSelect.value = settings.mapType;
-		this.powerUpsToggle.checked = settings.powerUpsEnabled;
-
-		// Set initial values in settings page
 	}
 
 	private setupListeners() {

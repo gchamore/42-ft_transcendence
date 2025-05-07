@@ -35,9 +35,9 @@ export class Game {
 	private gameId: string;
 	private isLoading: boolean = true;
 
-	constructor(gameId: string, settings: any) {
+	constructor(gameId: string, settings: any, playerNumber: number) {
 		this.gameId = gameId;
-		this.playerNumber = WebSocketService.getInstance().getPlayerNumber();
+		this.playerNumber = playerNumber;
 		this.connectWebSocket();
 		this.initializeCanvas();
 		this.initializeComponents(settings);
@@ -133,10 +133,13 @@ export class Game {
 			const data = JSON.parse(message.data);
 			console.log("Received message : ", data);
 			switch (data.type) {
+				case "playerNumber":
+					this.playerNumber = data.playerNumber;
+					break;
 				case "gameState":
 					this.updateGameState(data.gameState);
 					break;
-				case "gameOver":
+				case 'gameOver':
 					this.handleGameOver(data);
 					break;
 				case "connected":
@@ -182,6 +185,9 @@ export class Game {
 					break;
 				case 'ping':
 					this.socket.send(JSON.stringify({ type: 'pong' }));
+					break;
+				default:
+					console.error("Unknown message in game type:", data.type);
 					break;
 			}
 		};
@@ -267,7 +273,7 @@ export class Game {
 		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
 	}
 	
-	stopGame(): void {
+	stopGame(message: string): void {
 		if (this.animationFrameId) {
 			cancelAnimationFrame(this.animationFrameId);
 			this.animationFrameId = null;
@@ -286,7 +292,7 @@ export class Game {
 			this.babylonManager = null;
 		}
 		 if (this.socket && this.socket.readyState === WebSocket.OPEN)
-			this.socket.close(1000, "Game stopped");
+			this.socket.close(1000, message);
 
 	}
 
@@ -318,10 +324,12 @@ export class Game {
 		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 			this.socket.send(
 				JSON.stringify({
-					type: "gameOver",
+					type: 'gameOver',
 					matchId: this.gameId,
 					winner: data.winner,
 				}));
+			// Close the game socket after sending gameOver
+			this.stopGame("Game Finished");
 		}
 
 		if (this.isTournamentGame(this.gameId)) {

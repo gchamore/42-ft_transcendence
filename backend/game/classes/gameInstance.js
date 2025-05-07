@@ -10,6 +10,7 @@ export class GameInstance {
 		this.physicManager = new PhysicManager(existingSettings.mapType);
 		this.powerUpManager = new PowerUpManager();
 		this.settings = existingSettings;
+		this.broadcasting = true;
 
 		this.playerReadyStatus = this.gameStateManager.playerReadyStatus;
 

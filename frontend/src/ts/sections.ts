@@ -188,7 +188,7 @@ export class GameSection extends ASection {
 		activeTournamentId = null;
 	}
 
-	transitionToGame(gameId: string, settings: any) {
+	transitionToGame(gameId: string, settings: any, playerNumber: number) {
 		// Hide settings page and show game page
 		this.settingsPage.style.display = 'none';
 		this.gamePage.style.display = 'block';
@@ -197,22 +197,27 @@ export class GameSection extends ASection {
 
 		// Initialize the game
 		if (user && user.userId)
-			gamePage = new Game(gameId, settings);
+			gamePage = new Game(gameId, settings, playerNumber);
+	}
+
+	showTournamentInfo(round: string, players: string[], onDone?: () => void) {
+		const container = document.getElementById("tournament-info");
+		if (container) {
+			container.innerHTML = `
+                <div class="tournament-info-title">Tournament ${round.charAt(0).toUpperCase() + round.slice(1)}</div>
+                <div class="tournament-info-players">${players.join(" vs ")}</div>
+            `;
+			container.style.display = "block";
+			setTimeout(() => { 
+				container.style.display = "none";
+				if (onDone) onDone();
+			}, 5000);
+		} else if (onDone) {
+			onDone();
+		}
 	}
 
 	async leave() {
-		// if (user && user.userId) {
-		// 	try { 
-		// 		await fetch(`/api/game/queue/leave`, {
-		// 			method: 'DELETE',
-		// 			credentials: 'include',
-		// 			headers: { "Content-Type": "application/json"},
-		// 			body: JSON.stringify({ userId: user.userId })
-		// 		});
-		// 	} catch (err) {
-		// 		console.error('Error leaving queue:', err);
-		// 	}
-		// }
 
 		this.settingsPage.style.display = 'none';
 		this.gamePage.style.display = 'none';
@@ -223,7 +228,7 @@ export class GameSection extends ASection {
 			settingsPage = null;
 		}
 		if (gamePage) {
-			gamePage.stopGame();
+			gamePage.stopGame("leaving Game section");
 			gamePage = null;
 		}
 		this.deactivate_section();

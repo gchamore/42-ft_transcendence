@@ -35,7 +35,7 @@ export class AuthService {
 	// If both tokens are invalid, it clears the cookies and returns a 401 error
 	async validateToken(accessToken, refreshToken, type = 'access', db) {
 		try {
-			console.log('Début de la validation du token...');
+			// console.log('Début de la validation du token...');
 	
 			// Check if the token is blacklisted
 			const isBlacklisted = await redis.get(`blacklist_${accessToken}`);
@@ -44,15 +44,15 @@ export class AuthService {
 				return null;
 			}
 	
-			console.log('Token vérifié, vérification de sa validité...');
+			// console.log('Token vérifié, vérification de sa validité...');
 	
 			// Check if the token is valid
 			const decoded = jwt.verify(accessToken, JWT_SECRET);
-			console.log('Token valide, décodé avec succès.', decoded);
+			// console.log('Token valide, décodé avec succès.', decoded);
 	
 			// Check if user exists in the database
 			if (db) {
-				console.log('Vérification de l\'existence de l\'utilisateur dans la base de données...');
+				// console.log('Vérification de l\'existence de l\'utilisateur dans la base de données...');
 				const userExists = db.prepare("SELECT id FROM users WHERE id = ?").get(decoded.userId);
 	
 				if (!userExists) {
@@ -60,7 +60,7 @@ export class AuthService {
 					await this.revokeTokens(decoded.userId);
 					return null;
 				}
-				console.log('Utilisateur trouvé dans la base de données.');
+				// console.log('Utilisateur trouvé dans la base de données.');
 			}
 	
 			// Verify if the token is the latest
@@ -70,7 +70,7 @@ export class AuthService {
 				return null;
 			}
 	
-			console.log('Le token est valide et actuel.\n');
+			// console.log('Le token est valide et actuel.\n');
 			return { userId: decoded.userId };
 	
 		} catch (error) {

@@ -1,9 +1,7 @@
 import { update_status, update_sections, Chat, Actions, get_section_index, sections, section_index, set_section_index, GameSection } from "./sections.js";
-import { UIManager } from "./src_game/game/managers/uiManager.js";
 
 /* Global variables */
 export var user : undefined | User = undefined;
-let uiManager: UIManager | null = null;
 
 const options: Intl.DateTimeFormatOptions = {
 timeZone: 'Europe/Paris',
@@ -103,25 +101,20 @@ export class User {
 						break;
 					case 'TournamentGameStart':
 						if (data.gameId) {
+							console.log('TournamentGameStart from user', data.gameId);
 							// Show tournament info between rounds
-							if (uiManager && typeof uiManager.showTournamentInfo === 'function') {
-								uiManager.showTournamentInfo(data.round, data.players);
-							} else {
-								// fallback: try to create UIManager if not present
-								const canvas = document.getElementById('uiCanvas') as HTMLCanvasElement;
-								const context = canvas?.getContext('2d');
-								if (canvas && context) {
-									uiManager = new UIManager(context, canvas, false);
-									uiManager.showTournamentInfo(data.round, data.players);
-								}
-							}
 							const gameSection = sections[get_section_index('game')!] as GameSection;
 							this.hideWaitingScreen();
-							gameSection.transitionToGame(data.gameId, data.settings);
+							if (data.round && data.players)
+								gameSection.showTournamentInfo(data.round, data.players, () => {
+									gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
+								});
 						} else {
 							console.error('Game ID not provided');
 						}
 						break;
+					default:
+						console.error('Unknown message in user type:', data.type);
 				}
 			} catch (error) {
                 console.error('WebSocket message parsing error:', error);
