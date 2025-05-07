@@ -41,4 +41,3 @@ document.addEventListener("DOMContentLoaded", async () => {
 	// 	url = sections[section_index] + '/' + sections[section_index].option;
 });
 /* --------- */
-
