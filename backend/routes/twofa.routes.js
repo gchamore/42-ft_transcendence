@@ -1,7 +1,6 @@
 import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
 import authService from '../auth/auth.service.js';
-import TwofaService from '../2fa/twofa.service.js';
 
 export async function twofaroutes(fastify, options) {
     const { db } = fastify;
@@ -42,15 +41,16 @@ export async function twofaroutes(fastify, options) {
 	fastify.post("/2fa/activate", async (request, reply) => {
 		const { secret, token } = request.body;
 		const userId = request.user.userId;
-	
+
 		const isValid = speakeasy.totp.verify({
 			secret,
 			encoding: 'base32',
 			token
 		});
-	
+		
 		if (!isValid) return reply.code(400).send({ error: "Invalid verification code" });
-	
+		console.log("[2FA] Secret validé et stocké :", secret);
+		
 		// Finally store the secret in the database
 		db.prepare("UPDATE users SET twofa_secret = ? WHERE id = ?").run(secret, userId);
 	
@@ -68,9 +68,13 @@ export async function twofaroutes(fastify, options) {
 		const { token: twofaCode, temp_token } = request.body;
 
 		// Vérifier le token temporaire
-		const payload = await TwofaService.verifyTemp2FAToken(temp_token);
+		const payload = await authService.verifyTempToken(temp_token, "2fa");
 		const user = db.prepare("SELECT * FROM users WHERE id = ?").get(payload.userId);
-	
+		
+		if (!user?.twofa_secret) {
+			return reply.code(400).send({ error: "2FA not configured for this user" });
+		}
+
 		// Verify the 2FA code with the secret stored in the database
 		const isValid = speakeasy.totp.verify({
 			secret: user.twofa_secret,

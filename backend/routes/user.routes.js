@@ -274,7 +274,7 @@ export async function userRoutes(fastify, options) {
 				const trimmedUsername = username.trim();
 				const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1);
 			
-				const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+				const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
 				if (!usernameRegex.test(capitalizedUsername)) {
 					return reply.code(400).send({ error: "Username must be 3-20 characters, letters/numbers/underscores only." });
 				}
@@ -285,25 +285,34 @@ export async function userRoutes(fastify, options) {
 				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(capitalizedUsername, userId);
 				somethingUpdated = true;
 			}
-			
-			
 
 			// ✅ Password
-			if (password && !bcrypt.compareSync(password, currentUser.password)) {
-				// Minimum 8 caractères, au moins une maj, une min, un chiffre et un spécial
+			if (password) {
 				const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 				if (!passwordRegex.test(password)) {
-					return reply.code(400).send({ 
-						error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character." 
+					return reply.code(400).send({
+						error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character."
 					});
 				}
 			
-				const hashedPassword = await bcrypt.hash(password, 10);
-				db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
-				somethingUpdated = true;
+				if (currentUser.is_google_account && !currentUser.password) {
+					// ✅ Cas Google OAuth sans mot de passe → autorisé à définir pour la 1re fois
+					const hashedPassword = await bcrypt.hash(password, 10);
+					db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
+					somethingUpdated = true;
+				} else {
+					// 🔐 Sinon, on exige oldPassword pour mise à jour
+					const { oldPassword } = request.body;
+					if (!oldPassword || !bcrypt.compareSync(oldPassword, currentUser.password)) {
+						return reply.code(401).send({ error: "Incorrect current password." });
+					}
+			
+					const hashedPassword = await bcrypt.hash(password, 10);
+					db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
+					somethingUpdated = true;
+				}
 			}
 			
-
 			// ✅ Email
 			if (email && email !== currentUser.email) {
 				console.log("🔧 Attempt to update email with:", email, userId);

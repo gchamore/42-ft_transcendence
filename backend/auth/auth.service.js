@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import redis from '../redis/redisClient.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_TEMP_SECRET = process.env.JWT_TEMP_SECRET || 'your-secret-key';
+
 const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days
 // const DEBUG_TOKEN_EXPIRY = 1 * 60; // 1 minute (for debug purposes)
@@ -29,6 +31,41 @@ export class AuthService {
 
 		return { accessToken, refreshToken };
 	}
+
+	async generateTempToken(payload, type = "generic", expiresInSeconds = 300) {
+		const token = jwt.sign({ ...payload, type }, JWT_TEMP_SECRET, {
+			expiresIn: expiresInSeconds
+		});
+	
+		// Stocke le token temporaire dans Redis avec TTL
+		await redis.setex(`temp_${token}`, expiresInSeconds, 'valid');
+	
+		return token;
+	}
+	
+	// Verify the 2FA token and use the 2FA secret
+	async verifyTempToken(token, expectedType) {
+		try {
+			const isValid = await redis.get(`temp_${token}`);
+			if (!isValid) {
+				throw new Error("Temp token is expired or already used");
+			}
+	
+			const payload = jwt.verify(token, JWT_TEMP_SECRET);
+			if (payload.type !== expectedType) {
+				throw new Error("Invalid token type");
+			}
+	
+			// Blacklist immédiatement pour empêcher la réutilisation
+			await redis.del(`temp_${token}`);
+			return payload;
+	
+		} catch (e) {
+			throw new Error("Invalid temp token");
+		}
+	}
+	
+	
 
 	// Verify if the access token is valid (not blacklisted, user exists, in redis, not expired)
 	// If the token is expired, it tries to refresh it using the refresh token
@@ -78,9 +115,9 @@ export class AuthService {
 
 			// fastify.log.info('Token is the latest one.');
 			fastify.log.info('Access Token is valid\n');
-			return { 
-				success: true, 
-				userId: decoded.userId 
+			return {
+				success: true,
+				userId: decoded.userId
 			};
 
 		} catch (error) {
@@ -176,7 +213,7 @@ export class AuthService {
 			};
 		} catch (error) {
 			console.error('Fail to verify refresh token.', error);
-			return { success: false, reason: 'Fail to verify refresh token.'};
+			return { success: false, reason: 'Fail to verify refresh token.' };
 		}
 	}
 

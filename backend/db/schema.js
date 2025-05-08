@@ -13,6 +13,7 @@ export function initializeDatabase(dbPath)
             password TEXT,
             email TEXT,
 			avatar TEXT DEFAULT '/avatar/avatar.png',
+			google_name TEXT DEFAULT NULL,
 			twofa_secret TEXT DEFAULT NULL,
             settings TEXT DEFAULT '{}',
             wins INTEGER DEFAULT 0,

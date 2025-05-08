@@ -1,7 +1,6 @@
 import bcrypt from "bcrypt";
 import authService from '../auth/auth.service.js';
 import authUtils from '../auth/auth.utils.js';
-import TwofaService from '../2fa/twofa.service.js';
 import jwt from 'jsonwebtoken';
 import * as wsUtils from '../ws/ws.utils.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret_key';
@@ -31,21 +30,21 @@ export async function authRoutes(fastify, options) {
 
 		const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1).toLowerCase();
 
-		// Validate username format
-		const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-		if (!usernameRegex.test(capitalizedUsername)) {
-			return reply.code(400).send({
-				error: "Username must be 3-20 characters, letters/numbers/underscores only."
-			});
-		}
+		// // Validate username format
+		// const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
+		// if (!usernameRegex.test(capitalizedUsername)) {
+		// 	return reply.code(400).send({
+		// 		error: "Username must be 3-20 characters, letters/numbers/underscores only."
+		// 	});
+		// }
 
-		// Validate password strength
-		const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-		if (!passwordRegex.test(password)) {
-			return reply.code(400).send({
-				error: "Password must be at least 8 characters, include uppercase, lowercase, number, and special character."
-			});
-		}
+		// // Validate password strength
+		// const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+		// if (!passwordRegex.test(password)) {
+		// 	return reply.code(400).send({
+		// 		error: "Password must be at least 8 characters, include uppercase, lowercase, number, and special character."
+		// 	});
+		// }
 
 		// Verify if the username already exists in the database
 		const existingUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(capitalizedUsername);
@@ -105,25 +104,34 @@ export async function authRoutes(fastify, options) {
 		const { password } = request.body;
 
 		try {
-			// Check if the required fields are present
-			if (!password) {
-				fastify.log.warn("Failed to delete: missing fields");
-				return reply.code(400).send({ error: "Username and password are required" });
-			}
-
-			// Check if the user exists in the database
-			const user = fastify.db.prepare("SELECT username, password FROM users WHERE id = ?").get(userId);
+			const user = fastify.db.prepare("SELECT username, password, is_google_account FROM users WHERE id = ?").get(userId);
 			if (!user) {
 				fastify.log.warn(`Failed to delete: User not found (ID: ${userId})`);
 				return reply.code(404).send({ error: "User not found" });
 			}
+
+			// 📌 Log info
 			fastify.log.info(`${user.username} Attempting to delete account`);
 
-			// Check if the password is correct
-			const validPassword = await bcrypt.compare(password, user.password);
-			if (!validPassword) {
-				fastify.log.warn(`Failed to delete: Invalid password for user ${user.username}`);
-				return reply.code(401).send({ error: "Invalid password" });
+			// user Google without password
+			if (user.is_google_account && !user.password) {
+				fastify.log.info(`${user.username} is a Google-only user with no password. Skipping password check.`);
+			}
+
+			// normal user or Google user with password
+			else {
+				// Check if the required fields are present
+				if (!password) {
+					fastify.log.warn("Failed to delete: missing fields");
+					return reply.code(400).send({ error: "Username and password are required" });
+				}
+
+				// Check if the password is correct
+				const validPassword = await bcrypt.compare(password, user.password);
+				if (!validPassword) {
+					fastify.log.warn(`Failed to delete: Invalid password for user ${user.username}`);
+					return reply.code(401).send({ error: "Invalid password" });
+				}
 			}
 
 			// Using a transaction for atomic deletion
@@ -258,13 +266,17 @@ export async function authRoutes(fastify, options) {
 
 			// Vérifie si 2FA activée
 			if (user.twofa_secret) {
-				// Génère un token temporaire limité à la 2FA
-				const tempToken = await TwofaService.generateTemp2FAToken(user.id);
-				return reply.code(200).send({
-					step: "2fa_required",
-					message: "2FA is enabled. Please provide the verification code.",
-					temp_token: tempToken
-				});
+				try {
+					const tempToken = await authService.generateTempToken({ userId: user.id }, "2fa", 300);
+					return reply.code(200).send({
+						step: "2fa_required",
+						message: "2FA is enabled. Please provide the verification code.",
+						temp_token: tempToken
+					});
+				} catch (twoFaError) {
+					fastify.log.error(twoFaError, `2FA token generation error in google Oauth:`);
+					throw new Error('Failed to generate 2FA token in google Oauth');
+				}
 			}
 
 			// Generate access and refresh tokens
