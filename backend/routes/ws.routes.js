@@ -11,7 +11,7 @@ export async function wsRoutes(fastify, options) {
 	// It requires the user to be authenticated
 	// It uses the WebSocket connection to send the message
 	fastify.post('/live_chat_message', async (request, reply) => {
-		const userId = request.user.userId;
+		const userId = String(request.user.userId);
 		const { message } = request.body;
 
 		const result = await wsUtils.handleLiveChatMessage(fastify, userId, message);
@@ -31,7 +31,7 @@ export async function wsRoutes(fastify, options) {
 	// It uses the WebSocket connection to send the message
 	// It also checks if the recipient is online and sends a warning if not
 	fastify.post('/direct_chat_message', async (request, reply) => {
-		const senderId = request.user.userId;
+		const senderId = String(request.user.userId);
 		const { to, message } = request.body;
 
 		const result = await wsUtils.handleDirectMessage(fastify, senderId, to, message);
@@ -96,7 +96,7 @@ export async function wsRoutes(fastify, options) {
 			}
 
 			fastify.log.info('Token validated, fetching user info...');
-			const userId = result.userId;
+			const userId = String(result.userId);
 			const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 			if (!user) {
 				console.warn('User not found');

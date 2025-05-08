@@ -29,6 +29,22 @@ export async function authRoutes(fastify, options) {
 			return reply.code(400).send({ error: "Username and password are required" });
 		}
 
+		// Validate username format
+		const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+		if (!usernameRegex.test(trimmedUsername)) {
+			return reply.code(400).send({
+				error: "Username must be 3-20 characters, letters/numbers/underscores only."
+			});
+		}
+
+		// Validate password strength
+		const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+		if (!passwordRegex.test(password)) {
+			return reply.code(400).send({
+				error: "Password must be at least 8 characters, include uppercase, lowercase, number, and special character."
+			});
+		}
+
 		// Verify if the username already exists in the database
 		const existingUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(trimmedUsername);
 		if (existingUser) {

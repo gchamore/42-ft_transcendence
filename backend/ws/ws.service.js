@@ -1,4 +1,3 @@
-import authService from '../auth/auth.service.js';
 import * as wsUtils from './ws.utils.js';
 
 export class WebSocketService {

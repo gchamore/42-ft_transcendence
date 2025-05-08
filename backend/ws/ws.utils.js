@@ -1,6 +1,4 @@
 import redis from '../redis/redisClient.js';
-import authService from '../auth/auth.service.js';
-
 
 
 // This function checks if a user has blocked another user
@@ -188,7 +186,7 @@ export function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
 // It checks if the socket is open before sending the message
 // It returns true if the message was sent, false otherwise
 export function sendToUser(fastify, userId, payload) {
-	const userConnections = fastify.connections.get(String(userId));
+	const userConnections = fastify.connections.get(userId);
 	if (!userConnections) return false;
 
 	for (const [, socket] of userConnections.entries()) {
@@ -325,7 +323,7 @@ export async function handleDirectMessage(fastify, senderId, recipientUsername, 
 	if (!recipientUser) {
 		return { success: false, error: 'Recipient not found' };
 	}
-
+	recipientUser.id = recipientUser.id.toString();
 	// Verify if the sender is blocked by the recipient
 	const isBlocked = fastify.db.prepare(`
         SELECT 1 FROM blocks 

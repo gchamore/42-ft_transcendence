@@ -271,32 +271,52 @@ export async function userRoutes(fastify, options) {
 
 			// ✅ Username
 			if (username && username !== currentUser.username) {
-				console.log("🔧 Update username with:", username, userId);
+				const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+				if (!usernameRegex.test(username)) {
+					return reply.code(400).send({ error: "Username must be 3-20 characters, letters/numbers/underscores only." });
+				}
+			
 				const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(username, userId);
 				if (exists) return reply.code(400).send({ error: "Username already taken" });
-
+			
 				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(username, userId);
 				somethingUpdated = true;
 			}
+			
 
 			// ✅ Password
 			if (password && !bcrypt.compareSync(password, currentUser.password)) {
-				console.log("🔧 Update password with:", password, userId);
+				// Minimum 8 caractères, au moins une maj, une min, un chiffre et un spécial
+				const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+				if (!passwordRegex.test(password)) {
+					return reply.code(400).send({ 
+						error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character." 
+					});
+				}
+			
 				const hashedPassword = await bcrypt.hash(password, 10);
 				db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
 				somethingUpdated = true;
 			}
+			
 
 			// ✅ Email
 			if (email && email !== currentUser.email) {
-				console.log("🔧 Update email with:", email, userId);
+				console.log("🔧 Attempt to update email with:", email, userId);
+
+				if (currentUser.is_google_account) {
+					return reply.code(400).send({ error: "Cannot change email for Google-authenticated accounts" });
+				}
+
 				const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 				if (!emailRegex.test(email)) {
 					return reply.code(400).send({ error: "Invalid email format" });
 				}
+
 				db.prepare("UPDATE users SET email = ? WHERE id = ?").run(email, userId);
 				somethingUpdated = true;
 			}
+
 
 			if (!somethingUpdated)
 				return reply.code(400).send({ error: "Nothing was updated" });

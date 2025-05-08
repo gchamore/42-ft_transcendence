@@ -46,8 +46,9 @@ export async function oauthRoutes(fastify, options) {
                 }
 
                 const result = fastify.db.prepare(
-                    "INSERT INTO users (username, password, email, avatar) VALUES (?, ?, ?, ?)"
-                ).run(username, 'GOOGLE_OAUTH', data.email, data.picture);
+					"INSERT INTO users (username, password, email, avatar, is_google_account) VALUES (?, ?, ?, ?, ?)"
+				).run(username, 'GOOGLE_OAUTH', data.email, data.picture, 1);
+				  
 
                 user = fastify.db.prepare(
                     "SELECT * FROM users WHERE id = ?"

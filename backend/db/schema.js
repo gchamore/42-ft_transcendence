@@ -18,6 +18,7 @@ export function initializeDatabase(dbPath)
             wins INTEGER DEFAULT 0,
             losses INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			is_google_account INTEGER DEFAULT 0 -- 0 = false, 1 = true
         )
     `).run();
 
