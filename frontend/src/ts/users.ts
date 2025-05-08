@@ -170,29 +170,30 @@ export class User {
 
 function tournamentStart(tournamentId: string, bracket: string) {
 	go_section('chat');
+	const queueMsg = document.getElementById('queue-message-container');
+    if (queueMsg) queueMsg.style.display = 'none';
+	(sections[get_section_index('chat')!] as Chat).load_messages(get_user_messages());
 	let countdown = 10;
-	const chatSection = sections[get_section_index('chat')!] as Chat;
 
-	// Show countdown message in chat
-	const countdownLabel = document.createElement('label');
-	countdownLabel.id = 'tournament-countdown-label';
-	countdownLabel.textContent = `Tournament starting in ${countdown} seconds...`;
-	chatSection.chat_box.prepend(countdownLabel);
+	const overlay = document.getElementById('tournament-countdown-overlay') as HTMLElement;
+	const text = document.getElementById('tournament-countdown-text') as HTMLElement;
+	if (!overlay || !text) return;
+
+	overlay.style.display = 'flex';
+	text.textContent = `Tournament starting in ${countdown} seconds...`;
 
 	const interval = setInterval(() => {
 		countdown--;
 		if (countdown > 0) {
-			countdownLabel.textContent = `Tournament starting in ${countdown} seconds...`;
+			text.textContent = `Tournament starting in ${countdown} seconds...`;
 		} else {
 			clearInterval(interval);
-			countdownLabel.textContent = `Tournament is starting!`;
-			// Move to game section and choose tournament settings
-			go_section('game');
-			(sections[get_section_index('game')!] as GameSection).chooseTournamentSettings(tournamentId, bracket);
-			// Optionally remove the countdown label after a short delay
+			text.textContent = `Tournament is starting!`;
 			setTimeout(() => {
-				countdownLabel.remove();
-			}, 2000);
+				overlay.style.display = 'none';
+				go_section('game');
+				(sections[get_section_index('game')!] as GameSection).chooseTournamentSettings(tournamentId, bracket);
+			}, 1500);
 		}
 	}, 1000);
 }

@@ -1,7 +1,7 @@
 /* Container and items */
 #modals-container {
     position: absolute;
-
+    z-index: 200;
     height: 400px;
     width: 500px;
     top: 50%;
@@ -63,6 +63,7 @@
 .found li.online:not(.active){
     display: none;
 }
+
 
 #chat-box {
     border: 3px solid rgb(0, 0, 0);

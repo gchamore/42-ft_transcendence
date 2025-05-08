@@ -168,7 +168,7 @@
 	left: 0;
 	width: 100%;
 	height: 100%;
-	background: rgba(30, 30, 30, 0.95);
+	background: rgb(145, 83, 83, 0.95);
 	color: #fff;
 	border-radius: 14px;
 	z-index: 2000;
@@ -191,6 +191,37 @@
 .tournament-info-players {
     font-size: 1.2rem;
     color: #ffd700;
+}
+
+#tournament-countdown-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(30, 30, 30, 0.85);
+    color: #ffd700;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 100;
+    font-size: 2.5rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    border-radius: 20px; /* match #game-overlay */
+    pointer-events: none;
+}
+
+#tournament-countdown-overlay[style*="display: flex"] {
+    display: flex !important;
+}
+
+#tournament-countdown-text {
+    background: rgba(0,0,0,0.6);
+    padding: 32px 48px;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    margin-top: 40px;
 }
 
 /* Spinner Animation */

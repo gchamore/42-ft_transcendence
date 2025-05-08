@@ -92,7 +92,7 @@ export async function gameRoutes(fastify, options) {
 			return reply.code(401).send({ error: 'Unauthorized' });
 		}
 
-		const lowerDisplayName = displayName.trim.toLowerCase();
+		const lowerDisplayName = displayName.trim().toLowerCase();
 		for (const name of tournamentDisplayNames.values()) {
 			if (name.toLowerCase() === lowerDisplayName) {
 				return reply.code(409).send({ error: 'Display name already taken' });

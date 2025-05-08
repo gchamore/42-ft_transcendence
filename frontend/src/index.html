@@ -106,6 +106,10 @@
 					<button id="home-button">Return Home</button>
 				</div>
 			</div>
+			
+			<div id="tournament-countdown-overlay" style="display:none;">
+				<span id="tournament-countdown-text"></span>
+			</div>
 		</main>
 	</section>
 	<!-- Modals Container -->
@@ -172,7 +176,9 @@
 		<!-- Chat Modal -->
 		<article class="modal item section chat logged-in" id="chat-parent">
 			<section class="modal content column">
-				<ul class="modal column chatbox" id="chat-box"> </ul>
+				<ul class="modal column chatbox" id="chat-box"> 
+					<li id="tournament-countdown-label" style="color:#FFD700;font-weight:bold;"></li>
+				</ul>
 				<input type="text" id="msg-input">
 			</section>
 
