@@ -1,6 +1,6 @@
 import { SettingsService } from '../services/settingsServices.js';
 import { WebSocketService } from '../services/webSocketService.js';
-import { sections, get_section_index, GameSection } from '../../sections.js';
+import { sections, get_type_index, GameSection } from '../../sections.js';
 
 export class SettingsPage {
 	private ballSpeedSlider: HTMLInputElement;
@@ -79,7 +79,7 @@ export class SettingsPage {
 					break;
 				case 'gameStart':
 					if (data.gameId){
-						const gameSection = sections[get_section_index('game')!] as GameSection;
+						const gameSection = sections[get_type_index('game')!] as GameSection;
 						gameSection.transitionToGame(data.gameId, data.settings);
 					} else {
 						console.error('Game ID not provided');
@@ -90,7 +90,7 @@ export class SettingsPage {
 						if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 							this.socket.close();
 						}
-						const gameSection = sections[get_section_index('game')!] as GameSection;
+						const gameSection = sections[get_type_index('game')!] as GameSection;
 						gameSection.transitionToGame(data.gameId, data.settings);
 						/*need to print the tournament match on screen using data.round and data.players */
 					} else {

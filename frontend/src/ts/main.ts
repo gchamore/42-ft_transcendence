@@ -4,6 +4,6 @@ import { go_section } from "./sections.js";
 document.addEventListener("DOMContentLoaded", () => {
   const profileBtn = document.getElementById("profile-btn");
   if (profileBtn) {
-    profileBtn.addEventListener("click", () => go_section("profile"));
+    profileBtn.addEventListener("click", () => go_section("profile", ''));
   }
 });

@@ -1,4 +1,4 @@
-import { update_status, update_sections, Chat, Actions, set_tournament_bracket, get_section_index, sections, section_index, set_section_index, set_active_game_id, set_active_tournament_id, go_section, GameSection } from "./sections.js";
+import { update_status, update_sections, Chat, Actions, set_tournament_bracket, get_type_index, sections, section_index, set_section_index, set_active_game_id, set_active_tournament_id, go_section, GameSection } from "./sections.js";
 
 
 /* Global variables */
@@ -102,7 +102,7 @@ export class User {
 						break;
 					case 'TournamentGameStart':
 						if (data.gameId) {
-							const gameSection = sections[get_section_index('game')!] as GameSection;
+							const gameSection = sections[get_type_index('game')!] as GameSection;
 							gameSection.transitionToGame(data.gameId, data.settings);
 							/*need to print the tournament match on screen using data.round and data.players */
 						} else {
@@ -147,7 +147,7 @@ export class User {
             if (value === true && key !== user?.name)
                 user?.onlines.push(key);
         });
-        if (section_index === get_section_index('actions')) {
+        if (section_index === get_type_index('actions')) {
             (sections[section_index] as Actions).load_boxes();
         }
     }
@@ -159,12 +159,12 @@ export class User {
 function tournamentStart(tournamentId: string, bracket: string) {
 	set_active_tournament_id(tournamentId);
 	set_tournament_bracket(bracket);
-	go_section('game');
+	go_section('game', '');
 }
 
 function matchFound(matchId: string) {
 	set_active_game_id(matchId);
-	go_section('game');
+	go_section('game', '');
 }
 
 export async function add_online(username : string) {
@@ -184,8 +184,8 @@ export function update_user(new_user_value: User | undefined) {
 	}
 
 	if (user === undefined) {
-		let profile_i = get_section_index('profile')!;
-		set_section_index(section_index === profile_i ? 'profile' : 'home');
+		let profile_i = get_type_index('profile')!;
+		set_section_index(section_index === profile_i ? get_type_index('profile') : get_type_index('home'));
 	}
 	update_sections();
 }
@@ -212,8 +212,8 @@ export function add_message(username: string, message: string, type: string) {
 		messages[i + 1] = messages[i];
 	messages[0] = new_message;
 
-	if (type === 'livechat' && section_index === get_section_index('chat'))
-		(sections[get_section_index('chat')!] as Chat).load_messages(user?.livechat);
+	if (type === 'livechat' && section_index === get_type_index('chat'))
+		(sections[get_type_index('chat')!] as Chat).load_messages(user?.livechat);
 }
 /* --------- */
 

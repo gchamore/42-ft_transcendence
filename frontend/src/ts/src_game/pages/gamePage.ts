@@ -197,7 +197,7 @@ export class Game {
 				this.uiManager.drawErrorMessage("Connection to server lost");
 			}
 			setTimeout(() => {
-				(window as any).go_section('home');
+				(window as any).go_section('home', '');
 			}, 3000);
 		};
 	}
@@ -334,7 +334,7 @@ export class Game {
 				data.winner === this.playerNumber
 			);
 			setTimeout(() => {
-				(window as any).go_section('home');
+				(window as any).go_section('home', '');
 			}, 5000);
 		} else {
 			this.uiManager.drawGameOverMessage(
@@ -363,7 +363,7 @@ export class Game {
 		document.getElementById("home-button")!.onclick = () => {
 			container.style.display = "none";
 			console.log("Going to home");
-			(window as any).go_section('home');
+			(window as any).go_section('home', '');
 		}	
 	}
 }

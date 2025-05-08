@@ -34,13 +34,13 @@ abstract class ASection {
     abstract readonly logged_in: NodeListOf<Element>;
     abstract readonly dependencies: Array<string>;
 	
-	abstract is_option_valid(option : string | undefined): boolean;
+	abstract is_option_valid(option : string): Promise<boolean>;
     abstract enter(verified: boolean): void;
 	abstract switch_logged_off(): void;
 	abstract switch_logged_in(): void;
 	activate_section() {
 		this.dependencies.forEach(dep => {
-			sections[get_section_index(dep)!].enter(user !== undefined);
+			sections[get_type_index(dep)!].enter(user !== undefined);
 		});
 		document.querySelectorAll(".section." + this.type).forEach(container => {
 			container.classList.add('active');
@@ -57,18 +57,18 @@ abstract class ASection {
 	};
 	logged_off_view() {
 		this.dependencies.forEach(dep => {
-			const index = get_section_index(dep);
+			const index = get_type_index(dep);
 			if (index !== undefined)
-				sections[get_section_index(dep)!].switch_logged_off();
+				sections[get_type_index(dep)!].switch_logged_off();
 		});
 		this.logged_off?.forEach((element) => { element.classList.add('active'); });
 		this.logged_in?.forEach((element) => { element.classList.remove('active'); });
 	}
 	logged_in_view() {
 		this.dependencies.forEach(dep => {
-			const index = get_section_index(dep);
+			const index = get_type_index(dep);
 			if (index !== undefined)
-				sections[get_section_index(dep)!].switch_logged_in();
+				sections[get_type_index(dep)!].switch_logged_in();
 		});
 		this.logged_off?.forEach((element) => { element.classList.remove('active'); });
 		this.logged_in?.forEach((element) => { element.classList.add('active'); });
@@ -92,8 +92,8 @@ class Home extends ASection {
 	readonly playTournament_btn = document.getElementById('playTournament-btn') as HTMLButtonElement;
 
 	/* Methods */
-	is_option_valid(option: string | undefined): boolean {
-		return (option === undefined) ? true : false;
+	async is_option_valid(option: string): Promise<boolean> {
+		return (option === '') ? true : false;
 	}
 	enter(verified: boolean) {
 		if (verified === true)
@@ -111,10 +111,10 @@ class Home extends ASection {
 	}
 	switch_logged_in() {
 		this.logged_in_view();
-		this.friends_btn.setAttribute('onclick', "go_section('friends')");
-		this.chat_btn.setAttribute('onclick', "go_section('chat')");
-		this.play1v1_btn.onclick = () => (sections[get_section_index('game')!] as GameSection).play1v1();
-		this.playTournament_btn.onclick = () => (sections[get_section_index('game')!] as GameSection).playTournament();
+		this.friends_btn.setAttribute('onclick', "go_section('friends', '')");
+		this.chat_btn.setAttribute('onclick', "go_section('chat', '')");
+		this.play1v1_btn.onclick = () => (sections[get_type_index('game')!] as GameSection).play1v1();
+		this.playTournament_btn.onclick = () => (sections[get_type_index('game')!] as GameSection).playTournament();
 	}
 }
 
@@ -138,8 +138,8 @@ export class GameSection extends ASection {
 
 
 	/* Methods */
-	is_option_valid(option: string | undefined): boolean {
-		return (option === undefined) ? true : false;
+	async is_option_valid(option: string): Promise<boolean> {
+		return option !== '';
 	}
 	enter(verified: boolean) {
 		if (verified !== true) {
@@ -347,8 +347,8 @@ class Profile extends ASection {
 	readonly btn2 = document.getElementById('profile-btn2') as HTMLButtonElement;
 
 	/* Methods */
-	is_option_valid(option: string | undefined): boolean {
-		return (option === undefined || option == '') ? true : false;
+	async is_option_valid(option: string): Promise<boolean> {
+		return (option === '') ? true : false;
 	}
 	enter(verified: boolean) {
 		if (verified === true)
@@ -382,7 +382,7 @@ class Profile extends ASection {
 		this.password_i.value = "";
 
 		this.btn1.textContent = "Settings";
-		this.btn1.onclick = () => go_section('settings');
+		this.btn1.onclick = () => go_section('settings', '');
 
 		this.btn2.textContent = "Logout";
 		this.btn2.onclick = () => logout();
@@ -418,13 +418,13 @@ class Friends extends ASection {
 	readonly btn1 = document.getElementById('friends-btn1') as HTMLButtonElement;
 	readonly btn2 = document.getElementById('friends-btn2') as HTMLButtonElement;
 	readonly btn3 = document.getElementById('friends-btn3') as HTMLButtonElement;
-	readonly FriendsClass = sections[get_section_index('friends')!] as Friends;
+	readonly FriendsClass = sections[get_type_index('friends')!] as Friends;
 
 	anotherUser: OtherUser | undefined = undefined;
 
 	/* Methods */
-	is_option_valid(option: string | undefined): boolean {
-		return (option === undefined) ? true : false;
+	async is_option_valid(option: string): Promise<boolean> {
+		return (option === '') ? true : false;
 	}
 	enter(verified: boolean) {
 		if (verified !== true) {
@@ -562,8 +562,8 @@ export class Chat extends ASection {
 	readonly btn3 = document.getElementById('chat-btn3') as HTMLButtonElement;
 
 	/* Methods */
-	is_option_valid(option: string | undefined): boolean {
-		return (option === undefined) ? true : false;
+	async is_option_valid(_option: string): Promise<boolean> {
+		return true;
 	}
 	enter(verified: boolean) {
 		if (verified !== true) {
@@ -576,7 +576,7 @@ export class Chat extends ASection {
 		this.btn2.onclick = () => this.send();
 		this.btn2.textContent = 'Send';
 
-		this.btn3.onclick = () => go_section('actions');
+		this.btn3.onclick = () => go_section('actions', '');
 		this.btn3.textContent = 'Actions';
 
 		this.load_messages(get_user_messages());
@@ -646,8 +646,8 @@ export class Actions extends ASection {
 	load_mutex : boolean = false;
 
 	/* Methods */
-	is_option_valid(option: string | undefined): boolean {
-		return (option === undefined) ? true : false;
+	async is_option_valid(option: string): Promise<boolean> {
+		return (option === '') ? true : false;
 	}
 	enter(verified: boolean) {
 		if (verified !== true) {
@@ -795,9 +795,17 @@ class Settings extends ASection {
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
 	dependencies = [];
 
+	/* Properties */
+	options : Array<string> = ['account', 'stats', 'confidentiality'];
+
 	/* Methods */
-	is_option_valid(option: string | undefined): boolean {
-		return (option === undefined) ? true : false;
+	async is_option_valid(option: string): Promise<boolean> {
+		for (let i = 0; i < this.options.length; ++i) {
+			if (this.options[i] === option)
+				return true;
+		}
+	
+		return false;
 	}
 	enter(verified: boolean) {
 		if (verified !== true) {
@@ -823,8 +831,9 @@ class DirectMessage extends ASection {
 	dependencies = ['home'];
 
 	/* Methods */
-	is_option_valid(option: string | undefined): boolean {
-		return (option === undefined) ? true : false;
+	async is_option_valid(option: string): Promise<boolean> {
+		let user : OtherUser | Error | undefined = await search(option);
+		return (user instanceof Error || user === undefined) ? false : true;
 	}
 	enter(verified: boolean) {
 		if (verified !== true) {
@@ -840,8 +849,8 @@ class DirectMessage extends ASection {
 	switch_logged_in() {}
 }
 
-sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(), new GameSection(),
-			new Settings(), new DirectMessage()];
+sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(),
+			new GameSection(), new Settings(), new DirectMessage()];
 /* --------- */
 
 
@@ -861,7 +870,7 @@ export function	get_url_type(url : string) : string {
 	return type;
 }
 
-export function	get_url_option(url : string) : string | undefined {
+export function	get_url_option(url : string) : string {
 	let start;
 	for (start = 0; start < url.length; ++start) {
 		if (url[start] == '/')
@@ -873,13 +882,13 @@ export function	get_url_option(url : string) : string | undefined {
 		option = url.substring(start + 1, length);
 	}
 	else
-		option = undefined;
+		option = '';
 	console.log('Url option:', option);
 
 	return option;
 }
 
-export function get_section_index_from_type(type : string): number | undefined {
+export function get_type_index(type : string): number | undefined {
 	for (let i = 0; i < sections.length; i++) {
 		if (sections[i].type === type)
 				return i;
@@ -887,25 +896,29 @@ export function get_section_index_from_type(type : string): number | undefined {
 	return undefined;
 }
 
-export function set_section_index(type : string, option : string | undefined): void {
-	console.log('Set section on ', type, ' and option : ', option);
-	let index : number | undefined = get_section_index_from_type(type);
-	if (index === undefined || !is_section_accessible(index)) {
-		if (is_section_accessible())
-		section_index = HOME_INDEX;
-	}
-	else if (!is_section_accessible(index))
-		section_index = HOME_INDEX;
-	else if (!)
-		section_index = HOME_INDEX;
-	else
-		section_index = index;
-
-	console.log('Set section from ', type, ' type and ', option, ' option to section ', sections[section_index].type);
+export function set_section_index(index : number | undefined): void {
+	if (index === undefined)
+		index = HOME_INDEX;
+	console.log('Set section on ', sections[index].type);
+	section_index = index;
 }
 
-function is_section_accessible(index: number): boolean {
-	return !(user === undefined && sections[index].protected === true);
+export async function is_section_accessible(type: string, option : string): Promise<boolean> {
+	let index : number = get_type_index(type)!;
+	
+	if (sections[index].protected && user === undefined)
+		return false;
+	if (await sections[index].is_option_valid(option) === false)
+		return false;
+
+	return true;
+}
+
+export function build_url(type : string, option : string) : string {
+	if (option !== '')
+		return type + '/' + option;
+	else
+		return type;
 }
 
 export function update_sections(): void {
@@ -914,15 +927,35 @@ export function update_sections(): void {
 			sections[i].leave();
 	}
 	sections[section_index].enter(user !== undefined);
-};
+}
+
+const sidebar_sections : Array<string> = ['profile', 'friends', 'chat'];
+function is_sidebar_section(type : string, option : string) : boolean {
+	if (option !== '')
+		return false;
+
+	for (let i = 0; i < sidebar_sections.length; i++) {
+		if (type === sidebar_sections[i])
+			return true;
+	}
+
+	return false;
+}
 
 export function go_section(type : string, option : string) {
-	if (type === sections[section_index].type)
+	if (is_sidebar_section(type, option)
+		&& is_sidebar_section(get_url_type(window.location.pathname), get_url_option(window.location.pathname)))
 		type = 'home';
-	set_section_index(type, option);
+
+	if (!is_section_accessible(type, option)) {
+		type = 'home';
+		option = '';
+	}
+
+	let url : string = build_url(type, option);
+	history.pushState({ section : url }, "", url);
+	set_section_index(get_type_index(type));
 	update_sections();
-	history.pushState({ section: sections[section_index].type }, "",
-		sections[section_index].type);
 }
 
 function activate(list: NodeListOf<Element>): void {
@@ -938,7 +971,7 @@ function deactivate(list: NodeListOf<Element>): void {
 }
 
 export  function update_status(username : string, online : boolean) {
-	if (section_index == get_section_index('friends')
+	if (section_index == get_type_index('friends')
 		&& (sections[section_index] as Friends).anotherUser?.username === username)
 		(sections[section_index] as Friends).update_status(online);
 
