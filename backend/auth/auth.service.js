@@ -23,7 +23,6 @@ export class AuthService {
 			expiresIn: REFRESH_TOKEN_EXPIRY
 		});
 
-		// Store the tokens in Redis with the userId as key
 		await Promise.all([
 			redis.setex(`access_${userId}`, ACCESS_TOKEN_EXPIRY, accessToken),
 			redis.setex(`refresh_${userId}`, REFRESH_TOKEN_EXPIRY, refreshToken)
@@ -37,7 +36,6 @@ export class AuthService {
 			expiresIn: expiresInSeconds
 		});
 	
-		// Stocke le token temporaire dans Redis avec TTL
 		await redis.setex(`temp_${token}`, expiresInSeconds, 'valid');
 	
 		return token;
