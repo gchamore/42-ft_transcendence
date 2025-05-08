@@ -271,17 +271,21 @@ export async function userRoutes(fastify, options) {
 
 			// ✅ Username
 			if (username && username !== currentUser.username) {
+				const trimmedUsername = username.trim();
+				const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1);
+			
 				const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-				if (!usernameRegex.test(username)) {
+				if (!usernameRegex.test(capitalizedUsername)) {
 					return reply.code(400).send({ error: "Username must be 3-20 characters, letters/numbers/underscores only." });
 				}
 			
-				const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(username, userId);
+				const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(capitalizedUsername, userId);
 				if (exists) return reply.code(400).send({ error: "Username already taken" });
 			
-				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(username, userId);
+				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(capitalizedUsername, userId);
 				somethingUpdated = true;
 			}
+			
 			
 
 			// ✅ Password

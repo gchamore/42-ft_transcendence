@@ -29,9 +29,11 @@ export async function authRoutes(fastify, options) {
 			return reply.code(400).send({ error: "Username and password are required" });
 		}
 
+		const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1).toLowerCase();
+
 		// Validate username format
 		const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-		if (!usernameRegex.test(trimmedUsername)) {
+		if (!usernameRegex.test(capitalizedUsername)) {
 			return reply.code(400).send({
 				error: "Username must be 3-20 characters, letters/numbers/underscores only."
 			});
@@ -46,9 +48,9 @@ export async function authRoutes(fastify, options) {
 		}
 
 		// Verify if the username already exists in the database
-		const existingUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(trimmedUsername);
+		const existingUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(capitalizedUsername);
 		if (existingUser) {
-			fastify.log.warn(`Failed registration: Username already taken (${trimmedUsername})`);
+			fastify.log.warn(`Failed registration: Username already taken (${capitalizedUsername})`);
 			return reply.code(400).send({ error: "Username already taken" });
 		}
 
@@ -58,7 +60,7 @@ export async function authRoutes(fastify, options) {
 			const hashedPassword = await authUtils.hashPassword(password);
 
 			// Insert the user into the database
-			const result = fastify.db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(trimmedUsername, hashedPassword);
+			const result = fastify.db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(capitalizedUsername, hashedPassword);
 			const newUserId = result.lastInsertRowid;
 
 			// Get the newly created user from the database
