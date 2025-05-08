@@ -18,8 +18,6 @@ export async function authRoutes(fastify, options) {
 	fastify.post("/register", async (request, reply) => {
 		const { username, password } = request.body;
 
-		fastify.log.debug({ body: request.body }, "Attempting to register a new user");
-
 		const trimmedUsername = username ? username.trim() : '';
 
 		// Verify if the required fields are present
@@ -70,20 +68,23 @@ export async function authRoutes(fastify, options) {
 			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Send the response with the tokens in cookies
-			authUtils.setCookie(reply, accessToken, 15, isLocal);
-			authUtils.setCookie(reply, refreshToken, 7, isLocal);
+			authUtils.ft_setCookie(reply, accessToken, 15, isLocal);
+			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal);
 
 			return reply.code(201).send({
 				success: true,
 				message: "User registered and logged in successfully",
-				username: newUser.username,
-				id: newUser.id,
-				avatar: '/assets/avatar.png',
+				data: {
+					username: newUser.username,
+					id: newUser.id,
+					avatar: '/assets/avatar.png',
+				}
 			});
 
 		} catch (error) {
 			fastify.log.error(error, "Error during registration");
 			return reply.code(500).send({
+				success: false,
 				error: "Registration failed",
 				details: error.message
 			});
@@ -104,16 +105,16 @@ export async function authRoutes(fastify, options) {
 		const { password } = request.body;
 
 		try {
+			// Check if the user exists in the database
 			const user = fastify.db.prepare("SELECT username, password, is_google_account FROM users WHERE id = ?").get(userId);
 			if (!user) {
 				fastify.log.warn(`Failed to delete: User not found (ID: ${userId})`);
 				return reply.code(404).send({ error: "User not found" });
 			}
 
-			// 📌 Log info
 			fastify.log.info(`${user.username} Attempting to delete account`);
 
-			// user Google without password
+			// if user Google without password
 			if (user.is_google_account && !user.password) {
 				fastify.log.info(`${user.username} is a Google-only user with no password. Skipping password check.`);
 			}
@@ -159,19 +160,16 @@ export async function authRoutes(fastify, options) {
 				    WHERE player1_id = ? OR player2_id = ?
 				`).run(userId, userId, userId, userId, userId);
 
-				fastify.log.debug(`Games anonymized for user: ${user.username}`);
 				fastify.db.prepare(`
 					DELETE FROM friendships WHERE user_id = ? OR friend_id = ?
 				`).run(userId, userId);
-				fastify.log.debug(`Friendships deleted for user: ${user.username}`);
 				fastify.db.prepare(`
 					DELETE FROM blocks WHERE blocker_id = ? OR blocked_id = ?
 				`).run(userId, userId);
-				fastify.log.debug(`Friendship blocked links deleted for user: ${user.username}`);
 
 				// Delete the user from the database
 				fastify.db.prepare("DELETE FROM users WHERE id = ?").run(userId);
-				fastify.log.debug(`User deleted: ${user.username}`);
+				fastify.log.info(`User deleted: ${user.username}`);
 			});
 
 			// Execute the transaction
@@ -179,10 +177,7 @@ export async function authRoutes(fastify, options) {
 
 			await wsUtils.handleAllUserConnectionsClose(fastify, userId, user.username, 'User unregistered');
 
-			fastify.log.info({
-				username: user.username,
-				success: true
-			}, "Account deleted and games anonymized successfully");
+			fastify.log.info(`Account deleted and games anonymized successfully`);
 
 			return reply.send({
 				success: true,
@@ -268,7 +263,7 @@ export async function authRoutes(fastify, options) {
 			if (user.twofa_secret) {
 				try {
 					const tempToken = await authService.generateTempToken({ userId: user.id }, "2fa", 300);
-					return reply.code(200).send({
+					return reply.code(202).send({
 						step: "2fa_required",
 						message: "2FA is enabled. Please provide the verification code.",
 						temp_token: tempToken
@@ -286,10 +281,10 @@ export async function authRoutes(fastify, options) {
 			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Set the cookies for the tokens
-			authUtils.setCookie(reply, accessToken, 15, isLocal); // accessToken : 15 min
-			authUtils.setCookie(reply, refreshToken, 7, isLocal); // refreshToken : 7 jours
+			authUtils.ft_setCookie(reply, accessToken, 15, isLocal); // accessToken : 15 min
+			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal); // refreshToken : 7 jours
 
-			reply.code(201).send({
+			reply.code(200).send({
 				success: true,
 				message: "Login successful",
 				username: user.username,
@@ -336,7 +331,7 @@ export async function authRoutes(fastify, options) {
 			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Définir le nouveau cookie avec le même format que verify_token
-			authUtils.setCookie(reply, newAccessToken, 15, isLocal); // accessToken : 15 min
+			authUtils.ft_setCookie(reply, newAccessToken, 15, isLocal);
 
 			fastify.log.info('Access token refreshed successfully for user:', user.username);
 
@@ -346,7 +341,7 @@ export async function authRoutes(fastify, options) {
 			});
 
 		} catch (error) {
-			fastify.log.error(error);
+			fastify.log.error(error, `Error during token refresh`);
 			return reply.code(500).send({
 				error: "Failed to refresh token"
 			});
@@ -396,10 +391,10 @@ export async function authRoutes(fastify, options) {
 				.send({ success: true, message: "Logged out successfully" });
 
 		} catch (error) {
-			fastify.log.error('Logout error:', error);
+			fastify.log.error(error, 'Logout error:');
 			return reply.code(500).send({
 				error: 'Logout failed',
-				details: error.message // Ajout d'un message d'erreur détaillé
+				details: error.message
 			});
 		}
 	});
@@ -486,22 +481,18 @@ export async function authRoutes(fastify, options) {
 		};
 
 		try {
-			fastify.log.info('Verify Token Request:', {
-				hasAccessToken: !!accessToken,
-				hasRefreshToken: !!refreshToken,
-				cookies: request.cookies
-			});
-
+			// Check if the access token and refresh token are provided
 			if (!accessToken && !refreshToken) {
 				fastify.log.info('No token provided');
 				return reply.code(401).send({ valid: false, message: 'No token provided' });
 			}
-
+			// Validate the Access and if necessary, refresh the tokens
 			const result = await authService.validate_and_refresh_Tokens(fastify, accessToken, refreshToken);
 
 			if (!result.success) {
+				// If the access token is invalid and the refresh token is also invalid
 				fastify.log.info('Invalid or expired token');
-
+				// Try to decode the token to get the userId
 				const decoded = jwt.decode(accessToken || refreshToken);
 				const userId = decoded?.userId;
 
@@ -517,12 +508,12 @@ export async function authRoutes(fastify, options) {
 					.clearCookie('refreshToken', cookieOptions)
 					.send({ valid: false, message: 'Invalid or expired token' });
 			}
-
+			// If the access token has been refreshed, update the cookie
 			if (result.newAccessToken) {
 				fastify.log.info('New access token generated, updating cookie');
-				authUtils.setCookie(reply, result.newAccessToken, 15, isLocal);
+				authUtils.ft_setCookie(reply, result.newAccessToken, 15, isLocal);
 			}
-
+			// If the tokens are valid, set the userId in the request object
 			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(result.userId);
 			if (!user) {
 				fastify.log.warn(`User not found for ID: ${result.userId}`);

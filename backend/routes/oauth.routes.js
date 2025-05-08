@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import authService from '../auth/auth.service.js';
+import authUtils from '../auth/auth.utils.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -37,8 +38,8 @@ export async function oauthRoutes(fastify, options) {
 				"SELECT * FROM users WHERE email = ?"
 			).get(data.email);
 
+			// Send a temporary token to the frontend for username selection
 			if (!user) {
-				// Générer un token temporaire signé contenant les infos Google
 				const tempPayload = {
 					email: data.email,
 					google_name: data.given_name,
@@ -49,7 +50,7 @@ export async function oauthRoutes(fastify, options) {
 				const tempToken = await authService.generateTempToken(tempPayload, "google_oauth", 600);
 				
 				// Répondre au frontend pour qu'il affiche le formulaire de choix de username
-				return reply.code(200).send({
+				return reply.code(202).send({
 					step: "choose_username",
 					message: "Please choose a username to complete your Google account setup",
 					temp_token: tempToken
@@ -62,7 +63,7 @@ export async function oauthRoutes(fastify, options) {
 					const tempToken = await authService.generateTempToken({ userId: user.id }, "2fa", 300);
 					fastify.log.info(`2FA token generated for Google OAuth user: ${user.username}`);
 
-					return reply.code(200).send({
+					return reply.code(202).send({
 						step: "2fa_required",
 						message: "2FA is enabled. Please provide the verification code.",
 						temp_token: tempToken,
@@ -75,27 +76,14 @@ export async function oauthRoutes(fastify, options) {
 
 			// If no 2FA, proceed with the normal process
 			const { accessToken, refreshToken } = await authService.generateTokens(user.id);
-
 			// Check if the application is running locally or in production
 			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Set cookies with tokens
-			reply
-				.setCookie('accessToken', accessToken, {
-					httpOnly: true,
-					secure: !isLocal,
-					sameSite: 'None',
-					path: '/',
-					maxAge: 15 * 60
-				})
-				.setCookie('refreshToken', refreshToken, {
-					httpOnly: true,
-					secure: !isLocal,
-					sameSite: 'None',
-					path: '/',
-					maxAge: 7 * 24 * 60 * 60
-				})
-				.send({
+			authUtils.ft_setCookie(reply, accessToken, 15, isLocal);
+			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal);
+
+			return reply.code(201).send({
 					success: true,
 					username: user.username
 				});
@@ -116,25 +104,22 @@ export async function oauthRoutes(fastify, options) {
 		const { username, temp_token } = request.body;
 	
 		try {
-			// Vérifier le token temporaire
+			//Verified token and get the payload from it
 			const payload = await authService.verifyTempToken(temp_token, "google_oauth");
 
+			// Check if the user already exists in the database
 			const emailExists = fastify.db.prepare("SELECT 1 FROM users WHERE email = ?").get(payload.email);
 			if (emailExists) {
 				return reply.code(400).send({ error: "Account already created with this email" });
 			}
-
+			
+			// Check if the username respects the rules :
 			const trimmedUsername = username?.trim();
-
-			// Validation du username
-			const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+			const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
 			if (!trimmedUsername || !usernameRegex.test(trimmedUsername)) {
 				return reply.code(400).send({ error: "Invalid username format" });
 			}
-	
 			const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1).toLowerCase();
-
-			// Vérifie la disponibilité
 			const existingUser = fastify.db.prepare("SELECT 1 FROM users WHERE username = ?").get(capitalizedUsername);
 			if (existingUser) {
 				return reply.code(400).send({ error: "Username already taken" });
@@ -157,7 +142,7 @@ export async function oauthRoutes(fastify, options) {
 					const tempToken = await authService.generateTempToken({ userId: user.id }, "2fa", 300);
 					fastify.log.info(`2FA token generated for Google OAuth user: ${user.username}`);
 
-					return reply.code(200).send({
+					return reply.code(202).send({
 						step: "2fa_required",
 						message: "2FA is enabled. Please provide the verification code.",
 						temp_token: tempToken,
@@ -172,27 +157,15 @@ export async function oauthRoutes(fastify, options) {
 			const { accessToken, refreshToken } = await authService.generateTokens(user.id);
 			const isLocal = request.headers.host.startsWith("localhost");
 	
-			// Set cookies
-			reply
-				.setCookie('accessToken', accessToken, {
-					httpOnly: true,
-					secure: !isLocal,
-					sameSite: 'None',
-					path: '/',
-					maxAge: 15 * 60
-				})
-				.setCookie('refreshToken', refreshToken, {
-					httpOnly: true,
-					secure: !isLocal,
-					sameSite: 'None',
-					path: '/',
-					maxAge: 7 * 24 * 60 * 60
-				})
-				.send({
-					success: true,
-					username: user.username,
-					message: "Google account created and user authenticated"
-				});
+			// Send the response with the tokens in cookies
+			authUtils.ft_setCookie(reply, accessToken, 15, isLocal);
+			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal);
+
+			return reply.code(201).send({
+				success: true,
+				username: user.username,
+				message: "Google account created and user authenticated"
+			});
 	
 		} catch (error) {
 			fastify.log.error('Google OAuth complete-register error:', error);
@@ -205,6 +178,42 @@ export async function oauthRoutes(fastify, options) {
 			});
 		}
 	});
+
+	fastify.get('/auth/account_type', async (request, reply) => {
+		try {
+			const userId = request.user.userId;
+
+			if (!userId) {
+				return reply.code(401).send({ success: false, error: "Unauthorized" });
+			}
+	
+			const user = fastify.db.prepare(`SELECT is_google_account, password FROM users WHERE id = ?`).get(userId);
+	
+			if (!user) {
+				return reply.code(404).send({ success: false, error: "User not found" });
+			}
+	
+			const isGoogle = !!user.is_google_account;
+			const hasPassword = !!(user.password && user.password.trim().length > 0);
+	
+			return reply.send({
+				success: true,
+				message: "user account type retrieved",
+				data : {
+					is_google_account: isGoogle,
+					has_password: hasPassword
+				}
+			});
+		} catch (err) {
+			fastify.log.error(err,`Error with user account type retrieved`);
+			return reply.code(500).send({
+				success: false,
+				error: "Internal server error",
+				details: err.message
+			});
+		}
+	});
+	
 	
 }
 

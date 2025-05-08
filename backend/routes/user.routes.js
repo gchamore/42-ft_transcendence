@@ -1,4 +1,5 @@
 import { pipeline } from 'stream/promises';
+import authUtils from '../auth/auth.utils.js';
 import bcrypt from 'bcrypt';
 import sharp from 'sharp';
 import fs from 'fs';
@@ -297,7 +298,7 @@ export async function userRoutes(fastify, options) {
 			
 				if (currentUser.is_google_account && !currentUser.password) {
 					// ✅ Cas Google OAuth sans mot de passe → autorisé à définir pour la 1re fois
-					const hashedPassword = await bcrypt.hash(password, 10);
+					const hashedPassword = await authUtils.hashPassword(password);
 					db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
 					somethingUpdated = true;
 				} else {
@@ -307,7 +308,7 @@ export async function userRoutes(fastify, options) {
 						return reply.code(401).send({ error: "Incorrect current password." });
 					}
 			
-					const hashedPassword = await bcrypt.hash(password, 10);
+					const hashedPassword = await authUtils.hashPassword(password);
 					db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
 					somethingUpdated = true;
 				}
@@ -315,7 +316,7 @@ export async function userRoutes(fastify, options) {
 			
 			// ✅ Email
 			if (email && email !== currentUser.email) {
-				console.log("🔧 Attempt to update email with:", email, userId);
+				fastify.log.info(`🔧 Attempt to update email with:, ${email}, ${userId}`);
 
 				if (currentUser.is_google_account) {
 					return reply.code(400).send({ error: "Cannot change email for Google-authenticated accounts" });
@@ -350,7 +351,7 @@ export async function userRoutes(fastify, options) {
 			return reply.code(400).send({ error: "Request is not multipart/form-data" });
 		}
 		const avatar = await request.file();
-		console.log("✅ Avatar reçu:", avatar);
+		fastify.log.info(`✅ Avatar reçu: ${avatar}`);
 		try {
 			const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 			if (!currentUser) {
