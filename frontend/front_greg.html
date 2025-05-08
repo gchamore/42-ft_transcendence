@@ -1640,9 +1640,20 @@
 			chatMessages.scrollTop = chatMessages.scrollHeight;
 		}
 
+		let isGoogle = false;
+		let hasPassword = false;
+
 		// Fonction pour vérifier le statut 2FA
 		async function check2FAStatus() {
 			try {
+				const accountTypeResponse = await fetch(`${API_URL}/auth/account_type`, {
+					credentials: 'include'
+				});
+				const accountTypeData = await accountTypeResponse.json();
+
+				isGoogle = accountTypeData.data?.is_google_account;
+				hasPassword = accountTypeData.data?.has_password;
+
 				const response = await fetch(`${API_URL}/2fa/status`, {
 					credentials: 'include'
 				});
@@ -1682,21 +1693,39 @@
 			const status = btn.getAttribute('data-status');
 
 			if (status === 'enabled') {
-				// Désactiver 2FA
 				try {
+					let password = '';
+
+					if (!isGoogle || (isGoogle && hasPassword)) {
+						password = prompt("Please enter your password to disable 2FA:");
+						if (!password) {
+							showMessage('Disabling 2FA cancelled: password required', true);
+							return;
+						}
+					}
+
 					const response = await fetch(`${API_URL}/2fa/disable`, {
 						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ password }),
 						credentials: 'include'
 					});
+
 					const data = await response.json();
-					if (data.success) {
-						showMessage('2FA disabled successfully', false);
-						btn.textContent = 'Activate 2FA';
-						btn.setAttribute('data-status', 'disabled');
+
+					if (response.ok && data.success) {
+						showMessage('2FA disabled successfully!', false);
+						// Actualiser l'interface
+						check2FAStatus();
+					} else {
+						showMessage(data.error || 'Failed to disable 2FA', true);
 					}
+
 				} catch (error) {
+					console.error('Disable 2FA error:', error);
 					showMessage('Failed to disable 2FA', true);
 				}
+
 			} else {
 				// Activer 2FA
 				try {
