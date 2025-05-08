@@ -65,7 +65,6 @@ export class WebSocketService {
 		// WebSocket event handling for pong response
 		connection.socket.on('pong', () => {
 			lastPong = Date.now();
-			fastify.log.debug(`Pong received from user: ${username} [ID: ${connectionId}]`);
 		});
 
 		// Connection close handling

@@ -3,7 +3,7 @@ import { initializeDatabase } from "./db/schema.js";
 import WebSocket from "@fastify/websocket";
 import redis from "./redis/redisClient.js";
 import * as wsUtils from "./ws/ws.utils.js";
-import { authMiddleware } from "./jwt/middlewares/auth.middleware.js";
+import { authMiddleware } from "./middleware/auth.middleware.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { gameRoutes } from "./routes/game.routes.js";
 import { userRoutes } from "./routes/user.routes.js";
@@ -54,7 +54,7 @@ try {
 
 	app.decorate('db', db);
 } catch (error) {
-	console.error('Database initialization error:', error);
+	fastify.log.error(error, 'Database initialization error:');
 	process.exit(1);
 }
 
@@ -74,13 +74,6 @@ const publicRoutes = [
 
 // Middleware d'authentification
 app.addHook('onRequest', (request, reply, done) => {
-    // Log pour debug
-    app.log.debug({
-        path: request.routeOptions?.url,
-        method: request.method,
-        isPublic: publicRoutes.some(route => request.routeOptions?.url?.startsWith(route))
-    }, 'Route check');
-
     if (request.method === 'OPTIONS' || 
         publicRoutes.some(route => request.routeOptions?.url?.startsWith(route))) {
         return done();
@@ -138,7 +131,7 @@ process.on('SIGINT', () => cleanup('SIGINT'));
 // ====== Démarrage du serveur ======
 app.listen({ port: 3000, host: '0.0.0.0' }, (err, address) => {
     if (err) {
-        console.error('Server start error:', err);
+        fastify.log.error(err, `Server start error:`);
         process.exit(1);
     }
 });

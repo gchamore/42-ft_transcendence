@@ -29,7 +29,7 @@ function notifyPlayers(fastify, gameId, playerId) {
 			}
 		}
 	} else {
-		console.warn(`No WebSocket connection found for player ${playerId}`);
+		fastify.log.warn(`No WebSocket connection found for player ${playerId}`);
 	}
 }
 
@@ -180,7 +180,7 @@ export async function gameRoutes(fastify, options) {
 			const refreshToken = request.cookies?.refreshToken;
 
 			if (!accessToken && !refreshToken) {
-				console.warn('No access and refresh token provided');
+				fastify.log.warn('No access and refresh token provided');
 				return;
 			}
 
@@ -207,7 +207,7 @@ export async function gameRoutes(fastify, options) {
 
 			if (result.newAccessToken) {
 				fastify.log.info('New access token generated, updating cookie');
-				authUtils.setCookie(reply, result.newAccessToken, 15, isLocal);
+				authUtils.ft_setCookie(reply, result.newAccessToken, 15, isLocal);
 			}
 
 			fastify.log.info('Token validated, fetching user info...');
@@ -222,7 +222,7 @@ export async function gameRoutes(fastify, options) {
 
 			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 			if (!user) {
-				console.warn('User not found');
+				fastify.log.warn('User not found');
 				return;
 			}
 

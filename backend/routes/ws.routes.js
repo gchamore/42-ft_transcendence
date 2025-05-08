@@ -66,7 +66,7 @@ export async function wsRoutes(fastify, options) {
 			const db = request.server.db;
 
 			if (!accessToken && !refreshToken) {
-				console.warn('No access and refresh token provided');
+				fastify.log.warn('No access and refresh token provided');
 				return reply.code(401).send({ valid: false, message: 'No token provided' });
 			}
 
@@ -92,14 +92,14 @@ export async function wsRoutes(fastify, options) {
 
 			if (result.newAccessToken) {
 				fastify.log.info('New access token generated, updating cookie');
-				authUtils.setCookie(reply, result.newAccessToken, 15, isLocal);
+				authUtils.ft_setCookie(reply, result.newAccessToken, 15, isLocal);
 			}
 
 			fastify.log.info('Token validated, fetching user info...');
 			const userId = String(result.userId);
 			const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 			if (!user) {
-				console.warn('User not found');
+				fastify.log.warn('User not found');
 				return;
 			}
 
@@ -119,7 +119,7 @@ export async function wsRoutes(fastify, options) {
 			fastify.log.info('WebSocket events setup called\n');
 
 		} catch (error) {
-			console.error('WebSocket /ws error caught:', error?.message || error);
+			fastify.log.error(error, `WebSocket /ws error caught:`);
 			wsUtils.handleConnectionError(fastify, connection, error);
 		}
 	});

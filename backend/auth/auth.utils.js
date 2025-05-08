@@ -6,13 +6,13 @@ export class AuthUtils {
 		try {
 			return await bcrypt.hash(password, saltRounds);
 		} catch (error) {
-			console.error('Password hashing error:', error);
+			fastify.log.error(error, 'Password hashing error:');
 			throw new Error('Failed to hash password');
 		}
 	}
 
 	// Configure and set cookies with flexible expiration times
-	setCookie(reply, token, duration, isLocal = false) {
+	ft_setCookie(reply, token, duration, isLocal = false) {
 		const cookieOptions = {
 			httpOnly: true,
 			secure: !isLocal,
