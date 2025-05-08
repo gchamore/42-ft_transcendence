@@ -159,7 +159,7 @@ function startTournamentGame(lobby, tournament, gameId, settings) {
 					gameId: match.matchId,
 					settings: settings,
 					round: match.round,
-					players: match.players.map(p => p.id),
+					players: match.players.map(p => p.displayName),
 					playerNumber: playerId.number,
 				});
 				lobby.removePlayer(playerSocket.clientId);

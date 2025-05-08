@@ -33,6 +33,7 @@ export class Game {
 	private animationFrameId: number | null = null;
 	private playerNumber: number = 0;
 	private gameId: string;
+	private gameState!: GameState;
 	private isLoading: boolean = true;
 
 	constructor(gameId: string, settings: any, playerNumber: number) {
@@ -205,6 +206,9 @@ export class Game {
 		};
 	}
 
+	getGameState() {
+		return this.gameState;
+	}
 	
 	pauseGame() {
 		if (this.animationFrameId) {
@@ -220,6 +224,7 @@ export class Game {
 		}
 		this.gameStarted = gameState.gameStarted ?? false;
 		this.servingPlayer = gameState.servingPlayer ?? this.servingPlayer;
+		this.gameState = gameState;
 
 		if (gameState.ball) {
 			if (gameState.ball.x !== null && gameState.ball.y !== null) {
@@ -256,11 +261,20 @@ export class Game {
 				this.babylonManager.render(timestamp);
 			}
 			if (!this.gameStarted) {
+				let opponentName = "Opponent";
+				if (this.gameState && this.gameState.score) {
+					if (this.playerNumber === 1) {
+						opponentName = this.gameState.score.player2?.name || "Opponent";
+					} else if (this.playerNumber === 2) {
+						opponentName = this.gameState.score.player1?.name || "Opponent";
+					}
+				}
 				this.uiManager.drawStartMessage(
 					timestamp,
 					this.gameStarted,
 					this.playerNumber,
-					this.servingPlayer
+					this.servingPlayer,
+					opponentName
 				);
 			}
 			if (this.powerUpsEnabled)
@@ -314,12 +328,9 @@ export class Game {
 		this.gameStarted = false;
 		this.pauseGame();
 
-		const finalScore = data.finalScore || { player1Score: 0, player2Score: 0 };
+		const finalScore = data.finalScore;
 	
-		this.scoreBoard.updateScore({
-			player1Score: finalScore.player1Score,
-			player2Score: finalScore.player2Score,
-		});
+		this.scoreBoard.updateScore(data.finalScore);
 
 		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 			this.socket.send(
@@ -335,9 +346,10 @@ export class Game {
 		if (this.isTournamentGame(this.gameId)) {
 			this.showWaitingForNextMatch();
 		} else {
-			this.createGameOverMenu(`Player ${data.winner} wins!`, `${finalScore.player1Score} - ${finalScore.player2Score}`);
+			this.createGameOverMenu(`Player ${data.winnerDisplayName} wins!`, `${finalScore.player1.score} - ${finalScore.player2.score}`);
 		}
 	}
+
 	private isTournamentGame(gameId: string): boolean {
 		return gameId.includes('semi');
 	}

@@ -1,4 +1,4 @@
-import { update_status, update_sections, Chat, Actions, get_section_index, sections, section_index, set_section_index, GameSection } from "./sections.js";
+import { update_status, update_sections, Chat, Actions, get_section_index, sections, section_index, set_section_index, GameSection, go_section } from "./sections.js";
 
 /* Global variables */
 export var user : undefined | User = undefined;
@@ -102,7 +102,6 @@ export class User {
 					case 'TournamentGameStart':
 						if (data.gameId) {
 							console.log('TournamentGameStart from user', data.gameId);
-							// Show tournament info between rounds
 							const gameSection = sections[get_section_index('game')!] as GameSection;
 							this.hideWaitingScreen();
 							if (data.round && data.players)
@@ -170,7 +169,32 @@ export class User {
 }
 
 function tournamentStart(tournamentId: string, bracket: string) {
-	(sections[get_section_index('game')!] as GameSection).chooseTournamentSettings(tournamentId, bracket);
+	go_section('chat');
+	let countdown = 10;
+	const chatSection = sections[get_section_index('chat')!] as Chat;
+
+	// Show countdown message in chat
+	const countdownLabel = document.createElement('label');
+	countdownLabel.id = 'tournament-countdown-label';
+	countdownLabel.textContent = `Tournament starting in ${countdown} seconds...`;
+	chatSection.chat_box.prepend(countdownLabel);
+
+	const interval = setInterval(() => {
+		countdown--;
+		if (countdown > 0) {
+			countdownLabel.textContent = `Tournament starting in ${countdown} seconds...`;
+		} else {
+			clearInterval(interval);
+			countdownLabel.textContent = `Tournament is starting!`;
+			// Move to game section and choose tournament settings
+			go_section('game');
+			(sections[get_section_index('game')!] as GameSection).chooseTournamentSettings(tournamentId, bracket);
+			// Optionally remove the countdown label after a short delay
+			setTimeout(() => {
+				countdownLabel.remove();
+			}, 2000);
+		}
+	}, 1000);
 }
 
 function matchFound(matchId: string) {

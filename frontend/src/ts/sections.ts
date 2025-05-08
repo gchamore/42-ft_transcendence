@@ -304,7 +304,12 @@ export class GameSection extends ASection {
 			console.error('playTournament: not logged in');
 			return;
 		}
-		go_section('game');
+		let displayName = prompt('Enter your Username for the tournament:');
+		if (!displayName || displayName.trim().length === 0) {
+			this.showQueueMessage('Display name is required for tournaments', 'tournament');
+			return;
+		}
+		displayName = displayName.trim();
 		if (this.leaveQueueBtn) {
 			this.leaveQueueBtn.onclick = async () => {
 				try {
@@ -324,12 +329,15 @@ export class GameSection extends ASection {
 				method: 'POST',
 				credentials: 'include',
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ userId: user.userId })
+				body: JSON.stringify({ userId: user.userId, displayName })
 			});
 			const data = await resp.json();
 			if (user)
 				user.isTournamentCreator = !!data.isCreator;
-			if (resp.status === 202) {
+			if (resp.status === 409) {
+				this.showQueueMessage('Display name already taken. Please try another.', 'tournament');
+				return;
+			} else if (resp.status === 202) {
 				this.showQueueMessage('Waiting for tournament players...', 'tournament');
 			} else if (resp.ok) {
 				return;

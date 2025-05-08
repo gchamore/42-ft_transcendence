@@ -17,6 +17,14 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 		return;
 	}
 
+	if (game.players.size === 2) {
+        const player1 = game.players.get(1);
+        const player2 = game.players.get(2);
+        const gameState = game.getState();
+        gameState.score.player1.name = player1?.displayName || "Player1";
+        gameState.score.player2.name = player2?.displayName || "Player2";
+    }
+	
 	// Attach game instance to socket
 	socket.gameInstance = game;
 	const playerNumber = socket.playerNumber;
@@ -162,12 +170,17 @@ function handleGameOver(data, fastify) {
 			const finalExists = tournament.bracket.some(m => m.round === 'final');
             const thirdExists = tournament.bracket.some(m => m.round === 'third');
 			if (semis.length === 2 && semis.every((match) => match.winner) && !finalExists && !thirdExists) {
+				// Find winner and loser objects (with displayName) for both semis
+                const semi1Winner = semis[0].players.find(p => p.number === semis[0].winner);
+                const semi1Loser  = semis[0].players.find(p => p.number !== semis[0].winner);
+                const semi2Winner = semis[1].players.find(p => p.number === semis[1].winner);
+                const semi2Loser  = semis[1].players.find(p => p.number !== semis[1].winner);
 				const finalMatch = {
 					matchId: `${tournament.id}-final`,
 					round: 'final',
 					players: [
-						{ id: semis[0].players.find(p => p.number === semis[0].winner).id, number: 1 },
-						{ id: semis[1].players.find(p => p.number === semis[0].winner).id, number: 2 }
+						{ id: semi1Winner.id, number: 1, displayName: semi1Winner.displayName },
+						{ id: semi2Winner.id, number: 2, displayName: semi2Winner.displayName }
 					],
 					winner: null,
 					loser: null
@@ -176,15 +189,15 @@ function handleGameOver(data, fastify) {
 					matchId: `${tournament.id}-third`,
 					round: 'third',
 					players: [
-						{ id: semis[0].players.find(p => p.number !== semis[0].winner).id, number: 1 },
-						{ id: semis[1].players.find(p => p.number !== semis[1].winner).id, number: 2 }
+						{ id: semi1Loser.id, number: 1, displayName: semi1Loser.displayName },
+						{ id: semi2Loser.id, number: 2, displayName: semi2Loser.displayName }
 					],
 					winner: null,
 					loser: null
 				};
 				tournament.bracket.push(finalMatch, thirdPlaceMatch);
 				console.log(`Final match created: ${finalMatch.matchId}`);
-				console.log(`[Tournament Notify] Final:`, finalMatch.players.map(p => p.id));
+				console.log(`[Tournament Notify] Final:`, finalMatch.players.map(p => p.displayName));
 				// Notify final players
 				finalMatch.players.forEach(playerId => {
 					const userConnections = fastify.connections.get(playerId.id);
@@ -196,7 +209,7 @@ function handleGameOver(data, fastify) {
 									type: 'TournamentGameStart',
 									gameId: finalMatch.matchId,
 									round: finalMatch.round,
-									players: finalMatch.players.map(p => p.id),
+									players: finalMatch.players.map(p => p.displayName),
 									playerNumber: playerId.number,
 								});
 								break; // Only notify the first open socket
@@ -216,7 +229,7 @@ function handleGameOver(data, fastify) {
 									type: 'TournamentGameStart',
 									gameId: thirdPlaceMatch.matchId,
 									round: thirdPlaceMatch.round,
-									players: thirdPlaceMatch.players.map(p => p.id),
+									players: thirdPlaceMatch.players.map(p => p.displayName),
 									playerNumber: playerId.number,
 								});
 								break;

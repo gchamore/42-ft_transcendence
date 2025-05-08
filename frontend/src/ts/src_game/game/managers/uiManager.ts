@@ -39,7 +39,7 @@ export class UIManager {
 		});
 	}
 
-	drawStartMessage(timestamp: number, gameStarted: boolean, playerNumber: number, servingPlayer: number): void {
+	drawStartMessage(timestamp: number, gameStarted: boolean, playerNumber: number, servingPlayer: number, opponentName: string): void {
 		if (!gameStarted) {
 			if (timestamp - this.lastBlink > this.BLINK_INTERVAL) {
 				this.showStartMessage = !this.showStartMessage;
@@ -52,7 +52,7 @@ export class UIManager {
 					this.context.textAlign = "center";
 					this.context.fillText("Press Space to Start", this.canvas.width / 2, (this.canvas.height / 2) - 50);
 				} else {
-					this.drawWaitingMessage('Waiting for the other Player to start...');
+					this.drawWaitingMessage(`Waiting for ${opponentName} to start...`);
 				}
 			}
 		}
