@@ -175,7 +175,7 @@ export async function authRoutes(fastify, options) {
 			// Execute the transaction
 			transaction();
 
-			await wsUtils.handleAllUserConnectionsClose(fastify, userId, user.username, 'User unregistered');
+			await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'User unregistered');
 
 			fastify.log.info(`Account deleted and games anonymized successfully`);
 
@@ -367,7 +367,7 @@ export async function authRoutes(fastify, options) {
 				return reply.code(404).send({ error: "User not found" });
 			}
 			// Fermer la connexion WebSocket pour l'utilisateur et mettre à jour son statut
-			await wsUtils.handleAllUserConnectionsClose(fastify, userId, user.username, 'User Logged Out');
+			await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'User Logged Out');
 			// Révoquer les tokens de l'utilisateur
 			await authService.revokeTokens(userId);
 			// Vérification de l'environnement local ou de production
@@ -430,7 +430,7 @@ export async function authRoutes(fastify, options) {
 			await wsUtils.broadcastUserStatus(fastify, userId, false);
 
 			// Close the WebSocket connection for the user
-			await wsUtils.handleAllUserConnectionsClose(fastify, userId, user.username, 'User Revoked');
+			await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'User Revoked');
 
 			// Revoke the user's tokens
 			await authService.revokeTokens(userId);
@@ -499,7 +499,7 @@ export async function authRoutes(fastify, options) {
 				if (userId) {
 					const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 					if (user) {
-						await wsUtils.handleAllUserConnectionsClose(fastify, userId, user.username, 'Invalid token from middleware');
+						await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'Invalid token from middleware');
 					}
 				}
 				return reply

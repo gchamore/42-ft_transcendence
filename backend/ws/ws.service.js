@@ -11,10 +11,10 @@ export class WebSocketService {
 	// It stores the connection in the map and updates the online status
 	// It sends the list of online users to the client
 	// It broadcasts the online status to other clients
-	async establishConnection(fastify, connection, userId, username, connectionId) {
+	async establishConnection(fastify, connection, userId, connectionId) {
 		// Marquer l'ID sur la socket pour debug/fermeture
 		connection.socket.connectionId = connectionId;
-	
+
 		// Crée une map par utilisateur s’il n’en a pas déjà une
 		if (!fastify.connections.has(userId)) {
 			fastify.connections.set(userId, new Map());
@@ -36,13 +36,13 @@ export class WebSocketService {
 	// It handles the ping-pong mechanism and the connection close event
 	// It requires the user to be authenticated
 	// It validates the access token and handles the connection events
-	setupWebSocketEvents(fastify, connection, accessToken, refreshToken, userId, username, connectionId) {
+	setupWebSocketEvents(fastify, connection, userId, username, connectionId) {
 		// Configuration of the ping-pong and token validation
 		let lastPong = Date.now();
 		const pingInterval = setInterval(async () => {
 			// if the token is invalid or the pong timeout is reached
 			if (Date.now() - lastPong > 35000) {
-				await this.wsUtils.handleAllUserConnectionsClose(fastify, userId, username, 'Token invalid or ping timeout');
+				await this.wsUtils.handleAllUserConnectionsClose(fastify, String(userId), username, 'Token invalid or ping timeout');
 				return;
 			}
 			fastify.log.info('========== 🔄 WebSocket Connection Check ==========');

@@ -80,7 +80,7 @@ export async function wsRoutes(fastify, options) {
 				if (userId) {
 					const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 					if (user) {
-						await wsUtils.handleAllUserConnectionsClose(fastify, userId, user.username, 'Invalid token from middleware');
+						await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'Invalid token from middleware');
 					}
 				}
 				return reply
@@ -111,11 +111,11 @@ export async function wsRoutes(fastify, options) {
 			fastify.log.info(`New WebSocket connection [ID: ${connectionId}] for user: ${user.username} (${userId})`);
 
 			// Establish the new connection
-			await wsService.establishConnection(fastify, connection, userId, user.username, connectionId);
+			await wsService.establishConnection(fastify, connection, userId, connectionId);
 			fastify.log.info('New connection established');
 
 			// Set up WebSocket events
-			wsService.setupWebSocketEvents(fastify, connection, accessToken, refreshToken, userId, user.username, connectionId);
+			wsService.setupWebSocketEvents(fastify, connection, userId, user.username, connectionId);
 			fastify.log.info('WebSocket events setup called\n');
 
 		} catch (error) {

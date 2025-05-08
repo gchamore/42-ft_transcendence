@@ -45,7 +45,7 @@ export async function handleSingleUserConnectionClose(fastify, connection, code,
 
 export async function handleAllUserConnectionsClose(fastify, userId, username, reason = 'Disconnected by server') {
 	fastify.log.info(`🚪 Closing ALL WebSocket connections for user ${username} (${userId}) with reason: "${reason}"`);
-	
+
 	const userConnections = fastify.connections.get(userId);
 	if (!userConnections) {
 		fastify.log.info(`No active WebSocket connections to close for user: ${username}`);
