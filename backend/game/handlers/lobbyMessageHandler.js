@@ -1,9 +1,8 @@
 import { GameInstance } from '../classes/gameInstance.js';
-import { games, lobbies, cleanupLobby } from '../controllers/gameController.js';
+import { games } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
-import { handleGameMessage, handleGameDisconnect } from './gameMessageHandlers.js';
 import { handleNewGamePlayer } from './gameMessageHandlers.js';
-import { tournaments } from '../../routes/game.routes.js';
+import { tournaments, gamePlayerNumbers, tournamentPlayerNumbers } from '../../routes/game.routes.js';
 import WebSocket from 'ws';
 
 export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fastify) {
@@ -66,11 +65,28 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 function handleLobbyDisconnect(socket, lobby) {
 
 	console.log(`Player ${socket.playerNumber} disconnected from lobby ${lobby.lobbyId}`);
-	lobby.removePlayer(socket);
-	if (lobby.players.size === 0) {
-		cleanupLobby(lobby.lobbyId);
-		console.log(`Lobby ${lobby.lobbyId} deleted due to emptyness`);
+	let message= `Player ${socket.playerNumber} disconnected`;
+	if (lobby.isTournament) {
+		message = `Player ${socket.playerNumber} disconnected, tournament has ended`;
+	} else {
+		message = `Player ${socket.playerNumber} disconnected, game has ended`;
 	}
+	// Notify remaining players in the lobby
+	lobby.players.forEach((playerSocket) => {
+		safeSend(playerSocket, {
+			type: 'opponentDisconnected',
+			message: message
+		});
+	});
+	lobby.removePlayer(socket.clientId);
+	const clientIdStr = String(socket.clientId);
+    if (gamePlayerNumbers.has(clientIdStr)) {
+        gamePlayerNumbers.delete(clientIdStr);
+		console.log(`Removed game player number for clientId ${clientIdStr}`);
+    }
+    if (tournamentPlayerNumbers.has(clientIdStr)) {
+        tournamentPlayerNumbers.delete(clientIdStr);
+    }	
 }
 
 function handleLobbyMessage(socket, lobby, data, fastify) {

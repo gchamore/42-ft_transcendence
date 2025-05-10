@@ -110,16 +110,10 @@ export class WebSocketService {
 	
 			// ✅ on supprime la socket de la Map
 			if (userId && fastify.connections.has(userId)) {
-				const userConnections = fastify.connections.get(userId);
-				userConnections.delete(connectionId);
-	
-				// Si plus aucune connexion : suppression de la map et mise offline
-				if (userConnections.size === 0) {
-					fastify.connections.delete(userId);
-					wsUtils.updateUserOnlineStatus(userId, false);
-					wsUtils.broadcastUserStatus(fastify, userId, false);
-					fastify.log.info(`User ${userId} (${username}) is now offline`);
-				}
+				fastify.connections.delete(userId);
+				wsUtils.updateUserOnlineStatus(userId, false);
+				wsUtils.broadcastUserStatus(fastify, userId, false);
+				fastify.log.info(`User ${userId} (${username}) is now offline`);
 			}
 	
 			fastify.log.warn(`Closed invalid WebSocket connection [${connectionId}] for user ${userId}`);

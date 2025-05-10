@@ -79,7 +79,8 @@ export class GameStateManager {
 	}
 
 	checkWin() {
-		const { player1Score, player2Score } = this.gameState.score;
+		const player1Score = this.gameState.score.player1.score;
+		const player2Score = this.gameState.score.player2.score;
 		const maxScore = GameConfig.DEFAULT_MAX_SCORE;
 		console.log(`Checking win: P1=${player1Score}, P2=${player2Score}, max=${maxScore}`);
 		if (player1Score >= maxScore || player2Score >= maxScore) {
@@ -98,16 +99,6 @@ export class GameStateManager {
 		// Mark both players as ready
 		this.playerReadyStatus = new Set([1, 2]);
 
-		return this;
-	}
-
-	resetForRematch() {
-		this.gameState.score = { player1Score: 0, player2Score: 0 };
-		this.gameState.paddle1.y = (GameConfig.CANVAS_HEIGHT - this.gameState.paddle1.height) / 2;
-		this.gameState.paddle2.y = (GameConfig.CANVAS_HEIGHT - this.gameState.paddle2.height) / 2;
-		this.gameState.servingPlayer = Math.random() < 0.5 ? 1 : 2;
-		this.resetBall();
-		this.playerReadyStatus.clear();
 		return this;
 	}
 

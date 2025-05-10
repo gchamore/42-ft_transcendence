@@ -135,6 +135,9 @@ export class GameSection extends ASection {
 	readonly queueMessageContainer = document.getElementById('queue-message-container') as HTMLElement;
 	readonly leaveQueueBtn = document.getElementById('leave-queue-btn') as HTMLButtonElement;
 	readonly queueMessage = document.getElementById('queue-message') as HTMLElement;
+	readonly queueUsernameEntry = document.getElementById('queue-username-entry') as HTMLElement;
+	readonly tournamentUsernameInput = document.getElementById('tournament-username-input') as HTMLInputElement;
+	readonly tournamentUsernameValidateBtn = document.getElementById('tournament-username-validate-btn') as HTMLButtonElement;
 
 
 	/* Methods */
@@ -240,13 +243,47 @@ export class GameSection extends ASection {
 		this.logged_in_view();
 	}
 
-	showQueueMessage(msg: string, type: 'game' | 'tournament' = 'game') {
-		if (this.queueMessage)
-			this.queueMessage.textContent = msg;
-		if (this.queueMessageContainer) {
-			this.queueMessageContainer.style.display = 'block';
-			this.queueMessageContainer.setAttribute('data-queue-type', type);
+	showQueueMessage(msg: string, type: 'game' | 'tournament' = 'game', inQueue: boolean = true, showUsernameEntry: boolean = false ): Promise<string | null> | void {
+		if (!showUsernameEntry) {
+			if (this.queueMessage)
+				this.queueMessage.textContent = msg;
+			if (this.queueMessageContainer) {
+				this.queueMessageContainer.style.display = 'block';
+				this.queueMessageContainer.setAttribute('data-queue-type', type);
+			}
+			if (this.leaveQueueBtn) {
+				this.leaveQueueBtn.style.display = inQueue ? 'inline-block' : 'none';
+			}
+			if (this.queueUsernameEntry) {
+				this.queueUsernameEntry.style.display = 'none';
+			}
+			return;
 		}
+
+		// If username entry is needed, return a Promise
+		return new Promise<string | null>((resolve) => {
+			if (this.queueMessage)
+				this.queueMessage.textContent = msg;
+			if (this.queueMessageContainer) {
+				this.queueMessageContainer.style.display = 'block';
+				this.queueMessageContainer.setAttribute('data-queue-type', type);
+			}
+			if (this.leaveQueueBtn) {
+				this.leaveQueueBtn.style.display = inQueue ? 'inline-block' : 'none';
+			}
+			if (this.queueUsernameEntry) {
+				this.queueUsernameEntry.style.display = 'block';
+			}
+			if (this.tournamentUsernameInput && this.tournamentUsernameValidateBtn) {
+				this.tournamentUsernameInput.value = '';
+				const validateHandler = () => {
+					const username = this.tournamentUsernameInput.value.trim();
+					this.tournamentUsernameValidateBtn.removeEventListener('click', validateHandler);
+					resolve(username.length > 0 ? username : null);
+				};
+				this.tournamentUsernameValidateBtn.addEventListener('click', validateHandler);
+			}
+		});
 	}
 
 	hideQueueMessage() {
@@ -259,7 +296,6 @@ export class GameSection extends ASection {
 			console.error('play1v1: not logged in');
 			return;
 		}
-		go_section('game');
 
 		if (this.leaveQueueBtn) {
 			this.leaveQueueBtn.onclick = async () => {
@@ -271,6 +307,7 @@ export class GameSection extends ASection {
 					});
 				} catch (err) {
 					console.error('Error leaving queue:', err);
+					setTimeout(this.hideQueueMessage, 2000);
 				}
 				this.hideQueueMessage();
 			};
@@ -283,16 +320,16 @@ export class GameSection extends ASection {
 				body: JSON.stringify({ userId: user.userId })
 			});
 			if (resp.status === 202) {
-				this.showQueueMessage('Waiting for an opponent...');
+				this.showQueueMessage('Waiting for an opponent...', 'game', true, false);
 			} else if (resp.ok) {
 				return;
 			} else {
 				const err = await resp.json();
-				this.showQueueMessage(`Queue error: ${err.error}`);
+				this.showQueueMessage(`Queue error: ${err.error}`, 'game', false, false);
 			}
 		} catch (err) {
 			console.error('play1v1: error', err);
-			this.showQueueMessage('Failed to join 1v1 queue');
+			this.showQueueMessage('Failed to join 1v1 queue', 'game', false, false);
 			go_section('home');
 			setTimeout(this.hideQueueMessage, 2000);
 		}
@@ -304,9 +341,15 @@ export class GameSection extends ASection {
 			console.error('playTournament: not logged in');
 			return;
 		}
-		let displayName = prompt('Enter your Username for the tournament:');
+		let displayName = await this.showQueueMessage(
+			'Enter your Username for the tournament:',
+			'tournament',
+			false,
+			true
+		) as string | null;
 		if (!displayName || displayName.trim().length === 0) {
-			this.showQueueMessage('Display name is required for tournaments', 'tournament');
+			this.showQueueMessage('Display name is required for tournaments', 'tournament', false, false);
+			setTimeout(() => this.playTournament(), 2000);
 			return;
 		}
 		displayName = displayName.trim();
@@ -335,18 +378,19 @@ export class GameSection extends ASection {
 			if (user)
 				user.isTournamentCreator = !!data.isCreator;
 			if (resp.status === 409) {
-				this.showQueueMessage('Display name already taken. Please try another.', 'tournament');
+				this.showQueueMessage('Display name already taken. Please try another.', 'tournament', false, false);
+				setTimeout(() => this.playTournament(), 2000);
 				return;
 			} else if (resp.status === 202) {
-				this.showQueueMessage('Waiting for tournament players...', 'tournament');
+				this.showQueueMessage('Waiting for tournament players...', 'tournament', true, false);
 			} else if (resp.ok) {
 				return;
 			} else {
-				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament');
+				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament', false, false);
 			}
 		} catch (err) {
 			console.error('playTournament: error', err);
-			this.showQueueMessage('Failed to join tournament queue', 'tournament');
+			this.showQueueMessage('Failed to join tournament queue', 'tournament', false, false);
 			go_section('home');
 			setTimeout(this.hideQueueMessage, 2000);
 		}
@@ -678,7 +722,7 @@ export class Actions extends ASection {
 			console.log("Try to enter Actions section as unauthenticated");
 			return;
 		}
-		this.btn1.onclick = () => history.back();
+		this.btn1.onclick = () => go_section('chat');
 		this.btn1.textContent = 'Back';
 
 		this.btn2.setAttribute('onclick', '');

@@ -7,6 +7,7 @@ export class LobbyManager {
 		this.settingsManager = new SettingsManager();
 		this.players = new Map();
 		this.nbPlayers = 2;
+		this.isTournament = isTournament;
 		if (isTournament) {
 			this.nbPlayers = 4;
 		}

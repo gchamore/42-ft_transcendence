@@ -174,6 +174,7 @@ export async function gameRoutes(fastify, options) {
 		const index = tournamentQueue.indexOf(userId);
 		if (index !== -1) {
 			tournamentQueue.splice(index, 1);
+			tournamentDisplayNames.delete(userId);
 			return reply.send({ left: true });
 		}
 		return reply.code(200).send({ notInQueue: true });

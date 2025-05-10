@@ -125,11 +125,6 @@ export class GameInstance {
 		return this.settings;
 	}
 
-	resetForRematch() {
-		this.gameStateManager.resetForRematch();
-		return this;
-	}
-
 	async cleanup() {
 
 		// Close connections and cleanup

@@ -199,6 +199,7 @@ function tournamentStart(tournamentId: string, bracket: string) {
 }
 
 function matchFound(matchId: string) {
+	go_section('game');
 	(sections[get_section_index('game')!] as GameSection).chooseGameSettings(matchId);
 }
 

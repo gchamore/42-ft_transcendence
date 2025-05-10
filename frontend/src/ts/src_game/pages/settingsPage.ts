@@ -100,6 +100,12 @@ export class SettingsPage {
 					this.readyPlayers.add(data.playerNumber);
 					this.updateStartButtonState();
 					break;
+				case 'opponentDisconnected':
+					this.handleConnectionIssues(
+						data.message || 'The other player has left the lobby. Returning to home...',
+						'opponent-disconnected'
+					);
+					break;
 				case 'error':
 					console.error(data.message);
 					break;
@@ -118,36 +124,30 @@ export class SettingsPage {
 		
 	}
 
-	private handleConnectionIssues() {
-		const container = document.getElementById('settings-container');
+	private handleConnectionIssues(
+		message: string = 'Connection to server lost. Please refresh the page.',
+		errorId: string = 'connection-error'
+) {
+		const container = document.getElementById('settings-page');
 		if (container) {
-			const existingError = document.getElementById('connection-error');
+			const existingError = document.getElementById(errorId);
 			if (existingError) {
 				existingError.remove();
 			}
 
 			const error = document.createElement('p');
-			error.id = 'connection-error';
-			error.textContent = 'Connection to server lost. Please refresh the page.';
+			error.id = errorId;
+			error.textContent = message;
 			error.style.color = 'red';
 			error.style.fontWeight = 'bold';
 			container.prepend(error);
 		}
-		[
-			this.ballSpeedSlider,
-			this.paddleSpeedSlider,
-			this.paddleLengthSlider,
-			this.mapSelect,
-			this.powerUpsToggle,
-			this.startButton
-		].forEach(input => {
-			if (input) 	input.disabled = true;
-		});
 
 		//redirect to home page
 		if (!this.isTournament) {
 			setTimeout(() => {
 				(window as any).go_section('home');
+				this.cleanup();
 			}, 3000);
 		}
 	}
@@ -332,5 +332,16 @@ export class SettingsPage {
 			this.powerUpsToggle.removeEventListener('change', this.handlePowerUpsChange);
 		if (this.startButton && this.startButtonClickHandler)
 			this.startButton.removeEventListener('click', this.startButtonClickHandler);
+		const container = document.getElementById('settings-page');
+		if (container) {
+			const errorIds = ['connection-error', 'opponent-disconnected'];
+			errorIds.forEach(id => {
+				const oldError = document.getElementById(id);
+				if (oldError) oldError.remove();
+			});
+		}
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+			this.socket.close(1000, 'Leaving settings page');
+		}
 	}
 }	

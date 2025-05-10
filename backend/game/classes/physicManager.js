@@ -187,12 +187,12 @@ export class PhysicManager {
 	checkScoring(ball, gameState) {
 		// Player 2 scores
 		if (ball.x - ball.radius <= -40) {
-			gameState.score.player2Score++;
+			gameState.score.player2.score++;
 			return { scored: true, scorer: 2 };
 		}
 		// Player 1 scores
 		else if (ball.x + ball.radius >= GameConfig.CANVAS_WIDTH + 40) {
-			gameState.score.player1Score++;
+			gameState.score.player1.score++;
 			return { scored: true, scorer: 1 };
 		}
 		return { scored: false };
