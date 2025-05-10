@@ -356,6 +356,11 @@
 				<input type="password" id="login-password" placeholder="Password" required>
 				<button type="submit">Login</button>
 			</form>
+			<form id="choose-username-form" class="hidden">
+				<h2>Choose a username</h2>
+				<input type="text" id="chosen-username" placeholder="Your username" required>
+				<button type="submit">Continue</button>
+			</form>
 
 			<button id="verify-token-btn" style="margin-top: 1rem;">Verify Token</button>
 			<button id="google-login-btn">Login with Google</button>
@@ -417,6 +422,9 @@
 			<button id="verify-token-logged-btn" style="margin-top: 1rem;">Verify Token</button>
 			<button id="revoke-tokens-btn" style="margin-top: 1rem;">Revoke Tokens</button>
 			<button id="logout-btn" style="margin-top: 1rem;">Logout</button>
+			<button id="unregister-btn" style="margin-top: 1rem; background-color: #c62828;">Unregister</button>
+			<button id="unregister-google-btn" style="margin-top: 0.5rem; background-color: #c62828;">Unregister with
+				Google</button>
 			<form id="update-form" enctype="multipart/form-data">
 				<h2>Update Profile</h2>
 				<input type="text" id="update-username" name="username" placeholder="New Username">
@@ -431,7 +439,7 @@
 		const API_URL = `https://${window.location.host}/api`;
 		const WS_URL = `wss://${window.location.host}/api/ws`;
 		const GOOGLE_CLIENT_ID = '719179054785-2jaf8669fv3kj0qk6ib8cmtumlb23e8a.apps.googleusercontent.com';
-		const GOOGLE_REDIRECT_URI = `https://${window.location.host}:8443/oauth-callback`;
+		const GOOGLE_REDIRECT_URI = `https://localhost:8443/oauth-callback`;
 		let ws = null;
 		let shouldReconnect = true; // Nouveau flag pour contrôler la reconnexion
 		let reconnectTimeout = null;
@@ -465,7 +473,7 @@
 
 			if (googleCode) {
 				try {
-					const response = await fetch(`${API_URL}/auth/google/token`, {
+					const response = await fetch(`${API_URL}/auth/google`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ code: googleCode }),
@@ -475,7 +483,17 @@
 					const data = await response.json();
 
 					if (response.ok) {
-						if (data.step === "2fa_required") {
+						if (data.step === "choose_username") {
+							sessionStorage.setItem("google_temp_token", data.temp_token);
+							document.getElementById('auth-forms').classList.remove('hidden');
+							document.getElementById('login-form').classList.add('hidden');
+							document.getElementById('register-form').classList.add('hidden');
+							document.getElementById('choose-username-form').classList.remove('hidden');
+							window.history.replaceState({}, document.title, '/'); // nettoyer l'URL
+							return;
+						}
+
+						else if (data.step === "2fa_required") {
 							// Stocker le token temporaire et le nom d'utilisateur
 							sessionStorage.setItem('temp_2fa_token', data.temp_token);
 							sessionStorage.setItem('pending_username', data.username);
@@ -579,6 +597,42 @@
 				showMessage('Server error', true);
 			}
 		});
+
+		document.getElementById('choose-username-form').addEventListener('submit', async (e) => {
+			e.preventDefault();
+
+			const username = document.getElementById('chosen-username').value.trim();
+			const temp_token = sessionStorage.getItem('google_temp_token');
+
+			if (!username || !temp_token) {
+				showMessage("Missing username or token", true);
+				return;
+			}
+
+			try {
+				const response = await fetch(`${API_URL}/auth/google/username`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({ username, temp_token })
+				});
+
+				const data = await response.json();
+
+				if (response.ok && data.success) {
+					showMessage("Welcome " + data.username + "!", false);
+					sessionStorage.removeItem("google_temp_token");
+					document.getElementById('choose-username-form').reset();
+					await checkAuth(); // affiche le welcome avec WebSocket, chat, etc.
+				} else {
+					showMessage(data.error || 'Failed to complete registration', true);
+				}
+			} catch (error) {
+				console.error("Error during Google username registration:", error);
+				showMessage("Server error during username submission", true);
+			}
+		});
+
 
 		// Login
 		document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -737,6 +791,9 @@
 					showMessage('Logged out successfully', false);
 					authForms.classList.remove('hidden');
 					welcome.classList.add('hidden');
+					document.getElementById('register-form').classList.remove('hidden');
+					document.getElementById('login-form').classList.remove('hidden');
+					document.getElementById('choose-username-form').classList.add('hidden');
 				} else {
 					const data = await response.json();
 					showMessage(data.error || 'Logout failed', true);
@@ -744,6 +801,75 @@
 			} catch (error) {
 				console.error('Logout error:', error);
 				showMessage('Server error during logout', true);
+			}
+		});
+
+		document.getElementById('unregister-btn').addEventListener('click', async () => {
+			if (!confirm('⚠️ Are you sure you want to delete your account? This action is irreversible.')) {
+				return;
+			}
+
+			const password = prompt("Please confirm your password to delete your account:");
+
+			if (!password) {
+				showMessage('Account deletion cancelled: Password required', true);
+				return;
+			}
+
+			try {
+				shouldReconnect = false;
+
+				const response = await fetch(`${API_URL}/unregister`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ password }),
+					credentials: 'include'
+				});
+
+				const data = await response.json();
+
+				if (response.ok && data.success) {
+					showMessage('Account deleted successfully', false);
+					localStorage.clear();
+					sessionStorage.clear();
+					authForms.classList.remove('hidden');
+					welcome.classList.add('hidden');
+				} else {
+					showMessage(data.error || 'Failed to delete account', true);
+				}
+			} catch (error) {
+				console.error('Unregister error:', error);
+				showMessage('Server error during account deletion', true);
+			}
+		});
+
+
+		document.getElementById('unregister-google-btn').addEventListener('click', async () => {
+			if (!confirm('⚠️ Are you sure you want to delete your Google account? This action is irreversible.')) return;
+
+			try {
+				shouldReconnect = false;
+				const response = await fetch(`${API_URL}/unregister`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ password: '' }), // Toujours passer une string vide
+					credentials: 'include'
+				});
+
+				const data = await response.json();
+
+				if (response.ok && data.success) {
+					showMessage('Google account deleted successfully', false);
+					localStorage.clear();
+					sessionStorage.clear();
+					authForms.classList.remove('hidden');
+					welcome.classList.add('hidden');
+				} else {
+					showMessage(data.error || 'Failed to delete Google account', true);
+				}
+			} catch (error) {
+				console.error('Unregister (Google) error:', error);
+				showMessage('Server error during account deletion', true);
 			}
 		});
 
@@ -1084,7 +1210,7 @@
 				connectWebSocket();
 			}, 500);
 
-			check2FAStatus(); // Ajouter cette ligne
+			check2FAStatus();
 		}
 
 		// Chat functionality
@@ -1514,9 +1640,20 @@
 			chatMessages.scrollTop = chatMessages.scrollHeight;
 		}
 
+		let isGoogle = false;
+		let hasPassword = false;
+
 		// Fonction pour vérifier le statut 2FA
 		async function check2FAStatus() {
 			try {
+				const accountTypeResponse = await fetch(`${API_URL}/auth/account_type`, {
+					credentials: 'include'
+				});
+				const accountTypeData = await accountTypeResponse.json();
+
+				isGoogle = accountTypeData.data?.is_google_account;
+				hasPassword = accountTypeData.data?.has_password;
+
 				const response = await fetch(`${API_URL}/2fa/status`, {
 					credentials: 'include'
 				});
@@ -1556,21 +1693,39 @@
 			const status = btn.getAttribute('data-status');
 
 			if (status === 'enabled') {
-				// Désactiver 2FA
 				try {
+					let password = '';
+
+					if (!isGoogle || (isGoogle && hasPassword)) {
+						password = prompt("Please enter your password to disable 2FA:");
+						if (!password) {
+							showMessage('Disabling 2FA cancelled: password required', true);
+							return;
+						}
+					}
+
 					const response = await fetch(`${API_URL}/2fa/disable`, {
 						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ password }),
 						credentials: 'include'
 					});
+
 					const data = await response.json();
-					if (data.success) {
-						showMessage('2FA disabled successfully', false);
-						btn.textContent = 'Activate 2FA';
-						btn.setAttribute('data-status', 'disabled');
+
+					if (response.ok && data.success) {
+						showMessage('2FA disabled successfully!', false);
+						// Actualiser l'interface
+						check2FAStatus();
+					} else {
+						showMessage(data.error || 'Failed to disable 2FA', true);
 					}
+
 				} catch (error) {
+					console.error('Disable 2FA error:', error);
 					showMessage('Failed to disable 2FA', true);
 				}
+
 			} else {
 				// Activer 2FA
 				try {

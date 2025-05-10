@@ -22,7 +22,7 @@ check_deps:
 
 update_env_ip:
 	@echo "$(YELLOW)Updating LOCAL_IP in .env file...$(RESET)"
-	@LOCAL_IP=$$(ip addr show enp0s31f6 | grep 'inet ' | awk '{print $$2}' | cut -d'/' -f1); \
+	@LOCAL_IP=$$(ip route get 1 | awk '{print $$7}'); \
 	if [ -z "$$LOCAL_IP" ]; then \
 		echo "$(ORANGE)⚠ Could not retrieve local IP. Please check your network configuration.$(RESET)"; \
 	else \

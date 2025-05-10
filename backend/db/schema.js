@@ -9,15 +9,17 @@ export function initializeDatabase(dbPath)
     db.prepare(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE,
+            username TEXT UNIQUE COLLATE NOCASE,
             password TEXT,
             email TEXT,
 			avatar TEXT DEFAULT '/avatar/avatar.png',
+			google_name TEXT DEFAULT NULL,
 			twofa_secret TEXT DEFAULT NULL,
             settings TEXT DEFAULT '{}',
             wins INTEGER DEFAULT 0,
             losses INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			is_google_account INTEGER DEFAULT 0 -- 0 = false, 1 = true
         )
     `).run();
 

@@ -1,13 +1,11 @@
 import bcrypt from "bcrypt";
 import authService from '../auth/auth.service.js';
 import authUtils from '../auth/auth.utils.js';
-import TwofaService from'../2fa/twofa.service.js';
 import jwt from 'jsonwebtoken';
 import * as wsUtils from '../ws/ws.utils.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret_key';
 
 export async function authRoutes(fastify, options) {
-	const { db } = fastify;
 
 	/*** 📌 Route: REGISTER ***/
 	// Register a new user
@@ -19,21 +17,37 @@ export async function authRoutes(fastify, options) {
 	// The tokens are stored in Redis with the userId as key
 	fastify.post("/register", async (request, reply) => {
 		const { username, password } = request.body;
-	
-		fastify.log.info({ body: request.body }, "Tentative d'inscription");
-		
+
 		const trimmedUsername = username ? username.trim() : '';
-		
+
 		// Verify if the required fields are present
 		if (!trimmedUsername || !password) {
-			fastify.log.warn("Échec d'inscription : username ou password manquant");
+			fastify.log.warn("Failed registration: username or password missing");
 			return reply.code(400).send({ error: "Username and password are required" });
 		}
-	
+
+		const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1).toLowerCase();
+
+		// // Validate username format
+		// const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
+		// if (!usernameRegex.test(capitalizedUsername)) {
+		// 	return reply.code(400).send({
+		// 		error: "Username must be 3-20 characters, letters/numbers/underscores only."
+		// 	});
+		// }
+
+		// // Validate password strength
+		// const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+		// if (!passwordRegex.test(password)) {
+		// 	return reply.code(400).send({
+		// 		error: "Password must be at least 8 characters, include uppercase, lowercase, number, and special character."
+		// 	});
+		// }
+
 		// Verify if the username already exists in the database
-		const existingUser = db.prepare("SELECT id FROM users WHERE username = ?").get(trimmedUsername);
+		const existingUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(capitalizedUsername);
 		if (existingUser) {
-			fastify.log.warn(`Échec d'inscription : Username déjà pris (${trimmedUsername})`);
+			fastify.log.warn(`Failed registration: Username already taken (${capitalizedUsername})`);
 			return reply.code(400).send({ error: "Username already taken" });
 		}
 
@@ -41,39 +55,42 @@ export async function authRoutes(fastify, options) {
 		try {
 			// Hash the password using bcrypt
 			const hashedPassword = await authUtils.hashPassword(password);
-	
+
 			// Insert the user into the database
-			const result = db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(trimmedUsername, hashedPassword);
+			const result = fastify.db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(capitalizedUsername, hashedPassword);
 			const newUserId = result.lastInsertRowid;
-	
+
 			// Get the newly created user from the database
-			const newUser = db.prepare("SELECT id, username FROM users WHERE id = ?").get(newUserId);
-	
+			const newUser = fastify.db.prepare("SELECT id, username FROM users WHERE id = ?").get(newUserId);
+
 			// Generate the access and refresh tokens for the user
 			const { accessToken, refreshToken } = await authService.generateTokens(newUser.id);
 			const isLocal = request.headers.host.startsWith("localhost");
-	
+
 			// Send the response with the tokens in cookies
-			authUtils.setCookie(reply, accessToken, 15, isLocal);
-			authUtils.setCookie(reply, refreshToken, 7, isLocal);
-	
+			authUtils.ft_setCookie(reply, accessToken, 15, isLocal);
+			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal);
+
 			return reply.code(201).send({
 				success: true,
 				message: "User registered and logged in successfully",
-				username: newUser.username,
-				id: newUser.id,
-				avatar: '/assets/avatar.png',
+				data: {
+					username: newUser.username,
+					id: newUser.id,
+					avatar: '/assets/avatar.png',
+				}
 			});
-	
+
 		} catch (error) {
-			fastify.log.error(error, "Erreur lors de l'inscription");
+			fastify.log.error(error, "Error during registration");
 			return reply.code(500).send({
+				success: false,
 				error: "Registration failed",
 				details: error.message
 			});
 		}
 	});
-	
+
 
 	/*** 📌 Route: UNREGISTER ***/
 	// Unregister a user
@@ -84,70 +101,83 @@ export async function authRoutes(fastify, options) {
 	// Delete the user from the database
 	// Return a success message
 	fastify.post("/unregister", async (request, reply) => {
-		const { username, password } = request.body;
-
-		fastify.log.info({ username }, "Tentative de suppression de compte");
+		const userId = request.user.userId;
+		const { password } = request.body;
 
 		try {
-			// Check if the required fields are present
-			if (!username || !password) {
-				fastify.log.warn("Échec de suppression : champs manquants");
-				return reply.code(400).send({ error: "Username and password are required" });
-			}
-
 			// Check if the user exists in the database
-			const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+			const user = fastify.db.prepare("SELECT username, password, is_google_account FROM users WHERE id = ?").get(userId);
 			if (!user) {
-				fastify.log.warn(`Utilisateur non trouvé : ${username}`);
+				fastify.log.warn(`Failed to delete: User not found (ID: ${userId})`);
 				return reply.code(404).send({ error: "User not found" });
 			}
 
-			// Check if the password is correct
-			const validPassword = await bcrypt.compare(password, user.password);
-			if (!validPassword) {
-				fastify.log.warn(`Mot de passe incorrect pour : ${username}`);
-				return reply.code(401).send({ error: "Invalid password" });
+			fastify.log.info(`${user.username} Attempting to delete account`);
+
+			// if user Google without password
+			if (user.is_google_account && !user.password) {
+				fastify.log.info(`${user.username} is a Google-only user with no password. Skipping password check.`);
+			}
+
+			// normal user or Google user with password
+			else {
+				// Check if the required fields are present
+				if (!password) {
+					fastify.log.warn("Failed to delete: missing fields");
+					return reply.code(400).send({ error: "Username and password are required" });
+				}
+
+				// Check if the password is correct
+				const validPassword = await bcrypt.compare(password, user.password);
+				if (!validPassword) {
+					fastify.log.warn(`Failed to delete: Invalid password for user ${user.username}`);
+					return reply.code(401).send({ error: "Invalid password" });
+				}
 			}
 
 			// Using a transaction for atomic deletion
-			const transaction = db.transaction(async () => {
-				fastify.log.info("Révocation des tokens de l'utilisateur");
-				await authService.revokeTokens(user.id);
+			const transaction = fastify.db.transaction(async () => {
+				fastify.log.info("Revoking user tokens");
+				await authService.revokeTokens(userId);
 
-				fastify.log.info("Début de la suppression des données utilisateur");
+				fastify.log.info("Starting user data deletion");
 
-				// Anonymize the user's games instead of deleting them
-				db.prepare(`
-                    UPDATE games 
-                    SET player1_id = CASE 
-                            WHEN player1_id = ? THEN NULL 
-                            ELSE player1_id 
-                        END,
-                        player2_id = CASE 
-                            WHEN player2_id = ? THEN NULL 
-                            ELSE player2_id 
-                        END,
-                        winner_id = CASE 
-                            WHEN winner_id = ? THEN NULL 
-                            ELSE winner_id 
-                        END
-                    WHERE player1_id = ? OR player2_id = ?
-                `).run(user.id, user.id, user.id, user.id, user.id);
+				// Anonymize the user's games by replacing their ID with 0 (deleted user)
+				fastify.db.prepare(`
+				    UPDATE games 
+				    SET player1_id = CASE 
+				            WHEN player1_id = ? THEN 0 
+				            ELSE player1_id 
+				        END,
+				        player2_id = CASE 
+				            WHEN player2_id = ? THEN 0 
+				            ELSE player2_id 
+				        END,
+				        winner_id = CASE 
+				            WHEN winner_id = ? THEN 0 
+				            ELSE winner_id 
+				        END
+				    WHERE player1_id = ? OR player2_id = ?
+				`).run(userId, userId, userId, userId, userId);
 
-				fastify.log.debug(`Parties anonymisées pour : ${username}`);
+				fastify.db.prepare(`
+					DELETE FROM friendships WHERE user_id = ? OR friend_id = ?
+				`).run(userId, userId);
+				fastify.db.prepare(`
+					DELETE FROM blocks WHERE blocker_id = ? OR blocked_id = ?
+				`).run(userId, userId);
 
 				// Delete the user from the database
-				db.prepare("DELETE FROM users WHERE id = ?").run(user.id);
-				fastify.log.debug(`Compte supprimé : ${username}`);
+				fastify.db.prepare("DELETE FROM users WHERE id = ?").run(userId);
+				fastify.log.info(`User deleted: ${user.username}`);
 			});
 
 			// Execute the transaction
 			transaction();
 
-			fastify.log.info({
-				username,
-				success: true
-			}, "Compte supprimé et parties anonymisées avec succès");
+			await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'User unregistered');
+
+			fastify.log.info(`Account deleted and games anonymized successfully`);
 
 			return reply.send({
 				success: true,
@@ -155,7 +185,7 @@ export async function authRoutes(fastify, options) {
 			});
 
 		} catch (error) {
-			fastify.log.error(error, `Erreur lors de la suppression du compte : ${username}`);
+			fastify.log.error(error, `Error while deleting user`);
 			return reply.code(500).send({
 				error: "Failed to delete user"
 			});
@@ -169,15 +199,15 @@ export async function authRoutes(fastify, options) {
 	// This route is used to check if a username is already taken
 	fastify.get("/isUser/:username", async (request, reply) => {
 		const { username } = request.params;
-		fastify.log.debug(`Vérification de l'existence de l'utilisateur : ${username}`);
+		fastify.log.info(`Verfication of user existence: ${username}`);
 
-		const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+		const user = fastify.db.prepare("SELECT * FROM users WHERE username = ?").get(username);
 		const exists = !!user;
 
 		if (exists) {
-			fastify.log.info(`Utilisateur trouvé : ${username}\n`);
+			fastify.log.info(`User found: ${username}\n`);
 		} else {
-			fastify.log.info(`Utilisateur non trouvé : ${username}\n`);
+			fastify.log.info(`User not found: ${username}\n`);
 		}
 
 		return reply.send({ exists });
@@ -192,19 +222,19 @@ export async function authRoutes(fastify, options) {
 		const { username } = request.body;
 
 		if (!username) {
-			fastify.log.warn("Tentative de récupération d'ID sans username");
+			fastify.log.warn("Attempt to get user ID without username");
 			return reply.code(400).send({ error: "Username is required" });
 		}
 
-		fastify.log.info(`Recherche de l'ID pour l'utilisateur: ${username}`);
+		fastify.log.info(`Searching for ID for user: ${username}`);
 
-		const user = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
+		const user = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(username);
 		if (!user) {
-			fastify.log.warn(`Utilisateur non trouvé: ${username}`);
+			fastify.log.warn(`User not found: ${username}`);
 			return reply.code(404).send({ error: "User not found" });
 		}
 
-		fastify.log.info(`ID trouvé pour ${username}: ${user.id}`);
+		fastify.log.info(`User ID found for ${username}: ${user.id}`);
 		return { success: true, id: user.id };
 	});
 
@@ -223,21 +253,25 @@ export async function authRoutes(fastify, options) {
 			fastify.log.info({ username }, "Tentative de connexion");
 
 			// Verify if user and password are provided and if password is valid using bcrypt
-			const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+			const user = fastify.db.prepare("SELECT * FROM users WHERE username = ?").get(username);
 			if (!user || !(await bcrypt.compare(password, user.password))) {
-				fastify.log.warn(`Échec de connexion pour: ${username}`);
+				fastify.log.warn(`Login failed for: ${username}`);
 				return reply.code(401).send({ error: "Invalid credentials" });
 			}
 
 			// Vérifie si 2FA activée
 			if (user.twofa_secret) {
-				// Génère un token temporaire limité à la 2FA
-				const tempToken = await TwofaService.generateTemp2FAToken(user.id);
-				return reply.code(200).send({
-					step: "2fa_required",
-					message: "2FA is enabled. Please provide the verification code.",
-					temp_token: tempToken
-				});
+				try {
+					const tempToken = await authService.generateTempToken({ userId: user.id }, "2fa", 300);
+					return reply.code(202).send({
+						step: "2fa_required",
+						message: "2FA is enabled. Please provide the verification code.",
+						temp_token: tempToken
+					});
+				} catch (twoFaError) {
+					fastify.log.error(twoFaError, `2FA token generation error in google Oauth:`);
+					throw new Error('Failed to generate 2FA token in google Oauth');
+				}
 			}
 
 			// Generate access and refresh tokens
@@ -247,22 +281,23 @@ export async function authRoutes(fastify, options) {
 			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Set the cookies for the tokens
-			authUtils.setCookie(reply, accessToken, 15, isLocal); // accessToken : 15 min
-			authUtils.setCookie(reply, refreshToken, 7, isLocal); // refreshToken : 7 jours
+			authUtils.ft_setCookie(reply, accessToken, 15, isLocal); // accessToken : 15 min
+			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal); // refreshToken : 7 jours
 
-			reply.code(201).send({
+			reply.code(200).send({
 				success: true,
 				message: "Login successful",
 				username: user.username,
 				id: user.id
 			});
 		} catch (error) {
-			fastify.log.error(error, "Erreur lors de la tentative de connexion");
+			fastify.log.error(error, "Error during login attempt");
 			return reply.code(500).send({
 				error: "Login failed"
 			});
 		}
 	});
+
 
 	/*** 📌 Route: REFRESH TOKEN ***/
 	// Refresh the access token using the refresh token
@@ -290,13 +325,13 @@ export async function authRoutes(fastify, options) {
 			const decoded = jwt.verify(newAccessToken, JWT_SECRET);
 
 			// Récupérer les informations de l'utilisateur
-			const user = db.prepare("SELECT username FROM users WHERE id = ?").get(decoded.userId);
+			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(decoded.userId);
 
 			// Check if the application is running locally or in production
 			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Définir le nouveau cookie avec le même format que verify_token
-			authUtils.setCookie(reply, newAccessToken, 15, isLocal); // accessToken : 15 min
+			authUtils.ft_setCookie(reply, newAccessToken, 15, isLocal);
 
 			fastify.log.info('Access token refreshed successfully for user:', user.username);
 
@@ -306,7 +341,7 @@ export async function authRoutes(fastify, options) {
 			});
 
 		} catch (error) {
-			fastify.log.error(error);
+			fastify.log.error(error, `Error during token refresh`);
 			return reply.code(500).send({
 				error: "Failed to refresh token"
 			});
@@ -321,19 +356,18 @@ export async function authRoutes(fastify, options) {
 	// Close the WebSocket connection for the user
 	fastify.post("/logout", async (request, reply) => {
 		const userId = request.user.userId;
-		const db = request.server.db;
 
 		fastify.log.info('Processing logout for user:', userId);
-	
+
 		try {
 			// Vérifier si l'utilisateur existe dans la base de données
-			const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 			if (!user) {
-				fastify.log.warn(`Utilisateur non trouvé pour la révocation: ID ${userId}`);
+				fastify.log.info(`User not found for logout: ID ${userId}`);
 				return reply.code(404).send({ error: "User not found" });
 			}
 			// Fermer la connexion WebSocket pour l'utilisateur et mettre à jour son statut
-			await wsUtils.handleAllUserConnectionsClose(fastify, userId, user.username, 'User Logged Out');
+			await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'User Logged Out');
 			// Révoquer les tokens de l'utilisateur
 			await authService.revokeTokens(userId);
 			// Vérification de l'environnement local ou de production
@@ -344,9 +378,9 @@ export async function authRoutes(fastify, options) {
 				httpOnly: true,
 				sameSite: 'None'
 			};
-	
+
 			fastify.log.info('Logout successful for user:', userId);
-			
+
 			// Effacer les cookies pour accessToken et refreshToken
 			return reply
 				.code(200)
@@ -355,16 +389,16 @@ export async function authRoutes(fastify, options) {
 				.header('Access-Control-Allow-Credentials', 'true')
 				.header('Access-Control-Allow-Origin', request.headers.origin || 'https://localhost:8443')
 				.send({ success: true, message: "Logged out successfully" });
-	
+
 		} catch (error) {
-			fastify.log.error('Logout error:', error);
+			fastify.log.error(error, 'Logout error:');
 			return reply.code(500).send({
 				error: 'Logout failed',
-				details: error.message // Ajout d'un message d'erreur détaillé
+				details: error.message
 			});
 		}
 	});
-	
+
 
 	/*** 📌 Route: REVOKE TOKEN ***/
 	// Revoke a user's tokens
@@ -377,26 +411,26 @@ export async function authRoutes(fastify, options) {
 		const { userId } = request.body;
 
 		if (!userId) {
-			fastify.log.warn("Tentative de révocation sans userId");
+			fastify.log.info("Attempt to revoke without userId");
 			return reply.code(400).send({ error: "User ID is required" });
 		}
 
 		try {
 			// Verify if the user exists in the database
-			const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 			if (!user) {
-				fastify.log.warn(`Utilisateur non trouvé pour la révocation: ID ${userId}`);
+				fastify.log.info(`User not found in fastify.db for revoke: ID ${userId}`);
 				return reply.code(404).send({ error: "User not found" });
 			}
 
-			fastify.log.info(`Révocation des tokens pour l'utilisateur: ${user.username} (ID: ${userId})`);
+			fastify.log.info(`Revoking tokens for user: ${user.username} (ID: ${userId})`);
 
 			// Update the user's online status in the database before closing the WebSocket
 			await wsUtils.updateUserOnlineStatus(userId, false);
 			await wsUtils.broadcastUserStatus(fastify, userId, false);
 
 			// Close the WebSocket connection for the user
-			await wsUtils.handleAllUserConnectionsClose(fastify, userId, user.username, 'User Revoked');
+			await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'User Revoked');
 
 			// Revoke the user's tokens
 			await authService.revokeTokens(userId);
@@ -411,7 +445,7 @@ export async function authRoutes(fastify, options) {
 				sameSite: 'None'
 			};
 
-			fastify.log.info(`Tokens révoqués avec succès pour l'utilisateur: ${user.username}`);
+			fastify.log.info(`Tokens revoked successfully for user: ${user.username}`);
 
 			return reply
 				.clearCookie('accessToken', cookieOptions)
@@ -422,8 +456,8 @@ export async function authRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error('Revoke error:', error);
-			return reply.code(500).send({ 
-				error: 'Revoke failed' 
+			return reply.code(500).send({
+				error: 'Revoke failed'
 			});
 		}
 	});
@@ -437,61 +471,69 @@ export async function authRoutes(fastify, options) {
 	fastify.post("/verify_token", async (request, reply) => {
 		const accessToken = request.cookies?.accessToken;
 		const refreshToken = request.cookies?.refreshToken;
-		const db = request.server.db;
 
-		fastify.log.info('Verify Token Request:', {
-			hasAccessToken: !!accessToken,
-			hasRefreshToken: !!refreshToken,
-			cookies: request.cookies
-		});
+		const isLocal = request.headers.host.startsWith("localhost");
+		const cookieOptions = {
+			path: '/',
+			secure: !isLocal,
+			httpOnly: true,
+			sameSite: !isLocal ? 'None' : 'Lax'
+		};
 
-		// Si aucun token n'est fourni, retourner simplement valid: false
-		if (!accessToken && !refreshToken) {
-			fastify.log.info('Aucun token fourni');
-			return reply.code(200).send({
-				valid: false,
-				message: 'No token provided'
-			});
-		}
+		try {
+			// Check if the access token and refresh token are provided
+			if (!accessToken && !refreshToken) {
+				fastify.log.info('No token provided');
+				return reply.code(401).send({ valid: false, message: 'No token provided' });
+			}
+			// Validate the Access and if necessary, refresh the tokens
+			const result = await authService.validate_and_refresh_Tokens(fastify, accessToken, refreshToken);
 
-		const result = await authService.validateToken(accessToken, refreshToken, 'access', db);
+			if (!result.success) {
+				// If the access token is invalid and the refresh token is also invalid
+				fastify.log.info('Invalid or expired token');
+				// Try to decode the token to get the userId
+				const decoded = jwt.decode(accessToken || refreshToken);
+				const userId = decoded?.userId;
 
-		// Si la validation échoue, nettoyer les cookies et retourner valid: false
-		if (!result) {
-			fastify.log.info('Token invalide ou expiré');
+				if (userId) {
+					const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+					if (user) {
+						await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'Invalid token from middleware');
+					}
+				}
+				return reply
+					.code(401)
+					.clearCookie('accessToken', cookieOptions)
+					.clearCookie('refreshToken', cookieOptions)
+					.send({ valid: false, message: 'Invalid or expired token' });
+			}
+			// If the access token has been refreshed, update the cookie
+			if (result.newAccessToken) {
+				fastify.log.info('New access token generated, updating cookie');
+				authUtils.ft_setCookie(reply, result.newAccessToken, 15, isLocal);
+			}
+			// If the tokens are valid, set the userId in the request object
+			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(result.userId);
+			if (!user) {
+				fastify.log.warn(`User not found for ID: ${result.userId}`);
+				return reply
+					.code(401)
+					.clearCookie('accessToken', cookieOptions)
+					.clearCookie('refreshToken', cookieOptions)
+					.send({ valid: false, message: 'User not found' });
+			}
 
-			const isLocal = request.headers.host.startsWith("localhost");
-			const cookieOptions = {
-				path: '/',
-				secure: !isLocal,
-				httpOnly: true,
-				sameSite: !isLocal ? 'None' : 'Lax'
-			};
+			fastify.log.info('Token verified successfully for user:', user.username);
+			return reply.send({ valid: true, username: user.username });
 
-			// Nettoyer les cookies expirés
-			return reply.code(200)
+		} catch (error) {
+			fastify.log.error(error, 'Error during token verification');
+			return reply
+				.code(500)
 				.clearCookie('accessToken', cookieOptions)
 				.clearCookie('refreshToken', cookieOptions)
-				.send({
-					valid: false, 
-					message: 'Invalid or expired token'
-				});
+				.send({ valid: false, message: 'Token verification failed' });
 		}
-
-		// Si un nouveau accessToken a été généré
-		if (result.newAccessToken) {
-			fastify.log.info('New access token generated, updating cookie');
-
-			const isLocal = request.headers.host.startsWith("localhost");
-			authUtils.setCookie(reply, result.newAccessToken, 15, isLocal); // accessToken : 15 min
-		}
-
-		// Récupérer l'utilisateur et retourner la réponse
-		const user = db.prepare("SELECT username FROM users WHERE id = ?").get(result.userId);
-		fastify.log.info('Token verified successfully for user:', user.username);
-		return reply.send({
-			valid: true,
-			username: user.username
-		});
 	});
 }

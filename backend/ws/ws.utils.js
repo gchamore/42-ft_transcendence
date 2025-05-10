@@ -1,6 +1,4 @@
 import redis from '../redis/redisClient.js';
-import authService from '../auth/auth.service.js';
-
 
 
 // This function checks if a user has blocked another user
@@ -21,8 +19,7 @@ export function hasUserBlocked(fastify, blockerId, blockedId) {
 // It updates the online status and broadcasts the offline status to other clients
 // It requires the user to be authenticated
 // It handles the connection close event
-export async function handleSingleUserConnectionClose(fastify, connection, pingInterval, code, reason, userId, username, connectionId) {
-	clearInterval(pingInterval);
+export async function handleSingleUserConnectionClose(fastify, connection, code, reason, userId, username, connectionId) {
 
 	const userConnections = fastify.connections.get(userId);
 	if (!userConnections) {
@@ -45,23 +42,24 @@ export async function handleSingleUserConnectionClose(fastify, connection, pingI
 	}
 }
 
+
 export async function handleAllUserConnectionsClose(fastify, userId, username, reason = 'Disconnected by server') {
-	
-	fastify.log.info(`🚪 Closing ALL WebSocket connections for current user with reason: "${reason}"`);
-	
+	fastify.log.info(`🚪 Closing ALL WebSocket connections for user ${username} (${userId}) with reason: "${reason}"`);
+
 	const userConnections = fastify.connections.get(userId);
 	if (!userConnections) {
-		fastify.log.info(`No active connections to close for user: ${username} (${userId})`);
+		fastify.log.info(`No active WebSocket connections to close for user: ${username}`);
 		return;
 	}
 
 	for (const [connectionId, socket] of userConnections.entries()) {
 		if (socket.readyState < 2) {
-			fastify.log.info(`Closing connection [ID: ${connectionId}] for user: ${username}`);
 			try {
+				socket.isDisconnecting = true;
 				socket.close(1000, reason);
+				fastify.log.info(`Closed WebSocket connection [ID: ${connectionId}] for user: ${username}`);
 			} catch (err) {
-				fastify.log.error(`Error closing connection [ID: ${connectionId}]: ${err}`);
+				fastify.log.error(`Error closing connection [ID: ${connectionId}] for user ${username}:`, err);
 			}
 		}
 	}
@@ -71,15 +69,15 @@ export async function handleAllUserConnectionsClose(fastify, userId, username, r
 	await broadcastUserStatus(fastify, userId, false);
 }
 
-export async function handleAllConnectionsCloseForAllUsers(fastify, reason = 'Disconnected by server') {
-	clearInterval(pingInterval);
 
+export async function handleAllConnectionsCloseForAllUsers(fastify, reason = 'Disconnected by server') {
 	fastify.log.info(`🚪 Closing ALL WebSocket connections with reason: "${reason}"`);
 
 	for (const [userId, userConnections] of fastify.connections.entries()) {
 		for (const [connectionId, socket] of userConnections.entries()) {
 			if (socket.readyState < 2) {
 				try {
+					socket.isDisconnecting = true;
 					socket.close(1000, reason);
 					fastify.log.info(`Closed connection [ID: ${connectionId}] for user: ${userId}`);
 				} catch (err) {
@@ -89,10 +87,10 @@ export async function handleAllConnectionsCloseForAllUsers(fastify, reason = 'Di
 		}
 	}
 
-	// 1. Vider fastify.connections
+	// Nettoyage global de fastify.connections
 	fastify.connections.clear();
 
-	// 2. Vider Redis
+	// Nettoyage Redis
 	try {
 		await redis.del('online_users');
 		fastify.log.info('✅ Cleared online_users from Redis');
@@ -100,6 +98,7 @@ export async function handleAllConnectionsCloseForAllUsers(fastify, reason = 'Di
 		fastify.log.error('❌ Failed to clear Redis online_users:', err);
 	}
 }
+
 
 
 export async function handleConnectionError(fastify, connection, error, userId, connectionId, username) {
@@ -187,7 +186,7 @@ export function broadcastToAllExceptSender(fastify, payload, excludeUserId) {
 // It checks if the socket is open before sending the message
 // It returns true if the message was sent, false otherwise
 export function sendToUser(fastify, userId, payload) {
-	const userConnections = fastify.connections.get(String(userId));
+	const userConnections = fastify.connections.get(userId);
 	if (!userConnections) return false;
 
 	for (const [, socket] of userConnections.entries()) {
@@ -245,14 +244,6 @@ export async function updateUserOnlineStatus(userId, isOnline) {
 // It returns true if the user was added to the set
 export async function isUserOnline(userId) {
 	return await redis.sismember('online_users', userId.toString());
-}
-
-// This function validates the WebSocket token
-// It checks if the token is valid using the authService
-export async function validateWebSocketToken(accessToken, refreshToken, db) {
-	if (!accessToken && !refreshToken)
-		return null;
-	return await authService.validateToken(accessToken, refreshToken, 'access', db);
 }
 
 // This function handles live chat messages
@@ -332,7 +323,7 @@ export async function handleDirectMessage(fastify, senderId, recipientUsername, 
 	if (!recipientUser) {
 		return { success: false, error: 'Recipient not found' };
 	}
-
+	recipientUser.id = recipientUser.id.toString();
 	// Verify if the sender is blocked by the recipient
 	const isBlocked = fastify.db.prepare(`
         SELECT 1 FROM blocks 

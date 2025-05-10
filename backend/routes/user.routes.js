@@ -1,4 +1,5 @@
 import { pipeline } from 'stream/promises';
+import authUtils from '../auth/auth.utils.js';
 import bcrypt from 'bcrypt';
 import sharp from 'sharp';
 import fs from 'fs';
@@ -12,13 +13,13 @@ export async function userRoutes(fastify, options) {
         const friendUsername = request.params.username;
         const userId = request.user.userId;
 
-		fastify.log.info(`Tentative d'ajout d'ami: ${friendUsername}`);
+		fastify.log.info(`Try to add friend: ${friendUsername}`);
 
 		try {
 			// Check if the user to be added exists
 			const friend = db.prepare("SELECT id, username FROM users WHERE username = ?").get(friendUsername);
 			if (!friend) {
-				fastify.log.warn(`Utilisateur non trouvé: ${friendUsername}`);
+				fastify.log.warn(`User not found: ${friendUsername}`);
 				return reply.code(404).send({ error: "User not found" });
 			}
 			// Check if the user is trying to add themselves
@@ -39,11 +40,11 @@ export async function userRoutes(fastify, options) {
 				"INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)"
 			).run(userId, friend.id);
 
-			fastify.log.info(`Ami ajouté avec succès: ${friendUsername}`);
+			fastify.log.info(`Friend added successfully: ${friendUsername}`);
 			return { success: true };
 
 		} catch (error) {
-			fastify.log.error(error);
+			fastify.log.error(`Error adding friend: ${friendUsername}`, error);
 			return reply.code(500).send({ error: "Failed to add friend" });
 		}
 	});
@@ -72,7 +73,7 @@ export async function userRoutes(fastify, options) {
 			return { success: true };
 
 		} catch (error) {
-			fastify.log.error(error);
+			fastify.log.error(`Error removing friend: ${friendUsername}`, error);
 			return reply.code(500).send({ error: "Failed to remove friend" });
 		}
 	});
@@ -159,7 +160,7 @@ export async function userRoutes(fastify, options) {
 			};
 
 		} catch (error) {
-			fastify.log.error(error);
+			fastify.log.error(`Error searching user: ${searchedUsername}`, error);
 			return reply.code(500).send({ error: "Failed to search user" });
 		}
 	});
@@ -271,32 +272,65 @@ export async function userRoutes(fastify, options) {
 
 			// ✅ Username
 			if (username && username !== currentUser.username) {
-				console.log("🔧 Update username with:", username, userId);
-				const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(username, userId);
+				const trimmedUsername = username.trim();
+				const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1);
+			
+				const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
+				if (!usernameRegex.test(capitalizedUsername)) {
+					return reply.code(400).send({ error: "Username must be 3-20 characters, letters/numbers/underscores only." });
+				}
+			
+				const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(capitalizedUsername, userId);
 				if (exists) return reply.code(400).send({ error: "Username already taken" });
-
-				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(username, userId);
+			
+				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(capitalizedUsername, userId);
 				somethingUpdated = true;
 			}
 
 			// ✅ Password
-			if (password && !bcrypt.compareSync(password, currentUser.password)) {
-				console.log("🔧 Update password with:", password, userId);
-				const hashedPassword = await bcrypt.hash(password, 10);
-				db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
-				somethingUpdated = true;
+			if (password) {
+				const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+				if (!passwordRegex.test(password)) {
+					return reply.code(400).send({
+						error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character."
+					});
+				}
+			
+				if (currentUser.is_google_account && !currentUser.password) {
+					// ✅ Cas Google OAuth sans mot de passe → autorisé à définir pour la 1re fois
+					const hashedPassword = await authUtils.hashPassword(password);
+					db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
+					somethingUpdated = true;
+				} else {
+					// 🔐 Sinon, on exige oldPassword pour mise à jour
+					const { oldPassword } = request.body;
+					if (!oldPassword || !bcrypt.compareSync(oldPassword, currentUser.password)) {
+						return reply.code(401).send({ error: "Incorrect current password." });
+					}
+			
+					const hashedPassword = await authUtils.hashPassword(password);
+					db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
+					somethingUpdated = true;
+				}
 			}
-
+			
 			// ✅ Email
 			if (email && email !== currentUser.email) {
-				console.log("🔧 Update email with:", email, userId);
+				fastify.log.info(`🔧 Attempt to update email with:, ${email}, ${userId}`);
+
+				if (currentUser.is_google_account) {
+					return reply.code(400).send({ error: "Cannot change email for Google-authenticated accounts" });
+				}
+
 				const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 				if (!emailRegex.test(email)) {
 					return reply.code(400).send({ error: "Invalid email format" });
 				}
+
 				db.prepare("UPDATE users SET email = ? WHERE id = ?").run(email, userId);
 				somethingUpdated = true;
 			}
+
 
 			if (!somethingUpdated)
 				return reply.code(400).send({ error: "Nothing was updated" });
@@ -317,7 +351,7 @@ export async function userRoutes(fastify, options) {
 			return reply.code(400).send({ error: "Request is not multipart/form-data" });
 		}
 		const avatar = await request.file();
-		console.log("🧩 Avatar reçu:", avatar);
+		fastify.log.info(`✅ Avatar reçu: ${avatar}`);
 		try {
 			const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 			if (!currentUser) {

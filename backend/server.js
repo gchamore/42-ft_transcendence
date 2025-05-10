@@ -3,7 +3,7 @@ import { initializeDatabase } from "./db/schema.js";
 import WebSocket from "@fastify/websocket";
 import redis from "./redis/redisClient.js";
 import * as wsUtils from "./ws/ws.utils.js";
-import { authMiddleware } from "./jwt/middlewares/auth.middleware.js";
+import { authMiddleware } from "./middleware/auth.middleware.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { gameRoutes } from "./routes/game.routes.js";
 import { userRoutes } from "./routes/user.routes.js";
@@ -44,12 +44,20 @@ app.decorate('connections', new Map());
 
 // Base de données SQLite
 try {
-    const db = initializeDatabase(process.env.DATABASE_URL);
-    app .decorate('db', db);
+	const db = initializeDatabase(process.env.DATABASE_URL);
+
+	// 🔐 Forcer la création de l'utilisateur "deleted"
+	db.prepare(`
+		INSERT OR IGNORE INTO users (id, username, password)
+		VALUES (0, '[deleted]', '')
+	`).run();
+
+	app.decorate('db', db);
 } catch (error) {
-    console.error('Database initialization error:', error);
-    process.exit(1);
+	fastify.log.error(error, 'Database initialization error:');
+	process.exit(1);
 }
+
 
 app.register(cookie);
 
@@ -59,26 +67,18 @@ const publicRoutes = [
     '/register',
     '/refresh',
     '/verify_token',
-	'/auth/google/token',
+	'/auth/google',
 	'/2fa/verify',
-	'/2fa/verify',
-	'/ws'
+	'/ws',
 ];
 
 // Middleware d'authentification
 app.addHook('onRequest', (request, reply, done) => {
-    // Log pour debug
-    app.log.debug({
-        path: request.routeOptions?.url,
-        method: request.method,
-        isPublic: publicRoutes.some(route => request.routeOptions?.url?.startsWith(route))
-    }, 'Route check');
-
     if (request.method === 'OPTIONS' || 
         publicRoutes.some(route => request.routeOptions?.url?.startsWith(route))) {
         return done();
     }
-	authMiddleware(request, reply, done);
+	authMiddleware(app, request, reply, done);
 });
 
 app.register(authRoutes);
@@ -90,48 +90,36 @@ app.register(twofaroutes);
 
 
 const cleanup = async (signal) => {
-	console.log(`\n${signal} received. Cleaning up...`);
+	app.log.info(`${signal} received. Cleaning up...`);
 
 	try {
-        // Nettoyage des games et des lobbies
+		// Cleanup all games and lobbies
         cleanupAllGamesAndLobbies();
         
-		// Petite pause pour laisser le temps aux signaux en attente de se propager
+		// Little break to let pending signals propagate
 		await new Promise(res => setTimeout(res, 200));
 
+		// Close all WebSocket connections
+		await wsUtils.handleAllConnectionsCloseForAllUsers(app,'Server shutting down');
 
-		// Fermeture des connexions WebSocket utilisateur par utilisateur
-		for (const [userId] of app.connections.entries()) {
-			const user = app.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-			const username = user?.username || 'Unknown';
-			await wsUtils.handleAllUserConnectionsClose(app, userId, username , 'Server shutting down');
-		}
-
-		// Vider Redis : supprime tous les utilisateurs en ligne
-		const onlineUsers = await redis.smembers('online_users');
-		if (onlineUsers.length > 0) {
-			await redis.del('online_users');
-			console.log(`🧹 Redis online_users list cleaned (${onlineUsers.length})`);
-		}
-
-		// Fermeture du serveur Fastify
+		// Fastify closure
 		await app.close();
 
-		// Fermeture SQLite
+		// SQLite closure
 		if (app.db?.close) {
-			app.db.close(); // SQLite est sync
+			app.db.close();
 		}
 
-		// Fermeture Redis
+		// Redis closure
 		if (redis && redis.status !== 'end') {
 			await redis.quit();
 		}
 
-		console.log("✅ Cleanup complete. Exiting now.");
+		app.log.info(`✅ Cleanup complete. Exiting now.`);
 		process.exit(0);
 
 	} catch (error) {
-		console.error('❌ Cleanup error:', error);
+		app.log.error(`❌ Cleanup error:'${error}`);
 		process.exit(1);
 	}
 };
@@ -143,8 +131,7 @@ process.on('SIGINT', () => cleanup('SIGINT'));
 // ====== Démarrage du serveur ======
 app.listen({ port: 3000, host: '0.0.0.0' }, (err, address) => {
     if (err) {
-        console.error('Server start error:', err);
+        fastify.log.error(err, `Server start error:`);
         process.exit(1);
     }
-    console.log(`🚀 Server ready at ${address}`);
 });
