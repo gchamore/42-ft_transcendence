@@ -2,7 +2,7 @@ import { GameInstance } from '../classes/gameInstance.js';
 import { games } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleNewGamePlayer } from './gameMessageHandlers.js';
-import { tournaments, gamePlayerNumbers, tournamentPlayerNumbers } from '../../routes/game.routes.js';
+import { tournaments, gamePlayerNumbers, tournamentPlayerNumbers, tournamentQueue, tournamentDisplayNames } from '../../routes/game.routes.js';
 import WebSocket from 'ws';
 
 export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fastify) {
@@ -11,7 +11,7 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 		console.error('Socket not in OPEN state');
 		return;
 	}
-	socket.currentCloseHandler = () => handleLobbyDisconnect(socket, lobby);
+	socket.currentCloseHandler = (fastify) => handleLobbyDisconnect(socket, lobby, fastify);
 	// Handle disconnect
 	socket.on('close', () => {
 		if (socket.currentCloseHandler) {
@@ -62,31 +62,42 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 
 }
 
-function handleLobbyDisconnect(socket, lobby) {
+function handleLobbyDisconnect(socket, lobby, fastify) {
 
 	console.log(`Player ${socket.playerNumber} disconnected from lobby ${lobby.lobbyId}`);
-	let message= `Player ${socket.playerNumber} disconnected`;
+	let message = `Player ${socket.playerNumber} disconnected`;
 	if (lobby.isTournament) {
 		message = `Player ${socket.playerNumber} disconnected, tournament has ended`;
 	} else {
 		message = `Player ${socket.playerNumber} disconnected, game has ended`;
 	}
-	// Notify remaining players in the lobby
-	lobby.players.forEach((playerSocket) => {
-		safeSend(playerSocket, {
-			type: 'opponentDisconnected',
-			message: message
+	if (!lobby.notified) {
+		// Notify remaining players in the lobby
+		lobby.players.forEach((playerSocket) => {
+			safeSend(playerSocket, {
+				type: 'opponentDisconnected',
+				message: message
+			});
 		});
-	});
+		lobby.notified = true;
+	}
 	lobby.removePlayer(socket.clientId);
 	const clientIdStr = String(socket.clientId);
-    if (gamePlayerNumbers.has(clientIdStr)) {
-        gamePlayerNumbers.delete(clientIdStr);
-		console.log(`Removed game player number for clientId ${clientIdStr}`);
-    }
-    if (tournamentPlayerNumbers.has(clientIdStr)) {
-        tournamentPlayerNumbers.delete(clientIdStr);
-    }	
+	if (gamePlayerNumbers.has(clientIdStr)) {
+		gamePlayerNumbers.delete(clientIdStr);
+	}
+	if (tournamentPlayerNumbers.has(clientIdStr)) {
+		tournamentPlayerNumbers.delete(clientIdStr);
+	}
+	const tqIdx = tournamentQueue.indexOf(socket.clientId);
+	if (tqIdx !== -1) {
+		tournamentQueue.splice(tqIdx, 1);
+	}
+	tournamentDisplayNames.delete(socket.clientId);
+	cleanUpSocketListeners(socket);
+	const userConnections = fastify.connections.get(socket.clientId);
+	if (userConnections)
+		userConnections.delete(socket.connectionId);
 }
 
 function handleLobbyMessage(socket, lobby, data, fastify) {
@@ -184,4 +195,22 @@ function startTournamentGame(lobby, tournament, gameId, settings) {
 		console.log(`starting tournament game ${match.matchId} with players ${match.players}`);
 	});
 	return;
+}
+
+function cleanUpSocketListeners(socket) {
+	try {
+		const playerNum = socket.playerNumber;
+
+		socket.removeAllListeners('message');
+		socket.removeAllListeners('close');
+		socket.removeAllListeners('error');
+
+		socket.gameInstance = null;
+		socket.isDisconnecting = true;
+		socket.playerNumber = null;
+
+		console.log(`Cleaned up listeners for player ${playerNum}`);
+	} catch (e) {
+		console.error('Error cleaning up socket listeners:', e);
+	}
 }

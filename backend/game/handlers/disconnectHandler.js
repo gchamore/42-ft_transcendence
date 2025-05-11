@@ -1,5 +1,6 @@
 import { games, broadcastGameState } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
+import { tournaments } from '../../routes/game.routes.js';
 
 export function handleDisconnect(socket, game, fastify) {
 	if (!validateDisconnectParams(socket, game)) return;
@@ -7,25 +8,87 @@ export function handleDisconnect(socket, game, fastify) {
 	const playerNumber = socket.playerNumber;
 	console.log(`Player ${playerNumber} disconnected from game ${game.gameId}`);
 
-	if (game.players.size > 1)
-		saveGameResults(game, fastify);
+	const tournament = findTournamentByGameId(game.gameId);
+	if (tournament) {
+		if (!tournament.ended) {
+			console.log(`Player ${playerNumber} disconnected from tournament ${tournament.tournamentId}`);
 
+			// Gather all sockets for all players in the tournament
+			const allSockets = [];
+			for (const match of tournament.bracket) {
+				for (const player of match.players) {
+					const userConnections = fastify.connections.get(player.id);
+					if (userConnections) {
+						for (const [, socket] of userConnections.entries()) {
+							allSockets.push(socket);
+						}
+					}
+				}
+			}
+
+			// Use the score from the current game or a default score
+			const score = game.getState().score || {
+				player1: { name: "Player1", score: 0 },
+				player2: { name: "Player2", score: 0 }
+			};
+
+			notifyTournamentPlayers(allSockets, score, `A player disconnected. The tournament has ended.`);
+			tournament.ended = true;
+		}
+		game.removePlayer(socket);
+		cleanUpSocketListeners(socket);
+		const userConnections = fastify.connections.get(socket.clientId);
+		if (userConnections)
+			userConnections.delete(socket.connectionId);
+		const idx = tournament.players.indexOf(socket.clientId);
+		if (idx !== -1) {
+			tournament.players.splice(idx, 1);
+		}
+		if (tournament.players.size === 0)
+			tournaments.delete(tournament.tournamentId);
+		return;
+	}
 	game.removePlayer(socket);
-	cleanUpSocketListeners(socket);
-
-	if (game.players.size === 0) {
-		game.cleanup();
-	} else if (game.players.size === 1) {
+	if (game.players.size === 1) {
 		handleRemainingPlayers(game, playerNumber);
+		saveGameResults(game, fastify);
+	}
+	cleanUpSocketListeners(socket);
+	const userConnections = fastify.connections.get(socket.userId);
+	if (userConnections)
+		userConnections.delete(socket.connectionId);
+	if (game.players.size === 0) {
+		games.delete(game.gameId);
+		const gameId = game.gameId;
+		game.cleanup();
+		console.log(`Game ${gameId} removed after player disconnect`);
 	}
 }
 
-export function removeMessageListeners(socket) {
-	try{
-		socket.removeAllListeners();
-		console.log(`Removed message and close listeners from socket`);
+function findTournamentByGameId(gameId) {
+	for (const tournament of tournaments.values()) {
+		if (tournament.bracket.some(match => match.matchId === gameId)) {
+			return tournament;
+		}
+	}
+	return null;
+}
+
+function notifyTournamentPlayers(players, score, message) {
+	try {
+		players.forEach((playerSocket) => {
+			safeSend(playerSocket, {
+				type: 'gameOver',
+				reason: 'tournamentEnded',
+				score: {
+					player1: { name: score.player1?.name || "Player1", score: score.player1?.score ?? 0 },
+					player2: { name: score.player2?.name || "Player2", score: score.player2?.score ?? 0 }
+				},
+				message: message || "The tournament has ended due to a player disconnect."
+			});
+		});
 	} catch (e) {
-		console.error('Error removing message listeners:', e);
+		console.error('Error notifying tournament players:', e);
 	}
 }
 
@@ -46,7 +109,7 @@ function validateDisconnectParams(socket, game) {
 	return true;
 }
 
-function saveGameResults(game, fastify) { 
+function saveGameResults(game, fastify) {
 	try {
 		console.log('Saving game results...');
 		const score = game.getState().score;
@@ -109,15 +172,18 @@ function handleRemainingPlayers(game, disconnectedPlayerNumber) {
 		if (remainingPlayer) {
 			const score = game.getState().score;
 			const winnerNumber = remainingPlayer.playerNumber;
-			
+
 
 			// Notify remaining player about the disconnect
 			safeSend(remainingPlayer, {
 				type: 'gameOver',
 				reason: 'opponentDisconnected',
 				winner: winnerNumber,
-				score1: score.player1Score,
-				score2: score.player2Score,
+				winnerDisplayName: remainingPlayer.displayName,
+				finalScore: {
+					player1: { name: score.player1?.name || "Player1", score: score.player1?.score ?? 0 },
+					player2: { name: score.player2?.name || "Player2", score: score.player2?.score ?? 0 }
+				},
 				message: `Player ${disconnectedPlayerNumber} disconnected. You win!`
 			});
 

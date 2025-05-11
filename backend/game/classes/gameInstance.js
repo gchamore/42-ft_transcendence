@@ -1,6 +1,7 @@
 import { GameStateManager } from './gameStateManager.js';
 import { PhysicManager } from './physicManager.js';
 import { PowerUpManager } from './powerUp.js';
+import { gameQueue, tournamentQueue, gamePlayerNumbers, tournamentPlayerNumbers, tournamentDisplayNames } from '../../routes/game.routes.js';
 
 export class GameInstance {
 	constructor(gameId, existingSettings) {
@@ -65,6 +66,8 @@ export class GameInstance {
 		this.players.delete(clientId);
 		console.log(`Player ${socket.playerNumber} (Client ${clientId}) removed from game ${this.gameId}`);
 
+		removePlayerFromQueuesAndMaps(clientId);
+
 		if (this.players.size === 0) {
 			this.cleanup();
 		}
@@ -87,14 +90,14 @@ export class GameInstance {
 				this.physicManager.checkCustomMapCollision(gameState.ball, this.players);
 			}
 			// Check collisions
-			this.physicManager.checkWallCollision(gameState.ball,  Array.from(this.players.values()));
+			this.physicManager.checkWallCollision(gameState.ball, Array.from(this.players.values()));
 			this.physicManager.checkPaddleCollision(gameState.ball, gameState.paddle1, gameState.paddle2, this.players);
 
 			// Check if someone scored
 			const scoringResult = this.physicManager.checkScoring(gameState.ball, gameState);
 
 			if (scoringResult.scored) {
-				
+
 				// Check for game winner
 				const winner = this.gameStateManager.checkWin();
 				if (winner) {
@@ -113,7 +116,7 @@ export class GameInstance {
 		// Clear all powerups first
 		const gameState = this.gameStateManager.getState();
 		if (this.settings.powerUpsEnabled) {
-			this.powerUpManager.clearAllPowerups(gameState,  this.players);
+			this.powerUpManager.clearAllPowerups(gameState, this.players);
 		}
 
 		// Reset ball position and speed
@@ -126,15 +129,8 @@ export class GameInstance {
 	}
 
 	async cleanup() {
-
-		// Close connections and cleanup
-		this.players.forEach((player) => {
-			if (player.removeAllListeners)
-				player.removeAllListeners();
-			player.close();
-		});
 		this.players.clear();
-		
+
 		this.gameStateManager = null;
 		this.physicManager = null;
 		this.powerUpManager = null;
@@ -144,4 +140,16 @@ export class GameInstance {
 	getState() {
 		return this.gameStateManager.getState();
 	}
+}
+
+function removePlayerFromQueuesAndMaps(userId) {
+	const idxG = gameQueue.indexOf(userId);
+	if (idxG !== -1) gameQueue.splice(idxG, 1);
+
+	const idxT = tournamentQueue.indexOf(userId);
+	if (idxT !== -1) tournamentQueue.splice(idxT, 1);
+
+	gamePlayerNumbers.delete(String(userId));
+	tournamentPlayerNumbers.delete(String(userId));
+	tournamentDisplayNames.delete(userId);
 }

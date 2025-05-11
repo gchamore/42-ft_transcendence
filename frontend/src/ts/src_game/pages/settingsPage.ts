@@ -59,13 +59,14 @@ export class SettingsPage {
 				case 'playerNumber':
 					this.playerNumber = data.playerNumber;
 					if (this.playerNumber === 1) {
+						this.setSettingsEnabled(true);
 						const savedSettings = SettingsService.loadSettings();
 						this.updateSettings(savedSettings);
 						this.setupListeners();
 						this.handleSettingsChange();
 					}
 					else {
-						this.disableSettings();
+						this.setSettingsEnabled(false);
 						this.setupListeners();
 					}
 					this.updateStartButtonState();
@@ -127,7 +128,7 @@ export class SettingsPage {
 	private handleConnectionIssues(
 		message: string = 'Connection to server lost. Please refresh the page.',
 		errorId: string = 'connection-error'
-) {
+	) {
 		const container = document.getElementById('settings-page');
 		if (container) {
 			const existingError = document.getElementById(errorId);
@@ -144,34 +145,26 @@ export class SettingsPage {
 		}
 
 		//redirect to home page
-		if (!this.isTournament) {
-			setTimeout(() => {
-				(window as any).go_section('home');
-				this.cleanup();
-			}, 3000);
-		}
+		setTimeout(() => {
+			(window as any).go_section('home');
+			this.cleanup();
+		}, 3000);
 	}
 
-	private async disableSettings() {
-        const inputs = [
-            this.ballSpeedSlider,
-            this.paddleSpeedSlider,
-            this.paddleLengthSlider,
-            this.mapSelect,
-            this.powerUpsToggle
-        ];
-
-        inputs.forEach(input => {
-            if (input) {
-                input.disabled = true;
-            }
-        });
-
-        const message = document.createElement('p');
-        message.textContent = 'Settings are controlled by Player 1';
-        message.style.color = 'red';
-        document.getElementById('settings-container')?.appendChild(message);
-    }
+	private setSettingsEnabled(enabled: boolean) {
+		const inputs = [
+			this.ballSpeedSlider,
+			this.paddleSpeedSlider,
+			this.paddleLengthSlider,
+			this.mapSelect,
+			this.powerUpsToggle
+		];
+		inputs.forEach(input => {
+			if (input) {
+				input.disabled = !enabled;
+			}
+		});
+	}
 
 	private handleSettingsChange() {
 		const settings = this.getCurrentSettings();

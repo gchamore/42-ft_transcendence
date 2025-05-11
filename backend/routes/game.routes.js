@@ -8,9 +8,9 @@ export const gamePlayerNumbers = new Map();
 export const tournamentPlayerNumbers = new Map();
 export const tournamentDisplayNames = new Map();
 export const tournaments = new Map();
-const gameQueue = [];
+export const gameQueue = [];
+export const tournamentQueue = [];
 let tournamentId = 1;
-const tournamentQueue = [];
 const invites = [];
 
 function notifyPlayers(fastify, gameId, playerId) {
@@ -243,6 +243,7 @@ export async function gameRoutes(fastify, options) {
 			// Ajouter la nouvelle connexion à la map de l'utilisateur
 			const connectionId = wsService.generateConnectionId();
 			fastify.log.info(`Generated connection ID: ${connectionId}`);
+			connection.socket.connectionId = connectionId;
 	
 			// Ajoute cette nouvelle connexion à la map des connexions de l'utilisateur
 			existingConnections.set(connectionId, connection.socket);

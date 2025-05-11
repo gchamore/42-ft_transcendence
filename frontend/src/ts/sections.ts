@@ -171,6 +171,8 @@ export class GameSection extends ASection {
 
 	chooseTournamentSettings(tournamentId: string, bracket: string) {
 		tournamentBracket = bracket;
+		if (this.queueMessageContainer)
+			this.queueMessageContainer.style.display = 'none';
 		if (!tournamentSettingsChosen && !settingsPage && user && user.userId && tournamentBracket) {
 			settingsPage = new SettingsPage(tournamentId, true);
 			this.settingsPage.style.display = 'block';
@@ -181,8 +183,6 @@ export class GameSection extends ASection {
 		} else {
 			console.error('No active game ID or tournament ID found');
 		}
-		if (this.queueMessageContainer)
-			this.queueMessageContainer.style.display = 'none';
 	}
 
 	resetTournamentState() {
@@ -226,6 +226,7 @@ export class GameSection extends ASection {
 		this.gamePage.style.display = 'none';
 		this.gameContainer.style.display = 'none';
 		this.fpsCounter.style.display = 'none';
+		this.queueMessageContainer.style.display = 'none';
 		if (settingsPage) {
 			settingsPage.cleanup();
 			settingsPage = null;
@@ -234,6 +235,8 @@ export class GameSection extends ASection {
 			gamePage.stopGame("leaving Game section");
 			gamePage = null;
 		}
+		tournamentSettingsChosen = false;
+		this.enableTournamentButton();
 		this.deactivate_section();
 	}
 	switch_logged_off() {
@@ -243,7 +246,7 @@ export class GameSection extends ASection {
 		this.logged_in_view();
 	}
 
-	showQueueMessage(msg: string, type: 'game' | 'tournament' = 'game', inQueue: boolean = true, showUsernameEntry: boolean = false ): Promise<string | null> | void {
+	showQueueMessage(msg: string, type: 'game' | 'tournament' = 'game', inQueue: boolean = true, showUsernameEntry: boolean = false): Promise<string | null> | void {
 		if (!showUsernameEntry) {
 			if (this.queueMessage)
 				this.queueMessage.textContent = msg;
@@ -256,6 +259,9 @@ export class GameSection extends ASection {
 			}
 			if (this.queueUsernameEntry) {
 				this.queueUsernameEntry.style.display = 'none';
+			}
+			if (type === 'tournament' && inQueue) {
+				this.disableTournamentButton();
 			}
 			return;
 		}
@@ -274,6 +280,9 @@ export class GameSection extends ASection {
 			if (this.queueUsernameEntry) {
 				this.queueUsernameEntry.style.display = 'block';
 			}
+			if (type === 'tournament' && inQueue) {
+				this.disableTournamentButton();
+			}
 			if (this.tournamentUsernameInput && this.tournamentUsernameValidateBtn) {
 				this.tournamentUsernameInput.value = '';
 				const validateHandler = () => {
@@ -289,7 +298,24 @@ export class GameSection extends ASection {
 	hideQueueMessage() {
 		if (this.queueMessageContainer)
 			this.queueMessageContainer.style.display = 'none';
+		this.enableTournamentButton();
 	};
+
+	disableTournamentButton() {
+		const btn = document.getElementById('playTournament-btn') as HTMLButtonElement;
+		if (btn) {
+			btn.disabled = true;
+			btn.classList.add('disabled');
+		}
+	}
+
+	enableTournamentButton() {
+		const btn = document.getElementById('playTournament-btn') as HTMLButtonElement;
+		if (btn) {
+			btn.disabled = false;
+			btn.classList.remove('disabled');
+		}
+	}
 
 	async play1v1() {
 		if (!user) {

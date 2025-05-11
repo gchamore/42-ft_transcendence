@@ -89,6 +89,7 @@ export class WebSocketService {
 		// Connection close handling
 		connection.socket.on('close', async (code, reason) => {
 			fastify.log.warn(`❌ WebSocket closed for user ${userId} [connID: ${connectionId}] with code ${code} and reason "${reason}"`);
+			await wsUtils.handleAllUserConnectionsClose(fastify, userId, username, reason || 'Tab closed or disconnected');
 			clearInterval(pingInterval);
 		});
 	}

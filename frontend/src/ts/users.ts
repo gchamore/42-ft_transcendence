@@ -80,6 +80,7 @@ export class User {
         this.web_socket.onmessage = (event) => {
 			try {
 				const data = JSON.parse(event.data);
+				console.log('WebSocket message received:', data);
 				switch (data.type) {
 					case 'onlines':
 						this.init_status(data.users);

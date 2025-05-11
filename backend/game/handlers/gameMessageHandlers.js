@@ -18,13 +18,13 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 	}
 
 	if (game.players.size === 2) {
-        const player1 = game.players.get(1);
-        const player2 = game.players.get(2);
-        const gameState = game.getState();
-        gameState.score.player1.name = player1?.displayName || "Player1";
-        gameState.score.player2.name = player2?.displayName || "Player2";
-    }
-	
+		const player1 = game.players.get(1);
+		const player2 = game.players.get(2);
+		const gameState = game.getState();
+		gameState.score.player1.name = player1?.displayName || "Player1";
+		gameState.score.player2.name = player2?.displayName || "Player2";
+	}
+
 	// Attach game instance to socket
 	socket.gameInstance = game;
 	const playerNumber = socket.playerNumber;
@@ -166,15 +166,51 @@ function handleGameOver(data, fastify) {
 				console.log(`Match ${data.matchId} already has a winner: ${match.winner}, ignoring duplicate gameOver`);
 				return;
 			}
+			const finalMatch = tournament.bracket.find(m => m.round === 'final');
+			const thirdMatch = tournament.bracket.find(m => m.round === 'third');
+			// If both final and third place are finished, send tournament results
+			if (finalMatch && finalMatch.winner && thirdMatch && thirdMatch.winner) {
+				const winnerPlayer = finalMatch.players.find(p => p.number === finalMatch.winner);
+				const runnerUp = finalMatch.players.find(p => p.number !== finalMatch.winner);
+				const thirdPlayer = thirdMatch.players.find(p => p.number === thirdMatch.winner);
+				const fourthPlayer = thirdMatch.players.find(p => p.number !== thirdMatch.winner);
+
+				const placements = [
+					{ place: 1, name: winnerPlayer.displayName },
+					{ place: 2, name: runnerUp.displayName },
+					{ place: 3, name: thirdPlayer.displayName },
+					{ place: 4, name: fourthPlayer.displayName }
+				];
+
+				// Notify all tournament participants
+				const allPlayers = new Set();
+				tournament.bracket.forEach(match => match.players.forEach(p => allPlayers.add(p.id)));
+				for (const playerId of allPlayers) {
+					const userConnections = fastify.connections.get(playerId);
+					if (userConnections) {
+						for (const [, socket] of userConnections.entries()) {
+							if (socket.readyState === 1) {
+								safeSend(socket, {
+									type: 'tournamentResults',
+									placements,
+									message: `🏆 ${winnerPlayer.displayName} wins the tournament!`
+								});
+							}
+						}
+					}
+				}
+				tournaments.delete(tid);
+				console.log(`Tournament ${tournament.id} cleaned up after completion.`);
+			}
 			const semis = tournament.bracket.filter((match) => match.round === 'semifinal');
 			const finalExists = tournament.bracket.some(m => m.round === 'final');
-            const thirdExists = tournament.bracket.some(m => m.round === 'third');
+			const thirdExists = tournament.bracket.some(m => m.round === 'third');
 			if (semis.length === 2 && semis.every((match) => match.winner) && !finalExists && !thirdExists) {
 				// Find winner and loser objects (with displayName) for both semis
-                const semi1Winner = semis[0].players.find(p => p.number === semis[0].winner);
-                const semi1Loser  = semis[0].players.find(p => p.number !== semis[0].winner);
-                const semi2Winner = semis[1].players.find(p => p.number === semis[1].winner);
-                const semi2Loser  = semis[1].players.find(p => p.number !== semis[1].winner);
+				const semi1Winner = semis[0].players.find(p => p.number === semis[0].winner);
+				const semi1Loser = semis[0].players.find(p => p.number !== semis[0].winner);
+				const semi2Winner = semis[1].players.find(p => p.number === semis[1].winner);
+				const semi2Loser = semis[1].players.find(p => p.number !== semis[1].winner);
 				const finalMatch = {
 					matchId: `${tournament.id}-final`,
 					round: 'final',
