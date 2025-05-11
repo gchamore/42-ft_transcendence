@@ -1,7 +1,7 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
-import { login, register, logout, add , remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType} from './api.js';
+import { login, register, logout, add , remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin} from './api.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -367,29 +367,24 @@ class Profile extends ASection {
 
 	async show2FAModal() {
 		try {
-			// Récupérer le QR code et l'URL otpauth
 			const response = await setup2fa();
 			if (!response) {
 				console.error("Failed to set up 2FA");
 				return;
 			}
 	
-			// Afficher le QR code
 			const qrcodeImg = document.getElementById('qrcode-img') as HTMLImageElement;
 			qrcodeImg.src = response.qrCode;
 	
-			// Afficher la clé secrète (extraite de l'URL otpauth)
 			const secretKey = document.getElementById('secret-key') as HTMLElement;
 			const secretMatch = response.otpauth_url.match(/secret=([A-Z0-9]+)/i);
 			if (secretMatch && secretMatch[1]) {
 				secretKey.textContent = secretMatch[1];
 			}
 	
-			// Afficher la modal
 			const modal = document.getElementById('twofa-modal') as HTMLElement;
 			modal.style.display = 'flex';
 	
-			// Gérer le bouton d'activation
 			const activateBtn = document.getElementById('activate-2fa-btn') as HTMLButtonElement;
 			activateBtn.onclick = async () => {
 				const tokenInput = document.getElementById('twofa-token') as HTMLInputElement;
@@ -412,19 +407,16 @@ class Profile extends ASection {
 				}
 			};
 	
-			// Gérer le bouton d'annulation
 			const cancelBtn = document.getElementById('cancel-2fa-btn') as HTMLButtonElement;
 			cancelBtn.onclick = () => {
 				modal.style.display = 'none';
 			};
 	
-			// Gérer le bouton de fermeture
 			const closeBtn = document.querySelector('.close-modal') as HTMLElement;
 			closeBtn.onclick = () => {
 				modal.style.display = 'none';
 			};
 	
-			// Fermer la modal en cliquant en dehors
 			window.onclick = (event) => {
 				if (event.target === modal) {
 					modal.style.display = 'none';
@@ -445,19 +437,17 @@ class Profile extends ASection {
 			let success = false;
 			
 			if (!accountType.is_google_account && accountType.has_password) {
-				// For regular users with password, request password confirmation
 				const password = prompt("Veuillez entrer votre mot de passe pour désactiver la 2FA:");
 				if (!password) return; // User cancelled
 				
 				success = await disable2fa(password);
 			} else {
-				// For Google users without password, no password needed
 				success = await disable2fa();
 			}
 			
 			if (success) {
 				alert("2FA désactivé avec succès.");
-				this.check2FAStatus(); // Update button state
+				this.check2FAStatus();
 			} else {
 				alert("Échec de la désactivation de la 2FA.");
 			}
@@ -492,9 +482,8 @@ class Profile extends ASection {
 		this.btn1.textContent = "Register";
 		this.btn1.onclick = () => register(this.username_i.value, this.password_i.value);
 
-		this.btn2.textContent = "";
-    	this.btn2.onclick = null;
-		(this.btn2.parentElement as HTMLLIElement).classList.add('hidden');
+		this.btn2.textContent = "Google Login";
+    	this.btn2.onclick = () => initiateGoogleLogin();
 
 		this.btn3.textContent = "Login";
 		this.btn3.onclick = () => login(this.username_i.value, this.password_i.value);
@@ -515,7 +504,6 @@ class Profile extends ASection {
 		this.btn1.onclick = () => go_section('settings');
 
 		this.check2FAStatus();
-		(this.btn2.parentElement as HTMLLIElement).classList.remove('hidden');
 
 		this.btn3.textContent = "Logout";
 		this.btn3.onclick = () => logout();
@@ -1114,20 +1102,16 @@ export function showTwofaVerificationModal(tempToken: string, username: string) 
     const errorMsg = document.getElementById('twofa-verification-error') as HTMLElement;
     const tokenInput = document.getElementById('twofa-verification-token') as HTMLInputElement;
     
-    // Use the username parameter to display which account is being verified
     const headerElement = modal.querySelector('.modal-header h2') as HTMLHeadingElement;
     if (headerElement) {
         headerElement.textContent = `2FA Verification for ${username}`;
     }
     
-    // Clear previous data
     errorMsg.textContent = '';
     tokenInput.value = '';
     
-    // Show the modal
     modal.style.display = 'flex';
 
-    // Handle verification button click
     verifyBtn.onclick = async () => {
         const token = tokenInput.value.trim();
         
@@ -1140,7 +1124,6 @@ export function showTwofaVerificationModal(tempToken: string, username: string) 
             const success = await verify2fa(token, tempToken);
             if (success) {
                 modal.style.display = 'none';
-                // The verify2fa function already updates the user
             } else {
                 errorMsg.textContent = "Invalid verification code. Please try again.";
             }
@@ -1150,17 +1133,14 @@ export function showTwofaVerificationModal(tempToken: string, username: string) 
         }
     };
 
-    // Handle cancel button click
     cancelBtn.onclick = () => {
         modal.style.display = 'none';
     };
 
-    // Handle close button click
     closeBtn.onclick = () => {
         modal.style.display = 'none';
     };
 
-    // Handle click outside the modal
     window.onclick = (event) => {
         if (event.target === modal) {
             modal.style.display = 'none';

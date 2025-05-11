@@ -506,9 +506,108 @@ export async function getUserAccountType(): Promise<{is_google_account: boolean,
             return undefined;
         }
 
-        return data.data; // Return the account type data
+        return data.data;
     } catch (error) {
         console.error('/api/auth/account_type error:', error);
         return undefined;
+    }
+}
+
+export async function initiateGoogleLogin() {
+    try {
+        // const isLocalhost = window.location.hostname === 'localhost' || 
+        //                    window.location.hostname === '127.0.0.1';
+        
+        // Base URL for redirect
+        // const baseUrl = isLocalhost 
+        //     ? `${window.location.protocol}//${window.location.host}`
+        //     : `https://${window.location.hostname}:8443`;
+        
+        // Google OAuth parameters
+        const clientId = '719179054785-2jaf8669fv3kj0qk6ib8cmtumlb23e8a.apps.googleusercontent.com'; // This should be fetched from your backend
+        const redirectUri = `https://localhost:8443/oauth-callback`;
+        const scope = 'email profile';
+        const responseType = 'code';
+        const accessType = 'offline';
+        const prompt = 'consent';
+        
+        const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+            `client_id=${encodeURIComponent(clientId)}` +
+            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+            `&response_type=${encodeURIComponent(responseType)}` +
+            `&scope=${encodeURIComponent(scope)}` +
+            `&access_type=${encodeURIComponent(accessType)}` +
+            `&prompt=${encodeURIComponent(prompt)}`;
+            
+        window.location.href = googleAuthUrl;
+        
+    } catch (error) {
+        console.error('Failed to initiate Google login:', error);
+    }
+}
+
+export async function processGoogleOAuth(code: string): Promise<void> {
+    try {
+        const response = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({ code })
+        });
+        
+        const data = await response.json();
+        
+        if (response.status === 202 && data.step === "choose_username") {
+            const username = prompt("Please choose a username:");
+            if (username) {
+                await completeGoogleRegistration(username, data.temp_token);
+            }
+            return;
+        } else if (response.status === 202 && data.step === "2fa_required") {
+            showTwofaVerificationModal(data.temp_token, "your Google account");
+            return;
+        } else if (response.ok && data.success) {
+            update_user(new User(data.username));
+            console.log(`Google login successful as ${data.username}`);
+        } else {
+            console.error("Google OAuth error:", data.error || "Unknown error");
+        }
+        
+    } catch (error) {
+        console.error("Error processing Google OAuth:", error);
+    }
+}
+
+async function completeGoogleRegistration(username: string, tempToken: string): Promise<void> {
+    try {
+        const response = await fetch('/api/auth/google/username', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({ 
+                username,
+                temp_token: tempToken
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.status === 202 && data.step === "2fa_required") {
+            showTwofaVerificationModal(data.temp_token, username);
+            return;
+        } else if (response.ok && data.success) {
+            update_user(new User(data.username));
+            console.log(`Google registration complete as ${data.username}`);
+        } else {
+            alert(data.error || "Failed to complete registration");
+            console.error("Google registration error:", data.error || "Unknown error");
+        }
+        
+    } catch (error) {
+        console.error("Error completing Google registration:", error);
     }
 }

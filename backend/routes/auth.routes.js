@@ -254,12 +254,22 @@ export async function authRoutes(fastify, options) {
 
 			// Verify if user and password are provided and if password is valid using bcrypt
 			const user = fastify.db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-			if (!user || !(await bcrypt.compare(password, user.password))) {
+			if (!user) {
+				fastify.log.warn(`Invalid credentials`);
+				return reply.code(401).send({ error: "Invalid credentials" });
+			}
+			
+			if (user.is_google_account) {
+				fastify.log.warn(`This account uses Google login. Please sign in with Google.`);
+				return reply.code(403).send({ error: "This account uses Google login. Please sign in with Google." });
+			}
+			
+			if (!(await bcrypt.compare(password, user.password))) {
 				fastify.log.warn(`Login failed for: ${username}`);
 				return reply.code(401).send({ error: "Invalid credentials" });
 			}
 
-			// Vérifie si 2FA activée
+			// Verify if 2FA is active for the user
 			if (user.twofa_secret) {
 				try {
 					const tempToken = await authService.generateTempToken({ userId: user.id }, "2fa", 300);
