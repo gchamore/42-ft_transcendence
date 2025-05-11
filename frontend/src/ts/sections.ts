@@ -857,22 +857,29 @@ sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(),
 
 /* Utils */
 export function	get_url_type(url : string) : string {
+	let start : number = 0;
+	if (url[0] === '/')
+		start = 1;
+
 	let end;
-	for (end = 0; end < url.length; ++end) {
+	for (end = start; end < url.length; ++end) {
 		if (url[end] == '/')
 			break;
 	}
 	let type;
 
-	type = url.substring(0, end);
+	type = url.substring(start, end);
 	console.log('Url type:', type);
 
 	return type;
 }
 
 export function	get_url_option(url : string) : string {
-	let start;
-	for (start = 0; start < url.length; ++start) {
+	let start : number = 0;
+	if (url[0] === '/')
+		start = 1;
+
+	for (; start < url.length; ++start) {
 		if (url[start] == '/')
 			break;
 	}
@@ -943,9 +950,13 @@ function is_sidebar_section(type : string, option : string) : boolean {
 }
 
 export function go_section(type : string, option : string) {
-	if (is_sidebar_section(type, option)
-		&& is_sidebar_section(get_url_type(window.location.pathname), get_url_option(window.location.pathname)))
+	let previous_type = get_url_type(window.location.pathname);
+	let previous_option = get_url_option(window.location.pathname);
+	if (is_sidebar_section(type, option) && is_sidebar_section(previous_type, previous_option)
+		&& previous_type === type) {
 		type = 'home';
+		option = '';
+	}
 
 	if (!is_section_accessible(type, option)) {
 		type = 'home';
