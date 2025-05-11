@@ -1,4 +1,5 @@
 import { user, User, update_user, OtherUser } from './users.js';
+import { showTwofaVerificationModal } from './sections.js';
 
 export async function verify_token(): Promise<void> {
 	console.log('verify_token()');
@@ -59,28 +60,31 @@ export async function register(username: string, password: string) {
 }
 
 export async function login(username: string, password: string) {
-	try {
-		const response = await fetch(`/api/login`, {
-			method: "POST",
-			credentials: "include",
-			headers: {
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify({ username: username, password: password })
-		});
-		const data = await response.json();
+    try {
+        const response = await fetch(`/api/login`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ username: username, password: password })
+        });
+        const data = await response.json();
 
-		if (!response.ok)
-			console.error("/api/login failed:", data.error);
-		else if (data.success) {
-			update_user(new User(data.username, data.id));
+        if (!response.ok)
+            console.error("/api/login failed:", data.error);
+        else if (data.success) {
+            update_user(new User(data.username, data.id));
+            console.log(username, "logged-in");
+        }
+        else if (data.step === "2fa_required") {
+            showTwofaVerificationModal(data.temp_token, username);
+            return;
+        }
 
-			console.log(username, "logged-in");
-		}
-
-	} catch (error) {
-		console.error("/api/login error:", error);
-	}
+    } catch (error) {
+        console.error("/api/login error:", error);
+    }
 }
 
 export async function logout() {
@@ -327,4 +331,184 @@ export async function unblock(username : string): Promise<boolean> {
     }
 
 	return false;
+}
+
+export async function setup2fa(): Promise<{ otpauth_url: string, qrCode: string } | undefined> {
+    try {
+        const response = await fetch('/api/2fa/setup', {
+            method: 'POST',
+            credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (response.status === 401) {
+            console.error("Unauthorized!");
+            if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+                user.web_socket.close(1000);
+            update_user(undefined);
+            return undefined;
+        }
+
+        if (!response.ok) {
+            console.error('/api/2fa/setup failed:', data.error);
+            return undefined;
+        }
+
+        return {
+            otpauth_url: data.otpauth_url,
+            qrCode: data.qrCode
+        };
+    } catch (error) {
+        console.error('/api/2fa/setup error:', error);
+        return undefined;
+    }
+}
+
+export async function activate2fa(token: string): Promise<boolean> {
+    try {
+        const response = await fetch('/api/2fa/activate', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ token })
+        });
+        const data = await response.json();
+
+        if (response.status === 401) {
+            console.error("Unauthorized!");
+            if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+                user.web_socket.close(1000);
+            update_user(undefined);
+            return false;
+        }
+
+        if (!response.ok) {
+            console.error('/api/2fa/activate failed:', data.error);
+            return false;
+        }
+
+        return data.success;
+    } catch (error) {
+        console.error('/api/2fa/activate error:', error);
+        return false;
+    }
+}
+
+export async function verify2fa(token: string, temp_token: string): Promise<boolean> {
+    try {
+        const response = await fetch('/api/2fa/verify', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ token, temp_token })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('/api/2fa/verify failed:', data.error);
+            return false;
+        }
+
+        if (data.success) {
+            update_user(new User(data.username, data.id));
+            console.log(data.username, "verified with 2FA");
+        }
+
+        return data.success;
+    } catch (error) {
+        console.error('/api/2fa/verify error:', error);
+        return false;
+    }
+}
+
+export async function disable2fa(password?: string): Promise<boolean> {
+    try {
+        const response = await fetch('/api/2fa/disable', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ password })
+        });
+        const data = await response.json();
+
+        if (response.status === 401) {
+            console.error("Unauthorized!");
+            if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+                user.web_socket.close(1000);
+            update_user(undefined);
+            return false;
+        }
+
+        if (!response.ok) {
+            console.error('/api/2fa/disable failed:', data.error);
+            return false;
+        }
+
+        return data.success;
+    } catch (error) {
+        console.error('/api/2fa/disable error:', error);
+        return false;
+    }
+}
+
+export async function get2faStatus(): Promise<boolean | undefined> {
+    try {
+        const response = await fetch('/api/2fa/status', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (response.status === 401) {
+            console.error("Unauthorized!");
+            if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+                user.web_socket.close(1000);
+            update_user(undefined);
+            return undefined;
+        }
+
+        if (!response.ok) {
+            console.error('/api/2fa/status failed:', data.error);
+            return undefined;
+        }
+
+        return data.enabled;
+    } catch (error) {
+        console.error('/api/2fa/status error:', error);
+        return undefined;
+    }
+}
+
+export async function getUserAccountType(): Promise<{is_google_account: boolean, has_password: boolean} | undefined> {
+    try {
+        const response = await fetch('/api/auth/account_type', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (response.status === 401) {
+            console.error("Unauthorized!");
+            if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+                user.web_socket.close(1000);
+            update_user(undefined);
+            return undefined;
+        }
+
+        if (!response.ok) {
+            console.error('/api/auth/account_type failed:', data.error);
+            return undefined;
+        }
+
+        return data.data; // Return the account type data
+    } catch (error) {
+        console.error('/api/auth/account_type error:', error);
+        return undefined;
+    }
 }

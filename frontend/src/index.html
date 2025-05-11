@@ -127,6 +127,7 @@
 					<ul class="modal">
 						<li class="l1"><button id="profile-btn1"></button></li>
 						<li class="l2"><button id="profile-btn2"></button></li>
+						<li class="l3"><button id="profile-btn3"></button></li>
 					</ul>
 				</nav>
 			</section>
@@ -212,7 +213,53 @@
 		</article>
 	</div>
 
+	<!-- Modal 2FA -->
+	<div id="twofa-modal" class="modal-overlay">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h2>Configuration 2FA</h2>
+				<span class="close-modal">&times;</span>
+			</div>
+			<div class="modal-body">
+				<p>Scannez ce QR code avec votre application d'authentification:</p>
+				<div id="qrcode-container">
+					<img id="qrcode-img" src="" alt="QR Code">
+				</div>
+				<p>Ou utilisez ce code secret manuellement:</p>
+				<div id="secret-key" class="secret-key"></div>
+				<div class="token-input">
+					<label for="twofa-token">Entrez le code à 6 chiffres:</label>
+					<input type="text" id="twofa-token" maxlength="6" pattern="\d{6}">
+				</div>
+				<div class="error-message" id="twofa-error"></div>
+			</div>
+			<div class="modal-footer">
+				<button id="activate-2fa-btn">Activer 2FA</button>
+				<button id="cancel-2fa-btn">Annuler</button>
+			</div>
+		</div>
+	</div>
 
+	<!-- 2FA login modal -->
+	<div id="twofa-verification-modal" class="modal-overlay">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h2>2FA Verification</h2>
+				<span class="close-modal">&times;</span>
+			</div>
+			<div class="modal-body">
+				<p>Please enter the verification code from your authenticator app:</p>
+				<div class="token-input">
+					<input type="text" id="twofa-verification-token" maxlength="6" pattern="\d{6}" placeholder="000000">
+				</div>
+				<div class="error-message" id="twofa-verification-error"></div>
+			</div>
+			<div class="modal-footer">
+				<button id="verify-2fa-btn">Verify</button>
+				<button id="cancel-2fa-verification-btn">Cancel</button>
+			</div>
+		</div>
+	</div>
 	<article class="modal item section settings" id="settings-parent">
 		<aside id="settings-sidebar">
 			<nav>
