@@ -16,4 +16,4 @@ RUN openssl req -x509 -nodes -days 365 \
 # Copie la config nginx
 COPY nginx.conf /etc/nginx/nginx.conf
 
-CMD ["sh", "-c", "envsubst '${LOCAL_IP}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.generated.conf && mv /etc/nginx/nginx.generated.conf /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]
+CMD ["sh", "-c", "envsubst '${NGROK_URL}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.generated.conf && mv /etc/nginx/nginx.generated.conf /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]

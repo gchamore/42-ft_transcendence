@@ -1,7 +1,7 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
-import { login, register, logout, add , remove, search, send, get_blocked_users, block, unblock } from './api.js';
+import { login, register, logout, add , remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin} from './api.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -345,8 +345,122 @@ class Profile extends ASection {
 	readonly password_i = document.getElementById('profile-password') as HTMLInputElement;
 	readonly btn1 = document.getElementById('profile-btn1') as HTMLButtonElement;
 	readonly btn2 = document.getElementById('profile-btn2') as HTMLButtonElement;
+	readonly btn3 = document.getElementById('profile-btn3') as HTMLButtonElement;
 
 	/* Methods */
+
+	async check2FAStatus() {
+        try {
+            const isEnabled = await get2faStatus();
+            
+            if (isEnabled) {
+                this.btn2.textContent = "disable 2FA";
+                this.btn2.onclick = () => this.disable2FAConfirmation();
+            } else {
+                this.btn2.textContent = "enable 2FA";
+                this.btn2.onclick = () => this.show2FAModal();
+            }
+        } catch (error) {
+            console.error("Error checking 2FA status:", error);
+        }
+    }
+
+	async show2FAModal() {
+		try {
+			const response = await setup2fa();
+			if (!response) {
+				console.error("Failed to set up 2FA");
+				return;
+			}
+	
+			const qrcodeImg = document.getElementById('qrcode-img') as HTMLImageElement;
+			qrcodeImg.src = response.qrCode;
+	
+			const secretKey = document.getElementById('secret-key') as HTMLElement;
+			const secretMatch = response.otpauth_url.match(/secret=([A-Z0-9]+)/i);
+			if (secretMatch && secretMatch[1]) {
+				secretKey.textContent = secretMatch[1];
+			}
+	
+			const modal = document.getElementById('twofa-modal') as HTMLElement;
+			modal.style.display = 'flex';
+	
+			const activateBtn = document.getElementById('activate-2fa-btn') as HTMLButtonElement;
+			activateBtn.onclick = async () => {
+				const tokenInput = document.getElementById('twofa-token') as HTMLInputElement;
+				const token = tokenInput.value.trim();
+				
+				if (token.length !== 6 || !/^\d+$/.test(token)) {
+					const errorMsg = document.getElementById('twofa-error') as HTMLElement;
+					errorMsg.textContent = "Le code doit contenir 6 chiffres";
+					return;
+				}
+	
+				const success = await activate2fa(token);
+				if (success) {
+					modal.style.display = 'none';
+					alert("2FA activé avec succès!");
+					this.check2FAStatus();
+				} else {
+					const errorMsg = document.getElementById('twofa-error') as HTMLElement;
+					errorMsg.textContent = "Code invalide ou expiré. Veuillez réessayer.";
+				}
+			};
+	
+			const cancelBtn = document.getElementById('cancel-2fa-btn') as HTMLButtonElement;
+			cancelBtn.onclick = () => {
+				modal.style.display = 'none';
+			};
+	
+			const closeBtn = document.querySelector('.close-modal') as HTMLElement;
+			closeBtn.onclick = () => {
+				modal.style.display = 'none';
+			};
+	
+			window.onclick = (event) => {
+				if (event.target === modal) {
+					modal.style.display = 'none';
+				}
+			};
+		} catch (error) {
+			console.error("Error showing 2FA modal:", error);
+		}
+	}
+	async handleDisable2FA() {
+		try {
+			const accountType = await getUserAccountType();
+			
+			if (!accountType) {
+				alert("Impossible de vérifier le type de compte");
+				return;
+			}
+			let success = false;
+			
+			if (!accountType.is_google_account && accountType.has_password) {
+				const password = prompt("Veuillez entrer votre mot de passe pour désactiver la 2FA:");
+				if (!password) return; // User cancelled
+				
+				success = await disable2fa(password);
+			} else {
+				success = await disable2fa();
+			}
+			
+			if (success) {
+				alert("2FA désactivé avec succès.");
+				this.check2FAStatus();
+			} else {
+				alert("Échec de la désactivation de la 2FA.");
+			}
+		} catch (err) {
+			console.error("Error disabling 2FA:", err);
+			alert("Une erreur s'est produite lors de la désactivation de la 2FA.");
+		}
+	}
+	disable2FAConfirmation() {
+        if (confirm("Êtes-vous sûr de vouloir désactiver l'authentification à deux facteurs?")) {
+            this.handleDisable2FA();
+        }
+    }
 	async is_option_valid(option: string): Promise<boolean> {
 		return (option === '') ? true : false;
 	}
@@ -367,8 +481,13 @@ class Profile extends ASection {
 
 		this.btn1.textContent = "Register";
 		this.btn1.onclick = () => register(this.username_i.value, this.password_i.value);
-		this.btn2.textContent = "Login";
-		this.btn2.onclick = () => login(this.username_i.value, this.password_i.value);
+
+		this.btn2.textContent = "Google Login";
+    	this.btn2.onclick = () => initiateGoogleLogin();
+
+		this.btn3.textContent = "Login";
+		this.btn3.onclick = () => login(this.username_i.value, this.password_i.value);
+
 	}
 	switch_logged_in() {
 		if (user === undefined) {
@@ -384,9 +503,10 @@ class Profile extends ASection {
 		this.btn1.textContent = "Settings";
 		this.btn1.onclick = () => go_section('settings', '');
 
-		this.btn2.textContent = "Logout";
-		this.btn2.onclick = () => logout();
+		this.check2FAStatus();
 
+		this.btn3.textContent = "Logout";
+		this.btn3.onclick = () => logout();
 
 		this.logged_in_view();
 	}
@@ -1012,3 +1132,57 @@ export function set_tournament_bracket(bracket: string): void {
 
 (window as any).go_section = go_section;
 /* --------- */
+
+export function showTwofaVerificationModal(tempToken: string, username: string) {
+    const modal = document.getElementById('twofa-verification-modal') as HTMLElement;
+    const verifyBtn = document.getElementById('verify-2fa-btn') as HTMLButtonElement;
+    const cancelBtn = document.getElementById('cancel-2fa-verification-btn') as HTMLButtonElement;
+    const closeBtn = modal.querySelector('.close-modal') as HTMLElement;
+    const errorMsg = document.getElementById('twofa-verification-error') as HTMLElement;
+    const tokenInput = document.getElementById('twofa-verification-token') as HTMLInputElement;
+    
+    const headerElement = modal.querySelector('.modal-header h2') as HTMLHeadingElement;
+    if (headerElement) {
+        headerElement.textContent = `2FA Verification for ${username}`;
+    }
+    
+    errorMsg.textContent = '';
+    tokenInput.value = '';
+    
+    modal.style.display = 'flex';
+
+    verifyBtn.onclick = async () => {
+        const token = tokenInput.value.trim();
+        
+        if (token.length !== 6 || !/^\d+$/.test(token)) {
+            errorMsg.textContent = "The code must contain 6 digits";
+            return;
+        }
+
+        try {
+            const success = await verify2fa(token, tempToken);
+            if (success) {
+                modal.style.display = 'none';
+            } else {
+                errorMsg.textContent = "Invalid verification code. Please try again.";
+            }
+        } catch (error) {
+            console.error("2FA verification error:", error);
+            errorMsg.textContent = "An error occurred during verification. Please try again.";
+        }
+    };
+
+    cancelBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    closeBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+}

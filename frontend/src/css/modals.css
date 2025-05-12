@@ -146,6 +146,8 @@ ul.modal li {
     height: 55px;
     position: absolute;
     bottom: 5%;
+    z-index: 10;
+    pointer-events: auto;
 }
 
 ul.modal li:active {
@@ -157,15 +159,19 @@ li.l1 {
 }
 
 li.l2 {
-    right: 5%;
-}
-li.l3 {
-    left: 185px;
+    width: 120px; 
+    left: calc(50% - 60px);
 }
 
-ul.modal li button{
+li.l3 {
+    right: 5%;
+}
+
+ul.modal li button {
     width: 120px;
     height: 50px;
+    position: relative;
+    z-index: 11;
 }
 
 
@@ -187,4 +193,135 @@ ul.modal li button{
     border-radius: 50%;
     border-width: 3px;
     border-style: solid;
+}
+
+/* --------- */
+
+
+/* 2fa Modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: rgb(145, 83, 83);
+  border-radius: 8px;
+  border: 3px solid black;
+  width: 400px;
+  max-width: 90%;
+  color: white;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 2px solid black;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.close-modal {
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.close-modal:hover {
+  color: #aaa;
+}
+
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#qrcode-container {
+  margin: 15px 0;
+  padding: 15px;
+  background-color: white;
+  border-radius: 8px;
+}
+
+#qrcode-img {
+  display: block;
+  max-width: 200px;
+  height: auto;
+}
+
+.secret-key {
+  background-color: #333;
+  color: #fff;
+  padding: 10px;
+  border-radius: 5px;
+  font-family: monospace;
+  margin: 10px 0 20px;
+  word-break: break-all;
+  text-align: center;
+}
+
+.token-input {
+  width: 100%;
+  margin-top: 15px;
+}
+
+.token-input label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.token-input input {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid black;
+  border-radius: 4px;
+  font-size: 18px;
+  text-align: center;
+  letter-spacing: 5px;
+  color: white;
+  background-color: rgb(33, 30, 30);
+}
+
+.error-message {
+  color: #ff3333;
+  margin-top: 10px;
+  min-height: 20px;
+  text-align: center;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: space-around;
+  padding: 15px 20px;
+  border-top: 2px solid black;
+}
+
+.modal-footer button {
+  width: 45%;
+  padding: 10px 0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  background-color: rgb(153, 29, 35);
+  color: white;
+  border: 2px solid black;
+}
+
+.modal-footer button:hover {
+  background-color: rgb(156, 41, 46);
+  transform: scale(1.05);
 }
