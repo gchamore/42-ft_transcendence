@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 	let option = get_url_option(window.location.pathname);
 
 	await verify_token();
-	if (!is_section_accessible(type, option)) {
+	if (get_type_index(type) === undefined || !is_section_accessible(type, option)) {
 		type = 'home';
 		option = '';
 	}

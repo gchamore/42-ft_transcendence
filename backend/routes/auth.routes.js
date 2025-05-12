@@ -74,11 +74,9 @@ export async function authRoutes(fastify, options) {
 			return reply.code(201).send({
 				success: true,
 				message: "User registered and logged in successfully",
-				data: {
-					username: newUser.username,
-					id: newUser.id,
-					avatar: '/assets/avatar.png',
-				}
+				username: newUser.username,
+				id: newUser.id,
+				avatar: '/assets/avatar.png'
 			});
 
 		} catch (error) {
