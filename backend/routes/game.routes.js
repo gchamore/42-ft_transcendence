@@ -9,10 +9,11 @@ import authService from '../auth/auth.service.js';
 export const settingsManagers = new Map();
 export const gamePlayerNumbers = new Map();
 export const tournamentPlayerNumbers = new Map();
+export const tournamentDisplayNames = new Map();
 export const tournaments = new Map();
-const gameQueue = [];
+export const gameQueue = [];
+export const tournamentQueue = [];
 let tournamentId = 1;
-const tournamentQueue = [];
 const invites = [];
 
 function notifyPlayers(fastify, gameId, playerId) {
@@ -89,9 +90,16 @@ export async function gameRoutes(fastify, options) {
 
 	// —— TOURNAMENT ——
 	fastify.post('/tournament/queue', async (request, reply) => {
-		const { userId } = request.body;
-		if (!userId) {
+		const { userId, displayName } = request.body;
+		if (!userId || !displayName) {
 			return reply.code(401).send({ error: 'Unauthorized' });
+		}
+
+		const lowerDisplayName = displayName.trim().toLowerCase();
+		for (const name of tournamentDisplayNames.values()) {
+			if (name.toLowerCase() === lowerDisplayName) {
+				return reply.code(409).send({ error: 'Display name already taken' });
+			}
 		}
 
 		if (gameQueue.includes(userId)) {
@@ -102,31 +110,43 @@ export async function gameRoutes(fastify, options) {
 			return reply.code(400).send({ error: 'Already in tournament queue' });
 		}
 		tournamentQueue.push(userId);
-
+		tournamentDisplayNames.set(userId, displayName);
+	
 		// If 4 players, create tournament
 		if (tournamentQueue.length >= 4) {
 			const players = tournamentQueue.splice(0, 4);
+			const displayNames = players.map(pid => tournamentDisplayNames.get(pid));
 			const tid = tournamentId++;
 			tournaments.set(tid, {
 				id: tid,
 				maxPlayers: 4,
 				players: players.slice(),
+				displayNames: displayNames.slice(),
 				bracket: [],
 			});
 			players.forEach((pid, idx) => {
 				tournamentPlayerNumbers.set(String(pid), idx + 1);
+				tournamentDisplayNames.delete(pid);
 				console.log('Tournament Player:', pid, 'Number:', idx + 1);
 			});
 			// Randomize player order
 			const shuffled = players.slice().sort(() => Math.random() - 0.5);
 			const matches = [
-				{ matchId: `${tid}-semi1`, round: 'semifinal', players: [shuffled[0], shuffled[1]], winner: null, loser: null },
-				{ matchId: `${tid}-semi2`, round: 'semifinal', players: [shuffled[2], shuffled[3]], winner: null, loser: null }
+				{
+					matchId: `${tid}-semi1`, round: 'semifinal', players: [
+						{ id: shuffled[0], number: 1, displayName: displayNames[players.indexOf(shuffled[0])] },
+						{ id: shuffled[1], number: 2, displayName: displayNames[players.indexOf(shuffled[1])] }], winner: null, loser: null
+				},
+				{
+					matchId: `${tid}-semi2`, round: 'semifinal', players: [
+						{ id: shuffled[2], number: 1, displayName: displayNames[players.indexOf(shuffled[2])] },
+						{ id: shuffled[3], number: 2, displayName: displayNames[players.indexOf(shuffled[3])] }], winner: null, loser: null
+				},
 			];
 			tournaments.get(tid).bracket = matches;
 			tournaments.get(tid).ready = new Map();
-
-			// Notify all players (WebSocket or HTTP response)
+			const playerList = displayNames.join(', ');
+			// Notify all players 
 			players.forEach(pid => {
 				const userConnections = fastify.connections.get(pid);
 				if (userConnections) {
@@ -136,6 +156,11 @@ export async function gameRoutes(fastify, options) {
 							tournamentId: tid,
 							bracket: matches,
 						});
+						safeSend(socket, {
+							type: 'livechat',
+							message: `Tournament ${tid} started! Players: ${playerList}`,
+							user: `TournamentSystem`,
+						})
 						break;
 					}
 				}
@@ -152,6 +177,7 @@ export async function gameRoutes(fastify, options) {
 		const index = tournamentQueue.indexOf(userId);
 		if (index !== -1) {
 			tournamentQueue.splice(index, 1);
+			tournamentDisplayNames.delete(userId);
 			return reply.send({ left: true });
 		}
 		return reply.code(200).send({ notInQueue: true });
@@ -226,6 +252,9 @@ export async function gameRoutes(fastify, options) {
 				return;
 			}
 
+			const displayName = tournamentDisplayNames.get(userId);
+			connection.socket.displayName = displayName;
+	
 			// Vérifie si l'utilisateur a déjà une connexion active
 			const existingConnections = fastify.connections.get(userId);
 			if (!existingConnections) {
@@ -235,7 +264,9 @@ export async function gameRoutes(fastify, options) {
 
 			// Ajouter la nouvelle connexion à la map de l'utilisateur
 			const connectionId = wsService.generateConnectionId();
-
+			fastify.log.info(`Generated connection ID: ${connectionId}`);
+			connection.socket.connectionId = connectionId;
+	
 			// Ajoute cette nouvelle connexion à la map des connexions de l'utilisateur
 			existingConnections.set(connectionId, connection.socket);
 			fastify.log.info(`New WebSocket connection [ID: ${connectionId}] for user: ${userId}`);
@@ -250,7 +281,7 @@ export async function gameRoutes(fastify, options) {
 
 
 	// Start game update loop
-	setupGameUpdateInterval();
+	setupGameUpdateInterval(fastify);
 }
 
 // connection.socket.on('close', () => {

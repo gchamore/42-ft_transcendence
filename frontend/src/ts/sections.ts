@@ -135,6 +135,9 @@ export class GameSection extends ASection {
 	readonly queueMessageContainer = document.getElementById('queue-message-container') as HTMLElement;
 	readonly leaveQueueBtn = document.getElementById('leave-queue-btn') as HTMLButtonElement;
 	readonly queueMessage = document.getElementById('queue-message') as HTMLElement;
+	readonly queueUsernameEntry = document.getElementById('queue-username-entry') as HTMLElement;
+	readonly tournamentUsernameInput = document.getElementById('tournament-username-input') as HTMLInputElement;
+	readonly tournamentUsernameValidateBtn = document.getElementById('tournament-username-validate-btn') as HTMLButtonElement;
 
 
 	/* Methods */
@@ -148,28 +151,35 @@ export class GameSection extends ASection {
 		}
 
 		this.activate_section();
+	}
+
+	chooseGameSettings(gameId: string) {
+		if (!settingsPage) {
+			console.log('sections settingpage userID:', user?.userId);
+			if (user && user.userId)
+				settingsPage = new SettingsPage(gameId, false);
+			this.settingsPage.style.display = 'block';
+			this.gamePage.style.display = 'none';
+			this.gameContainer.style.display = 'none';
+			this.fpsCounter.style.display = 'none';
+		} else {
+			console.error('No active game ID or tournament ID found');
+		}
 		if (this.queueMessageContainer)
 			this.queueMessageContainer.style.display = 'none';
+	}
 
-		if (activeGameId) {
-			if (!settingsPage) {
-				console.log('sections settingpage userID:', user?.userId);
-				if (user && user.userId)
-					settingsPage = new SettingsPage(activeGameId, false);
-				this.settingsPage.style.display = 'block';
-				this.gamePage.style.display = 'none';
-				this.gameContainer.style.display = 'none';
-				this.fpsCounter.style.display = 'none';
-			}
-		} else if (activeTournamentId) {
-			if (!tournamentSettingsChosen && !settingsPage && user && user.userId) {
-				settingsPage = new SettingsPage(activeTournamentId, true);
-				this.settingsPage.style.display = 'block';
-				this.gamePage.style.display = 'none';
-				this.gameContainer.style.display = 'none';
-				this.fpsCounter.style.display = 'none';
-				tournamentSettingsChosen = true;
-			}
+	chooseTournamentSettings(tournamentId: string, bracket: string) {
+		tournamentBracket = bracket;
+		if (this.queueMessageContainer)
+			this.queueMessageContainer.style.display = 'none';
+		if (!tournamentSettingsChosen && !settingsPage && user && user.userId && tournamentBracket) {
+			settingsPage = new SettingsPage(tournamentId, true);
+			this.settingsPage.style.display = 'block';
+			this.gamePage.style.display = 'none';
+			this.gameContainer.style.display = 'none';
+			this.fpsCounter.style.display = 'none';
+			tournamentSettingsChosen = true;
 		} else {
 			console.error('No active game ID or tournament ID found');
 		}
@@ -181,7 +191,7 @@ export class GameSection extends ASection {
 		activeTournamentId = null;
 	}
 
-	transitionToGame(gameId: string, settings: any) {
+	transitionToGame(gameId: string, settings: any, playerNumber: number) {
 		// Hide settings page and show game page
 		this.settingsPage.style.display = 'none';
 		this.gamePage.style.display = 'block';
@@ -190,35 +200,44 @@ export class GameSection extends ASection {
 
 		// Initialize the game
 		if (user && user.userId)
-			gamePage = new Game(gameId, settings);
+			gamePage = new Game(gameId, settings, playerNumber);
+	}
+
+	showTournamentInfo(round: string, players: string[], onDone?: () => void) {
+		this.settingsPage.style.display = 'none';
+		const container = document.getElementById("tournament-info");
+		if (container) {
+			container.innerHTML = `
+                <div class="tournament-info-title">Tournament ${round.charAt(0).toUpperCase() + round.slice(1)}</div>
+                <div class="tournament-info-players">${players.join(" vs ")}</div>
+            `;
+			container.style.display = "flex";
+			setTimeout(() => {
+				container.style.display = "none";
+				if (onDone) onDone();
+			}, 5000);
+		} else if (onDone) {
+			onDone();
+		}
 	}
 
 	async leave() {
-		// if (user && user.userId) {
-		// 	try { 
-		// 		await fetch(`/api/game/queue/leave`, {
-		// 			method: 'DELETE',
-		// 			credentials: 'include',
-		// 			headers: { "Content-Type": "application/json"},
-		// 			body: JSON.stringify({ userId: user.userId })
-		// 		});
-		// 	} catch (err) {
-		// 		console.error('Error leaving queue:', err);
-		// 	}
-		// }
 
 		this.settingsPage.style.display = 'none';
 		this.gamePage.style.display = 'none';
 		this.gameContainer.style.display = 'none';
 		this.fpsCounter.style.display = 'none';
+		this.queueMessageContainer.style.display = 'none';
 		if (settingsPage) {
 			settingsPage.cleanup();
 			settingsPage = null;
 		}
 		if (gamePage) {
-			gamePage.stopGame();
+			gamePage.stopGame("leaving Game section");
 			gamePage = null;
 		}
+		tournamentSettingsChosen = false;
+		this.enableTournamentButton();
 		this.deactivate_section();
 	}
 	switch_logged_off() {
@@ -228,19 +247,76 @@ export class GameSection extends ASection {
 		this.logged_in_view();
 	}
 
-	showQueueMessage(msg: string, type: 'game' | 'tournament' = 'game') {
-		if (this.queueMessage)
-			this.queueMessage.textContent = msg;
-		if (this.queueMessageContainer) {
-			this.queueMessageContainer.style.display = 'block';
-			this.queueMessageContainer.setAttribute('data-queue-type', type);
+	showQueueMessage(msg: string, type: 'game' | 'tournament' = 'game', inQueue: boolean = true, showUsernameEntry: boolean = false): Promise<string | null> | void {
+		if (!showUsernameEntry) {
+			if (this.queueMessage)
+				this.queueMessage.textContent = msg;
+			if (this.queueMessageContainer) {
+				this.queueMessageContainer.style.display = 'block';
+				this.queueMessageContainer.setAttribute('data-queue-type', type);
+			}
+			if (this.leaveQueueBtn) {
+				this.leaveQueueBtn.style.display = inQueue ? 'inline-block' : 'none';
+			}
+			if (this.queueUsernameEntry) {
+				this.queueUsernameEntry.style.display = 'none';
+			}
+			if (type === 'tournament' && inQueue) {
+				this.disableTournamentButton();
+			}
+			return;
 		}
+
+		// If username entry is needed, return a Promise
+		return new Promise<string | null>((resolve) => {
+			if (this.queueMessage)
+				this.queueMessage.textContent = msg;
+			if (this.queueMessageContainer) {
+				this.queueMessageContainer.style.display = 'block';
+				this.queueMessageContainer.setAttribute('data-queue-type', type);
+			}
+			if (this.leaveQueueBtn) {
+				this.leaveQueueBtn.style.display = inQueue ? 'inline-block' : 'none';
+			}
+			if (this.queueUsernameEntry) {
+				this.queueUsernameEntry.style.display = 'block';
+			}
+			if (type === 'tournament' && inQueue) {
+				this.disableTournamentButton();
+			}
+			if (this.tournamentUsernameInput && this.tournamentUsernameValidateBtn) {
+				this.tournamentUsernameInput.value = '';
+				const validateHandler = () => {
+					const username = this.tournamentUsernameInput.value.trim();
+					this.tournamentUsernameValidateBtn.removeEventListener('click', validateHandler);
+					resolve(username.length > 0 ? username : null);
+				};
+				this.tournamentUsernameValidateBtn.addEventListener('click', validateHandler);
+			}
+		});
 	}
 
 	hideQueueMessage() {
 		if (this.queueMessageContainer)
 			this.queueMessageContainer.style.display = 'none';
+		this.enableTournamentButton();
 	};
+
+	disableTournamentButton() {
+		const btn = document.getElementById('playTournament-btn') as HTMLButtonElement;
+		if (btn) {
+			btn.disabled = true;
+			btn.classList.add('disabled');
+		}
+	}
+
+	enableTournamentButton() {
+		const btn = document.getElementById('playTournament-btn') as HTMLButtonElement;
+		if (btn) {
+			btn.disabled = false;
+			btn.classList.remove('disabled');
+		}
+	}
 
 	async play1v1() {
 		if (!user) {
@@ -258,6 +334,7 @@ export class GameSection extends ASection {
 					});
 				} catch (err) {
 					console.error('Error leaving queue:', err);
+					setTimeout(this.hideQueueMessage, 2000);
 				}
 				this.hideQueueMessage();
 			};
@@ -270,16 +347,17 @@ export class GameSection extends ASection {
 				body: JSON.stringify({ userId: user.userId })
 			});
 			if (resp.status === 202) {
-				this.showQueueMessage('Waiting for an opponent...');
+				this.showQueueMessage('Waiting for an opponent...', 'game', true, false);
 			} else if (resp.ok) {
 				return;
 			} else {
 				const err = await resp.json();
-				this.showQueueMessage(`Queue error: ${err.error}`);
+				this.showQueueMessage(`Queue error: ${err.error}`, 'game', false, false);
 			}
 		} catch (err) {
 			console.error('play1v1: error', err);
-			this.showQueueMessage('Failed to join 1v1 queue');
+			this.showQueueMessage('Failed to join 1v1 queue', 'game', false, false);
+			go_section('home');
 			setTimeout(this.hideQueueMessage, 2000);
 		}
 	}
@@ -290,6 +368,18 @@ export class GameSection extends ASection {
 			console.error('playTournament: not logged in');
 			return;
 		}
+		let displayName = await this.showQueueMessage(
+			'Enter your Username for the tournament:',
+			'tournament',
+			false,
+			true
+		) as string | null;
+		if (!displayName || displayName.trim().length === 0) {
+			this.showQueueMessage('Display name is required for tournaments', 'tournament', false, false);
+			setTimeout(() => this.playTournament(), 2000);
+			return;
+		}
+		displayName = displayName.trim();
 		if (this.leaveQueueBtn) {
 			this.leaveQueueBtn.onclick = async () => {
 				try {
@@ -309,21 +399,26 @@ export class GameSection extends ASection {
 				method: 'POST',
 				credentials: 'include',
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ userId: user.userId })
+				body: JSON.stringify({ userId: user.userId, displayName })
 			});
 			const data = await resp.json();
 			if (user)
 				user.isTournamentCreator = !!data.isCreator;
-			if (resp.status === 202) {
-				this.showQueueMessage('Waiting for tournament players...', 'tournament');
+			if (resp.status === 409) {
+				this.showQueueMessage('Display name already taken. Please try another.', 'tournament', false, false);
+				setTimeout(() => this.playTournament(), 2000);
+				return;
+			} else if (resp.status === 202) {
+				this.showQueueMessage('Waiting for tournament players...', 'tournament', true, false);
 			} else if (resp.ok) {
 				return;
 			} else {
-				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament');
+				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament', false, false);
 			}
 		} catch (err) {
 			console.error('playTournament: error', err);
-			this.showQueueMessage('Failed to join tournament queue', 'tournament');
+			this.showQueueMessage('Failed to join tournament queue', 'tournament', false, false);
+			go_section('home');
 			setTimeout(this.hideQueueMessage, 2000);
 		}
 	}
@@ -774,7 +869,7 @@ export class Actions extends ASection {
 			console.log("Try to enter Actions section as unauthenticated");
 			return;
 		}
-		this.btn1.onclick = () => history.back();
+		this.btn1.onclick = () => go_section('chat');
 		this.btn1.textContent = 'Back';
 
 		this.btn2.setAttribute('onclick', '');
@@ -1116,19 +1211,6 @@ export  function update_status(username : string, online : boolean) {
         (sections[section_index] as Actions).load_boxes();
 }
 
-export function set_active_game_id(gameId: string): void {
-	activeGameId = gameId;
-}
-
-export function set_active_tournament_id(tournamentId: string): void {
-	activeTournamentId = tournamentId;
-	console.log('Active tournament ID set:', activeTournamentId);
-}
-
-export function set_tournament_bracket(bracket: string): void {
-	tournamentBracket = bracket;
-	console.log('Tournament bracket set:', tournamentBracket);
-}
 
 (window as any).go_section = go_section;
 /* --------- */

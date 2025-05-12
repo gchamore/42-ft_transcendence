@@ -33,17 +33,18 @@ export class Game {
 	private animationFrameId: number | null = null;
 	private playerNumber: number = 0;
 	private gameId: string;
+	private gameState!: GameState;
 	private isLoading: boolean = true;
 
-	constructor(gameId: string, settings: any) {
+	constructor(gameId: string, settings: any, playerNumber: number) {
 		this.gameId = gameId;
-		this.playerNumber = WebSocketService.getInstance().getPlayerNumber();
+		this.playerNumber = playerNumber;
 		this.connectWebSocket();
 		this.initializeCanvas();
 		this.initializeComponents(settings);
 		this.initializeBabylonScene();
 		this.initializeGameManagers();
-		
+
 		this.start();
 	}
 
@@ -65,18 +66,18 @@ export class Game {
 		this.paddle2 = new Paddle(780, 250);
 		this.updateSettings(settings);
 	}
-	
+
 	private initializeBabylonScene() {
 		try {
 			const canvas = document.createElement('canvas');
 			const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-			
+
 			if (!gl) {
 				console.warn("WebGL not available, skipping 3D mode");
 				this.isLoading = false;
 				return;
 			}
-			
+
 			if (!BABYLON.Engine.isSupported()) {
 				console.error("WebGL not supported");
 				return;
@@ -107,24 +108,24 @@ export class Game {
 			this.isLoading = false;
 		}
 	}
-	
-		private initializeGameManagers() {
-			this.controls = new GameControls(
-				this.paddle1,
-				this.paddle2,
-				this.ball,
-				this.playerNumber,
-				this.socket,
-				this.babylonManager!
-			);
-			this.scoreBoard = new ScoreBoard();
-			this.uiManager = new UIManager(this.context, this.uiCanvas, this.powerUpsEnabled);
-			this.inputManager = new InputManager(this.controls);
-		}
+
+	private initializeGameManagers() {
+		this.controls = new GameControls(
+			this.paddle1,
+			this.paddle2,
+			this.ball,
+			this.playerNumber,
+			this.socket,
+			this.babylonManager!
+		);
+		this.scoreBoard = new ScoreBoard();
+		this.uiManager = new UIManager(this.context, this.uiCanvas, this.powerUpsEnabled);
+		this.inputManager = new InputManager(this.controls);
+	}
 
 	private connectWebSocket() {
 		this.socket = WebSocketService.getInstance().connect(this.gameId, 'game');
-		
+
 		this.socket.onopen = () => {
 			console.log("Connected to the game");
 		};
@@ -133,10 +134,13 @@ export class Game {
 			const data = JSON.parse(message.data);
 			console.log("Received message : ", data);
 			switch (data.type) {
+				case "playerNumber":
+					this.playerNumber = data.playerNumber;
+					break;
 				case "gameState":
 					this.updateGameState(data.gameState);
 					break;
-				case "gameOver":
+				case 'gameOver':
 					this.handleGameOver(data);
 					break;
 				case "connected":
@@ -181,7 +185,10 @@ export class Game {
 					}
 					break;
 				case 'ping':
-					this.socket.send(JSON.stringify({ type: "pong" }));
+					this.socket.send(JSON.stringify({ type: 'pong' }));
+					break;
+				default:
+					console.error("Unknown message in game type:", data.type);
 					break;
 			}
 		};
@@ -192,17 +199,17 @@ export class Game {
 		};
 
 		this.socket.onclose = () => {
-			console.log("Disconnected from the game");
+			console.log("WS Disconnected from the game");
 			if (this.gameStarted) {
 				this.uiManager.drawErrorMessage("Connection to server lost");
 			}
-			setTimeout(() => {
-				(window as any).go_section('home', '');
-			}, 3000);
 		};
 	}
 
-	
+	getGameState() {
+		return this.gameState;
+	}
+
 	pauseGame() {
 		if (this.animationFrameId) {
 			cancelAnimationFrame(this.animationFrameId);
@@ -217,6 +224,7 @@ export class Game {
 		}
 		this.gameStarted = gameState.gameStarted ?? false;
 		this.servingPlayer = gameState.servingPlayer ?? this.servingPlayer;
+		this.gameState = gameState;
 
 		if (gameState.ball) {
 			if (gameState.ball.x !== null && gameState.ball.y !== null) {
@@ -239,7 +247,7 @@ export class Game {
 	}
 
 	private gameLoop(timestamp: number): void {
-		
+
 		if (this.uiCanvas && this.context)
 			this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -253,11 +261,20 @@ export class Game {
 				this.babylonManager.render(timestamp);
 			}
 			if (!this.gameStarted) {
+				let opponentName = "Opponent";
+				if (this.gameState && this.gameState.score) {
+					if (this.playerNumber === 1) {
+						opponentName = this.gameState.score.player2?.name || "Opponent";
+					} else if (this.playerNumber === 2) {
+						opponentName = this.gameState.score.player1?.name || "Opponent";
+					}
+				}
 				this.uiManager.drawStartMessage(
 					timestamp,
 					this.gameStarted,
 					this.playerNumber,
-					this.servingPlayer
+					this.servingPlayer,
+					opponentName
 				);
 			}
 			if (this.powerUpsEnabled)
@@ -269,8 +286,8 @@ export class Game {
 	start(): void {
 		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
 	}
-	
-	stopGame(): void {
+
+	stopGame(message: string): void {
 		if (this.animationFrameId) {
 			cancelAnimationFrame(this.animationFrameId);
 			this.animationFrameId = null;
@@ -288,8 +305,8 @@ export class Game {
 			this.babylonManager.dispose();
 			this.babylonManager = null;
 		}
-		 if (this.socket && this.socket.readyState === WebSocket.OPEN)
-			this.socket.close();
+		if (this.socket && this.socket.readyState === WebSocket.OPEN)
+			this.socket.close(1000, message);
 
 	}
 
@@ -311,55 +328,73 @@ export class Game {
 		this.gameStarted = false;
 		this.pauseGame();
 
-		const finalScore = data.finalScore || { player1Score: 0, player2Score: 0 };
-	
-		this.scoreBoard.updateScore({
-			player1Score: finalScore.player1Score,
-			player2Score: finalScore.player2Score,
-		});
+		const finalScore = data.finalScore;
+
+		this.scoreBoard.updateScore(data.finalScore);
+
+		let message = "";
+		let scoreText = `${finalScore.player1.score} - ${finalScore.player2.score}`;
+
+		switch (data.reason) {
+			case "scoreLimit":
+				message = `Player ${data.winnerDisplayName || data.winner} wins!`;
+				break;
+			case "tournamentEnded":
+				message = data.message || "Tournament ended due to a player disconnect.";
+				break;
+			case "opponentDisconnected":
+				message = data.message || "Opponent disconnected. You win!";
+				break;
+			default:
+				message = "Game over.";
+		}
 
 		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 			this.socket.send(
 				JSON.stringify({
-					type: "gameOver",
+					type: 'gameOver',
 					matchId: this.gameId,
 					winner: data.winner,
 				}));
+			// Close the game socket after sending gameOver
+			this.stopGame("Game Finished");
 		}
-	
-		if (data.reason === "opponentDisconnected") {
-			//distinct message for opponent disconnection
-			this.uiManager.drawDisconnectionMessage(
-				`${data.message}`,
-				data.winner === this.playerNumber
-			);
-			setTimeout(() => {
-				(window as any).go_section('home', '');
-			}, 5000);
+
+		if (this.isTournamentGame(this.gameId) && data.reason !== "tournamentEnded") {
+			this.showWaitingForNextMatch();
 		} else {
-			this.uiManager.drawGameOverMessage(
-				performance.now(),
-				data.winner,
-				`${finalScore.player1Score} - ${finalScore.player2Score}`
-			);
-			// Regular game over message
-			this.createGameOverMenu(`Player ${data.winner} wins!`);
+			this.createGameOverMenu(message, scoreText);
 		}
 	}
-	
-	private createGameOverMenu(message: string) {
+
+	private isTournamentGame(gameId: string): boolean {
+		return gameId.includes('semi');
+	}
+
+	private showWaitingForNextMatch() {
 		const container = document.getElementById("game-over-menu") as HTMLElement;
 		const messageEl = document.getElementById("game-over-message") as HTMLElement;
-	
-		// Show main content elements
+		const scoreEl = document.getElementById("game-over-score") as HTMLElement;
+
+		document.getElementById("game-over-title")!.style.display = "block";
+		document.getElementById("game-over-buttons")!.style.display = "none";
+		messageEl.textContent = "Waiting for other match to finish...";
+		scoreEl.textContent = "";
+		container.style.display = "block";
+	}
+
+	private createGameOverMenu(message: string, score?: string) {
+		const container = document.getElementById("game-over-menu") as HTMLElement;
+		const messageEl = document.getElementById("game-over-message") as HTMLElement;
+		const scoreEl = document.getElementById("game-over-score") as HTMLElement;
+
 		document.getElementById("game-over-title")!.style.display = "block";
 		document.getElementById("game-over-buttons")!.style.display = "flex";
-	
-		// Set message and show main content
+
 		messageEl.textContent = message;
+		scoreEl.textContent = score ? `Final Score: ${score}` : "";
 		container.style.display = "block";
-	
-		// Set up event listeners
+
 		document.getElementById("home-button")!.onclick = () => {
 			container.style.display = "none";
 			console.log("Going to home");

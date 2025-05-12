@@ -1,5 +1,4 @@
-import { update_status, update_sections, Chat, Actions, set_tournament_bracket, get_type_index, sections, section_index, set_section_index, set_active_game_id, set_active_tournament_id, go_section, GameSection } from "./sections.js";
-
+import { update_status, update_sections, Chat, Actions, get_type_index, sections, section_index, set_section_index, GameSection, go_section } from "./sections.js";
 
 /* Global variables */
 export var user : undefined | User = undefined;
@@ -81,6 +80,7 @@ export class User {
         this.web_socket.onmessage = (event) => {
 			try {
 				const data = JSON.parse(event.data);
+				console.log('WebSocket message received:', data);
 				switch (data.type) {
 					case 'onlines':
 						this.init_status(data.users);
@@ -100,15 +100,24 @@ export class User {
 					case 'tournamentStart':
 						tournamentStart(data.tournamentId, data.bracket);
 						break;
+					case 'tournamentResults':
+						showTournamentResults(data.placements, data.message);
+						break;
 					case 'TournamentGameStart':
 						if (data.gameId) {
+							console.log('TournamentGameStart from user', data.gameId);
 							const gameSection = sections[get_type_index('game')!] as GameSection;
-							gameSection.transitionToGame(data.gameId, data.settings);
-							/*need to print the tournament match on screen using data.round and data.players */
+							this.hideWaitingScreen();
+							if (data.round && data.players)
+								gameSection.showTournamentInfo(data.round, data.players, () => {
+									gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
+								});
 						} else {
 							console.error('Game ID not provided');
 						}
 						break;
+					default:
+						console.error('Unknown message in user type:', data.type);
 				}
 			} catch (error) {
                 console.error('WebSocket message parsing error:', error);
@@ -116,13 +125,20 @@ export class User {
         };
 
 		this.web_socket.onclose = (event) => {
-			console.log(`WebSocket disconnected with code: ${event.code}`);
+			console.log(`User WebSocket disconnected with code: ${event.code} and reason: ${event.reason}`);
 			update_user(undefined);
 		};
 
 		this.web_socket.onerror = (error) => {
 			console.log('WebSocket error:', error);
 		};
+	}
+
+	hideWaitingScreen() {
+		const container = document.getElementById("game-over-menu") as HTMLElement;
+		if (container) {
+			container.style.display = 'none';
+		}
 	}
 	
 	get_free_users(): Array<string> {
@@ -157,14 +173,55 @@ export class User {
 }
 
 function tournamentStart(tournamentId: string, bracket: string) {
-	set_active_tournament_id(tournamentId);
-	set_tournament_bracket(bracket);
-	go_section('game', '');
+	go_section('chat', '');
+	const queueMsg = document.getElementById('queue-message-container');
+    if (queueMsg) queueMsg.style.display = 'none';
+	(sections[get_type_index('chat')!] as Chat).load_messages(get_user_messages());
+	let countdown = 10;
+
+	const overlay = document.getElementById('tournament-countdown-overlay') as HTMLElement;
+	const text = document.getElementById('tournament-countdown-text') as HTMLElement;
+	if (!overlay || !text) return;
+
+	overlay.style.display = 'flex';
+	text.textContent = `Tournament starting in ${countdown} seconds...`;
+
+	const interval = setInterval(() => {
+		countdown--;
+		if (countdown > 0) {
+			text.textContent = `Tournament starting in ${countdown} seconds...`;
+		} else {
+			clearInterval(interval);
+			text.textContent = `Tournament is starting!`;
+			setTimeout(() => {
+				overlay.style.display = 'none';
+				go_section('game', '');
+				(sections[get_type_index('game')!] as GameSection).chooseTournamentSettings(tournamentId, bracket);
+			}, 1500);
+		}
+	}, 1000);
 }
 
 function matchFound(matchId: string) {
-	set_active_game_id(matchId);
 	go_section('game', '');
+	(sections[get_type_index('game')!] as GameSection).chooseGameSettings(matchId);
+}
+
+function showTournamentResults(placements: any[], message: string) {
+	const container = document.getElementById("game-over-menu") as HTMLElement;
+	const messageEl = document.getElementById("game-over-message") as HTMLElement;
+	const scoreEl = document.getElementById("game-over-score") as HTMLElement;
+
+	document.getElementById("game-over-title")!.style.display = "block";
+	document.getElementById("game-over-buttons")!.style.display = "none";
+	messageEl.innerHTML = message + "<br>" + placements.map(p => `${p.place}. ${p.name}`).join("<br>");
+	scoreEl.textContent = "";
+	container.style.display = "block";
+
+	setTimeout(() => {
+		container.style.display = "none";
+		(window as any).go_section('home');
+	}, 6000);
 }
 
 export async function add_online(username : string) {

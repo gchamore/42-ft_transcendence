@@ -1,9 +1,8 @@
 import { GameInstance } from '../classes/gameInstance.js';
-import { games, lobbies, cleanupLobby } from '../controllers/gameController.js';
+import { games } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
-import { handleGameMessage, handleGameDisconnect } from './gameMessageHandlers.js';
 import { handleNewGamePlayer } from './gameMessageHandlers.js';
-import { tournaments } from '../../routes/game.routes.js';
+import { tournaments, gamePlayerNumbers, tournamentPlayerNumbers, tournamentQueue, tournamentDisplayNames } from '../../routes/game.routes.js';
 import WebSocket from 'ws';
 
 export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fastify) {
@@ -12,15 +11,31 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 		console.error('Socket not in OPEN state');
 		return;
 	}
-	socket.currentCloseHandler = () => handleLobbyDisconnect(socket, lobby);
+	socket.currentCloseHandler = (fastify) => handleLobbyDisconnect(socket, lobby, fastify);
 	// Handle disconnect
-	socket.on('close', () => {
+	socket.on('close', (code, reason) => {
 		if (socket.currentCloseHandler) {
-			socket.currentCloseHandler();
+			socket.currentCloseHandler(fastify);
+			if (code !== 1000 && reason !== 'Starting tournament game') {
+				const clientIdStr = String(socket.clientId);
+				if (gamePlayerNumbers.has(clientIdStr)) {
+					gamePlayerNumbers.delete(clientIdStr);
+				}
+				if (tournamentPlayerNumbers.has(clientIdStr)) {
+					tournamentPlayerNumbers.delete(clientIdStr);
+					console,log(`clientIdStr: ${clientIdStr} removed from tournamentPlayerNumbers`);
+				}
+				const tqIdx = tournamentQueue.indexOf(socket.clientId);
+				if (tqIdx !== -1) {
+					tournamentQueue.splice(tqIdx, 1);
+				}
+				tournamentDisplayNames.delete(socket.clientId);
+			}
 		} else {
 			console.error('No close handler set for socket');
 		}
 	});
+	
 	if (!lobby.addPlayer(socket, clientId, playerNumber, fastify)) {
 		fastify.log.error('Lobby is full');
 		socket.close();
@@ -62,14 +77,30 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 
 }
 
-function handleLobbyDisconnect(socket, lobby) {
+function handleLobbyDisconnect(socket, lobby, fastify) {
 
 	console.log(`Player ${socket.playerNumber} disconnected from lobby ${lobby.lobbyId}`);
-	lobby.removePlayer(socket);
-	if (lobby.players.size === 0) {
-		cleanupLobby(lobby.lobbyId);
-		console.log(`Lobby ${lobby.lobbyId} deleted due to emptyness`);
+	let message = `Player ${socket.playerNumber} disconnected`;
+	if (lobby.isTournament) {
+		message = `Player ${socket.playerNumber} disconnected, tournament has ended`;
+	} else {
+		message = `Player ${socket.playerNumber} disconnected, game has ended`;
 	}
+	if (!lobby.notified) {
+		// Notify remaining players in the lobby
+		lobby.players.forEach((playerSocket) => {
+			safeSend(playerSocket, {
+				type: 'opponentDisconnected',
+				message: message
+			});
+		});
+		lobby.notified = true;
+	}
+	lobby.removePlayer(socket.clientId);
+	cleanUpSocketListeners(socket);
+	const userConnections = fastify.connections.get(socket.clientId);
+	if (userConnections)
+		userConnections.delete(socket.connectionId);
 }
 
 function handleLobbyMessage(socket, lobby, data, fastify) {
@@ -99,7 +130,6 @@ function handleLobbyMessage(socket, lobby, data, fastify) {
 				}
 			}
 			break;
-
 		case 'startGameRequest':
 			if (playerNumber === 1) {
 				const tournament = tournaments.get(Number(lobby.lobbyId));
@@ -109,7 +139,7 @@ function handleLobbyMessage(socket, lobby, data, fastify) {
 			break;
 
 		default:
-			console.error(`Unknown message type: ${data.type}`);
+			console.error(`Unknown message in lobby type: ${data.type}`);
 	}
 }
 
@@ -135,6 +165,7 @@ function startNormalGame(lobby, gameId, settings, fastify) {
 			type: 'gameStart',
 			gameId: gameId,
 			settings: settings,
+			playerNumber: player.playerNumber,
 		});
 		handleNewGamePlayer(player, game, fastify);
 	});
@@ -150,18 +181,38 @@ function startTournamentGame(lobby, tournament, gameId, settings) {
 		const game = new GameInstance(match.matchId, settings);
 		games.set(match.matchId, game);
 		match.players.forEach(playerId => {
-			const playerSocket = lobby.players.get(playerId);
+			const playerSocket = lobby.players.get(playerId.id);
 			if (playerSocket) {
+				playerSocket.playerNumber = playerId.number;
 				safeSend(playerSocket, {
 					type: 'TournamentGameStart',
 					gameId: match.matchId,
 					settings: settings,
 					round: match.round,
-					players: match.players,
+					players: match.players.map(p => p.displayName),
+					playerNumber: playerId.number,
 				});
 			}
 		});
 		console.log(`starting tournament game ${match.matchId} with players ${match.players}`);
 	});
 	return;
+}
+
+function cleanUpSocketListeners(socket) {
+	try {
+		const playerNum = socket.playerNumber;
+
+		socket.removeAllListeners('message');
+		socket.removeAllListeners('close');
+		socket.removeAllListeners('error');
+
+		socket.gameInstance = null;
+		socket.isDisconnecting = true;
+		socket.playerNumber = null;
+
+		console.log(`Cleaned up listeners for player ${playerNum}`);
+	} catch (e) {
+		console.error('Error cleaning up socket listeners:', e);
+	}
 }

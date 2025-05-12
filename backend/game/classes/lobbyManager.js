@@ -7,6 +7,7 @@ export class LobbyManager {
 		this.settingsManager = new SettingsManager();
 		this.players = new Map();
 		this.nbPlayers = 2;
+		this.isTournament = isTournament;
 		if (isTournament) {
 			this.nbPlayers = 4;
 		}
@@ -37,6 +38,10 @@ export class LobbyManager {
 
 	removePlayer(clientId) {
 		this.players.delete(clientId);
+		if (this.players.size === 0) {
+			this.cleanup();
+			console.log(`Lobby ${this.lobbyId} deleted due to emptiness`);
+		}
 	}
 
 	updateSettings(newSettings) {
