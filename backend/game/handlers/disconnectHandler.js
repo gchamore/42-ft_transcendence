@@ -11,20 +11,8 @@ export function handleDisconnect(socket, game, fastify) {
 	const tournament = findTournamentByGameId(game.gameId);
 	if (tournament) {
 		if (!tournament.ended) {
+			tournament.ended = true;
 			console.log(`Player ${playerNumber} disconnected from tournament ${tournament.tournamentId}`);
-
-			// Gather all sockets for all players in the tournament
-			const allSockets = [];
-			for (const match of tournament.bracket) {
-				for (const player of match.players) {
-					const userConnections = fastify.connections.get(player.id);
-					if (userConnections) {
-						for (const [, socket] of userConnections.entries()) {
-							allSockets.push(socket);
-						}
-					}
-				}
-			}
 
 			// Use the score from the current game or a default score
 			const score = game.getState().score || {
@@ -32,8 +20,7 @@ export function handleDisconnect(socket, game, fastify) {
 				player2: { name: "Player2", score: 0 }
 			};
 
-			notifyTournamentPlayers(allSockets, score, `A player disconnected. The tournament has ended.`);
-			tournament.ended = true;
+			notifyTournamentPlayers( tournament, score, `A player disconnected. The tournament has ended.`);
 		}
 		game.removePlayer(socket);
 		cleanUpSocketListeners(socket);
@@ -74,19 +61,23 @@ function findTournamentByGameId(gameId) {
 	return null;
 }
 
-function notifyTournamentPlayers(players, score, message) {
+function notifyTournamentPlayers(tournament, score, message) {
 	try {
-		players.forEach((playerSocket) => {
-			safeSend(playerSocket, {
-				type: 'gameOver',
-				reason: 'tournamentEnded',
-				score: {
-					player1: { name: score.player1?.name || "Player1", score: score.player1?.score ?? 0 },
-					player2: { name: score.player2?.name || "Player2", score: score.player2?.score ?? 0 }
-				},
-				message: message || "The tournament has ended due to a player disconnect."
-			});
-		});
+		for (const match of tournament.bracket) {
+			for (const player of match.players) {
+				if (player.gameSocket && player.gameSocket.readyState === 1) { // 1 = OPEN
+					safeSend(player.gameSocket, {
+						type: 'gameOver',
+						reason: 'tournamentEnded',
+						finalScore: {
+							player1: { name: score.player1?.name || "Player1", score: score.player1?.score ?? 0 },
+							player2: { name: score.player2?.name || "Player2", score: score.player2?.score ?? 0 }
+						},
+						message: message || "The tournament has ended due to a player disconnect."
+					});
+				}
+			}
+		}
 	} catch (e) {
 		console.error('Error notifying tournament players:', e);
 	}

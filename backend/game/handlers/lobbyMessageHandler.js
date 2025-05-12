@@ -13,9 +13,24 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 	}
 	socket.currentCloseHandler = (fastify) => handleLobbyDisconnect(socket, lobby, fastify);
 	// Handle disconnect
-	socket.on('close', () => {
+	socket.on('close', (code, reason) => {
 		if (socket.currentCloseHandler) {
 			socket.currentCloseHandler(fastify);
+			if (code !== 1000 && reason !== 'Starting tournament game') {
+				const clientIdStr = String(socket.clientId);
+				if (gamePlayerNumbers.has(clientIdStr)) {
+					gamePlayerNumbers.delete(clientIdStr);
+				}
+				if (tournamentPlayerNumbers.has(clientIdStr)) {
+					tournamentPlayerNumbers.delete(clientIdStr);
+					console,log(`clientIdStr: ${clientIdStr} removed from tournamentPlayerNumbers`);
+				}
+				const tqIdx = tournamentQueue.indexOf(socket.clientId);
+				if (tqIdx !== -1) {
+					tournamentQueue.splice(tqIdx, 1);
+				}
+				tournamentDisplayNames.delete(socket.clientId);
+			}
 		} else {
 			console.error('No close handler set for socket');
 		}
@@ -82,18 +97,6 @@ function handleLobbyDisconnect(socket, lobby, fastify) {
 		lobby.notified = true;
 	}
 	lobby.removePlayer(socket.clientId);
-	const clientIdStr = String(socket.clientId);
-	if (gamePlayerNumbers.has(clientIdStr)) {
-		gamePlayerNumbers.delete(clientIdStr);
-	}
-	if (tournamentPlayerNumbers.has(clientIdStr)) {
-		tournamentPlayerNumbers.delete(clientIdStr);
-	}
-	const tqIdx = tournamentQueue.indexOf(socket.clientId);
-	if (tqIdx !== -1) {
-		tournamentQueue.splice(tqIdx, 1);
-	}
-	tournamentDisplayNames.delete(socket.clientId);
 	cleanUpSocketListeners(socket);
 	const userConnections = fastify.connections.get(socket.clientId);
 	if (userConnections)
@@ -189,7 +192,6 @@ function startTournamentGame(lobby, tournament, gameId, settings) {
 					players: match.players.map(p => p.displayName),
 					playerNumber: playerId.number,
 				});
-				lobby.removePlayer(playerSocket.clientId);
 			}
 		});
 		console.log(`starting tournament game ${match.matchId} with players ${match.players}`);

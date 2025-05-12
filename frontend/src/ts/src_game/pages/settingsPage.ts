@@ -14,6 +14,7 @@ export class SettingsPage {
 	private playerNumber: number = 0;
 	private socket!: WebSocket;
 	private playerReady: boolean = false;
+	private intentionnallyClosed: boolean = false;
 	private startButton: HTMLButtonElement;
 	private lobbyId: string;
 	private isTournament: boolean;
@@ -84,6 +85,7 @@ export class SettingsPage {
 					break;
 				case 'TournamentGameStart':
 					if (data.gameId) {
+						this.intentionnallyClosed = true;
 						if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 							this.socket.close(1000, 'Starting tournament game');
 						}
@@ -120,7 +122,8 @@ export class SettingsPage {
 
 		this.socket.onclose = (event) => {
 			console.log('WebSocket connection closed in settings:', event.code, event.reason);
-			this.handleConnectionIssues();
+			if (!this.intentionnallyClosed)
+				this.handleConnectionIssues();
 		};
 		
 	}
@@ -333,6 +336,7 @@ export class SettingsPage {
 				if (oldError) oldError.remove();
 			});
 		}
+		this.intentionnallyClosed = true;
 		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 			this.socket.close(1000, 'Leaving settings page');
 		}

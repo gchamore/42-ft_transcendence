@@ -31,6 +31,15 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 	socket.isAlive = true;
 
 	if (isTournament) {
+		for (const tournament of tournaments.values()) {
+			const match = tournament.bracket.find(match => match.matchId === game.gameId);
+			if (match) {
+				const playerObj = match.players.find(player => String(player.id) === String(socket.clientId));
+				if (playerObj) {
+					playerObj.gameSocket = socket; // Store the socket reference
+				}
+			}
+		}
 		socket.on('message', (message) => {
 			const data = JSON.parse(message);
 			if (socket.currentHandler) {
@@ -47,6 +56,7 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 				console.error('No close handler set for socket');
 			}
 		});
+		console.log(`socket.on close handler set for player ${playerNumber}`);
 	}
 
 	socket.currentHandler = (data) => handleGameMessage(socket, game, data, fastify);
