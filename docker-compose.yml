@@ -19,7 +19,7 @@ services:
     ports:
       - "8443:443"  # Exposer le port 443 de l'hôte vers le port 80 du conteneur
     volumes:
-      - ./frontend:/usr/share/nginx/html  # Cette ligne est correcte, monte le dossier frontend vers le bon chemin
+      - ./frontend:/usr/share/nginx/html
       - avatar_image:/data/avatar
       - ./backend/db/public/avatar.png:/data/avatar/avatar.png:ro
     depends_on:
@@ -28,9 +28,21 @@ services:
       - app_network
     environment:
       - BACKEND_URL=http://backend:3000
-      - FRONTEND_URL=https://${LOCAL_IP}:8443
+      - FRONTEND_URL=${FRONTEND_URL}
     env_file:
       - .env
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    command: http https://nginx:443 --domain=swan-genuine-cattle.ngrok-free.app
+    depends_on:
+      - nginx
+    networks:
+      - app_network
+    environment:
+      - NGROK_AUTHTOKEN=2wzc20BXk5JD6T6MybEz4MsF9qA_41Mmprgxr9Cvn9EpTGc7t
+    ports:
+    - "4040:4040" 
 
 networks:
   app_network:

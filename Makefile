@@ -30,13 +30,13 @@ update_env_ip:
 		sed -i "s/^LOCAL_IP=.*/LOCAL_IP=$$LOCAL_IP/" .env; \
 		echo "$(GREEN)✓ .env file updated with LOCAL_IP=$$LOCAL_IP$(RESET)"; \
 	fi
+
 # Lancer l'infrastructure
 run: check_deps update_env_ip
-
 	@npm run build --prefix ./frontend
 	@$(DOCKER_COMPOSE) up --build -d
-	@LOCAL_IP=$$(grep LOCAL_IP .env | cut -d '=' -f2); \
-	echo "$(GREEN)Application disponible sur : https://$$LOCAL_IP:8443$(RESET)"
+	@FRONTEND_URL=$$(grep FRONTEND_URL .env | cut -d '=' -f2); \
+	echo "$(GREEN)Application disponible sur : $$FRONTEND_URL$(RESET)"
 
 # Arrêter les conteneurs et supprimer les volumes
 down:

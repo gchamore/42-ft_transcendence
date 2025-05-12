@@ -525,7 +525,7 @@ export async function initiateGoogleLogin() {
         
         // Google OAuth parameters
         const clientId = '719179054785-2jaf8669fv3kj0qk6ib8cmtumlb23e8a.apps.googleusercontent.com'; // This should be fetched from your backend
-        const redirectUri = `https://localhost:8443/oauth-callback`;
+        const redirectUri = `https://swan-genuine-cattle.ngrok-free.app/oauth-callback`;
         const scope = 'email profile';
         const responseType = 'code';
         const accessType = 'offline';
