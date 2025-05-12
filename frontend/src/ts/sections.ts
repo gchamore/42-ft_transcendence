@@ -357,7 +357,7 @@ export class GameSection extends ASection {
 		} catch (err) {
 			console.error('play1v1: error', err);
 			this.showQueueMessage('Failed to join 1v1 queue', 'game', false, false);
-			go_section('home');
+			go_section('home', '');
 			setTimeout(this.hideQueueMessage, 2000);
 		}
 	}
@@ -418,7 +418,7 @@ export class GameSection extends ASection {
 		} catch (err) {
 			console.error('playTournament: error', err);
 			this.showQueueMessage('Failed to join tournament queue', 'tournament', false, false);
-			go_section('home');
+			go_section('home', '');
 			setTimeout(this.hideQueueMessage, 2000);
 		}
 	}
@@ -869,7 +869,7 @@ export class Actions extends ASection {
 			console.log("Try to enter Actions section as unauthenticated");
 			return;
 		}
-		this.btn1.onclick = () => go_section('chat');
+		this.btn1.onclick = () => go_section('chat', '');
 		this.btn1.textContent = 'Back';
 
 		this.btn2.setAttribute('onclick', '');
