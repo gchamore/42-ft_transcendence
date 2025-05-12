@@ -2,6 +2,8 @@ import {set_section_index, update_sections, get_url_type, get_url_option,
 	get_type_index, is_section_accessible, build_url} from "./sections.js";
 import { verify_token } from "./api.js";
 import { go_section } from "./sections.js";
+import { processGoogleOAuth } from "./api.js";
+
 	
 /* Event listeners */
 window.addEventListener("popstate", async function(event) {
@@ -30,6 +32,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 	const profileBtn = document.getElementById("profile-btn");
 	if (profileBtn) {
 	  profileBtn.addEventListener("click", () => go_section("profile", ''));
+	}
+
+	const urlParams = new URLSearchParams(window.location.search);
+	const oauthCode = urlParams.get('code');
+	
+	if (oauthCode && window.location.pathname.includes('/oauth-callback')) {
+		processGoogleOAuth(oauthCode).then(() => {
+			window.history.replaceState({}, document.title, '/');
+			go_section("profile", '');
+		});
 	}
 
 	let type = get_url_type(window.location.pathname);
