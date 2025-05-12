@@ -956,7 +956,7 @@ export class Actions extends ASection {
 			if (this.current.parentElement?.getAttribute('id') === 'free_box') {
 				this.btn2.textContent = 'Block';
 				// Here put the invite feature of the pong-game...
-				this.btn3.onclick = () => history.back();
+				this.btn3.onclick = () => this.invite(this.current!.textContent!);
 				this.btn3.textContent = 'Invite';
 				// ---
 			}
@@ -998,6 +998,38 @@ export class Actions extends ASection {
 
 		this.btn3.parentElement?.classList.add('hidden');
 		this.btn2.parentElement?.classList.add('hidden');
+	}
+		async invite(username: string) {
+		try {
+			const resp = await fetch('/api/invites', {
+				method: 'POST',
+				credentials: 'include',
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					toUsername: username,
+					gameType: '1v1'
+				})
+			});
+			const data = await resp.json();
+			if (resp.ok && data.invited) {
+				this.showInviteWaitingScreen(username);
+			} else {
+				alert(data.error || 'Failed to send invite');
+			}
+		} catch (err) {
+			console.error('Error sending invite:', err);
+			alert('Error sending invite');
+		}
+	}
+
+	showInviteWaitingScreen(username: string) {
+		const overlay = document.getElementById('invite-waiting-overlay') as HTMLElement;
+		const message = document.getElementById('invite-waiting-message') as HTMLElement;
+
+		if (overlay && message) {
+			message.innerHTML = `Waiting for <b>${username}</b> to accept your invite...`;
+			overlay.style.display = 'flex';
+		}
 	}
 }
 

@@ -98,7 +98,7 @@ function handleLobbyDisconnect(socket, lobby, fastify) {
 	}
 	lobby.removePlayer(socket.clientId);
 	cleanUpSocketListeners(socket);
-	const userConnections = fastify.connections.get(socket.clientId);
+	const userConnections = fastify.connections.get(String(socket.clientId));
 	if (userConnections)
 		userConnections.delete(socket.connectionId);
 }

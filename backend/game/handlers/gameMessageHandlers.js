@@ -221,7 +221,7 @@ function handleGameOver(data, fastify) {
 				const allPlayers = new Set();
 				tournament.bracket.forEach(match => match.players.forEach(p => allPlayers.add(p.id)));
 				for (const playerId of allPlayers) {
-					const userConnections = fastify.connections.get(playerId);
+					const userConnections = fastify.connections.get(String(playerId));
 					if (userConnections) {
 						for (const [, socket] of userConnections.entries()) {
 							if (socket.readyState === 1) {
@@ -272,7 +272,7 @@ function handleGameOver(data, fastify) {
 				console.log(`[Tournament Notify] Final:`, finalMatch.players.map(p => p.displayName));
 				// Notify final players
 				finalMatch.players.forEach(playerId => {
-					const userConnections = fastify.connections.get(playerId.id);
+					const userConnections = fastify.connections.get(String(playerId.id));
 					if (userConnections) {
 						console.log(`Notifying player ${playerId.id} about final match ${finalMatch.matchId}`);
 						for (const [, socket] of userConnections.entries()) {
@@ -293,7 +293,7 @@ function handleGameOver(data, fastify) {
 				console.log(`Third place match created: ${thirdPlaceMatch.matchId}`);
 				console.log(`[Tournament Notify] Third:`, thirdPlaceMatch.players.map(p => p.id));
 				thirdPlaceMatch.players.forEach(playerId => {
-					const userConnections = fastify.connections.get(playerId.id);
+					const userConnections = fastify.connections.get(String(playerId.id));
 					if (userConnections) {
 						for (const [, socket] of userConnections.entries()) {
 							if (socket.readyState === 1) {

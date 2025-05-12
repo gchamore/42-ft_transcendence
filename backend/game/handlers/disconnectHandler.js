@@ -26,7 +26,7 @@ export function handleDisconnect(socket, game, fastify) {
 		}
 		game.removePlayer(socket);
 		cleanUpSocketListeners(socket);
-		const userConnections = fastify.connections.get(socket.clientId);
+		const userConnections = fastify.connections.get(String(socket.clientId));
 		if (userConnections)
 			userConnections.delete(socket.connectionId);
 		const idx = tournament.players.indexOf(socket.clientId);
@@ -43,7 +43,7 @@ export function handleDisconnect(socket, game, fastify) {
 		saveGameResults(game, fastify);
 	}
 	cleanUpSocketListeners(socket);
-	const userConnections = fastify.connections.get(socket.userId);
+	const userConnections = fastify.connections.get(String(socket.userId));
 	if (userConnections)
 		userConnections.delete(socket.connectionId);
 	if (game.players.size === 0) {

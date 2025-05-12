@@ -17,7 +17,7 @@ let tournamentId = 1;
 const invites = [];
 
 function notifyPlayers(fastify, gameId, playerId) {
-	const connections = fastify.connections.get(playerId);
+	const connections = fastify.connections.get(String(playerId));
 
 	if (connections) {
 		for (const [, socket] of connections.entries()) {
@@ -148,7 +148,7 @@ export async function gameRoutes(fastify, options) {
 			const playerList = displayNames.join(', ');
 			// Notify all players 
 			players.forEach(pid => {
-				const userConnections = fastify.connections.get(pid);
+				const userConnections = fastify.connections.get(String(pid));
 				if (userConnections) {
 					for (const [, socket] of userConnections.entries()) {
 						safeSend(socket, {
@@ -183,20 +183,78 @@ export async function gameRoutes(fastify, options) {
 		return reply.code(200).send({ notInQueue: true });
 	});
 
-	// —— INVITES ——
+	// Invite a user to a game
 	fastify.post('/invites', async (request, reply) => {
 		const userId = request.user?.userId;
 		const { toUsername, gameType, tournamentId } = request.body;
-
+	
 		if (!userId || !toUsername || !gameType) {
 			return reply.code(400).send({ error: 'Missing fields' });
 		}
-
+	
+		// Find the invited user's id
+		const invitedUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(toUsername);
+		if (!invitedUser) {
+			return reply.code(404).send({ error: 'User not found' });
+		}
+	
+		// Notify the invited user via WebSocket
+		const connections = fastify.connections.get(String(invitedUser.id));
+		if (connections) {
+			for (const [, socket] of connections.entries()) {
+				socket.send(JSON.stringify({
+					type: 'gameInvite',
+					fromUserId: userId,
+					fromUsername: request.user?.username,
+					gameType,
+					tournamentId
+				}));
+				break;
+			}
+		} else {
+			fastify.log.warn(`No WebSocket connection found for invited user ${invitedUser.id}`);
+		}
+	
 		invites.push({ fromId: userId, toUsername, gameType, tournamentId });
 		return reply.send({ invited: true });
-
 	});
 
+
+	fastify.post('/invites/respond', async (request, reply) => {
+		const userId = request.user?.userId;
+		const { fromUserId, accepted } = request.body;
+
+		if (!userId || !fromUserId) {
+			return reply.code(400).send({ error: 'Missing fields' });
+		}
+
+		// Notify inviter via WebSocket
+		const inviterConnections = fastify.connections.get(String(fromUserId));
+		if (inviterConnections) {
+			for (const [, socket] of inviterConnections.entries()) {
+				socket.send(JSON.stringify({
+					type: 'inviteResult',
+					accepted,
+					username: request.user?.username
+				}));
+				break;
+			}
+		}
+
+		if (accepted) {
+			setTimeout(() => {
+				const gameId = Math.random().toString(36).substring(2, 8);
+				settingsManagers.set(gameId, new SettingsManager());
+				gamePlayerNumbers.set(String(fromUserId), 1);
+				gamePlayerNumbers.set(String(userId), 2);
+
+				notifyPlayers(fastify, gameId, fromUserId);
+				notifyPlayers(fastify, gameId, userId);
+			}, 1500);
+		}
+
+		return reply.send({ ok: true });
+	});
 
 	// WebSocket route
 	fastify.get('/game/:gameId', { websocket: true }, async (connection, request) => {
@@ -256,7 +314,7 @@ export async function gameRoutes(fastify, options) {
 			connection.socket.displayName = displayName;
 	
 			// Vérifie si l'utilisateur a déjà une connexion active
-			const existingConnections = fastify.connections.get(userId);
+			const existingConnections = fastify.connections.get(String(userId));
 			if (!existingConnections) {
 				fastify.log.warn(`User ${userId} does not have any active connections`);
 				return;
