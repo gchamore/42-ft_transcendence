@@ -15,6 +15,7 @@
 	<link rel="stylesheet" href="css/modals.css">
 	<link rel="stylesheet" href="css/sidebar.css">
 	<link rel="stylesheet" href="css/game.css">
+	<link rel="stylesheet" href="css/settings.css">
 	<link rel="icon" type="image/x-icon" href="/assets/favicon.ico" />
 </head>
 
@@ -217,15 +218,29 @@
 		<aside id="settings-sidebar">
 			<nav>
 				<ul>
-					<li>Account</li>
-					<li>Stats</li>
-					<li>Confidentiality</li>
-					<li onclick="history.back()">Back</li>
+					<li id="account-btn">Account</li>
+					<li id="stats-btn">Stats</li>
+					<li id="confidentiality-btn">Confidentiality</li>
+					<li id="back-btn">Back</li>
 				</ul>
 			</nav>
 		</aside>
 
-		<div id="settings-content"></div>
+		<ul id="settings-content">
+			<li id="account-content">
+
+			</li>
+			<li id="stats-content"></li>
+			<li id="confidentiality-content">
+				<label id="gdpr-text">
+					"GDPR"Lorem ipsum dolor sit amet consectetur adipisicing elit. Numquam est eaque nesciunt distinctio?
+					A reprehenderit qui vero earum accusamus, saepe ullam sit.
+					Minima suscipit temporibus omnis ab impedit modi sint!
+				</label>
+				<button id="unregister-btn">Unregister</button>
+			</li>
+			<li id="back-content"></li>
+		</ul>
 	</article>
 
 	<!-- <div id="pages-btns">

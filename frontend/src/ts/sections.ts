@@ -382,7 +382,7 @@ class Profile extends ASection {
 		this.password_i.value = "";
 
 		this.btn1.textContent = "Settings";
-		this.btn1.onclick = () => go_section('settings', '');
+		this.btn1.onclick = () => go_section('settings', 'account');
 
 		this.btn2.textContent = "Logout";
 		this.btn2.onclick = () => logout();
@@ -797,28 +797,67 @@ class Settings extends ASection {
 
 	/* Properties */
 	options : Array<string> = ['account', 'stats', 'confidentiality'];
+	account_btn = document.getElementById('account-btn') as HTMLLIElement;
+	stats_btn = document.getElementById('stats-btn') as HTMLLIElement;
+	confidentiality_btn = document.getElementById('confidentiality-btn') as HTMLLIElement;
+	back_btn = document.getElementById('back-btn') as HTMLLIElement;
 
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
-		for (let i = 0; i < this.options.length; ++i) {
-			if (this.options[i] === option)
-				return true;
-		}
-	
-		return false;
+		return this.is_option(option);
 	}
 	enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Settings section as unauthenticated");
 			return;
 		}
+
+		this.account_btn.onclick = () => go_section('settings', 'account');
+		this.stats_btn.onclick = () => go_section('settings', 'stats');
+		this.confidentiality_btn.onclick = () => go_section('settings', 'confidentiality');
+		this.back_btn.onclick = () => go_section('profile', '');
+
+		this.select(get_url_option(window.location.pathname))
 		this.activate_section();
 	}
 	leave() {
 		this.deactivate_section();
+
+		this.account_btn.removeAttribute('onclick');
+		this.stats_btn.removeAttribute('onclick');
+		this.confidentiality_btn.removeAttribute('onclick');
+		this.back_btn.removeAttribute('onclick');
 	}
 	switch_logged_off() {}
 	switch_logged_in() {}
+	
+	/* Settings methods */
+	is_option(option : string) : boolean {
+		for (let i = 0; i < this.options.length; ++i) {
+			if (this.options[i] === option)
+				return true;
+		}
+		return false;
+	}
+	print(option : string) {
+		for (let i = 0; i < this.options.length; ++i) {
+			let id : string = this.options[i] + '-content';
+			let subsection = (document.getElementById(id)! as HTMLLIElement);
+			if (this.options[i] === option)
+				subsection.classList.add('active');
+			else
+			subsection.classList.remove('active');
+			console.log(option, ':', subsection.classList);
+		}
+	}
+	select(option : string) {
+		console.log('Selecting', option);
+		if (!this.is_option(option)) {
+			go_section('profile', '');
+			return;
+		}
+		this.print(option);
+	}
 }
 
 class DirectMessage extends ASection {
@@ -863,7 +902,7 @@ export function	get_url_type(url : string) : string {
 
 	let end;
 	for (end = start; end < url.length; ++end) {
-		if (url[end] == '/')
+		if (url[end] === '/')
 			break;
 	}
 	let type;
@@ -877,16 +916,16 @@ export function	get_url_type(url : string) : string {
 export function	get_url_option(url : string) : string {
 	let start : number = 0;
 	if (url[0] === '/')
-		start = 1;
+		start++;
 
 	for (; start < url.length; ++start) {
-		if (url[start] == '/')
+		if (url[start] === '/')
 			break;
 	}
 
 	let option;
 	if (start < url.length) {
-		option = url.substring(start + 1, length);
+		option = url.substring(start + 1, url.length);
 	}
 	else
 		option = '';

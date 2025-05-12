@@ -29,7 +29,7 @@ window.addEventListener("popstate", async function(event) {
 document.addEventListener("DOMContentLoaded", async () => {
 	const profileBtn = document.getElementById("profile-btn");
 	if (profileBtn) {
-	  profileBtn.addEventListener("click", () => go_section("profile", ''));
+		profileBtn.addEventListener("click", () => go_section("profile", ''));
 	}
 
 	let type = get_url_type(window.location.pathname);
