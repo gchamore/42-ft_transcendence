@@ -146,10 +146,5 @@ function removePlayerFromQueuesAndMaps(userId) {
 	const idxG = gameQueue.indexOf(userId);
 	if (idxG !== -1) gameQueue.splice(idxG, 1);
 
-	const idxT = tournamentQueue.indexOf(userId);
-	if (idxT !== -1) tournamentQueue.splice(idxT, 1);
-
 	gamePlayerNumbers.delete(String(userId));
-	tournamentPlayerNumbers.delete(String(userId));
-	tournamentDisplayNames.delete(userId);
 }

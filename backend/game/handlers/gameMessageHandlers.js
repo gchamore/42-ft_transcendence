@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleDisconnect } from './disconnectHandler.js';
-import { tournaments } from '../../routes/game.routes.js';
+import { tournaments, tournamentPlayerNumbers, tournamentDisplayNames } from '../../routes/game.routes.js';
 
 
 export function handleNewGamePlayer(socket, game, fastify, isTournament) {
@@ -18,11 +18,30 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 	}
 
 	if (game.players.size === 2) {
-		const player1 = game.players.get(1);
-		const player2 = game.players.get(2);
+		let player1Name = "Player1";
+		let player2Name = "Player2";
+
+		if (isTournament) {
+			for (const tournament of tournaments.values()) {
+				const match = tournament.bracket.find(match => match.matchId === game.gameId);
+				if (match) {
+					const p1 = match.players.find(player => player.number === 1);
+					const p2 = match.players.find(player => player.number === 2);
+					if (p1) player1Name = p1.displayName || player1Name;
+					if (p2) player2Name = p2.displayName || player2Name;
+					break;
+				}
+			}
+		} else {
+			let player1 = game.players.get(1);
+			let player2 = game.players.get(2);
+			if (player1) player1Name = player1.name || player1Name;
+			if (player2) player2Name = player2.name || player2Name;
+		}
+
 		const gameState = game.getState();
-		gameState.score.player1.name = player1?.displayName || "Player1";
-		gameState.score.player2.name = player2?.displayName || "Player2";
+		gameState.score.player1.name = player1Name;
+		gameState.score.player2.name = player2Name;
 	}
 
 	// Attach game instance to socket
@@ -49,7 +68,13 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 			}
 		});
 
-		socket.on('close', () => {
+		socket.on('close', (code, reason) => {
+			if (code === 1000 || (reason && reason.toString().includes('Game Finished'))) {
+				console.log(`Socket closed intentionally (code: ${code}, reason: ${reason}). Not treating as disconnect.`);
+				if (socket.gameInstance && socket.playerNumber) 
+					socket.gameInstance.removePlayer(socket);
+				return;
+			}
 			if (socket.currentCloseHandler) {
 				socket.currentCloseHandler(fastify);
 			} else {
@@ -209,6 +234,7 @@ function handleGameOver(data, fastify) {
 						}
 					}
 				}
+				cleanupTournamentMappings(tournament);
 				tournaments.delete(tid);
 				console.log(`Tournament ${tournament.id} cleaned up after completion.`);
 			}
@@ -288,4 +314,14 @@ function handleGameOver(data, fastify) {
 	} else {
 		console.log(`regular game over: ${data.matchId} winner is ${data.winner}`);
 	}
+}
+
+
+export function cleanupTournamentMappings(tournament) {
+    for (const match of tournament.bracket) {
+        for (const player of match.players) {
+            tournamentPlayerNumbers.delete(String(player.id));
+            tournamentDisplayNames.delete(player.id);
+        }
+    }
 }

@@ -1,6 +1,7 @@
 import { games, broadcastGameState } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { tournaments } from '../../routes/game.routes.js';
+import { cleanupTournamentMappings } from './gameMessageHandlers.js'
 
 export function handleDisconnect(socket, game, fastify) {
 	if (!validateDisconnectParams(socket, game)) return;
@@ -20,7 +21,8 @@ export function handleDisconnect(socket, game, fastify) {
 				player2: { name: "Player2", score: 0 }
 			};
 
-			notifyTournamentPlayers( tournament, score, `A player disconnected. The tournament has ended.`);
+			notifyTournamentPlayers(tournament, score, `A player disconnected. The tournament has ended.`);
+			cleanupTournamentMappings(tournament);
 		}
 		game.removePlayer(socket);
 		cleanUpSocketListeners(socket);
@@ -66,12 +68,15 @@ function notifyTournamentPlayers(tournament, score, message) {
 		for (const match of tournament.bracket) {
 			for (const player of match.players) {
 				if (player.gameSocket && player.gameSocket.readyState === 1) { // 1 = OPEN
+					const gameState = player.gameSocket.gameInstance?.getState?.();
+					const player1Name = gameState?.score?.player1?.name || score.player1?.name || "Player1";
+					const player2Name = gameState?.score?.player2?.name || score.player2?.name || "Player2";
 					safeSend(player.gameSocket, {
 						type: 'gameOver',
 						reason: 'tournamentEnded',
 						finalScore: {
-							player1: { name: score.player1?.name || "Player1", score: score.player1?.score ?? 0 },
-							player2: { name: score.player2?.name || "Player2", score: score.player2?.score ?? 0 }
+							player1: { name: player1Name, score: score.player1?.score ?? 0 },
+							player2: { name: player2Name, score: score.player2?.score ?? 0 }
 						},
 						message: message || "The tournament has ended due to a player disconnect."
 					});
@@ -163,14 +168,13 @@ function handleRemainingPlayers(game, disconnectedPlayerNumber) {
 		if (remainingPlayer) {
 			const score = game.getState().score;
 			const winnerNumber = remainingPlayer.playerNumber;
+			const winnerDisplayName = score[`player${winnerNumber}`]?.name || "Player" + winnerNumber;
 
-
-			// Notify remaining player about the disconnect
 			safeSend(remainingPlayer, {
 				type: 'gameOver',
 				reason: 'opponentDisconnected',
 				winner: winnerNumber,
-				winnerDisplayName: remainingPlayer.displayName,
+				winnerDisplayName: winnerDisplayName,
 				finalScore: {
 					player1: { name: score.player1?.name || "Player1", score: score.player1?.score ?? 0 },
 					player2: { name: score.player2?.name || "Player2", score: score.player2?.score ?? 0 }

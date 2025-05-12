@@ -143,9 +143,6 @@ export class Game {
 				case 'gameOver':
 					this.handleGameOver(data);
 					break;
-				case 'tournamentResults':
-					this.showTournamentResults(data.placements, data.message);
-            break;
 				case "connected":
 					console.log(data.message);
 					break;
@@ -384,23 +381,6 @@ export class Game {
 		messageEl.textContent = "Waiting for other match to finish...";
 		scoreEl.textContent = "";
 		container.style.display = "block";
-	}
-
-	private showTournamentResults(placements: any[], message: string) {
-		const container = document.getElementById("game-over-menu") as HTMLElement;
-		const messageEl = document.getElementById("game-over-message") as HTMLElement;
-		const scoreEl = document.getElementById("game-over-score") as HTMLElement;
-
-		document.getElementById("game-over-title")!.style.display = "block";
-		document.getElementById("game-over-buttons")!.style.display = "none";
-		messageEl.innerHTML = message + "<br>" + placements.map(p => `${p.place}. ${p.name}`).join("<br>");
-		scoreEl.textContent = "";
-		container.style.display = "block";
-
-		setTimeout(() => {
-			container.style.display = "none";
-			(window as any).go_section('home');
-		}, 6000);
 	}
 
 	private createGameOverMenu(message: string, score?: string) {

@@ -40,7 +40,7 @@ export const GameConfig = {
 	DEFAULT_POWERUPS: false,
 	DEFAULT_MAX_SCORE: 3,
 
-	TEST_MODE: true,
+	TEST_MODE: false,
 	TARGET_FPS: 20,
 	BROADCAST_RATE: 20,
 	PING_TIMEOUT: 5000, // 5 seconds

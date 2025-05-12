@@ -152,12 +152,11 @@ function processGameUpdate(game, deltaTime) {
 
 	if (game.getState().gameStarted && result.scored && result.winner) {
 		game.players.forEach((player) => {
-			const player1 = game.players.get(1);
-			const player2 = game.players.get(2);
-			const player1DisplayName = player1?.displayName || player1?.username || "Player1";
-			const player2DisplayName = player2?.displayName || player2?.username || "Player2";
-			const player1Score = game.getState().score.player1.score;
-			const player2Score = game.getState().score.player2.score;
+			const gameState = game.getState();
+			const player1DisplayName = gameState.score.player1.name || "Player1";
+			const player2DisplayName = gameState.score.player2.name || "Player2";
+			const player1Score = gameState.score.player1.score;
+			const player2Score = gameState.score.player2.score;
 			safeSend(player, {
 				type: 'gameOver',
 				reason: 'scoreLimit',
