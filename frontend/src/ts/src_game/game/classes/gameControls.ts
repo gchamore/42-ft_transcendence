@@ -17,9 +17,7 @@ export class GameControls {
 	private remotePaddleBuffer: { time: number; position: number; height: number; speed: number }[] = [];
 	private paddleInterpolationDelay: number = 100;
 	private ballPositionBuffer: { time: number; position: { x: number, y: number }; speedX: number; speedY: number }[] = [];
-	private ballInterpolationDelay: number = 100;
-	private networkMeasurements: number[] = [];
-	private avgPacketInterval: number = 1000 / GameConfig.BROADCAST_RATE;
+	private ballInterpolationDelay: number = 150;
 
 	private babylonManager: BabylonManager;
 
@@ -256,6 +254,7 @@ export class GameControls {
 		}
 	}
 
+	// Cubic ease-in-out function for smoother interpolation
 	private cubicEaseInOut(t: number): number {
 		t = Math.max(0, Math.min(1, t));
 		return 0.5 * (1 - Math.cos(t * Math.PI));
@@ -312,32 +311,12 @@ export class GameControls {
 	public storeBallPosition(serverBall: { x: number, y: number, speedX: number, speedY: number, radius?: number }): void {
 		const now = performance.now();
 
-		// Measure time between server updates
-		if (this.ballPositionBuffer.length > 0) {
-			const lastUpdate = this.ballPositionBuffer[this.ballPositionBuffer.length - 1].time;
-			const interval = now - lastUpdate;
-
-			// Store measurements (up to 20 recent values)
-			this.networkMeasurements.push(interval);
-			if (this.networkMeasurements.length > 20) {
-				this.networkMeasurements.shift();
-			}
-
-			// Recalculate average packet interval
-			if (this.networkMeasurements.length >= 5) {
-				this.avgPacketInterval = this.networkMeasurements.reduce((sum, val) => sum + val, 0) /
-					this.networkMeasurements.length;
-
-				// Adjust interpolation delay (1.5-2.5x average interval works well)
-				// Lower for faster response, higher for smoother movement
-				this.ballInterpolationDelay = Math.min(
-					Math.max(this.avgPacketInterval * 2, 50), // Min 50ms
-					100 // Max 100ms
-				);
-			}
+		// Reset buffer if there's a big jump (e.g., after paddle hit)
+		const last = this.ballPositionBuffer[this.ballPositionBuffer.length - 1];
+		if (last && Math.hypot(serverBall.x - last.position.x, serverBall.y - last.position.y) > 50) {
+			this.ballPositionBuffer = [];
 		}
 
-		// Push new position to buffer
 		this.ballPositionBuffer.push({
 			time: now,
 			position: { x: serverBall.x, y: serverBall.y },
@@ -345,11 +324,8 @@ export class GameControls {
 			speedY: serverBall.speedY,
 		});
 
-		// Keep buffer time-ordered
-		this.ballPositionBuffer.sort((a, b) => a.time - b.time);
-
+		// Keep only the last 10 positions
 		const maxBufferSize = 10;
-
 		if (this.ballPositionBuffer.length > maxBufferSize) {
 			this.ballPositionBuffer = this.ballPositionBuffer.slice(-maxBufferSize);
 		}
@@ -358,7 +334,7 @@ export class GameControls {
 	private updateBallPosition(): void {
 		const now = performance.now();
 		// Return if the buffer is empty or has only one entry
-		if (this.ballPositionBuffer.length < 2) return;
+		if (this.ballPositionBuffer.length < 2) return (console.log("Ball position buffer too small"));
 
 		// Get the two positions to interpolate between
 		const targetTime = now - this.ballInterpolationDelay;
@@ -379,6 +355,7 @@ export class GameControls {
 
 		// If we found appropriate interpolation points
 		if (prev && next) {
+			console.log(`interpolating`);
 			// Calculate interpolation factor
 			const timeFactor = (targetTime - prev.time) / (next.time - prev.time);
 			const t = this.cubicEaseInOut(timeFactor);
@@ -387,40 +364,19 @@ export class GameControls {
 			this.ball.x = prev.position.x * (1 - t) + next.position.x * t;
 			this.ball.y = prev.position.y * (1 - t) + next.position.y * t;
 
-		}
-		// Use extrapolation for the latest data
-		else {
-			if (this.ballPositionBuffer.length >= 2) {
-				const latest = this.ballPositionBuffer[this.ballPositionBuffer.length - 1];
-				const previousToLatest = this.ballPositionBuffer.length > 2 ?
-					this.ballPositionBuffer[this.ballPositionBuffer.length - 2] : null;
+		} else {
+			console.log(`extrapolating`);
+			const latest = this.ballPositionBuffer[this.ballPositionBuffer.length - 1];
+			const isNearWall = this.isNearBoundary(latest.position.x, latest.position.y);
 
-				// Calculate time elapsed since the latest point
+			if (!isNearWall && this.ballPositionBuffer.length >= 2) {
 				const timeElapsed = (now - latest.time) / 1000;
-
-				// Limit extrapolation to reasonable time (to prevent extreme positions)
 				const safeTimeElapsed = Math.min(timeElapsed, 0.1);
+				this.ball.x = latest.position.x + latest.speedX * safeTimeElapsed;
+				this.ball.y = latest.position.y + latest.speedY * safeTimeElapsed;
+			} else {
+				// Near wall/paddle: do not extrapolate, just hold last known position
 
-				// Check if we're likely near a collision point (wall or paddle)
-				const isNearWall = this.isNearBoundary(latest.position.x, latest.position.y);
-
-				if (isNearWall && previousToLatest) {
-					// Near collision - be conservative with extrapolation 
-					// Reduce extrapolation time when near boundaries
-					const reducedTimeElapsed = safeTimeElapsed * 0.3;
-
-					// Use a blend of positions to smooth the transition
-					this.ball.x = latest.position.x + latest.speedX * reducedTimeElapsed;
-					this.ball.y = latest.position.y + latest.speedY * reducedTimeElapsed;
-				} else {
-					// Normal extrapolation - not near collision surfaces
-					this.ball.x = latest.position.x + latest.speedX * safeTimeElapsed;
-					this.ball.y = latest.position.y + latest.speedY * safeTimeElapsed;
-				}
-			}
-			// Fall back to the latest position if we can't extrapolate
-			else if (this.ballPositionBuffer.length > 0) {
-				const latest = this.ballPositionBuffer[this.ballPositionBuffer.length - 1];
 				this.ball.x = latest.position.x;
 				this.ball.y = latest.position.y;
 			}
@@ -440,10 +396,10 @@ export class GameControls {
 		const rightPaddle = this.playerNumber === 1 ? this.remotePaddle : this.localPaddle;
 
 
-		const nearTopWall = y - ballRadius < 5;
-		const nearBottomWall = y + ballRadius > canvasHeight - 5;
-		const nearLeftPaddle = x - ballRadius < leftPaddle.width + 5 && Math.abs(y - leftPaddle.y) < leftPaddle.height / 2 + 5;
-		const nearRightPaddle = x + ballRadius > canvasWidth - rightPaddle.width - 5 && Math.abs(y - rightPaddle.y) < rightPaddle.height / 2 + 5;
+		const nearTopWall = y - ballRadius < 10;
+		const nearBottomWall = y + ballRadius > canvasHeight - 10;
+		const nearLeftPaddle = x - ballRadius < leftPaddle.width + 10 && Math.abs(y - leftPaddle.y) < leftPaddle.height / 2 + 10;
+		const nearRightPaddle = x + ballRadius > canvasWidth - rightPaddle.width - 10 && Math.abs(y - rightPaddle.y) < rightPaddle.height / 2 + 10;
 		return nearTopWall || nearBottomWall || nearLeftPaddle || nearRightPaddle;
 	}
 
