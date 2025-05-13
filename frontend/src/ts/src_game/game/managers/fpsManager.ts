@@ -3,12 +3,10 @@ export class FPSManager {
 	private lastFpsUpdate: number = performance.now();
 	private fpsUpdateInterval: number = 500; // Update every 500ms
 	private fpsCounterElement: HTMLElement | null;
-	private engine: any = null; // Optional Babylon engine reference
 	private currentFps: number = 0;
 
-	constructor(babylonEngine?: any) {
+	constructor() {
 		this.fpsCounterElement = document.getElementById('fps-counter');
-		this.engine = babylonEngine;
 
 		// Create the FPS counter element if it doesn't exist
 		if (!this.fpsCounterElement) {
@@ -58,13 +56,8 @@ export class FPSManager {
 		const elapsed = timestamp - this.lastFpsUpdate;
 
 		if (elapsed >= this.fpsUpdateInterval) {
-			// Calculate FPS
-			if (this.engine && !this.engine.isDisposed) {
-				this.currentFps = Math.round(this.engine.getFps());
-			} else {
-				this.currentFps = Math.round(this.frameCount / (elapsed / 1000));
-			}
-
+			// Always use real frame timing for FPS calculation
+			this.currentFps = Math.round(this.frameCount / (elapsed / 1000));
 			this.updateFpsDisplay(this.currentFps);
 
 			this.lastFpsUpdate = timestamp;
@@ -93,6 +86,5 @@ export class FPSManager {
 			this.fpsCounterElement.parentNode.removeChild(this.fpsCounterElement);
 		}
 		this.fpsCounterElement = null;
-		this.engine = null;
 	}
 }

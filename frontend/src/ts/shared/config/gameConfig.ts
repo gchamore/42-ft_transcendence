@@ -42,7 +42,7 @@ export const GameConfig = {
 
 	TEST_MODE: false,
 	TARGET_FPS: 60,
-	BROADCAST_RATE: 60,
+	BROADCAST_RATE: 30,
 	PING_TIMEOUT: 5000, // 5 seconds
 	PING_INTERVAL: 500, // 0.5 seconds
 
