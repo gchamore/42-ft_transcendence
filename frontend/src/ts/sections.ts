@@ -1,7 +1,7 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
-import { login, register, logout, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar} from './api.js';
+import { login, register, logout, unregister, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar} from './api.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -602,7 +602,6 @@ class Profile extends ASection {
 			}
 		};
 
-		// Ajouter le gestionnaire pour l'upload d'avatar
 		const updateAvatarInput = document.getElementById('update-avatar') as HTMLInputElement;
 		if (updateAvatarInput) {
 			updateAvatarInput.onchange = async (e: Event) => {
@@ -1081,6 +1080,7 @@ class Settings extends ASection {
 
 		this.select(get_url_option(window.location.pathname))
 		this.activate_section();
+		this.bindUnregisterButton();
 	}
 	leave() {
 		this.deactivate_section();
@@ -1119,6 +1119,50 @@ class Settings extends ASection {
 			return;
 		}
 		this.print(option);
+	}
+
+	bindUnregisterButton() {
+		const unregisterBtn = document.getElementById("unregister-btn");
+		if (!unregisterBtn) return;
+
+		unregisterBtn.addEventListener("click", () => this.UnregisterConfirmation());
+	}
+
+	async handleUnregisterClick() {
+		try {
+			const accountType = await getUserAccountType();
+
+			if (!accountType) {
+				alert("Impossible de vérifier le type de compte");
+				return;
+			}
+
+			let success;
+			if (!accountType.is_google_account && accountType.has_password) {
+				const password = prompt("Veuillez entrer votre mot de passe pour SUPPRIMER votre compte:");
+				if (!password) return; // User cancelled
+
+				success = await unregister(password);
+			} else {
+				success = await unregister();
+			}
+
+			if (success) {
+				alert("Your account has been successfully deleted.");
+				go_section('home', '');
+			} else {
+				alert("Error unregistering account:");
+			}
+		} catch (err) {
+			console.error("Error unregistering account:", err);
+			alert("Une erreur s'est produite lors de la suppression du compte.");
+		}
+	}
+
+	UnregisterConfirmation() {
+		if (confirm("Êtes-vous sûr de vouloir Supprimer votre compte?")) {
+			this.handleUnregisterClick();
+		}
 	}
 }
 

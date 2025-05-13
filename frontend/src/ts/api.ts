@@ -642,3 +642,33 @@ export async function updateAvatar(file: File): Promise<boolean> {
         return false;
     }
 }
+
+export async function unregister(password?: string): Promise<boolean> {
+	try {
+		const response = await fetch("/api/unregister", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ password }),
+		});
+
+		const data = await response.json();
+		if (response.status === 401) {
+            console.error("Unauthorized!");
+            if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+                user.web_socket.close(1000);
+            update_user(undefined);
+            return false;
+        }
+		if (!response.ok) {
+            console.error('Fail to unregister:', data.error);
+            return false;
+        }
+
+        return data.success;
+	} catch (error) {
+		console.error('Fail to unregister:', error);
+        return false;
+	}
+}
