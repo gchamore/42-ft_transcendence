@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { update_status, update_sections, Chat, Actions, get_type_index, sections, section_index, set_section_index, GameSection, go_section } from "./sections.js";
 
 /* Global variables */
@@ -64,6 +66,13 @@ export class User {
 		}
 		this.name = username;
 		console.log('UserId:', this.userId, this.name);
+		const avatarFile = path.join(__dirname, 'avatar', `${this.userId}.png`);
+
+		if (fs.existsSync(avatarFile)) {
+			this.avatar_path = `avatar/${this.userId}.png`;
+		} else {
+			this.avatar_path = 'avatar/avatar.png';
+		}
 		this.avatar_path = 'avatar/avatar.png';
 		this.web_socket = undefined;
 		this.livechat = [];

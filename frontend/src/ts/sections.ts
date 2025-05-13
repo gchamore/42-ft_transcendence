@@ -1,7 +1,7 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
-import { login, register, logout, add , remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin} from './api.js';
+import { login, register, logout, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar} from './api.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -27,15 +27,15 @@ var gamePage: Game | null = null;
 
 /* Classes */
 abstract class ASection {
-    abstract readonly type: string;
-    abstract readonly protected: boolean;
-    abstract readonly parent: HTMLElement;
-    abstract readonly logged_off: NodeListOf<Element>;
-    abstract readonly logged_in: NodeListOf<Element>;
-    abstract readonly dependencies: Array<string>;
-	
-	abstract is_option_valid(option : string): Promise<boolean>;
-    abstract enter(verified: boolean): void;
+	abstract readonly type: string;
+	abstract readonly protected: boolean;
+	abstract readonly parent: HTMLElement;
+	abstract readonly logged_off: NodeListOf<Element>;
+	abstract readonly logged_in: NodeListOf<Element>;
+	abstract readonly dependencies: Array<string>;
+
+	abstract is_option_valid(option: string): Promise<boolean>;
+	abstract enter(verified: boolean): void;
 	abstract switch_logged_off(): void;
 	abstract switch_logged_in(): void;
 	activate_section() {
@@ -445,20 +445,20 @@ class Profile extends ASection {
 	/* Methods */
 
 	async check2FAStatus() {
-        try {
-            const isEnabled = await get2faStatus();
-            
-            if (isEnabled) {
-                this.btn2.textContent = "disable 2FA";
-                this.btn2.onclick = () => this.disable2FAConfirmation();
-            } else {
-                this.btn2.textContent = "enable 2FA";
-                this.btn2.onclick = () => this.show2FAModal();
-            }
-        } catch (error) {
-            console.error("Error checking 2FA status:", error);
-        }
-    }
+		try {
+			const isEnabled = await get2faStatus();
+
+			if (isEnabled) {
+				this.btn2.textContent = "disable 2FA";
+				this.btn2.onclick = () => this.disable2FAConfirmation();
+			} else {
+				this.btn2.textContent = "enable 2FA";
+				this.btn2.onclick = () => this.show2FAModal();
+			}
+		} catch (error) {
+			console.error("Error checking 2FA status:", error);
+		}
+	}
 
 	async show2FAModal() {
 		try {
@@ -467,30 +467,30 @@ class Profile extends ASection {
 				console.error("Failed to set up 2FA");
 				return;
 			}
-	
+
 			const qrcodeImg = document.getElementById('qrcode-img') as HTMLImageElement;
 			qrcodeImg.src = response.qrCode;
-	
+
 			const secretKey = document.getElementById('secret-key') as HTMLElement;
 			const secretMatch = response.otpauth_url.match(/secret=([A-Z0-9]+)/i);
 			if (secretMatch && secretMatch[1]) {
 				secretKey.textContent = secretMatch[1];
 			}
-	
+
 			const modal = document.getElementById('twofa-modal') as HTMLElement;
 			modal.style.display = 'flex';
-	
+
 			const activateBtn = document.getElementById('activate-2fa-btn') as HTMLButtonElement;
 			activateBtn.onclick = async () => {
 				const tokenInput = document.getElementById('twofa-token') as HTMLInputElement;
 				const token = tokenInput.value.trim();
-				
+
 				if (token.length !== 6 || !/^\d+$/.test(token)) {
 					const errorMsg = document.getElementById('twofa-error') as HTMLElement;
 					errorMsg.textContent = "Le code doit contenir 6 chiffres";
 					return;
 				}
-	
+
 				const success = await activate2fa(token);
 				if (success) {
 					modal.style.display = 'none';
@@ -501,17 +501,17 @@ class Profile extends ASection {
 					errorMsg.textContent = "Code invalide ou expiré. Veuillez réessayer.";
 				}
 			};
-	
+
 			const cancelBtn = document.getElementById('cancel-2fa-btn') as HTMLButtonElement;
 			cancelBtn.onclick = () => {
 				modal.style.display = 'none';
 			};
-	
+
 			const closeBtn = document.querySelector('.close-modal') as HTMLElement;
 			closeBtn.onclick = () => {
 				modal.style.display = 'none';
 			};
-	
+
 			window.onclick = (event) => {
 				if (event.target === modal) {
 					modal.style.display = 'none';
@@ -524,22 +524,22 @@ class Profile extends ASection {
 	async handleDisable2FA() {
 		try {
 			const accountType = await getUserAccountType();
-			
+
 			if (!accountType) {
 				alert("Impossible de vérifier le type de compte");
 				return;
 			}
 			let success = false;
-			
+
 			if (!accountType.is_google_account && accountType.has_password) {
 				const password = prompt("Veuillez entrer votre mot de passe pour désactiver la 2FA:");
 				if (!password) return; // User cancelled
-				
+
 				success = await disable2fa(password);
 			} else {
 				success = await disable2fa();
 			}
-			
+
 			if (success) {
 				alert("2FA désactivé avec succès.");
 				this.check2FAStatus();
@@ -552,10 +552,10 @@ class Profile extends ASection {
 		}
 	}
 	disable2FAConfirmation() {
-        if (confirm("Êtes-vous sûr de vouloir désactiver l'authentification à deux facteurs?")) {
-            this.handleDisable2FA();
-        }
-    }
+		if (confirm("Êtes-vous sûr de vouloir désactiver l'authentification à deux facteurs?")) {
+			this.handleDisable2FA();
+		}
+	}
 	async is_option_valid(option: string): Promise<boolean> {
 		return (option === '') ? true : false;
 	}
@@ -578,7 +578,7 @@ class Profile extends ASection {
 		this.btn1.onclick = () => register(this.username_i.value, this.password_i.value);
 
 		this.btn2.textContent = "Google Login";
-    	this.btn2.onclick = () => initiateGoogleLogin();
+		this.btn2.onclick = () => initiateGoogleLogin();
 
 		this.btn3.textContent = "Login";
 		this.btn3.onclick = () => login(this.username_i.value, this.password_i.value);
@@ -594,6 +594,29 @@ class Profile extends ASection {
 		this.username.textContent = user.name;
 		this.username_i.value = "";
 		this.password_i.value = "";
+
+		this.avatar.onclick = () => {
+			const updateAvatarInput = document.getElementById('update-avatar') as HTMLInputElement;
+			if (updateAvatarInput) {
+				updateAvatarInput.click();
+			}
+		};
+
+		// Ajouter le gestionnaire pour l'upload d'avatar
+		const updateAvatarInput = document.getElementById('update-avatar') as HTMLInputElement;
+		if (updateAvatarInput) {
+			updateAvatarInput.onchange = async (e: Event) => {
+				const input = e.target as HTMLInputElement;
+				if (!input.files || input.files.length === 0) return;
+
+				const success = await updateAvatar(input.files[0]);
+				if (success) {
+					alert('Avatar updated successfully!');
+				} else {
+					alert('Failed to update avatar');
+				}
+			};
+		}
 
 		this.btn1.textContent = "Settings";
 		this.btn1.onclick = () => go_section('settings', '');
@@ -708,7 +731,7 @@ class Friends extends ASection {
 				window.location.href = "directmessage" + '/' + this.anotherUser?.username;
 			};
 			this.btn3.textContent = 'Message';
-			
+
 			const stats = this.anotherUser.format_stats();
 			this.stat1.textContent = stats[0];
 			this.stat2.textContent = stats[1];
@@ -827,7 +850,7 @@ export class Chat extends ASection {
 		}
 	}
 	async send() {
-		let input : string = this.msg_input.value;
+		let input: string = this.msg_input.value;
 		this.msg_input.value = '';
 		if (await send(input, 'livechat') === true) {
 			add_message(user!.name, input, 'livechat');
@@ -854,11 +877,11 @@ export class Actions extends ASection {
 	readonly btn2 = document.getElementById('actions-btn2') as HTMLButtonElement;
 	readonly btn3 = document.getElementById('actions-btn3') as HTMLButtonElement;
 
-	blocked_users : Array<string> = [];
-	free_users : Array<string> = [];
+	blocked_users: Array<string> = [];
+	free_users: Array<string> = [];
 
-	current : HTMLLIElement | undefined = undefined;
-	load_mutex : boolean = false;
+	current: HTMLLIElement | undefined = undefined;
+	load_mutex: boolean = false;
 
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
@@ -896,10 +919,10 @@ export class Actions extends ASection {
 
 	clear_boxes() {
 		while (this.free_box.firstChild) {
-			this.free_box.firstChild.remove(); 
+			this.free_box.firstChild.remove();
 		}
 		while (this.blocked_box.firstChild) {
-			this.blocked_box.firstChild.remove(); 
+			this.blocked_box.firstChild.remove();
 		}
 
 		this.current = undefined;
@@ -912,7 +935,7 @@ export class Actions extends ASection {
 		this.load_mutex = true;
 
 		this.clear_boxes();
-		let blocked_users : Array<string> | undefined = await get_blocked_users();
+		let blocked_users: Array<string> | undefined = await get_blocked_users();
 		if (blocked_users === undefined)
 			return;
 		let free_users: Array<string> | undefined = user?.get_free_users();
@@ -939,7 +962,7 @@ export class Actions extends ASection {
 		});
 		this.load_mutex = false;
 	}
-	click(element : HTMLLIElement) {
+	click(element: HTMLLIElement) {
 		if (this.current?.textContent === element.textContent) {
 			element.classList.remove('active');
 			this.current = undefined;
@@ -977,8 +1000,8 @@ export class Actions extends ASection {
 			this.btn3.textContent = '';
 		}
 	}
-	async trigger(action : string | null) {
-		let username : string | undefined | null = this.current?.textContent;
+	async trigger(action: string | null) {
+		let username: string | undefined | null = this.current?.textContent;
 
 		if (action === null || username === undefined || username === null)
 			return;
@@ -987,7 +1010,7 @@ export class Actions extends ASection {
 			user?.block(username);
 			this.load_boxes();
 		}
-		
+
 		if (action === 'Unblock' && await unblock(username) === true) {
 			this.load_boxes();
 		}
@@ -999,7 +1022,7 @@ export class Actions extends ASection {
 		this.btn3.parentElement?.classList.add('hidden');
 		this.btn2.parentElement?.classList.add('hidden');
 	}
-		async invite(username: string) {
+	async invite(username: string) {
 		try {
 			const resp = await fetch('/api/invites', {
 				method: 'POST',
@@ -1043,7 +1066,7 @@ class Settings extends ASection {
 	dependencies = [];
 
 	/* Properties */
-	options : Array<string> = ['account', 'stats', 'confidentiality'];
+	options: Array<string> = ['account', 'stats', 'confidentiality'];
 
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
@@ -1051,7 +1074,7 @@ class Settings extends ASection {
 			if (this.options[i] === option)
 				return true;
 		}
-	
+
 		return false;
 	}
 	enter(verified: boolean) {
@@ -1064,8 +1087,8 @@ class Settings extends ASection {
 	leave() {
 		this.deactivate_section();
 	}
-	switch_logged_off() {}
-	switch_logged_in() {}
+	switch_logged_off() { }
+	switch_logged_in() { }
 }
 
 class DirectMessage extends ASection {
@@ -1079,7 +1102,7 @@ class DirectMessage extends ASection {
 
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
-		let user : OtherUser | Error | undefined = await search(option);
+		let user: OtherUser | Error | undefined = await search(option);
 		return (user instanceof Error || user === undefined) ? false : true;
 	}
 	enter(verified: boolean) {
@@ -1092,19 +1115,19 @@ class DirectMessage extends ASection {
 	leave() {
 		this.deactivate_section();
 	}
-	switch_logged_off() {}
-	switch_logged_in() {}
+	switch_logged_off() { }
+	switch_logged_in() { }
 }
 
 sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(),
-			new GameSection(), new Settings(), new DirectMessage()];
+new GameSection(), new Settings(), new DirectMessage()];
 /* --------- */
 
 
 
 /* Utils */
-export function	get_url_type(url : string) : string {
-	let start : number = 0;
+export function get_url_type(url: string): string {
+	let start: number = 0;
 	if (url[0] === '/')
 		start = 1;
 
@@ -1121,8 +1144,8 @@ export function	get_url_type(url : string) : string {
 	return type;
 }
 
-export function	get_url_option(url : string) : string {
-	let start : number = 0;
+export function get_url_option(url: string): string {
+	let start: number = 0;
 	if (url[0] === '/')
 		start = 1;
 
@@ -1142,24 +1165,24 @@ export function	get_url_option(url : string) : string {
 	return option;
 }
 
-export function get_type_index(type : string): number | undefined {
+export function get_type_index(type: string): number | undefined {
 	for (let i = 0; i < sections.length; i++) {
 		if (sections[i].type === type)
-				return i;
+			return i;
 	}
 	return undefined;
 }
 
-export function set_section_index(index : number | undefined): void {
+export function set_section_index(index: number | undefined): void {
 	if (index === undefined)
 		index = HOME_INDEX;
 	console.log('Set section on ', sections[index].type);
 	section_index = index;
 }
 
-export async function is_section_accessible(type: string, option : string): Promise<boolean> {
-	let index : number = get_type_index(type)!;
-	
+export async function is_section_accessible(type: string, option: string): Promise<boolean> {
+	let index: number = get_type_index(type)!;
+
 	if (sections[index].protected && user === undefined)
 		return false;
 	if (await sections[index].is_option_valid(option) === false)
@@ -1168,7 +1191,7 @@ export async function is_section_accessible(type: string, option : string): Prom
 	return true;
 }
 
-export function build_url(type : string, option : string) : string {
+export function build_url(type: string, option: string): string {
 	if (option !== '')
 		return type + '/' + option;
 	else
@@ -1183,8 +1206,8 @@ export function update_sections(): void {
 	sections[section_index].enter(user !== undefined);
 }
 
-const sidebar_sections : Array<string> = ['profile', 'friends', 'chat'];
-function is_sidebar_section(type : string, option : string) : boolean {
+const sidebar_sections: Array<string> = ['profile', 'friends', 'chat'];
+function is_sidebar_section(type: string, option: string): boolean {
 	if (option !== '')
 		return false;
 
@@ -1196,7 +1219,7 @@ function is_sidebar_section(type : string, option : string) : boolean {
 	return false;
 }
 
-export function go_section(type : string, option : string) {
+export function go_section(type: string, option: string) {
 	let previous_type = get_url_type(window.location.pathname);
 	let previous_option = get_url_option(window.location.pathname);
 	if (is_sidebar_section(type, option) && is_sidebar_section(previous_type, previous_option)
@@ -1210,8 +1233,8 @@ export function go_section(type : string, option : string) {
 		option = '';
 	}
 
-	let url : string = build_url(type, option);
-	history.pushState({ section : url }, "", url);
+	let url: string = build_url(type, option);
+	history.pushState({ section: url }, "", url);
 	set_section_index(get_type_index(type));
 	update_sections();
 }
@@ -1228,19 +1251,19 @@ function deactivate(list: NodeListOf<Element>): void {
 	});
 }
 
-export  function update_status(username : string, online : boolean) {
+export function update_status(username: string, online: boolean) {
 	if (section_index == get_type_index('friends')
 		&& (sections[section_index] as Friends).anotherUser?.username === username)
 		(sections[section_index] as Friends).update_status(online);
 
 	if (user?.onlines.includes(username) === true || user?.name === username)
-        return;
+		return;
 
 	if (online === true)
 		add_online(username);
 
 	if (sections[section_index].type === 'actions')
-        (sections[section_index] as Actions).load_boxes();
+		(sections[section_index] as Actions).load_boxes();
 }
 
 
@@ -1248,55 +1271,55 @@ export  function update_status(username : string, online : boolean) {
 /* --------- */
 
 export function showTwofaVerificationModal(tempToken: string, username: string) {
-    const modal = document.getElementById('twofa-verification-modal') as HTMLElement;
-    const verifyBtn = document.getElementById('verify-2fa-btn') as HTMLButtonElement;
-    const cancelBtn = document.getElementById('cancel-2fa-verification-btn') as HTMLButtonElement;
-    const closeBtn = modal.querySelector('.close-modal') as HTMLElement;
-    const errorMsg = document.getElementById('twofa-verification-error') as HTMLElement;
-    const tokenInput = document.getElementById('twofa-verification-token') as HTMLInputElement;
-    
-    const headerElement = modal.querySelector('.modal-header h2') as HTMLHeadingElement;
-    if (headerElement) {
-        headerElement.textContent = `2FA Verification for ${username}`;
-    }
-    
-    errorMsg.textContent = '';
-    tokenInput.value = '';
-    
-    modal.style.display = 'flex';
+	const modal = document.getElementById('twofa-verification-modal') as HTMLElement;
+	const verifyBtn = document.getElementById('verify-2fa-btn') as HTMLButtonElement;
+	const cancelBtn = document.getElementById('cancel-2fa-verification-btn') as HTMLButtonElement;
+	const closeBtn = modal.querySelector('.close-modal') as HTMLElement;
+	const errorMsg = document.getElementById('twofa-verification-error') as HTMLElement;
+	const tokenInput = document.getElementById('twofa-verification-token') as HTMLInputElement;
 
-    verifyBtn.onclick = async () => {
-        const token = tokenInput.value.trim();
-        
-        if (token.length !== 6 || !/^\d+$/.test(token)) {
-            errorMsg.textContent = "The code must contain 6 digits";
-            return;
-        }
+	const headerElement = modal.querySelector('.modal-header h2') as HTMLHeadingElement;
+	if (headerElement) {
+		headerElement.textContent = `2FA Verification for ${username}`;
+	}
 
-        try {
-            const success = await verify2fa(token, tempToken);
-            if (success) {
-                modal.style.display = 'none';
-            } else {
-                errorMsg.textContent = "Invalid verification code. Please try again.";
-            }
-        } catch (error) {
-            console.error("2FA verification error:", error);
-            errorMsg.textContent = "An error occurred during verification. Please try again.";
-        }
-    };
+	errorMsg.textContent = '';
+	tokenInput.value = '';
 
-    cancelBtn.onclick = () => {
-        modal.style.display = 'none';
-    };
+	modal.style.display = 'flex';
 
-    closeBtn.onclick = () => {
-        modal.style.display = 'none';
-    };
+	verifyBtn.onclick = async () => {
+		const token = tokenInput.value.trim();
 
-    window.onclick = (event) => {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-        }
-    };
+		if (token.length !== 6 || !/^\d+$/.test(token)) {
+			errorMsg.textContent = "The code must contain 6 digits";
+			return;
+		}
+
+		try {
+			const success = await verify2fa(token, tempToken);
+			if (success) {
+				modal.style.display = 'none';
+			} else {
+				errorMsg.textContent = "Invalid verification code. Please try again.";
+			}
+		} catch (error) {
+			console.error("2FA verification error:", error);
+			errorMsg.textContent = "An error occurred during verification. Please try again.";
+		}
+	};
+
+	cancelBtn.onclick = () => {
+		modal.style.display = 'none';
+	};
+
+	closeBtn.onclick = () => {
+		modal.style.display = 'none';
+	};
+
+	window.onclick = (event) => {
+		if (event.target === modal) {
+			modal.style.display = 'none';
+		}
+	};
 }
