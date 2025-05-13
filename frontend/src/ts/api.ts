@@ -23,7 +23,7 @@ export async function verify_token(): Promise<void> {
 
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
-			update_user(new User(data.username));
+			update_user(new User(data.username, data.id, data.email, data.avatar));
 			return;
 		}
 
@@ -74,7 +74,7 @@ export async function login(username: string, password: string) {
         if (!response.ok)
             console.error("/api/login failed:", data.error);
         else if (data.success) {
-            update_user(new User(data.username, data.id));
+            update_user(new User(data.username, data.id, data.email, data.avatar));
             console.log(username, "logged-in");
         }
         else if (data.step === "2fa_required") {
@@ -591,7 +591,7 @@ async function completeGoogleRegistration(username: string, tempToken: string): 
             showTwofaVerificationModal(data.temp_token, username);
             return;
         } else if (response.ok && data.success) {
-            update_user(new User(data.username));
+            update_user(new User(data.username, data.id, data.email, data.avatar));
             console.log(`Google registration complete as ${data.username}`);
         } else {
             alert(data.error || "Failed to complete registration");
@@ -628,9 +628,7 @@ export async function updateAvatar(file: File): Promise<boolean> {
             return false;
         }
 
-        // Mettre à jour l'avatar dans l'interface utilisateur
         if (data.success && user) {
-            // Ajouter un cache-buster pour forcer le rechargement de l'image
             const avatarElements = document.querySelectorAll('.avatar.logged-in') as NodeListOf<HTMLImageElement>;
             avatarElements.forEach(avatar => {
                 avatar.src = `${data.user.avatar}?${Date.now()}`;

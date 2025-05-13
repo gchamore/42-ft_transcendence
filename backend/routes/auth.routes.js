@@ -297,7 +297,8 @@ export async function authRoutes(fastify, options) {
 				message: "Login successful",
 				id: user.id,
 				username: user.username,
-				email: user.email
+				email: user.email,
+				avatar: user.avatar
 			});
 		} catch (error) {
 			fastify.log.error(error, "Error during login attempt");
@@ -523,7 +524,7 @@ export async function authRoutes(fastify, options) {
 				authUtils.ft_setCookie(reply, result.newAccessToken, 15, isLocal);
 			}
 			// If the tokens are valid, set the userId in the request object
-			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(result.userId);
+			const user = fastify.db.prepare("SELECT username, avatar, email FROM users WHERE id = ?").get(result.userId);
 			if (!user) {
 				fastify.log.warn(`User not found for ID: ${result.userId}`);
 				return reply
@@ -534,7 +535,7 @@ export async function authRoutes(fastify, options) {
 			}
 
 			fastify.log.info('Token verified successfully for user:', user.username);
-			return reply.send({ valid: true, username: user.username });
+			return reply.send({ valid: true, username: user.username, email: user.email, avatar: user.avatar });
 
 		} catch (error) {
 			fastify.log.error(error, 'Error during token verification');

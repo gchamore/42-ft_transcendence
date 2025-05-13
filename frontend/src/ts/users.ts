@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import { update_status, update_sections, Chat, Actions, get_type_index, sections, section_index, set_section_index, GameSection, go_section } from "./sections.js";
 
 /* Global variables */
@@ -53,27 +51,24 @@ export class Message {
 export class User {
 	readonly name: string;
 	readonly userId: number = 0;
-	readonly avatar_path: string;
+	readonly email: string = '';
+	readonly avatar_path: string = '';
 	isTournamentCreator?: boolean = false;
 	web_socket: WebSocket | undefined;
 	livechat: Array<Message>;
 	direct_messages: Array<Message>;
 	onlines: Array<string>;
 
-	constructor(username: string, userId?: number) {
+	constructor(username: string, userId?: number, email?: string, avatarPath?: string) {
 		if (userId !== undefined) {
 			this.userId = userId;
 		}
 		this.name = username;
 		console.log('UserId:', this.userId, this.name);
-		const avatarFile = path.join(__dirname, 'avatar', `${this.userId}.png`);
-
-		if (fs.existsSync(avatarFile)) {
-			this.avatar_path = `avatar/${this.userId}.png`;
-		} else {
-			this.avatar_path = 'avatar/avatar.png';
+		if (email !== undefined) {
+			this.email = email;
 		}
-		this.avatar_path = 'avatar/avatar.png';
+		this.avatar_path = avatarPath || 'avatar/avatar.png';
 		this.web_socket = undefined;
 		this.livechat = [];
 		this.direct_messages = [];
