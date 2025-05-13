@@ -869,19 +869,30 @@ class DirectMessage extends ASection {
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
 	dependencies = ['home'];
 
+	friend_username : undefined | string = undefined;
+
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
 		let user : OtherUser | Error | undefined = await search(option);
-		return (user instanceof Error || user === undefined) ? false : true;
+		if (user instanceof Error || user === undefined)
+			return false;
+
+		this.friend_username = user.username;
+		return true;
 	}
 	enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter DirectMessage section as unauthenticated");
 			return;
 		}
+		if (this.friend_username !== undefined)
+			console.log('Friend found yet');
+		else
+			console.log('Friend not found');
 		this.activate_section();
 	}
 	leave() {
+		this.friend_username = undefined;
 		this.deactivate_section();
 	}
 	switch_logged_off() {}
@@ -988,7 +999,7 @@ function is_sidebar_section(type : string, option : string) : boolean {
 	return false;
 }
 
-export function go_section(type : string, option : string) {
+export async function go_section(type : string, option : string) {
 	let previous_type = get_url_type(window.location.pathname);
 	let previous_option = get_url_option(window.location.pathname);
 	if (is_sidebar_section(type, option) && is_sidebar_section(previous_type, previous_option)
@@ -997,7 +1008,7 @@ export function go_section(type : string, option : string) {
 		option = '';
 	}
 
-	if (!is_section_accessible(type, option)) {
+	if (!(await is_section_accessible(type, option))) {
 		type = 'home';
 		option = '';
 	}

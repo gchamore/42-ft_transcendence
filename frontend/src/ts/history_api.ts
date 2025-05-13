@@ -14,13 +14,12 @@ window.addEventListener("popstate", async function(event) {
 		option = get_url_option(event.state.section);
 	}
 	
-	if (!is_section_accessible(type, option)) {
+	if (!(await is_section_accessible(type, option))) {
 		type = 'home';
 		option = '';
 	}
 	
 	let url : string = build_url(type, option);
-	console.log('popstate: ', url, type, option);
 	history.replaceState({ section : url }, "", url);
 	set_section_index(get_type_index(type));
 	update_sections();
@@ -36,7 +35,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 	let option = get_url_option(window.location.pathname);
 
 	await verify_token();
-	if (get_type_index(type) === undefined || !is_section_accessible(type, option)) {
+	if (get_type_index(type) === undefined || !(await is_section_accessible(type, option))) {
 		type = 'home';
 		option = '';
 	}
