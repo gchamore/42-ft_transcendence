@@ -63,8 +63,15 @@ export class User {
 			this.userId = userId;
 		}
 		this.name = username;
+<<<<<<< Updated upstream
 		console.log('UserId:', this.userId, this.name);
 		this.avatar_path = 'avatar/avatar.png';
+=======
+		if (email !== undefined) {
+			this.email = email;
+		}
+		this.avatar_path = avatarPath || 'avatar/avatar.png';
+>>>>>>> Stashed changes
 		this.web_socket = undefined;
 		this.livechat = [];
 		this.direct_messages = [];
@@ -86,7 +93,6 @@ export class User {
 		this.web_socket.onmessage = (event) => {
 			try {
 				const data = JSON.parse(event.data);
-				console.log('WebSocket message received:', data);
 				switch (data.type) {
 					case 'onlines':
 						this.init_status(data.users);

@@ -2,7 +2,6 @@ import { user, User, update_user, OtherUser } from './users.js';
 import { showTwofaVerificationModal } from './sections.js';
 
 export async function verify_token(): Promise<void> {
-	console.log('verify_token()');
 	try {
 		const response = await fetch(`/api/verify_token`, {
 			method: "POST",
@@ -130,9 +129,9 @@ export async function search(friend_username: string): Promise<OtherUser | Error
 		else if (data.success) {
 			console.log(data.user.isConnected);
 			if (data.isFriend)
-				return new OtherUser(friend_username, data.isFriend, data.user.isConnected,
+				return new OtherUser(data.user.username, data.isFriend, data.user.isConnected,
 					data.user.friendSince, data.user.winRate, data.user.gamesTogether);
-			return new OtherUser(friend_username, data.isFriend, data.user.isConnected,
+			return new OtherUser(data.user.username, data.isFriend, data.user.isConnected,
 				data.user.createdAt, data.user.winRate, data.user.gamesPlayed);
 		}
 

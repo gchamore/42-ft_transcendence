@@ -689,7 +689,7 @@ class Friends extends ASection {
 		if (status instanceof Error)
 			return;
 
-		this.anotherUser = (status as OtherUser | undefined);
+		this.anotherUser = status;
 		this.username_i.value = '';
 
 		if (this.anotherUser !== undefined) {
@@ -718,8 +718,7 @@ class Friends extends ASection {
 			activate(this.founds);
 			deactivate(this.not_founds);
 
-			console.log(this.anotherUser);
-			this.update_status(this.anotherUser.is_connected);
+			this.update_status(this.anotherUser.username, this.anotherUser.is_connected);
 		}
 		else {
 			this.reset();
@@ -741,14 +740,17 @@ class Friends extends ASection {
 		this.reset();
 		this.search(user);
 	}
-	update_status(online: boolean) {
+	update_status(username : string, online: boolean) {
+		if (username !== this.anotherUser?.username)
+			return;
+
 		this.status.textContent = (online) ? 'Online' : 'Offline';
 		this.status.style.color = (online) ? 'rgb(32, 96, 32)' : 'rgb(153, 0, 0)';
 
-		// if (online)
+		if (online)
 			(this.btn3.parentElement as HTMLLIElement).classList.add('active');
-		// else
-		// 	(this.btn3.parentElement as HTMLLIElement).classList.remove('active');
+		else
+			(this.btn3.parentElement as HTMLLIElement).classList.remove('active');
 	}
 }
 
@@ -804,7 +806,7 @@ export class Chat extends ASection {
 	switch_logged_off() { }
 	switch_logged_in() { }
 	load_messages(messages: Array<Message> | undefined) {
-		if (messages == undefined)
+		if (messages === undefined)
 			return;
 
 		let chat_box_childNodes: Array<ChildNode> = [];
@@ -1172,8 +1174,6 @@ export function	get_url_type(url : string) : string {
 	let type;
 
 	type = url.substring(start, end);
-	console.log('Url type:', type);
-
 	return type;
 }
 
@@ -1193,8 +1193,6 @@ export function	get_url_option(url : string) : string {
 	}
 	else
 		option = '';
-	console.log('Url option:', option);
-
 	return option;
 }
 
@@ -1209,7 +1207,6 @@ export function get_type_index(type : string): number | undefined {
 export function set_section_index(index : number | undefined): void {
 	if (index === undefined)
 		index = HOME_INDEX;
-	console.log('Set section on ', sections[index].type);
 	section_index = index;
 }
 
@@ -1284,10 +1281,17 @@ function deactivate(list: NodeListOf<Element>): void {
 	});
 }
 
+<<<<<<< Updated upstream
 export  function update_status(username : string, online : boolean) {
 	if (section_index == get_type_index('friends')
 		&& (sections[section_index] as Friends).anotherUser?.username === username)
 		(sections[section_index] as Friends).update_status(online);
+=======
+export function update_status(username: string, online: boolean) {
+	console.log('update_status', section_index, username, online, (sections[section_index] as Friends).anotherUser);
+	if (section_index === get_type_index('friends'))
+		(sections[section_index] as Friends).update_status(username, online);
+>>>>>>> Stashed changes
 
 	if (user?.onlines.includes(username) === true || user?.name === username)
         return;
