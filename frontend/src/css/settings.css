@@ -3,6 +3,11 @@
     display: flex;
 }
 
+#settings-parent:not(.active){
+	display: none !important;
+	pointer-events: none;
+}
+
 #settings-sidebar {
     width: 300px;
     height: 100dvh;
@@ -15,7 +20,7 @@
 	flex-grow: 1;
 }
 
-#settings-content * {
+#settings-content li {
 	display: block;
 }
 
@@ -27,8 +32,4 @@
 }
 #confidentiality-content {
 	border: rgb(255, 54, 54) solid 1px;
-}
-
-#settings-content li:not(.active) {
-	display: none;
 }
