@@ -41,8 +41,8 @@ export const GameConfig = {
 	DEFAULT_MAX_SCORE: 3,
 
 	TEST_MODE: false,
-	TARGET_FPS: 20,
-	BROADCAST_RATE: 20,
+	TARGET_FPS: 60,
+	BROADCAST_RATE: 60,
 	PING_TIMEOUT: 5000, // 5 seconds
 	PING_INTERVAL: 500, // 0.5 seconds
 
