@@ -141,8 +141,8 @@ export class GameSection extends ASection {
 
 
 	/* Methods */
-	async is_option_valid(option: string): Promise<boolean> {
-		return option !== '';
+	async is_option_valid(_option: string): Promise<boolean> {
+		return true;
 	}
 	enter(verified: boolean) {
 		if (verified !== true) {
