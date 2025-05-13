@@ -64,7 +64,7 @@
     display: none;
 }
 
-#chat-box {
+#chat-box, #directmessage-box {
     border: 3px solid rgb(0, 0, 0);
     display: flex;
     flex-direction: column;
@@ -77,7 +77,7 @@
     border-radius: 4% / 8.8%;
 }
 
-#chat-box label {
+#chat-box label, #directmessage-box label {
     flex-shrink: 0;
     padding-left: 5px;
     font-size: small;

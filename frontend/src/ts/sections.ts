@@ -503,6 +503,7 @@ class Friends extends ASection {
 			activate(this.founds);
 			deactivate(this.not_founds);
 
+			console.log(this.anotherUser);
 			this.update_status(this.anotherUser.is_connected);
 		}
 		else {
@@ -510,9 +511,6 @@ class Friends extends ASection {
 			activate(this.not_founds);
 			deactivate(this.founds);
 		}
-	}
-	message() {
-		this.reset();
 	}
 	async add() {
 		if (await add(this.anotherUser!.username) instanceof Error)
@@ -532,16 +530,10 @@ class Friends extends ASection {
 		this.status.textContent = (online) ? 'Online' : 'Offline';
 		this.status.style.color = (online) ? 'rgb(32, 96, 32)' : 'rgb(153, 0, 0)';
 
-		if (online) {
-			this.btn3.onclick = () => this.message();
-			this.btn3.textContent = 'Message';
+		// if (online)
 			(this.btn3.parentElement as HTMLLIElement).classList.add('active');
-		}
-		else {
-			this.btn3.removeAttribute('onclick');
-			this.btn3.textContent = '';
-			(this.btn3.parentElement as HTMLLIElement).classList.remove('active');
-		}
+		// else
+		// 	(this.btn3.parentElement as HTMLLIElement).classList.remove('active');
 	}
 }
 
@@ -869,7 +861,11 @@ class DirectMessage extends ASection {
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
 	dependencies = ['home'];
 
+	/* Properties */
 	friend_username : undefined | string = undefined;
+	btn1 = document.getElementById('directmessage-btn1') as HTMLButtonElement;
+	btn2 = document.getElementById('directmessage-btn2') as HTMLButtonElement;
+	message = document.getElementById('directmessage-input') as HTMLInputElement;
 
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
@@ -885,13 +881,23 @@ class DirectMessage extends ASection {
 			console.log("Try to enter DirectMessage section as unauthenticated");
 			return;
 		}
-		if (this.friend_username !== undefined)
-			console.log('Friend found yet');
-		else
-			console.log('Friend not found');
+
+		this.btn1.textContent = 'Back';
+		this.btn2.textContent = 'Send';
+		this.message.value = '';
+
+		this.btn1.onclick = () => go_section('search', '');
+		this.btn2.onclick = () => send(this.message.value, 'direct_chat_message', this.friend_username);
 		this.activate_section();
 	}
 	leave() {
+		this.btn1.textContent = '';
+		this.btn2.textContent = '';
+		this.message.value = '';
+
+		this.btn1.removeAttribute('onclick');
+		this.btn2.removeAttribute('onclick');
+
 		this.friend_username = undefined;
 		this.deactivate_section();
 	}

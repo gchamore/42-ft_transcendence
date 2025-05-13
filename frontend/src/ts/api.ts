@@ -124,6 +124,7 @@ export async function search(friend_username: string): Promise<OtherUser | Error
 		if (!response.ok)
 			console.error(`/api/search/${friend_username} failed:`, data.error);
 		else if (data.success) {
+			console.log(data.user.isConnected);
 			if (data.isFriend)
 				return new OtherUser(friend_username, data.isFriend, data.user.isConnected,
 					data.user.friendSince, data.user.winRate, data.user.gamesTogether);
