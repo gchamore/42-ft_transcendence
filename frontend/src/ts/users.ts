@@ -51,20 +51,24 @@ export class Message {
 export class User {
 	readonly name: string;
 	readonly userId: number = 0;
-	readonly avatar_path: string;
+	readonly email: string = '';
+	readonly avatar_path: string = '';
 	isTournamentCreator?: boolean = false;
 	web_socket: WebSocket | undefined;
 	livechat: Array<Message>;
 	direct_messages: Array<Message>;
 	onlines: Array<string>;
 
-	constructor(username: string, userId?: number) {
+	constructor(username: string, userId?: number, email?: string, avatarPath?: string) {
 		if (userId !== undefined) {
 			this.userId = userId;
 		}
 		this.name = username;
 		console.log('UserId:', this.userId, this.name);
-		this.avatar_path = 'avatar/avatar.png';
+		if (email !== undefined) {
+			this.email = email;
+		}
+		this.avatar_path = avatarPath || 'avatar/avatar.png';
 		this.web_socket = undefined;
 		this.livechat = [];
 		this.direct_messages = [];
