@@ -317,14 +317,26 @@
 		</aside>
 
 		<ul id="settings-content">
-			<li id="account-content">
+			<li id="account-content"></li>
 			
+			<li id="stats-content" class="settings-content">
+				<div id="stats-table-container">
+					<table id="stats-table">
+						<thead>
+							<tr>
+								<th>Date</th>
+								<th>Opponent</th>
+								<th>Score</th>
+								<th>Result</th>
+							</tr>
+						</thead>
+						<tbody>
+							<!-- Game rows will be inserted here by JS -->
+						</tbody>
+					</table>
+					<div id="stats-message"></div>
+				</div>
 			</li>
-			
-			<li id="stats-content">
-
-			</li>
-			
 			<li id="confidentiality-content">
 				<label id="gdpr-text">
 					"GDPR"Lorem ipsum dolor sit amet consectetur adipisicing elit. Numquam est eaque nesciunt distinctio?

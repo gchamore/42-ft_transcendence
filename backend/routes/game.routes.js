@@ -255,6 +255,22 @@ export async function gameRoutes(fastify, options) {
 
 		return reply.send({ ok: true });
 	});
+	
+	fastify.get('/game/history/:userId', async (request, reply) => {
+		const userId = request.params.userId;
+		if (!userId) return reply.code(400).send({ error: 'Missing userId' });
+	
+		const games = fastify.db.prepare(`
+			SELECT 
+				id, player1_id, player2_id, score_player1, score_player2, winner_id, created_at
+			FROM games
+			WHERE player1_id = ? OR player2_id = ?
+			ORDER BY created_at DESC
+			LIMIT 50
+		`).all(userId, userId);
+	
+		return reply.send({ games });
+	});
 
 	// WebSocket route
 	fastify.get('/game/:gameId', { websocket: true }, async (connection, request) => {

@@ -33,3 +33,36 @@
 #confidentiality-content {
 	border: rgb(255, 54, 54) solid 1px;
 }
+
+#stats-table-container {
+    padding: 1em;
+}
+
+#stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1em;
+    background: #fff;
+}
+
+#stats-table th, #stats-table td {
+    border: 1px solid #b498ff;
+    padding: 0.5em 1em;
+    text-align: center;
+}
+
+#stats-table th {
+    background: #eae6fa;
+    font-weight: 600;
+}
+
+#stats-table tr:nth-child(even) {
+    background: #f7f5ff;
+}
+
+#stats-message {
+    margin-top: 1em;
+    font-style: italic;
+    color: #888;
+    text-align: center;
+}

@@ -1,7 +1,7 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
-import { login, register, logout, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar} from './api.js';
+import { login, register, logout, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar, getGameHistory} from './api.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -1111,14 +1111,52 @@ class Settings extends ASection {
 			subsection.classList.remove('active');
 			console.log(option, ':', subsection.classList);
 		}
+		if (option === 'stats') {
+			this.printStats();
+		}
 	}
-	select(option : string) {
+	select(option: string) {
 		console.log('Selecting', option);
 		if (!this.is_option(option)) {
 			go_section('profile', '');
 			return;
 		}
 		this.print(option);
+	}
+	async printStats() {
+		const statsTable = document.getElementById('stats-table') as HTMLTableElement;
+		const statsMessage = document.getElementById('stats-message') as HTMLElement;
+		if (!statsTable || !statsMessage || !user) return;
+
+		const tbody = statsTable.querySelector('tbody');
+		if (tbody) tbody.innerHTML = '';
+		statsMessage.textContent = "Loading game history...";
+
+		try {
+			const games = await getGameHistory(String(user.userId));
+			if (!games.length) {
+				statsMessage.textContent = "No games played yet.";
+				return;
+			}
+			statsMessage.textContent = "";
+			for (const g of games) {
+				const opponent = (g.player1_id == String(user?.userId ?? '')) ? g.player2_id : g.player1_id;
+				const score = `${g.score_player1} - ${g.score_player2}`;
+				const win = g.winner_id == String(user?.userId ?? '');
+				const date = new Date(g.created_at).toLocaleString();
+
+				const row = document.createElement('tr');
+				row.innerHTML = `
+                <td>${date}</td>
+                <td>${opponent}</td>
+                <td>${score}</td>
+                <td style="color:${win ? 'green' : 'red'}">${win ? 'Win' : 'Loss'}</td>
+            `;
+				tbody?.appendChild(row);
+			}
+		} catch (err) {
+			statsMessage.textContent = "Error loading history.";
+		}
 	}
 }
 
