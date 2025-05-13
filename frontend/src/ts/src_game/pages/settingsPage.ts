@@ -14,6 +14,7 @@ export class SettingsPage {
 	private playerNumber: number = 0;
 	private socket!: WebSocket;
 	private playerReady: boolean = false;
+	private intentionnallyClosed: boolean = false;
 	private startButton: HTMLButtonElement;
 	private lobbyId: string;
 	private isTournament: boolean;
@@ -50,9 +51,6 @@ export class SettingsPage {
 		this.socket = WebSocketService.getInstance().connect(this.lobbyId, 'lobby');
 		this.socket.onopen = () => {
 			console.log('Settings socket connected');
-			if (this.playerNumber === 1) {
-				this.loadSettings();
-			}
 		};
 
 		this.socket.onmessage = (message) => {
@@ -61,15 +59,15 @@ export class SettingsPage {
 			switch (data.type) {
 				case 'playerNumber':
 					this.playerNumber = data.playerNumber;
-					WebSocketService.getInstance().setPlayerNumber(data.playerNumber);
 					if (this.playerNumber === 1) {
+						this.setSettingsEnabled(true);
 						const savedSettings = SettingsService.loadSettings();
 						this.updateSettings(savedSettings);
 						this.setupListeners();
 						this.handleSettingsChange();
 					}
 					else {
-						this.disableSettings();
+						this.setSettingsEnabled(false);
 						this.setupListeners();
 					}
 					this.updateStartButtonState();
@@ -80,19 +78,22 @@ export class SettingsPage {
 				case 'gameStart':
 					if (data.gameId){
 						const gameSection = sections[get_type_index('game')!] as GameSection;
-						gameSection.transitionToGame(data.gameId, data.settings);
+						gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
 					} else {
 						console.error('Game ID not provided');
 					}
 					break;
 				case 'TournamentGameStart':
 					if (data.gameId) {
+						this.intentionnallyClosed = true;
 						if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-							this.socket.close();
+							this.socket.close(1000, 'Starting tournament game');
 						}
 						const gameSection = sections[get_type_index('game')!] as GameSection;
-						gameSection.transitionToGame(data.gameId, data.settings);
-						/*need to print the tournament match on screen using data.round and data.players */
+						if (data.round && data.players)
+							gameSection.showTournamentInfo(data.round, data.players, () => {
+								gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
+							});
 					} else {
 						console.error('Game ID not provided');
 					}
@@ -102,8 +103,11 @@ export class SettingsPage {
 					this.readyPlayers.add(data.playerNumber);
 					this.updateStartButtonState();
 					break;
-				case 'ping':
-					this.socket.send(JSON.stringify({ type: 'pong' }));
+				case 'opponentDisconnected':
+					this.handleConnectionIssues(
+						data.message || 'The other player has left the lobby. Returning to home...',
+						'opponent-disconnected'
+					);
 					break;
 				case 'error':
 					console.error(data.message);
@@ -117,63 +121,53 @@ export class SettingsPage {
 		};
 
 		this.socket.onclose = (event) => {
-			console.log('WebSocket connection closed:', event.code, event.reason);
-			this.handleConnectionIssues();
+			console.log('WebSocket connection closed in settings:', event.code, event.reason);
+			if (!this.intentionnallyClosed)
+				this.handleConnectionIssues();
 		};
+		
 	}
 
-	private handleConnectionIssues() {
-		const container = document.getElementById('settings-container');
+	private handleConnectionIssues(
+		message: string = 'Connection to server lost. Please refresh the page.',
+		errorId: string = 'connection-error'
+	) {
+		const container = document.getElementById('settings-page');
 		if (container) {
-			const existingError = document.getElementById('connection-error');
+			const existingError = document.getElementById(errorId);
 			if (existingError) {
 				existingError.remove();
 			}
 
 			const error = document.createElement('p');
-			error.id = 'connection-error';
-			error.textContent = 'Connection to server lost. Please refresh the page.';
+			error.id = errorId;
+			error.textContent = message;
 			error.style.color = 'red';
 			error.style.fontWeight = 'bold';
 			container.prepend(error);
 		}
-		[
+
+		//redirect to home page
+		setTimeout(() => {
+			(window as any).go_section('home');
+			this.cleanup();
+		}, 3000);
+	}
+
+	private setSettingsEnabled(enabled: boolean) {
+		const inputs = [
 			this.ballSpeedSlider,
 			this.paddleSpeedSlider,
 			this.paddleLengthSlider,
 			this.mapSelect,
-			this.powerUpsToggle,
-			this.startButton
-		].forEach(input => {
-			if (input) 	input.disabled = true;
+			this.powerUpsToggle
+		];
+		inputs.forEach(input => {
+			if (input) {
+				input.disabled = !enabled;
+			}
 		});
-
-		//redirect to home page
-		setTimeout(() => {
-			window.location.href = '/';
-		}, 3000);
 	}
-
-	private async disableSettings() {
-        const inputs = [
-            this.ballSpeedSlider,
-            this.paddleSpeedSlider,
-            this.paddleLengthSlider,
-            this.mapSelect,
-            this.powerUpsToggle
-        ];
-
-        inputs.forEach(input => {
-            if (input) {
-                input.disabled = true;
-            }
-        });
-
-        const message = document.createElement('p');
-        message.textContent = 'Settings are controlled by Player 1';
-        message.style.color = 'red';
-        document.getElementById('settings-container')?.appendChild(message);
-    }
 
 	private handleSettingsChange() {
 		const settings = this.getCurrentSettings();
@@ -190,21 +184,6 @@ export class SettingsPage {
 				}));
 			}
 		}
-	}
-
-	private loadSettings() {
-		const settings = SettingsService.loadSettings();
-
-		this.ballSpeedSlider.value = settings.ballSpeed.toString();
-		this.ballSpeedValue.textContent = settings.ballSpeed.toString();
-		this.paddleSpeedSlider.value = settings.paddleSpeed.toString();
-		this.paddleSpeedValue.textContent = settings.paddleSpeed.toString();
-		this.paddleLengthSlider.value = settings.paddleLength.toString();
-		this.paddleLengthValue.textContent = settings.paddleLength.toString();
-		this.mapSelect.value = settings.mapType;
-		this.powerUpsToggle.checked = settings.powerUpsEnabled;
-
-		// Set initial values in settings page
 	}
 
 	private setupListeners() {
@@ -349,5 +328,17 @@ export class SettingsPage {
 			this.powerUpsToggle.removeEventListener('change', this.handlePowerUpsChange);
 		if (this.startButton && this.startButtonClickHandler)
 			this.startButton.removeEventListener('click', this.startButtonClickHandler);
+		const container = document.getElementById('settings-page');
+		if (container) {
+			const errorIds = ['connection-error', 'opponent-disconnected'];
+			errorIds.forEach(id => {
+				const oldError = document.getElementById(id);
+				if (oldError) oldError.remove();
+			});
+		}
+		this.intentionnallyClosed = true;
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+			this.socket.close(1000, 'Leaving settings page');
+		}
 	}
 }	

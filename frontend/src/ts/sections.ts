@@ -1,7 +1,7 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
-import { login, register, logout, add , remove, search, send, get_blocked_users, block, unblock } from './api.js';
+import { login, register, logout, add , remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin} from './api.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -135,6 +135,9 @@ export class GameSection extends ASection {
 	readonly queueMessageContainer = document.getElementById('queue-message-container') as HTMLElement;
 	readonly leaveQueueBtn = document.getElementById('leave-queue-btn') as HTMLButtonElement;
 	readonly queueMessage = document.getElementById('queue-message') as HTMLElement;
+	readonly queueUsernameEntry = document.getElementById('queue-username-entry') as HTMLElement;
+	readonly tournamentUsernameInput = document.getElementById('tournament-username-input') as HTMLInputElement;
+	readonly tournamentUsernameValidateBtn = document.getElementById('tournament-username-validate-btn') as HTMLButtonElement;
 
 
 	/* Methods */
@@ -148,28 +151,35 @@ export class GameSection extends ASection {
 		}
 
 		this.activate_section();
+	}
+
+	chooseGameSettings(gameId: string) {
+		if (!settingsPage) {
+			console.log('sections settingpage userID:', user?.userId);
+			if (user && user.userId)
+				settingsPage = new SettingsPage(gameId, false);
+			this.settingsPage.style.display = 'block';
+			this.gamePage.style.display = 'none';
+			this.gameContainer.style.display = 'none';
+			this.fpsCounter.style.display = 'none';
+		} else {
+			console.error('No active game ID or tournament ID found');
+		}
 		if (this.queueMessageContainer)
 			this.queueMessageContainer.style.display = 'none';
+	}
 
-		if (activeGameId) {
-			if (!settingsPage) {
-				console.log('sections settingpage userID:', user?.userId);
-				if (user && user.userId)
-					settingsPage = new SettingsPage(activeGameId, false);
-				this.settingsPage.style.display = 'block';
-				this.gamePage.style.display = 'none';
-				this.gameContainer.style.display = 'none';
-				this.fpsCounter.style.display = 'none';
-			}
-		} else if (activeTournamentId) {
-			if (!tournamentSettingsChosen && !settingsPage && user && user.userId) {
-				settingsPage = new SettingsPage(activeTournamentId, true);
-				this.settingsPage.style.display = 'block';
-				this.gamePage.style.display = 'none';
-				this.gameContainer.style.display = 'none';
-				this.fpsCounter.style.display = 'none';
-				tournamentSettingsChosen = true;
-			}
+	chooseTournamentSettings(tournamentId: string, bracket: string) {
+		tournamentBracket = bracket;
+		if (this.queueMessageContainer)
+			this.queueMessageContainer.style.display = 'none';
+		if (!tournamentSettingsChosen && !settingsPage && user && user.userId && tournamentBracket) {
+			settingsPage = new SettingsPage(tournamentId, true);
+			this.settingsPage.style.display = 'block';
+			this.gamePage.style.display = 'none';
+			this.gameContainer.style.display = 'none';
+			this.fpsCounter.style.display = 'none';
+			tournamentSettingsChosen = true;
 		} else {
 			console.error('No active game ID or tournament ID found');
 		}
@@ -181,7 +191,7 @@ export class GameSection extends ASection {
 		activeTournamentId = null;
 	}
 
-	transitionToGame(gameId: string, settings: any) {
+	transitionToGame(gameId: string, settings: any, playerNumber: number) {
 		// Hide settings page and show game page
 		this.settingsPage.style.display = 'none';
 		this.gamePage.style.display = 'block';
@@ -190,35 +200,44 @@ export class GameSection extends ASection {
 
 		// Initialize the game
 		if (user && user.userId)
-			gamePage = new Game(gameId, settings);
+			gamePage = new Game(gameId, settings, playerNumber);
+	}
+
+	showTournamentInfo(round: string, players: string[], onDone?: () => void) {
+		this.settingsPage.style.display = 'none';
+		const container = document.getElementById("tournament-info");
+		if (container) {
+			container.innerHTML = `
+                <div class="tournament-info-title">Tournament ${round.charAt(0).toUpperCase() + round.slice(1)}</div>
+                <div class="tournament-info-players">${players.join(" vs ")}</div>
+            `;
+			container.style.display = "flex";
+			setTimeout(() => {
+				container.style.display = "none";
+				if (onDone) onDone();
+			}, 5000);
+		} else if (onDone) {
+			onDone();
+		}
 	}
 
 	async leave() {
-		// if (user && user.userId) {
-		// 	try { 
-		// 		await fetch(`/api/game/queue/leave`, {
-		// 			method: 'DELETE',
-		// 			credentials: 'include',
-		// 			headers: { "Content-Type": "application/json"},
-		// 			body: JSON.stringify({ userId: user.userId })
-		// 		});
-		// 	} catch (err) {
-		// 		console.error('Error leaving queue:', err);
-		// 	}
-		// }
 
 		this.settingsPage.style.display = 'none';
 		this.gamePage.style.display = 'none';
 		this.gameContainer.style.display = 'none';
 		this.fpsCounter.style.display = 'none';
+		this.queueMessageContainer.style.display = 'none';
 		if (settingsPage) {
 			settingsPage.cleanup();
 			settingsPage = null;
 		}
 		if (gamePage) {
-			gamePage.stopGame();
+			gamePage.stopGame("leaving Game section");
 			gamePage = null;
 		}
+		tournamentSettingsChosen = false;
+		this.enableTournamentButton();
 		this.deactivate_section();
 	}
 	switch_logged_off() {
@@ -228,19 +247,76 @@ export class GameSection extends ASection {
 		this.logged_in_view();
 	}
 
-	showQueueMessage(msg: string, type: 'game' | 'tournament' = 'game') {
-		if (this.queueMessage)
-			this.queueMessage.textContent = msg;
-		if (this.queueMessageContainer) {
-			this.queueMessageContainer.style.display = 'block';
-			this.queueMessageContainer.setAttribute('data-queue-type', type);
+	showQueueMessage(msg: string, type: 'game' | 'tournament' = 'game', inQueue: boolean = true, showUsernameEntry: boolean = false): Promise<string | null> | void {
+		if (!showUsernameEntry) {
+			if (this.queueMessage)
+				this.queueMessage.textContent = msg;
+			if (this.queueMessageContainer) {
+				this.queueMessageContainer.style.display = 'block';
+				this.queueMessageContainer.setAttribute('data-queue-type', type);
+			}
+			if (this.leaveQueueBtn) {
+				this.leaveQueueBtn.style.display = inQueue ? 'inline-block' : 'none';
+			}
+			if (this.queueUsernameEntry) {
+				this.queueUsernameEntry.style.display = 'none';
+			}
+			if (type === 'tournament' && inQueue) {
+				this.disableTournamentButton();
+			}
+			return;
 		}
+
+		// If username entry is needed, return a Promise
+		return new Promise<string | null>((resolve) => {
+			if (this.queueMessage)
+				this.queueMessage.textContent = msg;
+			if (this.queueMessageContainer) {
+				this.queueMessageContainer.style.display = 'block';
+				this.queueMessageContainer.setAttribute('data-queue-type', type);
+			}
+			if (this.leaveQueueBtn) {
+				this.leaveQueueBtn.style.display = inQueue ? 'inline-block' : 'none';
+			}
+			if (this.queueUsernameEntry) {
+				this.queueUsernameEntry.style.display = 'block';
+			}
+			if (type === 'tournament' && inQueue) {
+				this.disableTournamentButton();
+			}
+			if (this.tournamentUsernameInput && this.tournamentUsernameValidateBtn) {
+				this.tournamentUsernameInput.value = '';
+				const validateHandler = () => {
+					const username = this.tournamentUsernameInput.value.trim();
+					this.tournamentUsernameValidateBtn.removeEventListener('click', validateHandler);
+					resolve(username.length > 0 ? username : null);
+				};
+				this.tournamentUsernameValidateBtn.addEventListener('click', validateHandler);
+			}
+		});
 	}
 
 	hideQueueMessage() {
 		if (this.queueMessageContainer)
 			this.queueMessageContainer.style.display = 'none';
+		this.enableTournamentButton();
 	};
+
+	disableTournamentButton() {
+		const btn = document.getElementById('playTournament-btn') as HTMLButtonElement;
+		if (btn) {
+			btn.disabled = true;
+			btn.classList.add('disabled');
+		}
+	}
+
+	enableTournamentButton() {
+		const btn = document.getElementById('playTournament-btn') as HTMLButtonElement;
+		if (btn) {
+			btn.disabled = false;
+			btn.classList.remove('disabled');
+		}
+	}
 
 	async play1v1() {
 		if (!user) {
@@ -258,6 +334,7 @@ export class GameSection extends ASection {
 					});
 				} catch (err) {
 					console.error('Error leaving queue:', err);
+					setTimeout(this.hideQueueMessage, 2000);
 				}
 				this.hideQueueMessage();
 			};
@@ -270,16 +347,17 @@ export class GameSection extends ASection {
 				body: JSON.stringify({ userId: user.userId })
 			});
 			if (resp.status === 202) {
-				this.showQueueMessage('Waiting for an opponent...');
+				this.showQueueMessage('Waiting for an opponent...', 'game', true, false);
 			} else if (resp.ok) {
 				return;
 			} else {
 				const err = await resp.json();
-				this.showQueueMessage(`Queue error: ${err.error}`);
+				this.showQueueMessage(`Queue error: ${err.error}`, 'game', false, false);
 			}
 		} catch (err) {
 			console.error('play1v1: error', err);
-			this.showQueueMessage('Failed to join 1v1 queue');
+			this.showQueueMessage('Failed to join 1v1 queue', 'game', false, false);
+			go_section('home', '');
 			setTimeout(this.hideQueueMessage, 2000);
 		}
 	}
@@ -290,6 +368,18 @@ export class GameSection extends ASection {
 			console.error('playTournament: not logged in');
 			return;
 		}
+		let displayName = await this.showQueueMessage(
+			'Enter your Username for the tournament:',
+			'tournament',
+			false,
+			true
+		) as string | null;
+		if (!displayName || displayName.trim().length === 0) {
+			this.showQueueMessage('Display name is required for tournaments', 'tournament', false, false);
+			setTimeout(() => this.playTournament(), 2000);
+			return;
+		}
+		displayName = displayName.trim();
 		if (this.leaveQueueBtn) {
 			this.leaveQueueBtn.onclick = async () => {
 				try {
@@ -309,21 +399,26 @@ export class GameSection extends ASection {
 				method: 'POST',
 				credentials: 'include',
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ userId: user.userId })
+				body: JSON.stringify({ userId: user.userId, displayName })
 			});
 			const data = await resp.json();
 			if (user)
 				user.isTournamentCreator = !!data.isCreator;
-			if (resp.status === 202) {
-				this.showQueueMessage('Waiting for tournament players...', 'tournament');
+			if (resp.status === 409) {
+				this.showQueueMessage('Display name already taken. Please try another.', 'tournament', false, false);
+				setTimeout(() => this.playTournament(), 2000);
+				return;
+			} else if (resp.status === 202) {
+				this.showQueueMessage('Waiting for tournament players...', 'tournament', true, false);
 			} else if (resp.ok) {
 				return;
 			} else {
-				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament');
+				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament', false, false);
 			}
 		} catch (err) {
 			console.error('playTournament: error', err);
-			this.showQueueMessage('Failed to join tournament queue', 'tournament');
+			this.showQueueMessage('Failed to join tournament queue', 'tournament', false, false);
+			go_section('home', '');
 			setTimeout(this.hideQueueMessage, 2000);
 		}
 	}
@@ -345,8 +440,122 @@ class Profile extends ASection {
 	readonly password_i = document.getElementById('profile-password') as HTMLInputElement;
 	readonly btn1 = document.getElementById('profile-btn1') as HTMLButtonElement;
 	readonly btn2 = document.getElementById('profile-btn2') as HTMLButtonElement;
+	readonly btn3 = document.getElementById('profile-btn3') as HTMLButtonElement;
 
 	/* Methods */
+
+	async check2FAStatus() {
+        try {
+            const isEnabled = await get2faStatus();
+            
+            if (isEnabled) {
+                this.btn2.textContent = "disable 2FA";
+                this.btn2.onclick = () => this.disable2FAConfirmation();
+            } else {
+                this.btn2.textContent = "enable 2FA";
+                this.btn2.onclick = () => this.show2FAModal();
+            }
+        } catch (error) {
+            console.error("Error checking 2FA status:", error);
+        }
+    }
+
+	async show2FAModal() {
+		try {
+			const response = await setup2fa();
+			if (!response) {
+				console.error("Failed to set up 2FA");
+				return;
+			}
+	
+			const qrcodeImg = document.getElementById('qrcode-img') as HTMLImageElement;
+			qrcodeImg.src = response.qrCode;
+	
+			const secretKey = document.getElementById('secret-key') as HTMLElement;
+			const secretMatch = response.otpauth_url.match(/secret=([A-Z0-9]+)/i);
+			if (secretMatch && secretMatch[1]) {
+				secretKey.textContent = secretMatch[1];
+			}
+	
+			const modal = document.getElementById('twofa-modal') as HTMLElement;
+			modal.style.display = 'flex';
+	
+			const activateBtn = document.getElementById('activate-2fa-btn') as HTMLButtonElement;
+			activateBtn.onclick = async () => {
+				const tokenInput = document.getElementById('twofa-token') as HTMLInputElement;
+				const token = tokenInput.value.trim();
+				
+				if (token.length !== 6 || !/^\d+$/.test(token)) {
+					const errorMsg = document.getElementById('twofa-error') as HTMLElement;
+					errorMsg.textContent = "Le code doit contenir 6 chiffres";
+					return;
+				}
+	
+				const success = await activate2fa(token);
+				if (success) {
+					modal.style.display = 'none';
+					alert("2FA activé avec succès!");
+					this.check2FAStatus();
+				} else {
+					const errorMsg = document.getElementById('twofa-error') as HTMLElement;
+					errorMsg.textContent = "Code invalide ou expiré. Veuillez réessayer.";
+				}
+			};
+	
+			const cancelBtn = document.getElementById('cancel-2fa-btn') as HTMLButtonElement;
+			cancelBtn.onclick = () => {
+				modal.style.display = 'none';
+			};
+	
+			const closeBtn = document.querySelector('.close-modal') as HTMLElement;
+			closeBtn.onclick = () => {
+				modal.style.display = 'none';
+			};
+	
+			window.onclick = (event) => {
+				if (event.target === modal) {
+					modal.style.display = 'none';
+				}
+			};
+		} catch (error) {
+			console.error("Error showing 2FA modal:", error);
+		}
+	}
+	async handleDisable2FA() {
+		try {
+			const accountType = await getUserAccountType();
+			
+			if (!accountType) {
+				alert("Impossible de vérifier le type de compte");
+				return;
+			}
+			let success = false;
+			
+			if (!accountType.is_google_account && accountType.has_password) {
+				const password = prompt("Veuillez entrer votre mot de passe pour désactiver la 2FA:");
+				if (!password) return; // User cancelled
+				
+				success = await disable2fa(password);
+			} else {
+				success = await disable2fa();
+			}
+			
+			if (success) {
+				alert("2FA désactivé avec succès.");
+				this.check2FAStatus();
+			} else {
+				alert("Échec de la désactivation de la 2FA.");
+			}
+		} catch (err) {
+			console.error("Error disabling 2FA:", err);
+			alert("Une erreur s'est produite lors de la désactivation de la 2FA.");
+		}
+	}
+	disable2FAConfirmation() {
+        if (confirm("Êtes-vous sûr de vouloir désactiver l'authentification à deux facteurs?")) {
+            this.handleDisable2FA();
+        }
+    }
 	async is_option_valid(option: string): Promise<boolean> {
 		return (option === '') ? true : false;
 	}
@@ -367,8 +576,13 @@ class Profile extends ASection {
 
 		this.btn1.textContent = "Register";
 		this.btn1.onclick = () => register(this.username_i.value, this.password_i.value);
-		this.btn2.textContent = "Login";
-		this.btn2.onclick = () => login(this.username_i.value, this.password_i.value);
+
+		this.btn2.textContent = "Google Login";
+    	this.btn2.onclick = () => initiateGoogleLogin();
+
+		this.btn3.textContent = "Login";
+		this.btn3.onclick = () => login(this.username_i.value, this.password_i.value);
+
 	}
 	switch_logged_in() {
 		if (user === undefined) {
@@ -384,9 +598,10 @@ class Profile extends ASection {
 		this.btn1.textContent = "Settings";
 		this.btn1.onclick = () => go_section('settings', 'account');
 
-		this.btn2.textContent = "Logout";
-		this.btn2.onclick = () => logout();
+		this.check2FAStatus();
 
+		this.btn3.textContent = "Logout";
+		this.btn3.onclick = () => logout();
 
 		this.logged_in_view();
 	}
@@ -646,7 +861,7 @@ export class Actions extends ASection {
 			console.log("Try to enter Actions section as unauthenticated");
 			return;
 		}
-		this.btn1.onclick = () => history.back();
+		this.btn1.onclick = () => go_section('chat', '');
 		this.btn1.textContent = 'Back';
 
 		this.btn2.setAttribute('onclick', '');
@@ -733,7 +948,7 @@ export class Actions extends ASection {
 			if (this.current.parentElement?.getAttribute('id') === 'free_box') {
 				this.btn2.textContent = 'Block';
 				// Here put the invite feature of the pong-game...
-				this.btn3.onclick = () => history.back();
+				this.btn3.onclick = () => this.invite(this.current!.textContent!);
 				this.btn3.textContent = 'Invite';
 				// ---
 			}
@@ -775,6 +990,38 @@ export class Actions extends ASection {
 
 		this.btn3.parentElement?.classList.add('hidden');
 		this.btn2.parentElement?.classList.add('hidden');
+	}
+		async invite(username: string) {
+		try {
+			const resp = await fetch('/api/invites', {
+				method: 'POST',
+				credentials: 'include',
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					toUsername: username,
+					gameType: '1v1'
+				})
+			});
+			const data = await resp.json();
+			if (resp.ok && data.invited) {
+				this.showInviteWaitingScreen(username);
+			} else {
+				alert(data.error || 'Failed to send invite');
+			}
+		} catch (err) {
+			console.error('Error sending invite:', err);
+			alert('Error sending invite');
+		}
+	}
+
+	showInviteWaitingScreen(username: string) {
+		const overlay = document.getElementById('invite-waiting-overlay') as HTMLElement;
+		const message = document.getElementById('invite-waiting-message') as HTMLElement;
+
+		if (overlay && message) {
+			message.innerHTML = `Waiting for <b>${username}</b> to accept your invite...`;
+			overlay.style.display = 'flex';
+		}
 	}
 }
 
@@ -1052,19 +1299,60 @@ export  function update_status(username : string, online : boolean) {
         (sections[section_index] as Actions).load_boxes();
 }
 
-export function set_active_game_id(gameId: string): void {
-	activeGameId = gameId;
-}
-
-export function set_active_tournament_id(tournamentId: string): void {
-	activeTournamentId = tournamentId;
-	console.log('Active tournament ID set:', activeTournamentId);
-}
-
-export function set_tournament_bracket(bracket: string): void {
-	tournamentBracket = bracket;
-	console.log('Tournament bracket set:', tournamentBracket);
-}
 
 (window as any).go_section = go_section;
 /* --------- */
+
+export function showTwofaVerificationModal(tempToken: string, username: string) {
+    const modal = document.getElementById('twofa-verification-modal') as HTMLElement;
+    const verifyBtn = document.getElementById('verify-2fa-btn') as HTMLButtonElement;
+    const cancelBtn = document.getElementById('cancel-2fa-verification-btn') as HTMLButtonElement;
+    const closeBtn = modal.querySelector('.close-modal') as HTMLElement;
+    const errorMsg = document.getElementById('twofa-verification-error') as HTMLElement;
+    const tokenInput = document.getElementById('twofa-verification-token') as HTMLInputElement;
+    
+    const headerElement = modal.querySelector('.modal-header h2') as HTMLHeadingElement;
+    if (headerElement) {
+        headerElement.textContent = `2FA Verification for ${username}`;
+    }
+    
+    errorMsg.textContent = '';
+    tokenInput.value = '';
+    
+    modal.style.display = 'flex';
+
+    verifyBtn.onclick = async () => {
+        const token = tokenInput.value.trim();
+        
+        if (token.length !== 6 || !/^\d+$/.test(token)) {
+            errorMsg.textContent = "The code must contain 6 digits";
+            return;
+        }
+
+        try {
+            const success = await verify2fa(token, tempToken);
+            if (success) {
+                modal.style.display = 'none';
+            } else {
+                errorMsg.textContent = "Invalid verification code. Please try again.";
+            }
+        } catch (error) {
+            console.error("2FA verification error:", error);
+            errorMsg.textContent = "An error occurred during verification. Please try again.";
+        }
+    };
+
+    cancelBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    closeBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+}

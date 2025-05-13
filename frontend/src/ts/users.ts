@@ -1,20 +1,19 @@
-import { update_status, update_sections, Chat, Actions, set_tournament_bracket, get_type_index, sections, section_index, set_section_index, set_active_game_id, set_active_tournament_id, go_section, GameSection } from "./sections.js";
-
+import { update_status, update_sections, Chat, Actions, get_type_index, sections, section_index, set_section_index, GameSection, go_section } from "./sections.js";
 
 /* Global variables */
-export var user : undefined | User = undefined;
+export var user: undefined | User = undefined;
 
 const options: Intl.DateTimeFormatOptions = {
-timeZone: 'Europe/Paris',
-year: 'numeric',
-month: '2-digit',
-day: '2-digit',
-hour: '2-digit',
-minute: '2-digit',
-second: '2-digit',
-hour12: false,
+	timeZone: 'Europe/Paris',
+	year: 'numeric',
+	month: '2-digit',
+	day: '2-digit',
+	hour: '2-digit',
+	minute: '2-digit',
+	second: '2-digit',
+	hour12: false,
 };
-  
+
 const formatter = new Intl.DateTimeFormat('fr-FR', options);
 /* --------- */
 
@@ -22,27 +21,27 @@ const formatter = new Intl.DateTimeFormat('fr-FR', options);
 
 /* Message */
 export class Message {
-    readonly date : string;
-    readonly username : string;
-    readonly message : string;
+	readonly date: string;
+	readonly username: string;
+	readonly message: string;
 
-    constructor(username : string, message : string) {
-        this.date = formatter.format(new Date());
-        this.username = username;
-        this.message = message;
-    }
-    format_message() : string {
-        let message = '';
-        let days = this.date.substring(0, 2);
-        let months = this.date.substring(3, 5);
-        let hours = this.date.substring(11, 13);
-        let minutes = this.date.substring(14, 16);
-        message += days + '/' + months + ' ';
-        message += hours + ':' + minutes + ' ';
-        message += this.username + ': ';
-        message += this.message;
-        return message;
-    }
+	constructor(username: string, message: string) {
+		this.date = formatter.format(new Date());
+		this.username = username;
+		this.message = message;
+	}
+	format_message(): string {
+		let message = '';
+		let days = this.date.substring(0, 2);
+		let months = this.date.substring(3, 5);
+		let hours = this.date.substring(11, 13);
+		let minutes = this.date.substring(14, 16);
+		message += days + '/' + months + ' ';
+		message += hours + ':' + minutes + ' ';
+		message += this.username + ': ';
+		message += this.message;
+		return message;
+	}
 }
 /* --------- */
 
@@ -65,7 +64,7 @@ export class User {
 		}
 		this.name = username;
 		console.log('UserId:', this.userId, this.name);
-		this.avatar_path = 'assets/avatar.png';
+		this.avatar_path = 'avatar/avatar.png';
 		this.web_socket = undefined;
 		this.livechat = [];
 		this.direct_messages = [];
@@ -74,13 +73,20 @@ export class User {
 	connect_to_ws() {
 		this.web_socket = new WebSocket(`wss://${window.location.host}/api/ws`);
 
+		const overlay = document.getElementById('invite-waiting-overlay') as HTMLElement;
+		const message = document.getElementById('invite-waiting-message') as HTMLElement;
+		const cancelBtn = document.getElementById('cancel-invite-btn') as HTMLButtonElement;
+		const acceptBtn = document.getElementById('accept-invite-btn') as HTMLButtonElement;
+		const declineBtn = document.getElementById('decline-invite-btn') as HTMLButtonElement;
+
 		this.web_socket.onopen = () => {
 			console.log('Connected to WebSocket');
 		}
 
-        this.web_socket.onmessage = (event) => {
+		this.web_socket.onmessage = (event) => {
 			try {
 				const data = JSON.parse(event.data);
+				console.log('WebSocket message received:', data);
 				switch (data.type) {
 					case 'onlines':
 						this.init_status(data.users);
@@ -94,29 +100,84 @@ export class User {
 					case 'direct_message':
 						add_message(data.user, data.message, 'direct_message');
 						break;
-						case 'matchFound':
+					case 'matchFound':
 						matchFound(data.gameId);
 						break;
 					case 'tournamentStart':
 						tournamentStart(data.tournamentId, data.bracket);
 						break;
+					case 'tournamentResults':
+						showTournamentResults(data.placements, data.message);
+						break;
 					case 'TournamentGameStart':
 						if (data.gameId) {
+							console.log('TournamentGameStart from user', data.gameId);
 							const gameSection = sections[get_type_index('game')!] as GameSection;
-							gameSection.transitionToGame(data.gameId, data.settings);
-							/*need to print the tournament match on screen using data.round and data.players */
+							this.hideWaitingScreen();
+							if (data.round && data.players)
+								gameSection.showTournamentInfo(data.round, data.players, () => {
+									gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
+								});
 						} else {
 							console.error('Game ID not provided');
 						}
 						break;
+					case 'gameInvite':
+
+						if (overlay && message && cancelBtn && acceptBtn && declineBtn) {
+							message.innerHTML = `<b>${data.fromUsername}</b> invites you to a ${data.gameType} game.<br>Do you accept?`;
+							overlay.style.display = 'flex';
+
+							acceptBtn.onclick = () => {
+								overlay.style.display = 'none';
+								fetch('/api/invites/respond', {
+									method: 'POST',
+									credentials: 'include',
+									headers: { "Content-Type": "application/json" },
+									body: JSON.stringify({
+										fromUserId: data.fromUserId,
+										accepted: true
+									})
+								});
+							};
+							declineBtn.onclick = () => {
+								overlay.style.display = 'none';
+								fetch('/api/invites/respond', {
+									method: 'POST',
+									credentials: 'include',
+									headers: { "Content-Type": "application/json" },
+									body: JSON.stringify({
+										fromUserId: data.fromUserId,
+										accepted: false
+									})
+								});
+							};
+							cancelBtn.onclick = () => {
+								overlay.style.display = 'none';
+							};
+						}
+						break;
+					case 'inviteResult':
+						if (overlay && message) {
+							overlay.style.display = 'flex';
+							if (data.accepted) {
+								message.innerHTML = `<b>${data.username}</b> accepted your invite!<br>Starting game...`;
+							} else {
+								message.innerHTML = `<b>${data.username}</b> declined your invite.`;
+							}
+							setTimeout(() => { overlay.style.display = 'none'; }, 1500);
+						}
+						break;
+					default:
+						console.error('Unknown message in user type:', data.type);
 				}
 			} catch (error) {
-                console.error('WebSocket message parsing error:', error);
-            }
-        };
+				console.error('WebSocket message parsing error:', error);
+			}
+		};
 
 		this.web_socket.onclose = (event) => {
-			console.log(`WebSocket disconnected with code: ${event.code}`);
+			console.log(`User WebSocket disconnected with code: ${event.code} and reason: ${event.reason}`);
 			update_user(undefined);
 		};
 
@@ -124,7 +185,14 @@ export class User {
 			console.log('WebSocket error:', error);
 		};
 	}
-	
+
+	hideWaitingScreen() {
+		const container = document.getElementById("game-over-menu") as HTMLElement;
+		if (container) {
+			container.style.display = 'none';
+		}
+	}
+
 	get_free_users(): Array<string> {
 		let users: Array<string> = [];
 
@@ -135,40 +203,81 @@ export class User {
 
 		return users;
 	}
-    init_status(status : { [key: string]: boolean }) {
-        let statusMap: Map<string, boolean>;
-        statusMap = new Map();
-        for (const key in status) {
-            if (status.hasOwnProperty(key)) {
-                statusMap.set(key, status[key]);
-            }
-        }
-        statusMap.forEach((value : boolean, key : string) => {
-            if (value === true && key !== user?.name)
-                user?.onlines.push(key);
-        });
-        if (section_index === get_type_index('actions')) {
-            (sections[section_index] as Actions).load_boxes();
-        }
-    }
-    block(username : string) {
-        this.livechat = this.livechat.filter(item => item.username !== username);
-    }
+	init_status(status: { [key: string]: boolean }) {
+		let statusMap: Map<string, boolean>;
+		statusMap = new Map();
+		for (const key in status) {
+			if (status.hasOwnProperty(key)) {
+				statusMap.set(key, status[key]);
+			}
+		}
+		statusMap.forEach((value: boolean, key: string) => {
+			if (value === true && key !== user?.name)
+				user?.onlines.push(key);
+		});
+		if (section_index === get_type_index('actions')) {
+			(sections[section_index] as Actions).load_boxes();
+		}
+	}
+	block(username: string) {
+		this.livechat = this.livechat.filter(item => item.username !== username);
+	}
 }
 
 function tournamentStart(tournamentId: string, bracket: string) {
-	set_active_tournament_id(tournamentId);
-	set_tournament_bracket(bracket);
-	go_section('game', '');
+	go_section('chat', '');
+	const queueMsg = document.getElementById('queue-message-container');
+	if (queueMsg) queueMsg.style.display = 'none';
+	(sections[get_type_index('chat')!] as Chat).load_messages(get_user_messages());
+	let countdown = 10;
+
+	const overlay = document.getElementById('tournament-countdown-overlay') as HTMLElement;
+	const text = document.getElementById('tournament-countdown-text') as HTMLElement;
+	if (!overlay || !text) return;
+
+	overlay.style.display = 'flex';
+	text.textContent = `Tournament starting in ${countdown} seconds...`;
+
+	const interval = setInterval(() => {
+		countdown--;
+		if (countdown > 0) {
+			text.textContent = `Tournament starting in ${countdown} seconds...`;
+		} else {
+			clearInterval(interval);
+			text.textContent = `Tournament is starting!`;
+			setTimeout(() => {
+				overlay.style.display = 'none';
+				go_section('game', '');
+				(sections[get_type_index('game')!] as GameSection).chooseTournamentSettings(tournamentId, bracket);
+			}, 1500);
+		}
+	}, 1000);
 }
 
 function matchFound(matchId: string) {
-	set_active_game_id(matchId);
 	go_section('game', '');
+	(sections[get_type_index('game')!] as GameSection).chooseGameSettings(matchId);
 }
 
-export async function add_online(username : string) {
-    user!.onlines.push(username);
+function showTournamentResults(placements: any[], message: string) {
+	const container = document.getElementById("game-over-menu") as HTMLElement;
+	const messageEl = document.getElementById("game-over-message") as HTMLElement;
+	const scoreEl = document.getElementById("game-over-score") as HTMLElement;
+
+	document.getElementById("game-over-title")!.style.display = "block";
+	document.getElementById("game-over-buttons")!.style.display = "none";
+	messageEl.innerHTML = message + "<br>" + placements.map(p => `${p.place}. ${p.name}`).join("<br>");
+	scoreEl.textContent = "";
+	container.style.display = "block";
+
+	setTimeout(() => {
+		container.style.display = "none";
+		(window as any).go_section('home');
+	}, 6000);
+}
+
+export async function add_online(username: string) {
+	user!.onlines.push(username);
 }
 
 export function update_user(new_user_value: User | undefined) {
@@ -227,7 +336,7 @@ export class OtherUser {
 	readonly stat1: string;
 	readonly stat2: number;
 	readonly stat3: number;
-	readonly avatar: string = 'assets/avatar.png';
+	readonly avatar: string = 'avatar/avatar.png';
 
 	constructor(username: string, is_friend: boolean, is_connected: boolean = false,
 		stat1: string, stat2: number, stat3: number) {

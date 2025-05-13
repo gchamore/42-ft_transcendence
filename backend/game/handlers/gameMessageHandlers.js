@@ -1,10 +1,10 @@
 import WebSocket from 'ws';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleDisconnect } from './disconnectHandler.js';
-import { tournaments } from '../../routes/game.routes.js';
+import { tournaments, tournamentPlayerNumbers, tournamentDisplayNames } from '../../routes/game.routes.js';
 
 
-export function handleNewGamePlayer(socket, game, fastify) {
+export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 	// Verify socket is open
 	if (socket.readyState !== WebSocket.OPEN) {
 		console.error('Socket not in OPEN state');
@@ -17,13 +17,75 @@ export function handleNewGamePlayer(socket, game, fastify) {
 		return;
 	}
 
+	if (game.players.size === 2) {
+		let player1Name = "Player1";
+		let player2Name = "Player2";
+
+		if (isTournament) {
+			for (const tournament of tournaments.values()) {
+				const match = tournament.bracket.find(match => match.matchId === game.gameId);
+				if (match) {
+					const p1 = match.players.find(player => player.number === 1);
+					const p2 = match.players.find(player => player.number === 2);
+					if (p1) player1Name = p1.displayName || player1Name;
+					if (p2) player2Name = p2.displayName || player2Name;
+					break;
+				}
+			}
+		} else {
+			let player1 = game.players.get(1);
+			let player2 = game.players.get(2);
+			if (player1) player1Name = player1.name || player1Name;
+			if (player2) player2Name = player2.name || player2Name;
+		}
+
+		const gameState = game.getState();
+		gameState.score.player1.name = player1Name;
+		gameState.score.player2.name = player2Name;
+	}
+
 	// Attach game instance to socket
 	socket.gameInstance = game;
 	const playerNumber = socket.playerNumber;
 	socket.isAlive = true;
 
+	if (isTournament) {
+		for (const tournament of tournaments.values()) {
+			const match = tournament.bracket.find(match => match.matchId === game.gameId);
+			if (match) {
+				const playerObj = match.players.find(player => String(player.id) === String(socket.clientId));
+				if (playerObj) {
+					playerObj.gameSocket = socket; // Store the socket reference
+				}
+			}
+		}
+		socket.on('message', (message) => {
+			const data = JSON.parse(message);
+			if (socket.currentHandler) {
+				socket.currentHandler(data);
+			} else {
+				console.error('No handler set for incoming message');
+			}
+		});
+
+		socket.on('close', (code, reason) => {
+			if (code === 1000 || (reason && reason.toString().includes('Game Finished'))) {
+				console.log(`Socket closed intentionally (code: ${code}, reason: ${reason}). Not treating as disconnect.`);
+				if (socket.gameInstance && socket.playerNumber) 
+					socket.gameInstance.removePlayer(socket);
+				return;
+			}
+			if (socket.currentCloseHandler) {
+				socket.currentCloseHandler(fastify);
+			} else {
+				console.error('No close handler set for socket');
+			}
+		});
+		console.log(`socket.on close handler set for player ${playerNumber}`);
+	}
+
 	socket.currentHandler = (data) => handleGameMessage(socket, game, data, fastify);
-	socket.currentCloseHandler = () => handleGameDisconnect(socket, game);
+	socket.currentCloseHandler = (fastify) => handleGameDisconnect(socket, game, fastify);
 
 	console.log(`Player ${playerNumber} joined game ${game.gameId}`);
 
@@ -48,16 +110,16 @@ export function handleNewGamePlayer(socket, game, fastify) {
 	}
 }
 
-export function handleGameDisconnect(socket, game) {
+export function handleGameDisconnect(socket, game, fastify) {
 	if (!socket || socket.isDisconnecting) return;
 	socket.isDisconnecting = true;
 
 	const playerNum = socket.playerNumber;
 	const gameInst = socket.gameInstance;
-	console.log(`Player ${playerNum} disconnected`);
+	console.log(`Player ${playerNum} disconnected from on.close`);
 
 	if (gameInst) {
-		handleDisconnect(socket, gameInst);
+		handleDisconnect(socket, gameInst, fastify);
 	} else {
 		console.error('Game instance not found for player disconnect');
 	}
@@ -76,9 +138,10 @@ export function handleGameMessage(socket, game, data, fastify) {
 			socket.isAlive = true;
 			break;
 		case 'gameOver':
-			handleGameOver(data.matchId, data.winner, fastify);
+			handleGameOver(data, fastify);
+			break;
 		default:
-			console.error(`Unknown message type: ${data.type}`);
+			console.error(`Unknown message in game type: ${data.type}`);
 	}
 }
 
@@ -125,73 +188,140 @@ function handleMovePaddle(socket, game, playerNumber, data) {
 	paddle.lastProcessedInput = data.inputSequence;
 }
 
-function handleGameOver(matchId, winner, fastify) {
-	const tournament = tournaments.get(matchId);
-	if (tournament) {
-		const match = tournament.bracket.find((match) => match.matchId === matchId);
-		if (match) {
-			match.winner = winner;
-			console.log(`Match ${matchId} winner: ${winner}`);
-		} else {
-			console.error(`Match ${matchId} not found in tournament bracket`);
-		}
-		const semis = tournament.bracket.filter((match) => match.round === 'semifinal');
-		if (semis.length === 2 && semis.every((match) => match.winner)) {
-			const finalMatch = {
-				matchId: `${matchId}-final`,
-				round: 'final',
-				players: [semis[0].winner, semis[1].winner],
-				winner: null,
-				loser: null
-			};
-			const thirdPlaceMatch = {
-				matchId: `${tournament.id}-third`,
-				round: 'third',
-				players: [
-					semis[0].players.find(p => p !== semis[0].winner),
-					semis[1].players.find(p => p !== semis[1].winner)
-				],
-				winner: null,
-				loser: null
-			};
-			tournament.bracket.push(finalMatch, thirdPlaceMatch);
-			console.log(`Final match created: ${finalMatch.matchId}`);
-			// Notify final players
-			finalMatch.players.forEach(playerId => {
-				const userConnections = fastify.connections.get(playerId);
-				if (userConnections) {
-					for (const [, socket] of userConnections.entries()) {
-						if (socket.readyState === 1) {
-							safeSend(socket, {
-								type: 'TournamentGameStart',
-								gameId: finalMatch.matchId,
-								round: finalMatch.round,
-								players: finalMatch.players,
-							});
-							socket.close();
-							break; // Only notify the first open socket
+function handleGameOver(data, fastify) {
+	const tid = Number(data.matchId.split('-')[0]);
+	if (data.matchId && tournaments.has(tid)) {
+		const tournament = tournaments.get(tid);
+		if (tournament) {
+			const match = tournament.bracket.find((match) => match.matchId === data.matchId);
+			if (match && !match.winner) {
+				match.winner = data.winner;
+				console.log(`Match ${data.matchId} winner: ${data.winner}`);
+			} else {
+				console.log(`Match ${data.matchId} already has a winner: ${match.winner}, ignoring duplicate gameOver`);
+				return;
+			}
+			const finalMatch = tournament.bracket.find(m => m.round === 'final');
+			const thirdMatch = tournament.bracket.find(m => m.round === 'third');
+			// If both final and third place are finished, send tournament results
+			if (finalMatch && finalMatch.winner && thirdMatch && thirdMatch.winner) {
+				const winnerPlayer = finalMatch.players.find(p => p.number === finalMatch.winner);
+				const runnerUp = finalMatch.players.find(p => p.number !== finalMatch.winner);
+				const thirdPlayer = thirdMatch.players.find(p => p.number === thirdMatch.winner);
+				const fourthPlayer = thirdMatch.players.find(p => p.number !== thirdMatch.winner);
+
+				const placements = [
+					{ place: 1, name: winnerPlayer.displayName },
+					{ place: 2, name: runnerUp.displayName },
+					{ place: 3, name: thirdPlayer.displayName },
+					{ place: 4, name: fourthPlayer.displayName }
+				];
+
+				// Notify all tournament participants
+				const allPlayers = new Set();
+				tournament.bracket.forEach(match => match.players.forEach(p => allPlayers.add(p.id)));
+				for (const playerId of allPlayers) {
+					const userConnections = fastify.connections.get(String(playerId));
+					if (userConnections) {
+						for (const [, socket] of userConnections.entries()) {
+							if (socket.readyState === 1) {
+								safeSend(socket, {
+									type: 'tournamentResults',
+									placements,
+									message: `🏆 ${winnerPlayer.displayName} wins the tournament!`
+								});
+							}
 						}
 					}
 				}
-			});
-			// Notify third place players
-			thirdPlaceMatch.players.forEach(playerId => {
-				const userConnections = fastify.connections.get(playerId);
-				if (userConnections) {
-					for (const [, socket] of userConnections.entries()) {
-						if (socket.readyState === 1) {
-							safeSend(socket, {
-								type: 'TournamentGameStart',
-								gameId: thirdPlaceMatch.matchId,
-								round: thirdPlaceMatch.round,
-								players: thirdPlaceMatch.players,
-							});
-							socket.close();
-							break;
+				cleanupTournamentMappings(tournament);
+				tournaments.delete(tid);
+				console.log(`Tournament ${tournament.id} cleaned up after completion.`);
+			}
+			const semis = tournament.bracket.filter((match) => match.round === 'semifinal');
+			const finalExists = tournament.bracket.some(m => m.round === 'final');
+			const thirdExists = tournament.bracket.some(m => m.round === 'third');
+			if (semis.length === 2 && semis.every((match) => match.winner) && !finalExists && !thirdExists) {
+				// Find winner and loser objects (with displayName) for both semis
+				const semi1Winner = semis[0].players.find(p => p.number === semis[0].winner);
+				const semi1Loser = semis[0].players.find(p => p.number !== semis[0].winner);
+				const semi2Winner = semis[1].players.find(p => p.number === semis[1].winner);
+				const semi2Loser = semis[1].players.find(p => p.number !== semis[1].winner);
+				const finalMatch = {
+					matchId: `${tournament.id}-final`,
+					round: 'final',
+					players: [
+						{ id: semi1Winner.id, number: 1, displayName: semi1Winner.displayName },
+						{ id: semi2Winner.id, number: 2, displayName: semi2Winner.displayName }
+					],
+					winner: null,
+					loser: null
+				};
+				const thirdPlaceMatch = {
+					matchId: `${tournament.id}-third`,
+					round: 'third',
+					players: [
+						{ id: semi1Loser.id, number: 1, displayName: semi1Loser.displayName },
+						{ id: semi2Loser.id, number: 2, displayName: semi2Loser.displayName }
+					],
+					winner: null,
+					loser: null
+				};
+				tournament.bracket.push(finalMatch, thirdPlaceMatch);
+				console.log(`Final match created: ${finalMatch.matchId}`);
+				console.log(`[Tournament Notify] Final:`, finalMatch.players.map(p => p.displayName));
+				// Notify final players
+				finalMatch.players.forEach(playerId => {
+					const userConnections = fastify.connections.get(String(playerId.id));
+					if (userConnections) {
+						console.log(`Notifying player ${playerId.id} about final match ${finalMatch.matchId}`);
+						for (const [, socket] of userConnections.entries()) {
+							if (socket.readyState === 1) {
+								safeSend(socket, {
+									type: 'TournamentGameStart',
+									gameId: finalMatch.matchId,
+									round: finalMatch.round,
+									players: finalMatch.players.map(p => p.displayName),
+									playerNumber: playerId.number,
+								});
+								break; // Only notify the first open socket
+							}
 						}
 					}
-				}
-			});
+				});
+				// Notify third place players
+				console.log(`Third place match created: ${thirdPlaceMatch.matchId}`);
+				console.log(`[Tournament Notify] Third:`, thirdPlaceMatch.players.map(p => p.id));
+				thirdPlaceMatch.players.forEach(playerId => {
+					const userConnections = fastify.connections.get(String(playerId.id));
+					if (userConnections) {
+						for (const [, socket] of userConnections.entries()) {
+							if (socket.readyState === 1) {
+								safeSend(socket, {
+									type: 'TournamentGameStart',
+									gameId: thirdPlaceMatch.matchId,
+									round: thirdPlaceMatch.round,
+									players: thirdPlaceMatch.players.map(p => p.displayName),
+									playerNumber: playerId.number,
+								});
+								break;
+							}
+						}
+					}
+				});
+			}
 		}
+	} else {
+		console.log(`regular game over: ${data.matchId} winner is ${data.winner}`);
 	}
+}
+
+
+export function cleanupTournamentMappings(tournament) {
+    for (const match of tournament.bracket) {
+        for (const player of match.players) {
+            tournamentPlayerNumbers.delete(String(player.id));
+            tournamentDisplayNames.delete(player.id);
+        }
+    }
 }

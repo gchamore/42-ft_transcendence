@@ -59,6 +59,15 @@
     z-index: 1000;
 }
 
+#game-over-score {
+    font-size: 22px;
+    color: #ffd700;
+    margin-bottom: 18px;
+    margin-top: -10px;
+    text-align: center;
+    font-weight: bold;
+}
+
 #start-game,
 .start-button {
     background-color: #22c55e;
@@ -117,6 +126,29 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
+#queue-username-entry {
+    display: none;
+    margin-top: 12px;
+}
+
+#tournament-username-input {
+    padding: 0.5rem;
+    border-radius: 0.4rem;
+    border: 1px solid #888;
+    font-size: 1rem;
+}
+
+#tournament-username-validate-btn {
+    margin-left: 8px;
+    padding: 0.5rem 1rem;
+    border-radius: 0.4rem;
+    border: none;
+    background: #22c55e;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 #leave-queue-btn {
     background-color: #ef4444;
     color: #fff;
@@ -150,6 +182,68 @@
 
 #home-button:hover {
     background-color: #b91c1c; 
+}
+
+#tournament-info {
+	display: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgb(145, 83, 83, 0.85);
+	color: #fff;
+	border-radius: 14px;
+	z-index: 2000;
+	text-align: center;
+	font-size: 1.3rem;
+	box-shadow: 0 4px 16px rgb(145, 83, 83, 0.25);
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+}
+
+.tournament-info-title {
+    font-size: 6rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.tournament-info-players {
+    font-size: 4rem;
+    color: rgb(153, 29, 35);
+}
+
+#tournament-countdown-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgb(145, 83, 83, 0.85);
+    color: rgb(153, 29, 35);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 100;
+    font-size: 2.5rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    border-radius: 20px; /* match #game-overlay */
+    pointer-events: none;
+}
+
+#tournament-countdown-overlay[style*="display: flex"] {
+    display: flex !important;
+}
+
+#tournament-countdown-text {
+    background: rgb(145, 83, 83, 0.6);
+    padding: 32px 48px;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgb(145, 83, 83, 0.25);
+    margin-top: 40px;
 }
 
 /* Spinner Animation */
@@ -198,3 +292,49 @@
     margin-bottom: 5px;
 }
 
+/* Invite Waiting Overlay */
+#invite-waiting-overlay.modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 20000;
+}
+
+#invite-waiting-overlay[style*="display: none"] {
+    display: none !important;
+}
+
+#invite-waiting-content.modal-content {
+    background: rgb(145, 83, 83);
+    padding: 2em 2.5em;
+    border-radius: 1em;
+    text-align: center;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+    min-width: 320px;
+}
+
+#invite-waiting-message {
+    font-size: 1.3rem;
+    color: #000;
+    font-weight: bold;
+}
+
+.invite-btn-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7em;
+    margin-top: 1.5em;
+}
+.decline-button, .cancel-button {
+    background-color: #ef4444 !important;
+    color: #fff !important;
+}
+
+.decline-button:hover, .cancel-button:hover {
+    background-color: #b91c1c !important;
+}

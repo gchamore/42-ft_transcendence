@@ -141,7 +141,7 @@ export async function userRoutes(fastify, options) {
 						winRate: winRate,
 						gamesTogether: commonGames.games_together || 0,
 						winsTogether: commonGames.wins_together || 0,
-						isConnected: fastify.connections.has(searchedUser.id)
+						isConnected: fastify.connections.has(String(searchedUser.id))
 					}
 				};
 			}
@@ -155,7 +155,7 @@ export async function userRoutes(fastify, options) {
 					createdAt: searchedUser.created_at,
 					gamesPlayed: gameStats.total_games,
 					winRate: winRate,
-					isConnected: fastify.connections.has(searchedUser.id)
+					isConnected: fastify.connections.has(String(searchedUser.id))
 				}
 			};
 
