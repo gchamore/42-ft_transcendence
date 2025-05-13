@@ -515,16 +515,7 @@ export async function getUserAccountType(): Promise<{is_google_account: boolean,
 
 export async function initiateGoogleLogin() {
     try {
-        // const isLocalhost = window.location.hostname === 'localhost' || 
-        //                    window.location.hostname === '127.0.0.1';
-        
-        // Base URL for redirect
-        // const baseUrl = isLocalhost 
-        //     ? `${window.location.protocol}//${window.location.host}`
-        //     : `https://${window.location.hostname}:8443`;
-        
-        // Google OAuth parameters
-        const clientId = '719179054785-2jaf8669fv3kj0qk6ib8cmtumlb23e8a.apps.googleusercontent.com'; // This should be fetched from your backend
+        const clientId = '719179054785-2jaf8669fv3kj0qk6ib8cmtumlb23e8a.apps.googleusercontent.com';
         const redirectUri = `https://swan-genuine-cattle.ngrok-free.app/oauth-callback`;
         const scope = 'email profile';
         const responseType = 'code';
@@ -609,5 +600,46 @@ async function completeGoogleRegistration(username: string, tempToken: string): 
         
     } catch (error) {
         console.error("Error completing Google registration:", error);
+    }
+}
+
+export async function updateAvatar(file: File): Promise<boolean> {
+    try {
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        const response = await fetch('/api/update_avatar', {
+            method: 'PUT',
+            body: formData,
+            credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (response.status === 401) {
+            console.error("Unauthorized!");
+            if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+                user.web_socket.close(1000);
+            update_user(undefined);
+            return false;
+        }
+
+        if (!response.ok) {
+            console.error('/api/update_avatar failed:', data.error);
+            return false;
+        }
+
+        // Mettre à jour l'avatar dans l'interface utilisateur
+        if (data.success && user) {
+            // Ajouter un cache-buster pour forcer le rechargement de l'image
+            const avatarElements = document.querySelectorAll('.avatar.logged-in') as NodeListOf<HTMLImageElement>;
+            avatarElements.forEach(avatar => {
+                avatar.src = `${data.user.avatar}?${Date.now()}`;
+            });
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('/api/update_avatar error:', error);
+        return false;
     }
 }

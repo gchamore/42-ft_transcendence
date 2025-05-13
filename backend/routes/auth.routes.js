@@ -295,8 +295,9 @@ export async function authRoutes(fastify, options) {
 			reply.code(200).send({
 				success: true,
 				message: "Login successful",
+				id: user.id,
 				username: user.username,
-				id: user.id
+				email: user.email
 			});
 		} catch (error) {
 			fastify.log.error(error, "Error during login attempt");

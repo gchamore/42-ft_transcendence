@@ -64,7 +64,7 @@ export class User {
 		}
 		this.name = username;
 		console.log('UserId:', this.userId, this.name);
-		this.avatar_path = 'assets/avatar.png';
+		this.avatar_path = 'avatar/avatar.png';
 		this.web_socket = undefined;
 		this.livechat = [];
 		this.direct_messages = [];
@@ -336,7 +336,7 @@ export class OtherUser {
 	readonly stat1: string;
 	readonly stat2: number;
 	readonly stat3: number;
-	readonly avatar: string = 'assets/avatar.png';
+	readonly avatar: string = 'avatar/avatar.png';
 
 	constructor(username: string, is_friend: boolean, is_connected: boolean = false,
 		stat1: string, stat2: number, stat3: number) {
