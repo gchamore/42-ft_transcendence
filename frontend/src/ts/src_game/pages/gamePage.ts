@@ -98,7 +98,7 @@ export class Game {
 			);
 
 			if (this.babylonManager) {
-				this.fpsManager = new FPSManager(this.babylonManager.getEngine());
+				this.fpsManager = new FPSManager();
 				this.fpsManager.toggleVisibility(true);
 			} else {
 				this.fpsManager = new FPSManager();

@@ -42,7 +42,6 @@ export class BabylonManager {
 	// Game state
 	private gameStarted: boolean = false;
 	private lastRenderTime: number = 0;
-	private readonly frameInterval: number = 1000 / GameConfig.TARGET_FPS;
 
 	private boundHandleResize: () => void;
 
@@ -145,9 +144,7 @@ export class BabylonManager {
 	}
 
 	public render(timestamp: number): void {
-		const elapsed = timestamp - this.lastRenderTime;
-		if (elapsed > this.frameInterval) {
-			this.lastRenderTime = timestamp - (elapsed % this.frameInterval);
+		this.lastRenderTime = timestamp;
 
 			// Update positions
 			this.paddleManager.updatePositions();
@@ -164,10 +161,6 @@ export class BabylonManager {
 
 			// Render the scene
 			this.sceneManager.render();
-		}
-
-		// Request next frame
-		requestAnimationFrame(this.render.bind(this));
 	}
 
 	public renderLocalPaddle(): void {

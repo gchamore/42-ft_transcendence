@@ -85,7 +85,10 @@ export async function oauthRoutes(fastify, options) {
 
 			return reply.code(201).send({
 					success: true,
-					username: user.username
+					id: user.id,
+					username: user.username,
+					email: user.email,
+					avatar: user.avatar,
 				});
 
 		} catch (error) {
@@ -163,7 +166,10 @@ export async function oauthRoutes(fastify, options) {
 
 			return reply.code(201).send({
 				success: true,
+				id: user.id,
 				username: user.username,
+				email: user.email,
+				avatar: user.avatar,
 				message: "Google account created and user authenticated"
 			});
 	

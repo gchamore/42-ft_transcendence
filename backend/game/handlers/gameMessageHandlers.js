@@ -102,12 +102,10 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 		gameId: game.gameId
 	});
 
-	if (playerNumber === 2 && game.isLobby) {
-		safeSend(socket, {
-			type: 'settingsUpdate',
-			settings: game.settings
-		});
-	}
+	safeSend(socket, {
+		type: 'gameState',
+		gameState: game.getState()
+	});
 }
 
 export function handleGameDisconnect(socket, game, fastify) {
