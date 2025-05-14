@@ -50,4 +50,14 @@ ul.sidebar li button{
 #chat-btn {
     background: transparent url(../assets/chat.png) no-repeat center;
 }
+
+#play1v1-btn {
+	background: transparent url(../assets/1v1.png) no-repeat center;
+	background-size: 70% 70%;
+}
+
+#playTournament-btn {
+	background: transparent url(../assets/tournament.png) no-repeat center;
+	background-size: 70% 70%;
+}
 /* --------- */

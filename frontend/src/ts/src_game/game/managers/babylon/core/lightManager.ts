@@ -68,6 +68,6 @@ export class LightManager {
 			this.pointLight = null;
 		}
 
-		this.shadowGenerator = null; // Shadow generator is disposed with its light
+		this.shadowGenerator = null;
 	}
 }

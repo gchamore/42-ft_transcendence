@@ -28,8 +28,8 @@
 					<li><button id="profile-btn"></button></li>
 					<li class="logged-in"><button id="friends-btn"></button></li>
 					<li class="logged-in"><button id="chat-btn"></button></li>
-					<li class="logged-in"><button id="play1v1-btn">1v1</button></li>
-					<li class="logged-in"><button id="playTournament-btn">tournament</button></li>
+					<li class="logged-in"><button id="play1v1-btn"></button></li>
+					<li class="logged-in"><button id="playTournament-btn"></button></li>
 				</ul>
 			</nav>
 		</aside>
@@ -38,28 +38,28 @@
 			<!-- Game Settings Panel -->
 			<div id="settings-page" class="controls" style="display: none;">
 				<h2>Pong Game Settings</h2>
-				
+
 				<!-- Ball Speed -->
 				<div class="slider-container">
 					<label for="ball-speed" class="settings-title">Ball Speed:</label>
 					<input type="range" id="ball-speed" min="1" max="4" step="1" value="2" />
 					<span id="ball-speed-value">4</span>
 				</div>
-				
+
 				<!-- Paddle Length -->
 				<div class="slider-container">
 					<label for="paddle-length">Paddle Length:</label>
 					<input type="range" id="paddle-length" min="50" max="200" step="10" value="100" />
 					<span id="paddle-length-value">100</span>
 				</div>
-				
+
 				<!-- Paddle Speed -->
 				<div class="slider-container">
 					<label for="paddle-speed">Paddle Speed:</label>
 					<input type="range" id="paddle-speed" min="1" max="10" step="1" value="5" />
 					<span id="paddle-speed-value">4</span>
 				</div>
-				
+
 				<!-- Map Select -->
 				<div class="slider-container">
 					<label for="map-select" class="settings-title">Select Map:</label>
@@ -68,23 +68,23 @@
 						<option value="custom">Custom Map</option>
 					</select>
 				</div>
-				
+
 				<!-- Power-ups Toggle -->
 				<div class="slider-container">
 					<label for="power-ups-toggle" class="settings-title">Enable Power-ups:</label>
 					<input type="checkbox" id="power-ups-toggle" class="mt-2" />
 				</div>
-				
+
 				<button id="start-game" class="start-button">Start Game</button>
 			</div>
 			<div id="tournament-info" style="display:none;"></div>
-				<div id="queue-message-container" style="display:none;">
-					<div id="queue-message"></div>
-					<button id="leave-queue-btn" class="leave-queue-btn">Leave Queue</button>
-					<div id="queue-username-entry" style="display:none; margin-top: 12px;">
-						<input id="tournament-username-input" type="text" placeholder="Enter tournament username">
-						<button id="tournament-username-validate-btn">Validate</button>
-					</div>
+			<div id="queue-message-container" style="display:none;">
+				<div id="queue-message"></div>
+				<button id="leave-queue-btn" class="leave-queue-btn">Leave Queue</button>
+				<div id="queue-username-entry" style="display:none; margin-top: 12px;">
+					<input id="tournament-username-input" type="text" placeholder="Enter tournament username">
+					<button id="tournament-username-validate-btn">Validate</button>
+				</div>
 			</div>
 
 			<!-- Game Container -->
@@ -92,13 +92,17 @@
 				<div id="score-display">0 - 0</div>
 				<canvas id="gameCanvas" width="800" height="600"></canvas>
 				<canvas id="uiCanvas" width="800" height="600"></canvas>
+				<div id="babylon-loading-screen" style="opacity:1;">
+					<div id="loading-title">Loading 3D Scene...</div>
+					<div id="loading-spinner"></div>
+				</div>
 			</div>
 
 			<!-- FPS Counter -->
 			<div id="fps-counter" style="display: none;">
 				FPS: --
 			</div>
-			
+
 
 			<!-- Game Over Menu -->
 			<div id="game-over-menu">
@@ -109,7 +113,7 @@
 					<button id="home-button">Return Home</button>
 				</div>
 			</div>
-			
+
 			<div id="tournament-countdown-overlay" style="display:none;">
 				<span id="tournament-countdown-text"></span>
 			</div>
@@ -181,7 +185,7 @@
 		<!-- Chat Modal -->
 		<article class="modal item section chat logged-in" id="chat-parent">
 			<section class="modal content column">
-				<ul class="modal column chatbox" id="chat-box"> 
+				<ul class="modal column chatbox" id="chat-box">
 					<li id="tournament-countdown-label" style="color:#FFD700;font-weight:bold;"></li>
 				</ul>
 				<input type="text" id="msg-input">
@@ -284,17 +288,18 @@
 				<button id="verify-2fa-btn">Verify</button>
 				<button id="cancel-2fa-verification-btn">Cancel</button>
 			</div>
-		</div></div>
-		<!-- invite overlay -->
-		<div id="invite-waiting-overlay" class="modal-overlay" style="display:none;">
-			<div class="modal-content" id="invite-waiting-content"><span id="invite-waiting-message"></span>
+		</div>
+	</div>
+	<!-- invite overlay -->
+	<div id="invite-waiting-overlay" class="modal-overlay" style="display:none;">
+		<div class="modal-content" id="invite-waiting-content"><span id="invite-waiting-message"></span>
 			<div class="invite-btn-row" style="margin-top: 2em;">
 				<button id="cancel-invite-btn" class="start-button cancel-button">Cancel</button>
 				<button id="accept-invite-btn" class="start-button">Accept</button>
 				<button id="decline-invite-btn" class="start-button decline-button">Decline</button>
-				</div>
 			</div>
 		</div>
+	</div>
 	<article class="modal item section settings" id="settings-parent">
 		<aside id="settings-sidebar">
 			<nav>
@@ -303,7 +308,7 @@
 					<li id="stats-btn">Stats</li>
 					<li id="confidentiality-btn">Confidentiality</li>
 					<li id="back-btn">Back</li>
-	
+
 					<!-- <li><button id="account-btn"></button>Account</li>
 						<li><button id="stats-btn"></button> Stats</li>
 						<li><button id="confidentiality-btn"></button>Confidentiality</li>
@@ -311,10 +316,10 @@
 				</ul>
 			</nav>
 		</aside>
-	
+
 		<ul id="settings-content">
 			<li id="account-content"></li>
-			
+
 			<li id="stats-content" class="settings-content">
 				<div id="stats-table-container">
 					<table id="stats-table">
@@ -345,7 +350,7 @@
 						will permanently delete all personal data associated with your account from our systems.</p>
 					<p>For more information about how we handle your data, please refer to our Privacy Policy.</p>
 				</div>
-					<button id="unregister-btn">Unregister</button>
+				<button id="unregister-btn">Unregister</button>
 			</li>
 		</ul>
 	</article>

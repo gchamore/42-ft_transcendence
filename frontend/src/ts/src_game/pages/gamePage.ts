@@ -92,7 +92,6 @@ export class Game {
 				this.powerUpsEnabled,
 				this.playerNumber,
 				() => {
-					console.log("3D scene loading complete");
 					this.isLoading = false;
 				}
 			);
@@ -104,8 +103,9 @@ export class Game {
 				this.fpsManager = new FPSManager();
 			}
 		} catch (error) {
-			console.error("Error initializing Babylon scene", error);
+			console.error("Error initializing Babylon scene");
 			this.isLoading = false;
+			this.stopGame("Error initializing Babylon scene");
 		}
 	}
 
@@ -132,7 +132,6 @@ export class Game {
 		//listen for messages
 		this.socket.onmessage = (message) => {
 			const data = JSON.parse(message.data);
-			console.log("Received message : ", data);
 			switch (data.type) {
 				case "playerNumber":
 					this.playerNumber = data.playerNumber;
@@ -143,24 +142,18 @@ export class Game {
 				case 'gameOver':
 					this.handleGameOver(data);
 					break;
-				case "connected":
-					console.log(data.message);
-					break;
 				case "error":
-					console.error("Game error:", data.message);
 					this.uiManager.drawErrorMessage(data.message);
 					break;
 				case "scoreEffect":
 					if (this.babylonManager) {
 						this.babylonManager.handleScoreEffect(data.scorer, data.position);
 					}
-					console.log("Score effect at position", data.position);
 					break
 				case "paddleHit":
 					if (this.babylonManager) {
 						this.babylonManager.handlePaddleHit(data.playerNumber, data.ballPosition);
 					}
-					console.log("Paddle hit by player", data.player);
 					break;
 				case "wallBounce":
 					if (this.babylonManager) {
@@ -356,7 +349,6 @@ export class Game {
 					matchId: this.gameId,
 					winner: data.winner,
 				}));
-			// Close the game socket after sending gameOver
 			this.stopGame("Game Finished");
 		}
 
@@ -368,7 +360,7 @@ export class Game {
 	}
 
 	private isTournamentGame(gameId: string): boolean {
-		return gameId.includes('semi');
+		return gameId.includes('semi') || gameId.includes('final') || gameId.includes('third');
 	}
 
 	private showWaitingForNextMatch() {
@@ -397,8 +389,7 @@ export class Game {
 
 		document.getElementById("home-button")!.onclick = () => {
 			container.style.display = "none";
-			console.log("Going to home");
 			(window as any).go_section('home', '');
-		}	
+		}
 	}
 }

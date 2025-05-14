@@ -11,51 +11,51 @@ declare namespace BABYLON {
 			onError?: (scene: Scene, message: string, exception?: any) => void
 		): void;
 	}
-		class Engine {
-			static isSupported(): boolean;
-			constructor(canvas: HTMLCanvasElement, antialias?: boolean);
-			runRenderLoop(callback: () => void): void;
-			resize(): void;
-			dispose(): void;
-			isDisposed: boolean;
-			getFps(): number;
-		}
+	class Engine {
+		static isSupported(): boolean;
+		constructor(canvas: HTMLCanvasElement, antialias?: boolean);
+		runRenderLoop(callback: () => void): void;
+		resize(): void;
+		dispose(): void;
+		isDisposed: boolean;
+		getFps(): number;
+	}
 
-		class Scene {
-			constructor(engine: Engine);
-			activeCamera: ArcRotateCamera;
-			render(): void;
-			clearColor: Color4;
-			dispose(): void;
-		}
+	class Scene {
+		constructor(engine: Engine);
+		activeCamera: ArcRotateCamera;
+		render(): void;
+		clearColor: Color4;
+		dispose(): void;
+	}
 
-		class PBRMaterial extends StandardMaterial {
-			emissiveColor: Color3;
-			emissiveIntensity: number;
-		}
+	class PBRMaterial extends StandardMaterial {
+		emissiveColor: Color3;
+		emissiveIntensity: number;
+	}
 
-		class Vector3 {
-			constructor(x: number, y: number, z: number);
-			x: number;
-			y: number;
-			z: number;
-			static Lerp(start: Vector3, end: Vector3, amount: number): Vector3;
-			clone(): Vector3;
-			static Distance(value1: Vector3, value2: Vector3): number;
-			scaleInPlace(scale: number): Vector3;
-			subtractInPlace(otherVector: Vector3): Vector3;
-		}
+	class Vector3 {
+		constructor(x: number, y: number, z: number);
+		x: number;
+		y: number;
+		z: number;
+		static Lerp(start: Vector3, end: Vector3, amount: number): Vector3;
+		clone(): Vector3;
+		static Distance(value1: Vector3, value2: Vector3): number;
+		scaleInPlace(scale: number): Vector3;
+		subtractInPlace(otherVector: Vector3): Vector3;
+	}
 
-		class Color3 {
-			constructor(r: number, g: number, b: number);
-			r: number;
-			g: number;
-			b: number;
-			clone(): Color3;
-			scale(scale: number): Color3;
-		}
+	class Color3 {
+		constructor(r: number, g: number, b: number);
+		r: number;
+		g: number;
+		b: number;
+		clone(): Color3;
+		scale(scale: number): Color3;
+	}
 
-		class Color4 {
+	class Color4 {
 		constructor(r: number, g: number, b: number, a: number);
 
 	}
@@ -148,8 +148,7 @@ declare namespace BABYLON {
 		boundingBox: BoundingBox;
 	}
 
-	class BoundingBox
-	{
+	class BoundingBox {
 		extendSize: Vector3;
 		minimumWorld: Vector3;
 		maximumWorld: Vector3;
@@ -194,9 +193,9 @@ declare namespace BABYLON {
 
 	class Texture {
 		constructor(
-			url: string, 
+			url: string,
 			scene: Scene,
-		 );
+		);
 		dispose(): void;
 	}
 
@@ -223,10 +222,10 @@ declare namespace BABYLON {
 			scene: Scene
 		): Mesh;
 		function CreatePlane(
-            name: string,
-            options: PlaneOptions,
-            scene: Scene
-        ): Mesh;
+			name: string,
+			options: PlaneOptions,
+			scene: Scene
+		): Mesh;
 	}
 
 	interface CylinderOptions {
@@ -247,12 +246,12 @@ declare namespace BABYLON {
 	}
 
 	interface PlaneOptions {
-        width?: number;
-        height?: number;
-        sideOrientation?: number;
-        frontUVs?: any;
-        backUVs?: any;
-        updatable?: boolean;
-        sourcePlane?: any;
-    }
+		width?: number;
+		height?: number;
+		sideOrientation?: number;
+		frontUVs?: any;
+		backUVs?: any;
+		updatable?: boolean;
+		sourcePlane?: any;
+	}
 }

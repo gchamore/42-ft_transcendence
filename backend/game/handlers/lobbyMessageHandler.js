@@ -23,7 +23,6 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 				}
 				if (tournamentPlayerNumbers.has(clientIdStr)) {
 					tournamentPlayerNumbers.delete(clientIdStr);
-					console,log(`clientIdStr: ${clientIdStr} removed from tournamentPlayerNumbers`);
 				}
 				const tqIdx = tournamentQueue.indexOf(socket.clientId);
 				if (tqIdx !== -1) {
@@ -35,7 +34,7 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 			console.error('No close handler set for socket');
 		}
 	});
-	
+
 	if (!lobby.addPlayer(socket, clientId, playerNumber, fastify)) {
 		fastify.log.error('Lobby is full');
 		socket.close();
@@ -47,12 +46,6 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 	safeSend(socket, {
 		type: 'playerNumber',
 		playerNumber: playerNumber,
-	});
-
-	safeSend(socket, {
-		type: 'connected',
-		message: `Welcome Player ${playerNumber}!`,
-		lobbyId: lobby.lobbyId,
 	});
 
 	// Player 1 sends settings to Player 2
@@ -150,7 +143,7 @@ function startGameFromLobby(lobby, tournament = null, fastify) {
 	if (tournament)
 		startTournamentGame(lobby, tournament, gameId, settings);
 	else
-		startNormalGame(lobby, gameId, settings);
+		startNormalGame(lobby, gameId, settings, fastify);
 }
 
 function startNormalGame(lobby, gameId, settings, fastify) {
@@ -176,7 +169,7 @@ function startNormalGame(lobby, gameId, settings, fastify) {
 function startTournamentGame(lobby, tournament, gameId, settings) {
 	tournament.settings = settings;
 	const matches = tournament.bracket
-	
+
 	matches.forEach(match => {
 		const game = new GameInstance(match.matchId, settings);
 		games.set(match.matchId, game);
@@ -213,6 +206,6 @@ function cleanUpSocketListeners(socket) {
 
 		console.log(`Cleaned up listeners for player ${playerNum}`);
 	} catch (e) {
-		console.error('Error cleaning up socket listeners:', e);
+		console.error('Error cleaning up socket listeners:');
 	}
 }
