@@ -1,22 +1,22 @@
 #settings-parent {
-    border-radius: 0px;
-    display: flex;
+	border-radius: 0px;
+	display: flex;
 }
 
-#settings-parent:not(.active){
+#settings-parent:not(.active) {
 	display: none !important;
 	pointer-events: none;
 }
 
 #settings-sidebar {
-    width: 300px;
-    height: 100dvh;
-    border-right: black 3px solid;
+	width: 300px;
+	height: 100dvh;
+	border-right: black 3px solid;
 	flex-shrink: 0;
 }
 
 #settings-content {
-    border: rgb(255, 255, 255) solid 3px;
+	border: rgb(255, 255, 255) solid 3px;
 	flex-grow: 1;
 }
 
@@ -31,9 +31,15 @@
 #account-content {
 	border: rgb(0, 0, 0) solid 1px;
 }
+
 #stats-content {
-	border: rgb(180, 152, 255) solid 1px;
+	border: 2px solid rgb(156, 41, 46);
+	background: rgb(145, 83, 83);
+	border-radius: 16px;
+	box-shadow: 0 4px 24px 0 #00000044;
+	padding: 1.5em 0;
 }
+
 #confidentiality-content {
 	border: rgb(255, 54, 54) solid 1px;
 }
@@ -43,21 +49,81 @@
 }
 
 #unregister-btn {
-    display: inline-block;
+	display: inline-block;
 	margin: 20px 0 30px 0;
-    padding: 10px 20px;
-    background-color: #ff4d4d;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+	padding: 10px 20px;
+	background-color: #ff4d4d;
+	color: white;
+	border: none;
+	border-radius: 6px;
+	font-size: 16px;
+	font-weight: bold;
+	cursor: pointer;
+	transition: background-color 0.3s ease;
 	margin-bottom: 30px;
 }
 
 
 #unregister-btn:hover {
-    background-color: #e60000;
+	background-color: #e60000;
+}
+
+/* ...existing code... */
+#stats-table-container {
+	background: transparent;
+	box-shadow: none;
+	border-radius: 0;
+	padding: 0;
+	margin: 0 auto;
+	max-width: 700px;
+}
+
+#stats-content.active #stats-table-container {
+	display: block;
+}
+
+#stats-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 1em;
+	background: rgb(164, 103, 103);
+	color: #fff;
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+#stats-table th,
+#stats-table td {
+	border: 1px solid rgb(156, 41, 46);
+	padding: 0.7em 1.2em;
+	text-align: center;
+}
+
+#stats-table th {
+	background: rgb(156, 41, 46);
+    color: #fff;
+	font-weight: 700;
+	font-size: 1.1em;
+	letter-spacing: 1px;
+}
+
+#stats-table tr:nth-child(even) {
+	background: rgb(145, 83, 83);
+}
+
+#stats-table tr:nth-child(odd) {
+	background: rgb(164, 103, 103);
+}
+
+#stats-table td {
+	font-size: 1em;
+	color: #fff;
+}
+
+#stats-message {
+	margin-top: 1.5em;
+	font-style: italic;
+	color: #fff;
+	text-align: center;
+	font-size: 1.1em;
 }

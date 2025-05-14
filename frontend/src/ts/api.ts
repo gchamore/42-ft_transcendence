@@ -642,6 +642,18 @@ export async function updateAvatar(file: File): Promise<boolean> {
 	}
 }
 
+
+export async function getGameHistory(userId: string) {
+    const resp = await fetch(`/api/game/history/${userId}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { "Content-Type": "application/json" }
+    });
+    if (!resp.ok) throw new Error('Failed to fetch game history');
+    return (await resp.json()).games;
+}
+
+
 export async function unregister(password?: string): Promise<boolean> {
 	try {
 		const response = await fetch("/api/unregister", {

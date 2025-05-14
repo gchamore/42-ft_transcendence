@@ -255,6 +255,40 @@ export async function gameRoutes(fastify, options) {
 
 		return reply.send({ ok: true });
 	});
+	
+	fastify.get('/game/history/:userId', async (request, reply) => {
+		const userId = request.params.userId;
+		if (!userId) return reply.code(400).send({ error: 'Missing userId' });
+	
+		const games = fastify.db.prepare(`
+			SELECT 
+				id, player1_id, player2_id, score_player1, score_player2, winner_id, created_at
+			FROM games
+			WHERE player1_id = ? OR player2_id = ?
+			ORDER BY created_at DESC
+			LIMIT 10
+		`).all(userId, userId);
+		const userIds = new Set();
+		games.forEach(game => {
+			userIds.add(game.player1_id);
+			userIds.add(game.player2_id);
+			userIds.add(game.winner_id);
+		});
+		const idList = Array.from(userIds);
+		const placeholders = idList.map(() => '?').join(',');
+		const users = fastify.db.prepare(`SELECT id, username FROM users WHERE id IN (${placeholders})`).all(...idList);
+		const idToUsername = {};
+		users.forEach(user => {
+			idToUsername[user.id] = user.username;
+		});
+		const gamesWithUsernames = games.map(game => ({
+			...game,
+			player1_username: idToUsername[game.player1_id],
+			player2_username: idToUsername[game.player2_id],
+			winner_username: idToUsername[game.winner_id],
+		}));
+		return reply.send({ games: gamesWithUsernames });
+	});
 
 	// WebSocket route
 	fastify.get('/game/:gameId', { websocket: true }, async (connection, request) => {

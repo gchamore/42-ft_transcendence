@@ -22,8 +22,8 @@ export function initializeDatabase(dbPath) {
         )
     `).run();
 
-	// table games : id, player1_id, player2_id, score_player1, score_player2, winner_id, date
-	db.prepare(`
+    // table games : id, player1_id, player2_id, score_player1, score_player2, winner_id, created_at
+    db.prepare(`
         CREATE TABLE IF NOT EXISTS games (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             player1_id INTEGER,
@@ -31,7 +31,7 @@ export function initializeDatabase(dbPath) {
             score_player1 INTEGER DEFAULT 0,
             score_player2 INTEGER DEFAULT 0,
             winner_id INTEGER,
-            date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (player1_id) REFERENCES users(id),
             FOREIGN KEY (player2_id) REFERENCES users(id),
             FOREIGN KEY (winner_id) REFERENCES users(id)
