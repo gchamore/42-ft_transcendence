@@ -259,19 +259,37 @@ export async function userRoutes(fastify, options) {
 
 	fastify.put("/update", async (request, reply) => {
 		const userId = request.user.userId;
-		const { username, email, password } = request.body;
-		fastify.log.info("Update user data:", { username, email, password });
+		const { username, email, new_password, old_password } = request.body;
+		fastify.log.info("Update user data:", { username, email, new_password, old_password });
 
 		try {
-			const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
-			if (!currentUser) {
+			// if user Google without password
+			const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
+			if (!user) {
 				return reply.code(404).send({ error: "User not found" });
+			}
+			if (user.is_google_account && !user.password) {
+				fastify.log.info(`Utilisateur Google, update without password allowed for : (${user.username})`);
+			}
+			// normal user or Google user with password
+			else {
+				// Check if the required fields are present
+				if (!old_password) {
+					fastify.log.warn("Password is required to update user info");
+					return reply.code(400).send({ error: "Password is required to update user info" });
+				}
+				// Check if the password is correct
+				const validPassword = await bcrypt.compare(old_password, user.password);
+				if (!validPassword) {
+					fastify.log.warn(`Wrong Passord for update infor  ${user.username}`);
+					return reply.code(401).send({ error: "Invalid password" });
+				}
 			}
 
 			let somethingUpdated = false;
 
-			// ✅ Username
-			if (username && username !== currentUser.username) {
+			// Username
+			if (username && username !== user.username) {
 				const trimmedUsername = username.trim();
 				const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1);
 			
@@ -287,38 +305,36 @@ export async function userRoutes(fastify, options) {
 				somethingUpdated = true;
 			}
 
-			// ✅ Password
-			if (password) {
+			// Password
+			if (new_password) {
 				const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-				if (!passwordRegex.test(password)) {
+				if (!passwordRegex.test(new_password)) {
 					return reply.code(400).send({
 						error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character."
 					});
 				}
 			
-				if (currentUser.is_google_account && !currentUser.password) {
-					// ✅ Cas Google OAuth sans mot de passe → autorisé à définir pour la 1re fois
-					const hashedPassword = await authUtils.hashPassword(password);
+				if (user.is_google_account && !user.password) {
+					const hashedPassword = await authUtils.hashPassword(new_password);
 					db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
 					somethingUpdated = true;
 				} else {
-					// 🔐 Sinon, on exige oldPassword pour mise à jour
 					const { oldPassword } = request.body;
-					if (!oldPassword || !bcrypt.compareSync(oldPassword, currentUser.password)) {
+					if (!oldPassword || !bcrypt.compareSync(oldPassword, user.password)) {
 						return reply.code(401).send({ error: "Incorrect current password." });
 					}
 			
-					const hashedPassword = await authUtils.hashPassword(password);
+					const hashedPassword = await authUtils.hashPassword(new_password);
 					db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
 					somethingUpdated = true;
 				}
 			}
 			
-			// ✅ Email
-			if (email && email !== currentUser.email) {
+			// Email
+			if (email && email !== user.email) {
 				fastify.log.info(`🔧 Attempt to update email with:, ${email}, ${userId}`);
 
-				if (currentUser.is_google_account) {
+				if (user.is_google_account) {
 					return reply.code(400).send({ error: "Cannot change email for Google-authenticated accounts" });
 				}
 
@@ -346,12 +362,8 @@ export async function userRoutes(fastify, options) {
 
 	fastify.put("/update_avatar", async (request, reply) => {
 		const userId = request.user.userId;
-		if (!request.isMultipart()) {
-			fastify.log.warn("Request is not multipart/form-data");
-			return reply.code(400).send({ error: "Request is not multipart/form-data" });
-		}
 		const avatar = await request.file();
-		fastify.log.info(`✅ Avatar reçu: ${avatar}`);
+		fastify.log.info(`Avatar reçu: ${avatar}`);
 		try {
 			const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 			if (!currentUser) {
