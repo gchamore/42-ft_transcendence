@@ -126,15 +126,17 @@ function saveGameResults(game, fastify) {
 				player2_id, 
 				score_player1, 
 				score_player2, 
-				winner_id
-			) VALUES (?, ?, ?, ?, ?)
+				winner_id,
+				created_at
+			) VALUES (?, ?, ?, ?, ?, ?)
 		`;
 		fastify.db.prepare(gameQuery).run(
 			player1Id,
 			player2Id,
 			score.player1Score,
 			score.player2Score,
-			winnerId
+			winnerId,
+			new Date().toISOString()
 		);
 
 		// Update player stats

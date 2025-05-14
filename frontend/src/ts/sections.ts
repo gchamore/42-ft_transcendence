@@ -1111,6 +1111,10 @@ class Settings extends ASection {
 			subsection.classList.remove('active');
 			console.log(option, ':', subsection.classList);
 		}
+		const statsTableContainer = document.getElementById('stats-content');
+		if (statsTableContainer) {
+			statsTableContainer.style.display = (option === 'stats') ? 'block' : 'none';
+		}
 		if (option === 'stats') {
 			this.printStats();
 		}
@@ -1133,8 +1137,9 @@ class Settings extends ASection {
 		statsMessage.textContent = "Loading game history...";
 
 		try {
-			const games = await getGameHistory(String(user.userId));
-			if (!games.length) {
+			const result = await getGameHistory(String(user.userId));
+			const games = Array.isArray(result) ? result : result?.games || [];
+			if (!games || games.length === 0) {
 				statsMessage.textContent = "No games played yet.";
 				return;
 			}
@@ -1155,7 +1160,8 @@ class Settings extends ASection {
 				tbody?.appendChild(row);
 			}
 		} catch (err) {
-			statsMessage.textContent = "Error loading history.";
+			statsMessage.textContent = `Error loading history.`;
+			console.error('Error loading game history:', err);
 		}
 	}
 }

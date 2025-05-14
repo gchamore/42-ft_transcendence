@@ -266,7 +266,7 @@ export async function gameRoutes(fastify, options) {
 			FROM games
 			WHERE player1_id = ? OR player2_id = ?
 			ORDER BY created_at DESC
-			LIMIT 50
+			LIMIT 10
 		`).all(userId, userId);
 	
 		return reply.send({ games });
