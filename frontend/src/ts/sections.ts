@@ -1192,6 +1192,9 @@ class Settings extends ASection {
 				success = await unregister(password);
 			} else if (accountType.is_google_account && !accountType.has_password) {
 				success = await unregister();
+			} else {
+				alert("Impossible de supprimer le compte.");
+				return;
 			}
 
 			if (success) {
