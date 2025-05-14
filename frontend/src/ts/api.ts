@@ -473,13 +473,20 @@ export async function update(
         });
         const data = await response.json();
 
-        if (!response.ok) {
-            console.error('/api/update failed:', data.error);
-            return false;
-        }
+		if (response.status === 401) {
+			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+				user.web_socket.close(1000);
+			update_user(undefined);
+			return false;
+		}
+        if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "Updating account failed";
+			showError(errorMessage);
+			return false;
+		}
 
         if (data.success) {
-            console.log('accepted');
+			showSuccess(`Account updated !`);
             return true;
         }
     } catch (error) {
