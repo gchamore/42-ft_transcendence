@@ -2,7 +2,7 @@ import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { update_user, User, add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
 import { t_DirectMessage, update} from './api.js';
-import { get_direct_messages, login, register, logout, unregister, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar, getGameHistory} from './api.js';
+import { get_direct_messages, ChatResponse, login, register, logout, unregister, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar, getGameHistory} from './api.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -1352,7 +1352,7 @@ export class DirectMessage extends ASection {
 	}
 	switch_logged_off() { }
 	switch_logged_in() { }
-	load_messages(messages: t_DirectMessage[] | undefined) {
+	load_messages(messages: ChatResponse | undefined) {
 		console.log(messages);
 		if (messages === undefined)
 			return;
@@ -1362,9 +1362,9 @@ export class DirectMessage extends ASection {
 		for (let i = 0; i < chat_box_childNodes.length; ++i)
 			chat_box_childNodes[i].remove();
 
-		for (let i = messages.length - 1; i >= 0; --i) {
+		for (let i = messages.messages.length - 1; i >= 0; --i) {
 			let element = document.createElement('label');
-			element.textContent = this.format_direct_messages(messages[i]);
+			element.textContent = this.format_direct_messages(messages.messages[i]);
 			this.chat_box.appendChild(element);
 		}
 	}

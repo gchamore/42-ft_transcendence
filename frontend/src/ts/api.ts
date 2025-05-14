@@ -250,7 +250,11 @@ export interface t_DirectMessage {
     sender: string;
 }
 
-export async function get_direct_messages(username : string): Promise<t_DirectMessage[] | undefined> {
+export interface ChatResponse {
+    messages: t_DirectMessage[];
+}
+
+export async function get_direct_messages(username : string): Promise<ChatResponse | undefined> {
 	try {
 		const response = await fetch(`/api/chats/${username}`, {
 			method: "GET",
@@ -261,8 +265,8 @@ export async function get_direct_messages(username : string): Promise<t_DirectMe
 		if (!response.ok) {
 			return undefined;
 		}
-        console.log(data.messages);
-		return data.messages;
+        console.log(data);
+		return data;
 	} catch (error) {
         return undefined;
 	}
