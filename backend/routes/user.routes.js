@@ -16,10 +16,13 @@ export async function userRoutes(fastify, options) {
 		fastify.log.info(`Try to add friend: ${friendUsername}`);
 
 		try {
+			if (!friendUsername)
+				return reply.code(400).send({ success: false, error: "Username is required" });
+
 			const checked_friendUsername = authUtils.checkUsername(fastify, friendUsername);
-			if (typeof checked === 'object' && checked.error) {
+			if (typeof checked === 'object' && checked.error)
 				return reply.status(400).send(checked);
-			}
+
 			// Check if the user to be added exists
 			const friend = db.prepare("SELECT id, username FROM users WHERE username = ?").get(checked_friendUsername);
 			if (!friend) {
@@ -59,8 +62,14 @@ export async function userRoutes(fastify, options) {
         const userId = request.user.userId;
 
 		try {
+			if (!friendUsername)
+				return reply.code(400).send({ success: false, error: "Username is required" });
+
+			const checked_friendUsername = authUtils.checkUsername(fastify, friendUsername);
+			if (typeof checked === 'object' && checked.error)
+				return reply.status(400).send(checked);
 			// Check if the user to be removed exists
-			const friend = db.prepare("SELECT id FROM users WHERE username = ?").get(friendUsername);
+			const friend = db.prepare("SELECT id FROM users WHERE username = ?").get(checked_friendUsername);
 			if (!friend) {
 				return reply.code(404).send({ success: false, error: "User not found" });
 			}
@@ -77,7 +86,7 @@ export async function userRoutes(fastify, options) {
 			return { success: true };
 
 		} catch (error) {
-			fastify.log.error(`Error removing friend: ${friendUsername}`, error);
+			fastify.log.error(`Error removing friend: ${checked_friendUsername}`, error);
 			return reply.code(500).send({ success: false, error: "Internal server error while removing friend" });
 		}
 	});
@@ -87,11 +96,14 @@ export async function userRoutes(fastify, options) {
         const searchedUsername = request.params.username;
         const userId = request.user.userId;
 
-		const checked_username = authUtils.checkUsername(fastify, searchedUsername);
-		if (typeof checked === 'object' && checked.error) {
-			return reply.status(400).send(checked);
-		}
 		try {
+			if (!searchedUsername)
+				return reply.code(400).send({ success: false, error: "Username is required" });
+
+			const checked_username = authUtils.checkUsername(fastify, searchedUsername);
+			if (typeof checked === 'object' && checked.error)
+				return reply.status(400).send(checked);
+
 			// Check if the user exists
 			const searchedUser = db.prepare(`
                 SELECT id, username, 
@@ -180,8 +192,15 @@ export async function userRoutes(fastify, options) {
         const blockerId = request.user.userId;
 
 		try {
+			if (!blockedUsername)
+				return reply.code(400).send({ success: false, error: "Username is required" });
+
+			const checked_friendUsername = authUtils.checkUsername(fastify, blockedUsername);
+			if (typeof checked === 'object' && checked.error)
+				return reply.status(400).send({ success: false, checked});
+
 			// Check if the user to block exists
-			const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(blockedUsername);
+			const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(checked_friendUsername);
 			if (!blockedUser) {
 				return reply.code(404).send({ success: false, error: "User not found" });
 			}
@@ -219,8 +238,15 @@ export async function userRoutes(fastify, options) {
         const blockerId = request.user.userId;
 
 		try {
+			if (!blockedUsername)
+				return reply.code(400).send({ success: false, error: "Username is required" });
+
+			const checked_friendUsername = authUtils.checkUsername(fastify, blockedUsername);
+			if (typeof checked === 'object' && checked.error)
+				return reply.status(400).send({ success: false, checked});
+
 			// Check if the user to unblock exists
-			const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(blockedUsername);
+			const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(checked_friendUsername);
 			if (!blockedUser) {
 				return reply.code(404).send({ success: false, error: "User not found" });
 			}

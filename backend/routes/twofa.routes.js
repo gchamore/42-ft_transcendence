@@ -72,7 +72,6 @@ export async function twofaroutes(fastify, options) {
 			if (!secret)
 				return reply.code(400).send({ success: false, error: "2FA setup expired" });
 
-
 			// Check if the user exists in the database
 			const isValid = speakeasy.totp.verify({ secret, encoding: 'base32', token });
 

@@ -18,29 +18,27 @@ export async function authRoutes(fastify, options) {
 	fastify.post("/register", async (request, reply) => {
 		const { username, password } = request.body;
 
-		const checked_username = authUtils.checkUsername(fastify, username);
-		if (typeof checked === 'object' && checked.error) {
-			return reply.status(400).send(checked);
-		}
-
-		fastify.log.info(`Attempting to register user: ${checked_username}`);
-		// // Validate password strength
-		// const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-		// if (!passwordRegex.test(password)) {
-		// 	return reply.code(400).send({ success: false, 
-		// 		error: "Password must be at least 8 characters, include uppercase, lowercase, number, and special character."
-		// 	});
-		// }
-
-		// Verify if the username already exists in the database
-		const existingUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(checked_username);
-		if (existingUser) {
-			fastify.log.warn(`Failed registration: Username already taken (${checked_username})`);
-			return reply.code(400).send({ success: false, error: "Username already taken" });
-		}
+		if (!username || !password)
+			return reply.code(400).send({ success: false, error: "Username and password are required" });
 
 		// Register the user in the database
 		try {
+			const checked_username = authUtils.checkUsername(fastify, username);
+			if (typeof checked === 'object' && checked.error)
+				return reply.status(400).send(checked);
+
+			// // Validate password strength
+			// const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+			// if (!passwordRegex.test(password)) {
+			// 	return reply.code(400).send({ success: false, 
+			// 		error: "Password must be at least 8 characters, include uppercase, lowercase, number, and special character."
+			// 	});
+			// }
+			const existingUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(checked_username);
+			if (existingUser) {
+				fastify.log.warn(`Failed registration: Username already taken (${checked_username})`);
+				return reply.code(400).send({ success: false, error: "Username already taken" });
+			}
 			// Hash the password using bcrypt
 			const hashedPassword = await authUtils.hashPassword(password);
 
@@ -177,46 +175,46 @@ export async function authRoutes(fastify, options) {
 	// If the user exists, return true
 	// If the user does not exist, return false
 	// This route is used to check if a username is already taken
-	fastify.get("/isUser/:username", async (request, reply) => {
-		const { username } = request.params;
-		fastify.log.info(`Verfication of user existence: ${username}`);
+	// fastify.get("/isUser/:username", async (request, reply) => {
+	// 	const { username } = request.params;
+	// 	fastify.log.info(`Verfication of user existence: ${username}`);
 
-		const user = fastify.db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-		const exists = !!user;
+	// 	const user = fastify.db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+	// 	const exists = !!user;
 
-		if (exists) {
-			fastify.log.info(`User found: ${username}\n`);
-		} else {
-			fastify.log.info(`User not found: ${username}\n`);
-		}
+	// 	if (exists) {
+	// 		fastify.log.info(`User found: ${username}\n`);
+	// 	} else {
+	// 		fastify.log.info(`User not found: ${username}\n`);
+	// 	}
 
-		return reply.code(200).send({ success: true, exists });
-	});
+	// 	return reply.code(200).send({ success: true, exists });
+	// });
 
 	/*** 📌 Route: GET USER ID ***/
 	// Get the user ID from the database using the username
 	// If the user exists, return the user ID
 	// If the user does not exist, return an error
 	// This route is used to get the user ID for the WebSocket connection
-	fastify.post("/getUserId", async (request, reply) => {
-		const { username } = request.body;
+	// fastify.post("/getUserId", async (request, reply) => {
+	// 	const { username } = request.body;
 
-		if (!username) {
-			fastify.log.warn("Attempt to get user ID without username");
-			return reply.code(400).send({ success: false, error: "Username is required" });
-		}
+	// 	if (!username) {
+	// 		fastify.log.warn("Attempt to get user ID without username");
+	// 		return reply.code(400).send({ success: false, error: "Username is required" });
+	// 	}
 
-		fastify.log.info(`Searching for ID for user: ${username}`);
+	// 	fastify.log.info(`Searching for ID for user: ${username}`);
 
-		const user = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(username);
-		if (!user) {
-			fastify.log.warn(`User not found: ${username}`);
-			return reply.code(404).send({ success: false, error: "User not found" });
-		}
+	// 	const user = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(username);
+	// 	if (!user) {
+	// 		fastify.log.warn(`User not found: ${username}`);
+	// 		return reply.code(404).send({ success: false, error: "User not found" });
+	// 	}
 
-		fastify.log.info(`User ID found for ${username}: ${user.id}`);
-		return { success: true, id: user.id };
-	});
+	// 	fastify.log.info(`User ID found for ${username}: ${user.id}`);
+	// 	return { success: true, id: user.id };
+	// });
 
 	/*** 📌 Route: LOGIN ***/
 	// Login a user
@@ -230,8 +228,9 @@ export async function authRoutes(fastify, options) {
 	fastify.post("/login", async (request, reply) => {
 		try {
 			const { username, password } = request.body;
-			fastify.log.info({ username }, "Tentative de connexion");
 
+			if (!username || !password)
+				return reply.code(400).send({ success: false, error: "Username and password are required" });
 			const checked_username = authUtils.checkUsername(fastify, username);
 			if (typeof checked === 'object' && checked.error) {
 				return reply.status(400).send(checked);
@@ -243,12 +242,12 @@ export async function authRoutes(fastify, options) {
 				fastify.log.warn(`Invalid credentials`);
 				return reply.code(401).send({ success: false, error: "Invalid credentials" });
 			}
-			
+
 			if (user.is_google_account) {
 				fastify.log.warn(`This account uses Google login. Please sign in with Google.`);
 				return reply.code(403).send({ success: false, error: "This account uses Google login. Please sign in with Google." });
 			}
-			
+
 			if (!(await bcrypt.compare(password, user.password))) {
 				fastify.log.warn(`Login failed for: ${checked_username}`);
 				return reply.code(401).send({ success: false, error: "Invalid credentials" });
@@ -306,7 +305,7 @@ export async function authRoutes(fastify, options) {
 		const refreshToken = request.cookies.refreshToken;
 		// Check if the refresh token is provided
 		if (!refreshToken) {
-			return reply.code(401).send({ success: false, error: "No refresh token provided"});
+			return reply.code(401).send({ success: false, error: "No refresh token provided" });
 		}
 
 		try {
