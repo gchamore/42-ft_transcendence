@@ -531,12 +531,12 @@ class Profile extends ASection {
 			}
 			let success = false;
 
-			if (!accountType.is_google_account && accountType.has_password) {
+			if (accountType.has_password) {
 				const password = prompt("Veuillez entrer votre mot de passe pour désactiver la 2FA:");
 				if (!password) return; // User cancelled
 
 				success = await disable2fa(password);
-			} else {
+			} else if (accountType.is_google_account && !accountType.has_password){
 				success = await disable2fa();
 			}
 
@@ -1138,12 +1138,12 @@ class Settings extends ASection {
 			}
 
 			let success;
-			if (!accountType.is_google_account && accountType.has_password) {
+			if (accountType.has_password) {
 				const password = prompt("Veuillez entrer votre mot de passe pour SUPPRIMER votre compte:");
-				if (!password) return; // User cancelled
+				if (!password) return;
 
 				success = await unregister(password);
-			} else {
+			} else if (accountType.is_google_account && !accountType.has_password) {
 				success = await unregister();
 			}
 
