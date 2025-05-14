@@ -4,7 +4,6 @@ import authUtils from '../auth/auth.utils.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
-return reply.code(404).send({ success: false, error: "User not found" });
 const oauth2Client = new google.auth.OAuth2(
 	process.env.GOOGLE_CLIENT_ID,
 	process.env.GOOGLE_CLIENT_SECRET,
@@ -48,7 +47,7 @@ export async function oauthRoutes(fastify, options) {
 				};
 
 				const tempToken = await authService.generateTempToken(tempPayload, "google_oauth", 600);
-				
+
 				// Répondre au frontend pour qu'il affiche le formulaire de choix de username
 				return reply.code(202).send({
 					step: "choose_username",
@@ -83,29 +82,27 @@ export async function oauthRoutes(fastify, options) {
 			authUtils.ft_setCookie(reply, accessToken, 15, isLocal);
 			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal);
 
-			return reply.code(201).send({
-					success: true,
-					id: user.id,
-					username: user.username,
-					email: user.email,
-					avatar: user.avatar,
-				});
+			return reply.code(200).send({
+				success: true,
+				id: user.id,
+				username: user.username,
+				email: user.email,
+				avatar: user.avatar,
+			});
 
 		} catch (error) {
 			fastify.log.error('Google OAuth error:', error);
-
 			return reply.code(500).send({
 				success: false,
-				error: 'Failed to authenticate with Google',
+				error: 'Internal server error while processing Google OAuth',
 				details: error.message,
-				step: error.step || 'unknown'
 			});
 		}
 	});
 
 	fastify.post("/auth/google/username", async (request, reply) => {
 		const { username, temp_token } = request.body;
-	
+
 		try {
 			//Verified token and get the payload from it
 			const payload = await authService.verifyTempToken(temp_token, "google_oauth");
@@ -115,7 +112,7 @@ export async function oauthRoutes(fastify, options) {
 			if (emailExists) {
 				return reply.code(400).send({ success: false, error: "Account already created with this email" });
 			}
-			
+
 			// Check if the username respects the rules :
 			const trimmedUsername = username?.trim();
 			const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
@@ -127,18 +124,18 @@ export async function oauthRoutes(fastify, options) {
 			if (existingUser) {
 				return reply.code(400).send({ success: false, error: "Username already taken" });
 			}
-	
+
 			// Créer l'utilisateur en DB avec les infos du token
 			const result = fastify.db.prepare(`
 				INSERT INTO users (username, email, avatar, is_google_account, google_name)
 				VALUES (?, ?, ?, 1, ?)
 			`).run(capitalizedUsername, payload.email, payload.avatar, payload.google_name);
-	
+
 			const userId = result.lastInsertRowid;
-	
+
 			// Récupérer le user
 			const user = fastify.db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
-	
+
 			// Si 2FA activé (ce qui ne devrait pas être le cas pour un nouveau user normalement ?)
 			if (user.twofa_secret) {
 				try {
@@ -155,11 +152,11 @@ export async function oauthRoutes(fastify, options) {
 					throw new Error('Failed to generate 2FA token in google Oauth');
 				}
 			}
-	
+
 			// Générer tokens JWT
 			const { accessToken, refreshToken } = await authService.generateTokens(user.id);
 			const isLocal = request.headers.host.startsWith("localhost");
-	
+
 			// Send the response with the tokens in cookies
 			authUtils.ft_setCookie(reply, accessToken, 15, isLocal);
 			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal);
@@ -172,15 +169,13 @@ export async function oauthRoutes(fastify, options) {
 				avatar: user.avatar,
 				message: "Google account created and user authenticated"
 			});
-	
+
 		} catch (error) {
 			fastify.log.error('Google OAuth complete-register error:', error);
-	
 			return reply.code(500).send({
 				success: false,
-				error: 'Failed to complete registration',
+				error: 'Internal server error while completing Google account registration',
 				details: error.message,
-				step: error.step || 'unknown'
 			});
 		}
 	});
@@ -192,34 +187,34 @@ export async function oauthRoutes(fastify, options) {
 			if (!userId) {
 				return reply.code(401).send({ success: false, error: "Unauthorized" });
 			}
-	
+
 			const user = fastify.db.prepare(`SELECT is_google_account, password FROM users WHERE id = ?`).get(userId);
-	
+
 			if (!user) {
 				return reply.code(404).send({ success: false, error: "User not found" });
 			}
-	
+
 			const isGoogle = !!user.is_google_account;
 			const hasPassword = !!(user.password && user.password.trim().length > 0);
-	
+
 			return reply.code(200).send({
 				success: true,
 				message: "user account type retrieved",
-				data : {
+				data: {
 					is_google_account: isGoogle,
 					has_password: hasPassword
 				}
 			});
-		} catch (err) {
-			fastify.log.error(err,`Error with user account type retrieved`);
+		} catch (error) {
+			fastify.log.error(error, `Error with user account type retrieved`);
 			return reply.code(500).send({
 				success: false,
-				error: "Internal server error",
-				details: err.message
+				error: "Internal server error while retrieving user account type",
+				details: error.message
 			});
 		}
 	});
-	
-	
+
+
 }
 

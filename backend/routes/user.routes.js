@@ -44,8 +44,12 @@ export async function userRoutes(fastify, options) {
 			return { success: true };
 
 		} catch (error) {
-			fastify.log.error(`Error adding friend: ${friendUsername}`, error);
-			return reply.code(500).send({ success: false, error: "Failed to add friend" });
+			fastify.log.error(error, `Error adding friend: ${friendUsername}`);
+			return reply.code(500).send({
+				success: false,
+				error: "Internal server error while adding friend",
+				details: error.message
+			});
 		}
 	});
 
