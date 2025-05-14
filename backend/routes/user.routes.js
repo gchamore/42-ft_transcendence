@@ -260,7 +260,7 @@ export async function userRoutes(fastify, options) {
 	fastify.put("/update", async (request, reply) => {
 		const userId = request.user.userId;
 		const { username, email, new_password, old_password } = request.body;
-		fastify.log.info("Update user data:", { username, email, new_password, old_password });
+		fastify.log.info(`Update user data: ${username}, ${email}, ${new_password}, ${old_password}`);
 
 		try {
 			// if user Google without password
@@ -307,27 +307,15 @@ export async function userRoutes(fastify, options) {
 
 			// Password
 			if (new_password) {
-				const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-				if (!passwordRegex.test(new_password)) {
-					return reply.code(400).send({
-						error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character."
-					});
-				}
-			
-				if (user.is_google_account && !user.password) {
-					const hashedPassword = await authUtils.hashPassword(new_password);
-					db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
-					somethingUpdated = true;
-				} else {
-					const { oldPassword } = request.body;
-					if (!oldPassword || !bcrypt.compareSync(oldPassword, user.password)) {
-						return reply.code(401).send({ error: "Incorrect current password." });
-					}
-			
-					const hashedPassword = await authUtils.hashPassword(new_password);
-					db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
-					somethingUpdated = true;
-				}
+				// const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+				// if (!passwordRegex.test(new_password)) {
+				// 	return reply.code(400).send({
+				// 		error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character."
+				// 	});
+				// }
+				const hashedPassword = await authUtils.hashPassword(new_password);
+				db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
+				somethingUpdated = true;
 			}
 			
 			// Email
