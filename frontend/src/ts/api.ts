@@ -75,25 +75,29 @@ export async function login(username: string, password: string) {
 			headers: {
 				"Content-Type": "application/json"
 			},
-			body: JSON.stringify({ username: username, password: password })
+			body: JSON.stringify({ username, password })
 		});
 		const data = await response.json();
+
+		if (data.step === "2fa_required") {
+			showTwofaVerificationModal(data.temp_token, username);
+			return;
+		}
 
 		if (!response.ok || !data.success) {
 			const errorMessage = data?.error || "Login failed";
 			showError(errorMessage);
-		} else if (data.step === "2fa_required") {
-			showTwofaVerificationModal(data.temp_token, username);
 			return;
-		} else if (data.success) {
-			update_user(new User(data.username, data.id, data.email, data.avatar));
-			showSuccess(`Welcome back, ${username} !`);
 		}
+
+		update_user(new User(data.username, data.id, data.email, data.avatar));
+		showSuccess(`Welcome back, ${username} !`);
 
 	} catch (error) {
 		console.error("/api/login error:", error);
 	}
 }
+
 
 export async function logout(): Promise<void> {
 	try {
@@ -159,8 +163,8 @@ export async function search(friend_username: string): Promise<OtherUser | Error
 
 	} catch (error) {
 		console.error(`/api/search/${friend_username} error:`, error);
-		return undefined;
 	}
+	return undefined;
 }
 
 export async function add(friend_username: string): Promise<boolean | Error> {

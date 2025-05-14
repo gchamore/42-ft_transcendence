@@ -43,6 +43,7 @@ export async function twofaroutes(fastify, options) {
 
 			// Stock le le secret dans la base de données
 			return reply.code(200).send({
+				success: true,
 				otpauth_url: secret.otpauth_url,
 				qrCode, // To be displayed in the front-end
 				// secret: secret.base32

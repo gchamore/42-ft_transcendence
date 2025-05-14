@@ -1,6 +1,7 @@
 import * as wsUtils from '../ws/ws.utils.js';
 import wsService from '../ws/ws.service.js';
 import authService from '../auth/auth.service.js';
+import authUtils from '../auth/auth.utils.js';
 
 
 export async function wsRoutes(fastify, options) {
@@ -47,26 +48,31 @@ export async function wsRoutes(fastify, options) {
 		return { success: true };
 	});
 
-	fastify.get('/api/chats/:username', async (request, reply) => {
+	fastify.get('/chats/:username', async (request, reply) => {
 		const userId_1 = request.user.userId;
 		const to_username = request.params.username;
 
-		if (!userId_1) {
-			return reply.code(401).send({ success: false, error: 'Unauthorized' });
-		}
+		if (!to_username)
+			return reply.code(400).send({ success: false, error: "Receiver username is required" });
 
-		// Vérifie si user2 existe
-		const user2 = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(to_username);
+		const checked_username = authUtils.checkUsername(fastify, to_username);
+		if (typeof checked === 'object' && checked.error)
+			return reply.status(400).send(checked);
+
+		const user2 = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(checked_username);
 		if (!user2) {
 			return reply.code(404).send({ success: false, error: 'User not found' });
 		}
 		const userId_2 = user2.id;
 
-		// Récupère ou crée le chat entre user1 et user2
+		if (userId_1 === userId_2) {
+			return reply.code(400).send({ success: false, error: "You cannot chat with yourself" });
+		}
+
 		let chat = fastify.db.prepare(`
-		SELECT * FROM chats
-		WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
-	`).get(userId_1, userId_2, userId_2, userId_1);
+			SELECT * FROM chats
+			WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
+		`).get(userId_1, userId_2, userId_2, userId_1);
 
 		if (!chat) {
 			const info = fastify.db.prepare(`
@@ -78,12 +84,12 @@ export async function wsRoutes(fastify, options) {
 
 		// Récupère les messages du chat
 		const messages = fastify.db.prepare(`
-		SELECT chat_messages.id, chat_messages.content, chat_messages.sent_at, users.username AS sender
-		FROM chat_messages
-		JOIN users ON users.id = chat_messages.sender_id
-		WHERE chat_id = ?
-		ORDER BY sent_at ASC
-	`).all(chat.id);
+			SELECT chat_messages.id, chat_messages.content, chat_messages.sent_at, users.username AS sender
+			FROM chat_messages
+			JOIN users ON users.id = chat_messages.sender_id
+			WHERE chat_id = ?
+			ORDER BY sent_at ASC
+		`).all(chat.id);
 
 		return reply.code(200).send({ success: true, messages });
 	});

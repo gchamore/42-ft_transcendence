@@ -1275,7 +1275,6 @@ class DirectMessage extends ASection {
 	switch_logged_off() { }
 	switch_logged_in() { }
 	load_messages(messages: Array<Message> | undefined) {
-		console.log('load_messages');
 		if (messages === undefined)
 			return;
 
