@@ -246,7 +246,7 @@ export async function send(message: string, type: string, to: string = ''): Prom
 export interface t_DirectMessage {
     id: number;
     content: string;
-    sent_at: string; // or Date if you prefer to handle it as a Date object
+    sent_at: string;
     sender: string;
 }
 
@@ -265,7 +265,6 @@ export async function get_direct_messages(username : string): Promise<ChatRespon
 		if (!response.ok) {
 			return undefined;
 		}
-        console.log(data);
 		return data;
 	} catch (error) {
         return undefined;

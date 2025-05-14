@@ -803,7 +803,7 @@ export class Chat extends ASection {
 			console.log("Try to enter Chat section as unauthenticated");
 			return;
 		}
-		this.btn1.onclick = () => history.back();
+		this.btn1.onclick = () => go_section('home', '');
 		this.btn1.textContent = 'Back';
 
 		this.btn2.onclick = () => this.send();
@@ -1312,11 +1312,11 @@ export class DirectMessage extends ASection {
 
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
-		let user : OtherUser | Error | undefined = await search(option);
-		if (user instanceof Error || user === undefined)
+		let myUser : OtherUser | Error | undefined = await search(option);
+		if (myUser instanceof Error || myUser === undefined)
 			return false;
 
-		this.friend_username = user.username;
+		this.friend_username = myUser.username;
 		return true;
 	}
 	async enter(verified: boolean) {
@@ -1332,10 +1332,9 @@ export class DirectMessage extends ASection {
 		this.btn1.onclick = () => go_section('friends', '');
 		this.btn2.onclick = () => {
 			send(this.message.value, 'direct_chat_message', this.friend_username);
-			add_message(user?.name!, this.message.value, 'direct_message');
+			add_message(this.friend_username!, this.message.value, 'direct_message');
 			this.message.value = '';
 		}
-		console.log(await get_direct_messages(this.friend_username!));
 		this.load_messages(await get_direct_messages(this.friend_username!));
 		this.activate_section();
 	}
@@ -1353,7 +1352,6 @@ export class DirectMessage extends ASection {
 	switch_logged_off() { }
 	switch_logged_in() { }
 	load_messages(messages: ChatResponse | undefined) {
-		console.log(messages);
 		if (messages === undefined)
 			return;
 
@@ -1362,7 +1360,7 @@ export class DirectMessage extends ASection {
 		for (let i = 0; i < chat_box_childNodes.length; ++i)
 			chat_box_childNodes[i].remove();
 
-		for (let i = messages.messages.length - 1; i >= 0; --i) {
+		for (let i = 0; i < 20 && i < messages.messages.length; ++i) {
 			let element = document.createElement('label');
 			element.textContent = this.format_direct_messages(messages.messages[i]);
 			this.chat_box.appendChild(element);
