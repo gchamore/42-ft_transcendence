@@ -1,8 +1,8 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
-import { update_user, User, add_online, user, get_user_messages, get_user_directmessages, OtherUser, Message, add_message } from './users.js';
-import { update} from './api.js';
-import { login, register, logout, unregister, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar, getGameHistory} from './api.js';
+import { update_user, User, add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
+import { t_DirectMessage, update} from './api.js';
+import { get_direct_messages, login, register, logout, unregister, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar, getGameHistory} from './api.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -96,7 +96,7 @@ class Home extends ASection {
 	async is_option_valid(option: string): Promise<boolean> {
 		return (option === '') ? true : false;
 	}
-	enter(verified: boolean) {
+	async enter(verified: boolean) {
 		if (verified === true)
 			this.switch_logged_in();
 		else
@@ -145,7 +145,7 @@ export class GameSection extends ASection {
 	async is_option_valid(_option: string): Promise<boolean> {
 		return true;
 	}
-	enter(verified: boolean) {
+	async enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Game section as unauthenticated");
 			return;
@@ -560,7 +560,7 @@ class Profile extends ASection {
 	async is_option_valid(option: string): Promise<boolean> {
 		return (option === '') ? true : false;
 	}
-	enter(verified: boolean) {
+	async enter(verified: boolean) {
 		if (verified === true)
 			this.switch_logged_in();
 		else
@@ -665,7 +665,7 @@ class Friends extends ASection {
 	async is_option_valid(option: string): Promise<boolean> {
 		return (option === '') ? true : false;
 	}
-	enter(verified: boolean) {
+	async enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Friends section as unauthenticated");
 			return;
@@ -798,7 +798,7 @@ export class Chat extends ASection {
 	async is_option_valid(_option: string): Promise<boolean> {
 		return true;
 	}
-	enter(verified: boolean) {
+	async enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Chat section as unauthenticated");
 			return;
@@ -882,7 +882,7 @@ export class Actions extends ASection {
 	async is_option_valid(option: string): Promise<boolean> {
 		return (option === '') ? true : false;
 	}
-	enter(verified: boolean) {
+	async enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Actions section as unauthenticated");
 			return;
@@ -1145,7 +1145,7 @@ class Settings extends ASection {
         }
 		return '';
     }
-	enter(verified: boolean) {
+	async enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Settings section as unauthenticated");
 			return;
@@ -1293,7 +1293,7 @@ class Settings extends ASection {
 	}
 }
 
-class DirectMessage extends ASection {
+export class DirectMessage extends ASection {
 	/* ASection */
 	type = 'directmessage';
 	protected = true;
@@ -1319,7 +1319,7 @@ class DirectMessage extends ASection {
 		this.friend_username = user.username;
 		return true;
 	}
-	enter(verified: boolean) {
+	async enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter DirectMessage section as unauthenticated");
 			return;
@@ -1335,7 +1335,8 @@ class DirectMessage extends ASection {
 			add_message(user?.name!, this.message.value, 'direct_message');
 			this.message.value = '';
 		}
-		this.load_messages(get_user_directmessages());
+		console.log(await get_direct_messages(this.friend_username!));
+		this.load_messages(await get_direct_messages(this.friend_username!));
 		this.activate_section();
 	}
 	leave() {
@@ -1351,8 +1352,8 @@ class DirectMessage extends ASection {
 	}
 	switch_logged_off() { }
 	switch_logged_in() { }
-	load_messages(messages: Array<Message> | undefined) {
-		console.log('load_messages');
+	load_messages(messages: t_DirectMessage[] | undefined) {
+		console.log(messages);
 		if (messages === undefined)
 			return;
 
@@ -1363,11 +1364,13 @@ class DirectMessage extends ASection {
 
 		for (let i = messages.length - 1; i >= 0; --i) {
 			let element = document.createElement('label');
-			element.textContent = messages[i].format_message();
+			element.textContent = this.format_direct_messages(messages[i]);
 			this.chat_box.appendChild(element);
 		}
 	}
-
+	format_direct_messages(message : t_DirectMessage) : string {
+		return message.sent_at + ' ' + message.sender + ': ' + message.content;
+	}
 }
 
 sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(),

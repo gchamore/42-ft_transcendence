@@ -1,4 +1,5 @@
-import { update_status, update_sections, Chat, Actions, get_type_index, sections, section_index, set_section_index, GameSection, go_section } from "./sections.js";
+import { update_status, DirectMessage, update_sections, Chat, Actions, get_type_index, sections, section_index, set_section_index, GameSection, go_section } from "./sections.js";
+import { get_direct_messages } from "./api.js";
 
 /* Global variables */
 export var user: undefined | User = undefined;
@@ -56,7 +57,6 @@ export class User {
 	isTournamentCreator?: boolean = false;
 	web_socket: WebSocket | undefined;
 	livechat: Array<Message>;
-	direct_messages: Array<Message>;
 	onlines: Array<string>;
 
 	constructor(username: string, userId?: number, email?: string, avatarPath?: string) {
@@ -71,7 +71,6 @@ export class User {
 		this.avatar_path = avatarPath || 'avatar/avatar.png';
 		this.web_socket = undefined;
 		this.livechat = [];
-		this.direct_messages = [];
 		this.onlines = [];
 	}
 	connect_to_ws() {
@@ -307,35 +306,26 @@ export function get_user_messages(): Array<Message> | undefined {
 	return user?.livechat;
 }
 
-export function get_user_directmessages(): Array<Message> | undefined {
-	return user?.direct_messages;
-}
-
-export function add_message(username: string, message: string, type: string) {
+export async function add_message(username: string, message: string, type: string) {
 	if (user === undefined)
 		return;
 	
 	
-	let messages: Array<Message>;
-	if (type === 'livechat')
+	if (type === 'livechat') {
+		let messages: Array<Message>;
 		messages = user?.livechat;
-	else if (type === 'direct_message')
-		messages = user?.direct_messages;
-	else
-		return;
-
-	console.log(user?.livechat);
-	console.log(user?.direct_messages);
-	if (messages.length === 20)
-		messages.pop();
-	for (let i = messages.length - 1; i >= 0; --i)
-		messages[i + 1] = messages[i];
-	messages[0] = new Message(username, message);
+		console.log(user?.livechat);
+		if (messages.length === 20)
+			messages.pop();
+		for (let i = messages.length - 1; i >= 0; --i)
+			messages[i + 1] = messages[i];
+		messages[0] = new Message(username, message);
+	}
 
 	if (type === 'livechat' && section_index === get_type_index('chat'))
 		(sections[get_type_index('chat')!] as Chat).load_messages(user?.livechat);
 	if (type === 'direct_message' && section_index === get_type_index('directmessage'))
-		(sections[get_type_index('directmessage')!] as Chat).load_messages(user?.direct_messages);
+		(sections[get_type_index('directmessage')!] as DirectMessage).load_messages(await get_direct_messages(username));
 }
 /* --------- */
 

@@ -243,6 +243,31 @@ export async function send(message: string, type: string, to: string = ''): Prom
 	return true;
 }
 
+export interface t_DirectMessage {
+    id: number;
+    content: string;
+    sent_at: string; // or Date if you prefer to handle it as a Date object
+    sender: string;
+}
+
+export async function get_direct_messages(username : string): Promise<t_DirectMessage[] | undefined> {
+	try {
+		const response = await fetch(`/api/chats/${username}`, {
+			method: "GET",
+			credentials: 'include'
+		});
+		const data = await response.json();
+
+		if (!response.ok) {
+			return undefined;
+		}
+        console.log(data.messages);
+		return data.messages;
+	} catch (error) {
+        return undefined;
+	}
+}
+
 export async function get_blocked_users(): Promise<Array<string> | undefined> {
 	try {
 		const response = await fetch(`/api/blocked`, {
