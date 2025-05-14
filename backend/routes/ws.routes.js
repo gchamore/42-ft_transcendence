@@ -49,7 +49,6 @@ export async function wsRoutes(fastify, options) {
 	});
 
 	fastify.get('/chats/:username', async (request, reply) => {
-	fastify.get('/chats/:username', async (request, reply) => {
 		const userId_1 = request.user.userId;
 		const to_username = request.params.username;
 
@@ -175,4 +174,3 @@ export async function wsRoutes(fastify, options) {
 	});
 
 }
-
