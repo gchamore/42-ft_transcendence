@@ -66,30 +66,30 @@ export function initializeDatabase(dbPath) {
 
 	// table chats : une ligne par paire d'utilisateurs
 	db.prepare(`
-    CREATE TABLE IF NOT EXISTS chats (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user1_id INTEGER NOT NULL,
-        user2_id INTEGER NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user1_id, user2_id),
-        FOREIGN KEY (user1_id) REFERENCES users(id),
-        FOREIGN KEY (user2_id) REFERENCES users(id),
-        CHECK (user1_id != user2_id)
-    )
-`).run();
+    	CREATE TABLE IF NOT EXISTS chats (
+    	    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    	    user1_id INTEGER NOT NULL,
+    	    user2_id INTEGER NOT NULL,
+    	    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    	    UNIQUE(user1_id, user2_id),
+    	    FOREIGN KEY (user1_id) REFERENCES users(id),
+    	    FOREIGN KEY (user2_id) REFERENCES users(id),
+    	    CHECK (user1_id != user2_id)
+	    )
+	`).run();
 
 	// table chat_messages : tous les messages associés à un chat
 	db.prepare(`
-    CREATE TABLE IF NOT EXISTS chat_messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        chat_id INTEGER NOT NULL,
-        sender_id INTEGER NOT NULL,
-        content TEXT NOT NULL,
-        sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (chat_id) REFERENCES chats(id),
-        FOREIGN KEY (sender_id) REFERENCES users(id)
-    )
-`).run();
+    	CREATE TABLE IF NOT EXISTS chat_messages (
+    	    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    	    chat_id INTEGER NOT NULL,
+    	    sender_id INTEGER NOT NULL,
+    	    content TEXT NOT NULL,
+    	    sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    	    FOREIGN KEY (chat_id) REFERENCES chats(id),
+    	    FOREIGN KEY (sender_id) REFERENCES users(id)
+	    )
+	`).run();
 
 
 	return db;
