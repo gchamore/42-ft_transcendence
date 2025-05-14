@@ -16,16 +16,23 @@ export async function userRoutes(fastify, options) {
 		fastify.log.info(`Try to add friend: ${friendUsername}`);
 
 		try {
+			if (!friendUsername)
+				return reply.code(400).send({ success: false, error: "Username is required" });
+
+			const checked_friendUsername = authUtils.checkUsername(fastify, friendUsername);
+			if (typeof checked === 'object' && checked.error)
+				return reply.status(400).send(checked);
+
 			// Check if the user to be added exists
-			const friend = db.prepare("SELECT id, username FROM users WHERE username = ?").get(friendUsername);
+			const friend = db.prepare("SELECT id, username FROM users WHERE username = ?").get(checked_friendUsername);
 			if (!friend) {
-				fastify.log.warn(`User not found: ${friendUsername}`);
-				return reply.code(404).send({ error: "User not found" });
+				fastify.log.warn(`User not found: ${checked_friendUsername}`);
+				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 			// Check if the user is trying to add themselves
 			const currentUser = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-			if (currentUser.username === friendUsername) {
-				return reply.code(400).send({ error: "Cannot add yourself as friend" });
+			if (currentUser.username === checked_friendUsername) {
+				return reply.code(400).send({ success: false, error: "Cannot add yourself as friend" });
 			}
 			// Check if the user is already a friend
 			const existingFriendship = db.prepare(
@@ -33,19 +40,19 @@ export async function userRoutes(fastify, options) {
 			).get(userId, friend.id);
 
 			if (existingFriendship) {
-				return reply.code(400).send({ error: "Already friends" });
+				return reply.code(400).send({ success: false, error: "Already friends" });
 			}
 			// Add the friendship
 			db.prepare(
 				"INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)"
 			).run(userId, friend.id);
 
-			fastify.log.info(`Friend added successfully: ${friendUsername}`);
+			fastify.log.info(`Friend added successfully: ${checked_friendUsername}`);
 			return { success: true };
 
 		} catch (error) {
-			fastify.log.error(`Error adding friend: ${friendUsername}`, error);
-			return reply.code(500).send({ error: "Failed to add friend" });
+			fastify.log.error(error, `Error adding friend: ${checked_friendUsername}`);
+			return reply.code(500).send({ success: false, error: "Internal server error while adding friend" });
 		}
 	});
 
@@ -55,10 +62,16 @@ export async function userRoutes(fastify, options) {
         const userId = request.user.userId;
 
 		try {
+			if (!friendUsername)
+				return reply.code(400).send({ success: false, error: "Username is required" });
+
+			const checked_friendUsername = authUtils.checkUsername(fastify, friendUsername);
+			if (typeof checked === 'object' && checked.error)
+				return reply.status(400).send(checked);
 			// Check if the user to be removed exists
-			const friend = db.prepare("SELECT id FROM users WHERE username = ?").get(friendUsername);
+			const friend = db.prepare("SELECT id FROM users WHERE username = ?").get(checked_friendUsername);
 			if (!friend) {
-				return reply.code(404).send({ error: "User not found" });
+				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 			// Check if the friendship exists
 			const result = db.prepare(
@@ -67,14 +80,14 @@ export async function userRoutes(fastify, options) {
 
 			// If no rows were changed, the friendship doesn't exist
 			if (result.changes === 0) {
-				return reply.code(404).send({ error: "Friendship not found" });
+				return reply.code(404).send({ success: false, error: "Friendship not found" });
 			}
 
 			return { success: true };
 
 		} catch (error) {
-			fastify.log.error(`Error removing friend: ${friendUsername}`, error);
-			return reply.code(500).send({ error: "Failed to remove friend" });
+			fastify.log.error(`Error removing friend: ${checked_friendUsername}`, error);
+			return reply.code(500).send({ success: false, error: "Internal server error while removing friend" });
 		}
 	});
 
@@ -84,6 +97,13 @@ export async function userRoutes(fastify, options) {
         const userId = request.user.userId;
 
 		try {
+			if (!searchedUsername)
+				return reply.code(400).send({ success: false, error: "Username is required" });
+
+			const checked_username = authUtils.checkUsername(fastify, searchedUsername);
+			if (typeof checked === 'object' && checked.error)
+				return reply.status(400).send(checked);
+
 			// Check if the user exists
 			const searchedUser = db.prepare(`
                 SELECT id, username, 
@@ -91,10 +111,11 @@ export async function userRoutes(fastify, options) {
                        wins, losses
                 FROM users 
                 WHERE username = ?
-            `).get(searchedUsername);
+            `).get(checked_username);
 
 			if (!searchedUser) {
 				return reply.code(404).send({
+					success: false,
 					error: "User not found"
 				});
 			}
@@ -160,8 +181,8 @@ export async function userRoutes(fastify, options) {
 			};
 
 		} catch (error) {
-			fastify.log.error(`Error searching user: ${searchedUsername}`, error);
-			return reply.code(500).send({ error: "Failed to search user" });
+			fastify.log.error(`Error searching user: ${checked_username}`, error);
+			return reply.code(500).send({ success: false, error: "Internal server error while searching user" });
 		}
 	});
 
@@ -171,10 +192,17 @@ export async function userRoutes(fastify, options) {
         const blockerId = request.user.userId;
 
 		try {
+			if (!blockedUsername)
+				return reply.code(400).send({ success: false, error: "Username is required" });
+
+			const checked_friendUsername = authUtils.checkUsername(fastify, blockedUsername);
+			if (typeof checked === 'object' && checked.error)
+				return reply.status(400).send({ success: false, checked});
+
 			// Check if the user to block exists
-			const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(blockedUsername);
+			const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(checked_friendUsername);
 			if (!blockedUser) {
-				return reply.code(404).send({ error: "User not found" });
+				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 
 			// Check if the block already exists
@@ -183,7 +211,7 @@ export async function userRoutes(fastify, options) {
 			).get(blockerId, blockedUser.id);
 
 			if (existingBlock) {
-				return reply.code(400).send({ error: "User already blocked" });
+				return reply.code(400).send({ success: false, error: "User already blocked" });
 			}
 
 			// Add the block
@@ -200,7 +228,7 @@ export async function userRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error(error);
-			return reply.code(500).send({ error: "Failed to block user" });
+			return reply.code(500).send({ success: false, error: "Internal server error while blocking user" });
 		}
 	});
 
@@ -210,10 +238,17 @@ export async function userRoutes(fastify, options) {
         const blockerId = request.user.userId;
 
 		try {
+			if (!blockedUsername)
+				return reply.code(400).send({ success: false, error: "Username is required" });
+
+			const checked_friendUsername = authUtils.checkUsername(fastify, blockedUsername);
+			if (typeof checked === 'object' && checked.error)
+				return reply.status(400).send({ success: false, checked});
+
 			// Check if the user to unblock exists
-			const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(blockedUsername);
+			const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(checked_friendUsername);
 			if (!blockedUser) {
-				return reply.code(404).send({ error: "User not found" });
+				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 
 			// Remove the block
@@ -222,14 +257,14 @@ export async function userRoutes(fastify, options) {
 			).run(blockerId, blockedUser.id);
 
 			if (result.changes === 0) {
-				return reply.code(404).send({ error: "Block not found" });
+				return reply.code(404).send({ success: false, error: "Block not found" });
 			}
 
 			return { success: true, message: "User unblocked successfully" };
 
 		} catch (error) {
 			fastify.log.error(error);
-			return reply.code(500).send({ error: "Failed to unblock user" });
+			return reply.code(500).send({ success: false, error: "Internal server error while unblocking user" });
 		}
 	});
 
@@ -253,7 +288,7 @@ export async function userRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error(error);
-			return reply.code(500).send({ error: "Failed to fetch blocked users" });
+			return reply.code(500).send({ success: false, error: "Internal server error while fetching blocked users" });
 		}
 	});
 
@@ -266,7 +301,7 @@ export async function userRoutes(fastify, options) {
 			// if user Google without password
 			const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 			if (!user) {
-				return reply.code(404).send({ error: "User not found" });
+				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 			if (user.is_google_account && !user.password) {
 				fastify.log.info(`Utilisateur Google, update without password allowed for : (${user.username})`);
@@ -276,13 +311,13 @@ export async function userRoutes(fastify, options) {
 				// Check if the required fields are present
 				if (!old_password) {
 					fastify.log.warn("Password is required to update user info");
-					return reply.code(400).send({ error: "Password is required to update user info" });
+					return reply.code(400).send({ success: false, error: "Password is required to update user info" });
 				}
 				// Check if the password is correct
 				const validPassword = await bcrypt.compare(old_password, user.password);
 				if (!validPassword) {
 					fastify.log.warn(`Wrong Passord for update infor  ${user.username}`);
-					return reply.code(401).send({ error: "Invalid password" });
+					return reply.code(401).send({ success: false, error: "Invalid password" });
 				}
 			}
 
@@ -290,18 +325,15 @@ export async function userRoutes(fastify, options) {
 
 			// Username
 			if (username && username !== user.username) {
-				const trimmedUsername = username.trim();
-				const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1);
-			
-				const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
-				if (!usernameRegex.test(capitalizedUsername)) {
-					return reply.code(400).send({ error: "Username must be 3-20 characters, letters/numbers/underscores only." });
+				const checked_username = authUtils.checkUsername(fastify, username);
+				if (typeof checked === 'object' && checked.error) {
+					return reply.status(400).send(checked);
 				}
 			
-				const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(capitalizedUsername, userId);
-				if (exists) return reply.code(400).send({ error: "Username already taken" });
+				const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(checked_username, userId);
+				if (exists) return reply.code(400).send({ success: false, error: "Username already taken" });
 			
-				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(capitalizedUsername, userId);
+				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(checked_username, userId);
 				somethingUpdated = true;
 			}
 
@@ -323,12 +355,12 @@ export async function userRoutes(fastify, options) {
 				fastify.log.info(`🔧 Attempt to update email with:, ${email}, ${userId}`);
 
 				if (user.is_google_account) {
-					return reply.code(400).send({ error: "Cannot change email for Google-authenticated accounts" });
+					return reply.code(400).send({ success: false, error: "Cannot change email for Google-authenticated accounts" });
 				}
 
 				const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 				if (!emailRegex.test(email)) {
-					return reply.code(400).send({ error: "Invalid email format" });
+					return reply.code(400).send({ success: false, error: "Invalid email format" });
 				}
 
 				db.prepare("UPDATE users SET email = ? WHERE id = ?").run(email, userId);
@@ -337,14 +369,14 @@ export async function userRoutes(fastify, options) {
 
 
 			if (!somethingUpdated)
-				return reply.code(400).send({ error: "Nothing was updated" });
+				return reply.code(400).send({ success: false, error: "Nothing was updated" });
 
 			const updatedUser = db.prepare("SELECT id, username, email FROM users WHERE id = ?").get(userId);
-			return reply.send({ success: true, user: updatedUser });
+			return reply.code(200).send({ success: true, user: updatedUser });
 
-		} catch (err) {
-			fastify.log.error(err);
-			return reply.code(500).send({ error: "Server error" });
+		} catch (error) {
+			fastify.log.error(error);
+			return reply.code(500).send({ success: false, error: "Internal server while updating user info" });
 		}
 	});
 
@@ -355,7 +387,7 @@ export async function userRoutes(fastify, options) {
 		try {
 			const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 			if (!currentUser) {
-				return reply.code(404).send({ error: "User not found" });
+				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 
 			let somethingUpdated = false;
@@ -364,7 +396,7 @@ export async function userRoutes(fastify, options) {
 				const ext = path.extname(avatar.filename).toLowerCase();
 				const allowed = ['.jpg', '.jpeg', '.png', '.gif'];
 				if (!allowed.includes(ext)) {
-					return reply.code(400).send({ error: "Invalid avatar format" });
+					return reply.code(400).send({ success: false, error: "Invalid avatar format" });
 				}
 
 				if (currentUser.avatar && currentUser.avatar !== '/avatar/avatar.png') {
@@ -389,15 +421,15 @@ export async function userRoutes(fastify, options) {
 
 			if (!somethingUpdated) {
 				fastify.log.warn("Nothing was updated");
-				return reply.code(400).send({ error: "Nothing was updated" });
+				return reply.code(400).send({ success: false, error: "Nothing was updated" });
 			}
 
 			const updatedUser = db.prepare("SELECT id, avatar FROM users WHERE id = ?").get(userId);
 			return reply.send({ success: true, user: updatedUser });
 
-		} catch (err) {
-			fastify.log.error(err);
-			return reply.code(500).send({ error: "Server error" });
+		} catch (error) {
+			fastify.log.error(error);
+			return reply.code(500).send({ success: false, error: "Internal server error while updating avatar" });
 		}
 	});
 

@@ -41,6 +41,26 @@ export class AuthUtils {
 		}
 		return reply;
 	}
-}
 
+	checkUsername(fastify, username) {
+		fastify.log.info(`Checking username: ${username}`);
+		const trimmedUsername = username ? username.trim() : '';
+
+		if (!trimmedUsername) {
+			fastify.log.warn("Search failed: username missing");
+			return { error: "Username is required" };
+		}
+
+		const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1).toLowerCase();
+		const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
+
+		if (!usernameRegex.test(capitalizedUsername)) {
+			return { error: "Username must be 3-15 characters, letters/numbers/underscores only." };
+		}
+
+		return capitalizedUsername;
+	}
+
+
+}
 export default new AuthUtils();

@@ -58,8 +58,8 @@ export async function handleAllUserConnectionsClose(fastify, userId, username, r
 				socket.isDisconnecting = true;
 				socket.close(1000, reason);
 				fastify.log.info(`Closed WebSocket connection [ID: ${connectionId}] for user: ${username}`);
-			} catch (err) {
-				fastify.log.error(`Error closing connection [ID: ${connectionId}] for user ${username}:`, err);
+			} catch (error) {
+				fastify.log.error(`Error closing connection [ID: ${connectionId}] for user ${username}:`, error);
 			}
 		}
 	}
@@ -80,8 +80,8 @@ export async function handleAllConnectionsCloseForAllUsers(fastify, reason = 'Di
 					socket.isDisconnecting = true;
 					socket.close(1000, reason);
 					fastify.log.info(`Closed connection [ID: ${connectionId}] for user: ${userId}`);
-				} catch (err) {
-					fastify.log.error(`Error closing connection [ID: ${connectionId}] for user: ${userId}: ${err}`);
+				} catch (error) {
+					fastify.log.error(`Error closing connection [ID: ${connectionId}] for user: ${userId}: ${error}`);
 				}
 			}
 		}
@@ -107,8 +107,8 @@ export async function handleConnectionError(fastify, connection, error, userId, 
 	if (connection.socket.readyState === 1) {
 		try {
 			connection.socket.close(1011, 'Internal server error');
-		} catch (err) {
-			fastify.log.error(`Error closing connection [ID: ${connectionId}]:`, err);
+		} catch (error) {
+			fastify.log.error(`Error closing connection [ID: ${connectionId}]:`, error);
 		}
 	}
 

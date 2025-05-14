@@ -1,5 +1,7 @@
 import { user, User, update_user, OtherUser } from './users.js';
 import { showTwofaVerificationModal } from './sections.js';
+import { showSuccess, showError, showInfo } from './notifications.js';
+
 
 export async function verify_token(): Promise<void> {
 	try {
@@ -9,32 +11,34 @@ export async function verify_token(): Promise<void> {
 		});
 		const data = await response.json();
 
-		if (response.status === 401) {
-			console.error("Unauthorized!");
-
-		}
-
-		if (!response.ok)
-			console.error("/api/verify_token failed:", data.error);
-		else if (data.valid) {
-			if (user !== undefined && user.name === data.username)
-				return;
-
-			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
-				user.web_socket.close(1000);
-			update_user(new User(data.username, data.id, data.email, data.avatar));
+		if (!response.ok || !data.success) {
+			update_user(undefined);
 			return;
 		}
 
+		if (user !== undefined && user.name === data.username) {
+			return;
+		}
+
+		if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN) {
+			user.web_socket.close(1000);
+		}
+
+		update_user(new User(data.username, data.id, data.email, data.avatar));
+
 	} catch (error) {
 		console.error("/api/verify_token error:", error);
+		update_user(undefined);
 	}
-
-	update_user(undefined);
 }
+
 
 export async function register(username: string, password: string) {
 	try {
+		if (username.length > 50 || password.length > 50) {
+			showError("Username or Password too long");
+			return;
+		}
 		const response = await fetch(`/api/register`, {
 			method: "POST",
 			credentials: "include",
@@ -45,12 +49,13 @@ export async function register(username: string, password: string) {
 		});
 		const data = await response.json();
 
-		if (!response.ok)
-			console.error("/api/register failed:", data.error);
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "Registering failed";
+			showError(errorMessage);
+		}
 		else if (data.success) {
 			update_user(new User(data.username, data.id));
-
-			console.log(username, "registered");
+			showSuccess(`Welcome, ${username} !`);
 		}
 
 	} catch (error) {
@@ -60,33 +65,41 @@ export async function register(username: string, password: string) {
 
 export async function login(username: string, password: string) {
 	try {
+		if (username.length > 50 || password.length > 50) {
+			showError("Username or Password too long");
+			return;
+		}
 		const response = await fetch(`/api/login`, {
 			method: "POST",
 			credentials: "include",
 			headers: {
 				"Content-Type": "application/json"
 			},
-			body: JSON.stringify({ username: username, password: password })
+			body: JSON.stringify({ username, password })
 		});
 		const data = await response.json();
 
-		if (!response.ok)
-			console.error("/api/login failed:", data.error);
-		else if (data.success) {
-			update_user(new User(data.username, data.id, data.email, data.avatar));
-			console.log(username, "logged-in");
-		}
-		else if (data.step === "2fa_required") {
+		if (data.step === "2fa_required") {
 			showTwofaVerificationModal(data.temp_token, username);
 			return;
 		}
+
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "Login failed";
+			showError(errorMessage);
+			return;
+		}
+
+		update_user(new User(data.username, data.id, data.email, data.avatar));
+		showSuccess(`Welcome back, ${username} !`);
 
 	} catch (error) {
 		console.error("/api/login error:", error);
 	}
 }
 
-export async function logout() {
+
+export async function logout(): Promise<void> {
 	try {
 		const response = await fetch(`/api/logout`, {
 			method: "POST",
@@ -94,21 +107,35 @@ export async function logout() {
 		});
 		const data = await response.json();
 
-		if (!response.ok)
-			console.error("/api/logout failed:", data.error);
-		else if (data.success) {
-			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
-				user.web_socket.close(1000);
-			update_user(undefined);
+		if (!response.ok || !data.success) {
+			if (response.status === 401 || !data.success) {
+				if (user?.web_socket?.readyState === WebSocket.OPEN)
+					user.web_socket.close(1000);
+				update_user(undefined);
+				return;
+			}
+			const errorMessage = data?.error || "Logout failed";
+			showError(errorMessage);
+			return;
 		}
+
+		if (user?.web_socket?.readyState === WebSocket.OPEN)
+			user.web_socket.close(1000);
+		update_user(undefined);
+		showSuccess(`Successfully\nlogged out!`);
 
 	} catch (error) {
 		console.error("/api/logout error:", error);
 	}
 }
 
+
 export async function search(friend_username: string): Promise<OtherUser | Error | undefined> {
 	try {
+		if (friend_username.length > 50) {
+			showError("Username too long");
+			return undefined;
+		}
 		const response = await fetch(`/api/search/${friend_username}`, {
 			method: "GET",
 			credentials: 'include'
@@ -116,18 +143,17 @@ export async function search(friend_username: string): Promise<OtherUser | Error
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
-			return new Error();
+			return undefined;
 		}
 
-		if (!response.ok)
-			console.error(`/api/search/${friend_username} failed:`, data.error);
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "Search failed";
+			showError(errorMessage);
+		}
 		else if (data.success) {
-			console.log(data.user.isConnected);
 			if (data.isFriend)
 				return new OtherUser(data.user.username, data.isFriend, data.user.isConnected,
 					data.user.friendSince, data.user.winRate, data.user.gamesTogether);
@@ -138,12 +164,15 @@ export async function search(friend_username: string): Promise<OtherUser | Error
 	} catch (error) {
 		console.error(`/api/search/${friend_username} error:`, error);
 	}
-
 	return undefined;
 }
 
 export async function add(friend_username: string): Promise<boolean | Error> {
 	try {
+		if (friend_username.length > 50) {
+			showError("Username too long");
+			return false;
+		}
 		const response = await fetch(`/api/add/${friend_username}`, {
 			method: "POST",
 			credentials: 'include'
@@ -151,27 +180,31 @@ export async function add(friend_username: string): Promise<boolean | Error> {
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
-			return new Error();
+			return false;
 		}
 
-		if (!response.ok)
-			console.error(`/api/add/${friend_username} failed:`, data.error);
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "Adding friend failed";
+			showError(errorMessage);
+		}
+		showInfo(`User ${friend_username}\nAdded !`);
 		return data.success;
 
 	} catch (error) {
 		console.error(`/api/add/${friend_username} error:`, error);
+		return false;
 	}
-
-	return false;
 }
 
 export async function remove(friend_username: string): Promise<boolean | Error> {
 	try {
+		if (friend_username.length > 50) {
+			showError("Username too long");
+			return false;
+		}
 		const response = await fetch(`/api/remove/${friend_username}`, {
 			method: "DELETE",
 			credentials: 'include'
@@ -179,23 +212,23 @@ export async function remove(friend_username: string): Promise<boolean | Error> 
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
-			return new Error();
+			return false;
 		}
 
-		if (!response.ok)
-			console.error(`/api/remove/${friend_username} failed:`, data.error);
+		if (!response.ok) {
+			const errorMessage = data?.error || "remove friend failed";
+			showError(errorMessage);
+		}
+		showInfo(`User ${friend_username}\nremoved from friends !`);
 		return data.success;
 
 	} catch (error) {
 		console.error(`/api/remove/${friend_username} error:`, error);
+		return false;
 	}
-
-	return false;
 }
 
 export async function send(message: string, type: string, to: string = ''): Promise<boolean> {
@@ -222,25 +255,23 @@ export async function send(message: string, type: string, to: string = ''): Prom
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
 			return false;
 		}
 
-		if (!response.ok) {
-			console.error(url + ' error: ', data.error);
-			return true;
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "Sending message failed";
+			showError(errorMessage);
+			return false;
 		}
 		return data.success;
 
 	} catch (error) {
-		console.error(url + ' error: ', error);
+		console.error(`/api/${type} error:`, error);
+		return false;
 	}
-
-	return true;
 }
 
 export interface t_DirectMessage {
@@ -280,29 +311,29 @@ export async function get_blocked_users(): Promise<Array<string> | undefined> {
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
 			return undefined;
 		}
 
-		if (!response.ok) {
-			console.error(`/api/blocked failed:`, data.error);
+		if (!response.ok || !data.success) {
 			return undefined;
 		}
 
 		return data.blockedUsers;
 	} catch (error) {
 		console.error(`/api/blocked error:`, error);
+		return undefined;
 	}
-
-	return undefined;
 }
 
 export async function block(username: string): Promise<boolean> {
 	try {
+		if (username.length > 50) {
+			showError("Username too long");
+			return false;
+		}
 		const response = await fetch(`/api/block/${username}`, {
 			method: "POST",
 			credentials: 'include'
@@ -310,8 +341,6 @@ export async function block(username: string): Promise<boolean> {
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
@@ -319,20 +348,25 @@ export async function block(username: string): Promise<boolean> {
 		}
 
 		if (!response.ok) {
-			console.error(`/api/block/${username} failed:`, data.error);
+			const errorMessage = data?.error || "Blocking user failed";
+			showError(errorMessage);
 			return false;
 		}
+		showInfo(`User ${username}\nBlocked !`);
 		return data.success;
 
 	} catch (error) {
 		console.error(`/api/block/${username} error:`, error);
+		return false;
 	}
-
-	return false;
 }
 
 export async function unblock(username: string): Promise<boolean> {
 	try {
+		if (username.length > 50) {
+			showError("Username too long");
+			return false;
+		}
 		const response = await fetch(`/api/unblock/${username}`, {
 			method: "DELETE",
 			credentials: 'include'
@@ -340,8 +374,6 @@ export async function unblock(username: string): Promise<boolean> {
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
@@ -349,16 +381,17 @@ export async function unblock(username: string): Promise<boolean> {
 		}
 
 		if (!response.ok) {
-			console.error(`/api/unblock/${username} failed:`, data.error);
+			const errorMessage = data?.error || "Unblocking user failed";
+			showError(errorMessage);
 			return false;
 		}
+		showInfo(`User ${username}\nUnblocked !`);
 		return data.success;
 
 	} catch (error) {
 		console.error(`/api/unblock/${username} error:`, error);
+		return false;
 	}
-
-	return false;
 }
 
 export async function setup2fa(): Promise<{ otpauth_url: string, qrCode: string } | undefined> {
@@ -370,15 +403,15 @@ export async function setup2fa(): Promise<{ otpauth_url: string, qrCode: string 
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
 			return undefined;
 		}
 
-		if (!response.ok) {
-			console.error('/api/2fa/setup failed:', data.error);
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "2FA setup failed";
+			showError(errorMessage);
 			return undefined;
 		}
 
@@ -405,18 +438,18 @@ export async function activate2fa(token: string): Promise<boolean> {
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
 			return false;
 		}
 
-		if (!response.ok) {
-			console.error('/api/2fa/activate failed:', data.error);
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "2FA activation failed";
+			showError(errorMessage);
 			return false;
 		}
-
+		showInfo(`2FA activated !`);
 		return data.success;
 	} catch (error) {
 		console.error('/api/2fa/activate error:', error);
@@ -440,13 +473,20 @@ export async function update(
         });
         const data = await response.json();
 
-        if (!response.ok) {
-            console.error('/api/update failed:', data.error);
-            return false;
-        }
+		if (response.status === 401) {
+			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+				user.web_socket.close(1000);
+			update_user(undefined);
+			return false;
+		}
+        if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "Updating account failed";
+			showError(errorMessage);
+			return false;
+		}
 
         if (data.success) {
-            console.log('accepted');
+			showSuccess(`Account updated !`);
             return true;
         }
     } catch (error) {
@@ -467,14 +507,15 @@ export async function verify2fa(token: string, temp_token: string): Promise<bool
 		});
 		const data = await response.json();
 
-		if (!response.ok) {
-			console.error('/api/2fa/verify failed:', data.error);
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "2FA verification failed";
+			showError(errorMessage);
 			return false;
 		}
 
 		if (data.success) {
 			update_user(new User(data.username, data.id));
-			console.log(data.username, "verified with 2FA");
+			showSuccess(`Welcome back, ${data.username} !`);
 		}
 
 		return data.success;
@@ -486,6 +527,10 @@ export async function verify2fa(token: string, temp_token: string): Promise<bool
 
 export async function disable2fa(password?: string): Promise<boolean> {
 	try {
+		if (password && password.length > 50) {
+			showError("Password too long");
+			return false;
+		}
 		const response = await fetch('/api/2fa/disable', {
 			method: 'POST',
 			credentials: 'include',
@@ -497,15 +542,15 @@ export async function disable2fa(password?: string): Promise<boolean> {
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
 			return false;
 		}
 
-		if (!response.ok) {
-			console.error('/api/2fa/disable failed:', data.error);
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "Disabling 2FA failed";
+			showError(errorMessage);
 			return false;
 		}
 
@@ -525,7 +570,6 @@ export async function get2faStatus(): Promise<boolean | undefined> {
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
@@ -533,7 +577,6 @@ export async function get2faStatus(): Promise<boolean | undefined> {
 		}
 
 		if (!response.ok) {
-			console.error('/api/2fa/status failed:', data.error);
 			return undefined;
 		}
 
@@ -553,15 +596,13 @@ export async function getUserAccountType(): Promise<{ is_google_account: boolean
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
 			return undefined;
 		}
 
-		if (!response.ok) {
-			console.error('/api/auth/account_type failed:', data.error);
+		if (!response.ok || !data.success) {
 			return undefined;
 		}
 
@@ -612,6 +653,10 @@ export async function processGoogleOAuth(code: string): Promise<void> {
 		if (response.status === 202 && data.step === "choose_username") {
 			const username = prompt("Please choose a username:");
 			if (username) {
+				if (username.length > 50) {
+					showError("Username too long");
+					return;
+				}
 				await completeGoogleRegistration(username, data.temp_token);
 			}
 			return;
@@ -620,13 +665,13 @@ export async function processGoogleOAuth(code: string): Promise<void> {
 			return;
 		} else if (response.ok && data.success) {
 			update_user(new User(data.username));
-			console.log(`Google login successful as ${data.username}`);
+			showSuccess(`Welcome back, ${data.username} !`);
 		} else {
-			console.error("Google OAuth error:", data.error || "Unknown error");
+			showError("Failed to process Google OAuth");
 		}
 
 	} catch (error) {
-		console.error("Error processing Google OAuth:", error);
+		console.error("api/auth/google error:", error);
 	}
 }
 
@@ -651,14 +696,13 @@ async function completeGoogleRegistration(username: string, tempToken: string): 
 			return;
 		} else if (response.ok && data.success) {
 			update_user(new User(data.username, data.id, data.email, data.avatar));
-			console.log(`Google registration complete as ${data.username}`);
+			showSuccess(`Welcome, ${data.username} !`);
 		} else {
-			alert(data.error || "Failed to complete registration");
-			console.error("Google registration error:", data.error || "Unknown error");
+			showError("Failed to complete Google registration");
 		}
 
 	} catch (error) {
-		console.error("Error completing Google registration:", error);
+		console.error("api/auth/google/username error:", error);
 	}
 }
 
@@ -675,7 +719,6 @@ export async function updateAvatar(file: File): Promise<boolean> {
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
@@ -683,7 +726,8 @@ export async function updateAvatar(file: File): Promise<boolean> {
 		}
 
 		if (!response.ok) {
-			console.error('/api/update_avatar failed:', data.error);
+			const errorMessage = data?.error || "Updating avatar failed";
+			showError(errorMessage);
 			return false;
 		}
 
@@ -692,6 +736,7 @@ export async function updateAvatar(file: File): Promise<boolean> {
 			avatarElements.forEach(avatar => {
 				avatar.src = `${data.user.avatar}?${Date.now()}`;
 			});
+			showInfo("Avatar updated successfully!");
 			return true;
 		}
 		return false;
@@ -703,13 +748,13 @@ export async function updateAvatar(file: File): Promise<boolean> {
 
 
 export async function getGameHistory(userId: string) {
-    const resp = await fetch(`/api/game/history/${userId}`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: { "Content-Type": "application/json" }
-    });
-    if (!resp.ok) throw new Error('Failed to fetch game history');
-    return (await resp.json()).games;
+	const resp = await fetch(`/api/game/history/${userId}`, {
+		method: 'GET',
+		credentials: 'include',
+		headers: { "Content-Type": "application/json" }
+	});
+	if (!resp.ok) throw new Error('Failed to fetch game history');
+	return (await resp.json()).games;
 }
 
 
@@ -721,24 +766,35 @@ export async function unregister(password?: string): Promise<boolean> {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({ password }),
+			credentials: "include",
 		});
 
 		const data = await response.json();
-		if (response.status === 401) {
-			console.error("Unauthorized!");
-			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+
+		if (response.status === 401 || !data.success || !response.ok) {
+			if (user?.web_socket?.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
-			return false;
-		}
-		if (!response.ok) {
-			console.error('Fail to unregister:', data.error);
+
+			if (response.status === 401){
+				const errorMessage = data?.error || "Session expired";
+				showError(errorMessage);
+				return false;
+			}
+
+			const errorMessage = data?.error || "Unregistering failed";
+			showError(errorMessage);
 			return false;
 		}
 
-		return data.success;
+		if (user?.web_socket?.readyState === WebSocket.OPEN)
+			user.web_socket.close(1000);
+		update_user(undefined);
+		showSuccess("Account unregistered successfully!");
+		return true;
+
 	} catch (error) {
-		console.error('Fail to unregister:', error);
+		console.error('/api/unregister error:', error);
 		return false;
 	}
 }

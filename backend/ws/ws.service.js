@@ -84,8 +84,8 @@ export class WebSocketService {
 		
 				await wsUtils.handleSingleUserConnectionClose( fastify, connection, code, (reason || 'Unexpected disconnect'), userId, username, connectionId);
 		
-			} catch (err) {
-				fastify.log.error(err, `Error handling WebSocket close for user ${username}`);
+			} catch (error) {
+				fastify.log.error(error, `Error handling WebSocket close for user ${username}`);
 			}
 		});
 		

@@ -1275,20 +1275,20 @@ class Settings extends ASection {
 			const accountType = await getUserAccountType();
 
 			if (!accountType) {
-				alert("Impossible de vérifier le type de compte");
+				alert("Not possible to check account type");
 				return;
 			}
 
 			let success;
 			if (accountType.has_password) {
-				const password = prompt("Veuillez entrer votre mot de passe pour SUPPRIMER votre compte:");
+				const password = prompt("Please enter your password to DELETE your account:");
 				if (!password) return;
 
 				success = await unregister(password);
 			} else if (accountType.is_google_account && !accountType.has_password) {
 				success = await unregister();
 			} else {
-				alert("Impossible de supprimer le compte.");
+				alert("Not possible to delete your account !");
 				return;
 			}
 
@@ -1300,12 +1300,12 @@ class Settings extends ASection {
 			}
 		} catch (err) {
 			console.error("Error unregistering account:", err);
-			alert("Une erreur s'est produite lors de la suppression du compte.");
+			alert("An error occurred while unregistering your account.");
 		}
 	}
 
 	UnregisterConfirmation() {
-		if (confirm("Êtes-vous sûr de vouloir Supprimer votre compte?")) {
+		if (confirm("Are you sure you want to DELETE your account?")) {
 			this.handleUnregisterClick();
 		}
 	}
