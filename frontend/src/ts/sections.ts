@@ -1,7 +1,8 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { update_user, User, add_online, user, get_user_messages, get_user_directmessages, OtherUser, Message, add_message } from './users.js';
-import { update, login, register, logout, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar} from './api.js';
+import { update} from './api.js';
+import { login, register, logout, unregister, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar, getGameHistory} from './api.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -531,12 +532,12 @@ class Profile extends ASection {
 			}
 			let success = false;
 
-			if (!accountType.is_google_account && accountType.has_password) {
+			if (accountType.has_password) {
 				const password = prompt("Veuillez entrer votre mot de passe pour désactiver la 2FA:");
 				if (!password) return; // User cancelled
 
 				success = await disable2fa(password);
-			} else {
+			} else if (accountType.is_google_account && !accountType.has_password){
 				success = await disable2fa();
 			}
 
@@ -1075,6 +1076,8 @@ class Settings extends ASection {
 	password_l = document.getElementById('l-password-account') as HTMLLabelElement;
 	password_i = document.getElementById('i-password-account') as HTMLInputElement;
 	update_btn = document.getElementById('update-btn') as HTMLButtonElement;
+	/* Confidentiality */
+	unregister_btn = document.getElementById('unregister-btn') as HTMLButtonElement;
 
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
@@ -1105,6 +1108,7 @@ class Settings extends ASection {
 		this.email_l.textContent += user?.email;
 		this.update_btn.textContent = 'Edit';
 		this.update_btn.onclick = async () => {
+			this.clear();
 			let inputs : NodeListOf<HTMLInputElement> = document.querySelectorAll('.account-input');
 			inputs.forEach(input => {
 				input.classList.add('active');
@@ -1148,6 +1152,12 @@ class Settings extends ASection {
 		}
 
 		this.clear();
+		this.account_btn.onclick = () => go_section('settings', 'account');
+		this.stats_btn.onclick = () => go_section('settings', 'stats');
+		this.confidentiality_btn.onclick = () => go_section('settings', 'confidentiality');
+		this.back_btn.onclick = () => go_section('profile', '');
+		this.unregister_btn.onclick = () => this.UnregisterConfirmation();
+
 
 		let option = get_url_option(window.location.pathname);
 		this.select(option);
@@ -1162,6 +1172,7 @@ class Settings extends ASection {
 		this.stats_btn.removeAttribute('onclick');
 		this.confidentiality_btn.removeAttribute('onclick');
 		this.back_btn.removeAttribute('onclick');
+		this.unregister_btn.removeAttribute('onclick');
 	}
 	switch_logged_off() {}
 	switch_logged_in() {}
@@ -1184,14 +1195,101 @@ class Settings extends ASection {
 			subsection.classList.remove('active');
 			console.log(option, ':', subsection.classList);
 		}
+		const statsTableContainer = document.getElementById('stats-content');
+		if (statsTableContainer) {
+			statsTableContainer.style.display = (option === 'stats') ? 'block' : 'none';
+		}
+		if (option === 'stats') {
+			this.printStats();
+		}
 	}
-	select(option : string) {
+	select(option: string) {
 		console.log('Selecting', option);
 		if (!this.is_option(option)) {
 			go_section('profile', '');
 			return;
 		}
 		this.print(option);
+	}
+	async printStats() {
+		const statsTable = document.getElementById('stats-table') as HTMLTableElement;
+		const statsMessage = document.getElementById('stats-message') as HTMLElement;
+		if (!statsTable || !statsMessage || !user) return;
+
+		const tbody = statsTable.querySelector('tbody');
+		if (tbody) tbody.innerHTML = '';
+		statsMessage.textContent = "Loading game history...";
+
+		try {
+			const result = await getGameHistory(String(user.userId));
+			const games = Array.isArray(result) ? result : result?.games || [];
+			if (!games || games.length === 0) {
+				statsMessage.textContent = "No games played yet.";
+				return;
+			}
+			statsMessage.textContent = "";
+			for (const g of games) {
+				const isPlayer1 = g.player1_username === user.name;
+				const opponent = isPlayer1 ? g.player2_username : g.player1_username;
+				const score1 = g.score_player1 ?? 0;
+				const score2 = g.score_player2 ?? 0;
+				const score = `${score1} - ${score2}`;
+				const win = g.winner_username === user.name;
+				const date = new Date(g.created_at).toLocaleString();
+
+				const row = document.createElement('tr');
+				row.innerHTML = `
+                <td>${date}</td>
+                <td>${opponent ?? '-'}</td>
+                <td>${score}</td>
+                <td style="color:${win ? 'green' : 'red'}">${win ? 'Win' : 'Loss'}</td>
+            `;
+				tbody?.appendChild(row);
+			}
+		} catch (err) {
+			statsMessage.textContent = `Error loading history.`;
+			console.error('Error loading game history:', err);
+		}
+	}
+
+	async handleUnregisterClick() {
+		try {
+			const accountType = await getUserAccountType();
+
+			if (!accountType) {
+				alert("Impossible de vérifier le type de compte");
+				return;
+			}
+
+			let success;
+			if (accountType.has_password) {
+				const password = prompt("Veuillez entrer votre mot de passe pour SUPPRIMER votre compte:");
+				if (!password) return;
+
+				success = await unregister(password);
+			} else if (accountType.is_google_account && !accountType.has_password) {
+				success = await unregister();
+			} else {
+				alert("Impossible de supprimer le compte.");
+				return;
+			}
+
+			if (success) {
+				alert("Your account has been successfully deleted.");
+				go_section('home', '');
+			} else {
+				alert("Error unregistering account:");
+			}
+		} catch (err) {
+			console.error("Error unregistering account:", err);
+			alert("Une erreur s'est produite lors de la suppression du compte.");
+		}
+	}
+
+	UnregisterConfirmation() {
+		if (confirm("Êtes-vous sûr de vouloir Supprimer votre compte?")) {
+			this.handleUnregisterClick();
+		}
 	}
 }
 

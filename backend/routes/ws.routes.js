@@ -47,6 +47,49 @@ export async function wsRoutes(fastify, options) {
 		return { success: true };
 	});
 
+	fastify.get('/api/chats/:username', async (request, reply) => {
+		const userId_1 = request.user.userId;
+		const to_username = request.params.username;
+
+		if (!userId_1) {
+			return reply.status(401).send({ error: 'Unauthorized' });
+		}
+
+		// Vérifie si user2 existe
+		const user2 = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(to_username);
+		if (!user2) {
+			return reply.status(404).send({ error: 'User not found' });
+		}
+		const userId_2 = user2.id;
+
+		// Récupère ou crée le chat entre user1 et user2
+		let chat = fastify.db.prepare(`
+		SELECT * FROM chats
+		WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
+	`).get(userId_1, userId_2, userId_2, userId_1);
+
+		if (!chat) {
+			const info = fastify.db.prepare(`
+			INSERT INTO chats (user1_id, user2_id) VALUES (?, ?)
+		`).run(userId_1, userId_2);
+
+			chat = { id: info.lastInsertRowid };
+		}
+
+		// Récupère les messages du chat
+		const messages = fastify.db.prepare(`
+		SELECT chat_messages.id, chat_messages.content, chat_messages.sent_at, users.username AS sender
+		FROM chat_messages
+		JOIN users ON users.id = chat_messages.sender_id
+		WHERE chat_id = ?
+		ORDER BY sent_at ASC
+	`).all(chat.id);
+
+		return reply.send({ messages });
+	});
+
+
+
 	/*** 📌 Route: WebSocket ***/
 	// Route to establish a WebSocket connection
 	// It validates the access token and sets up the connection

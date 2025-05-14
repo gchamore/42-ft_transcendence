@@ -1,12 +1,11 @@
 import Database from 'better-sqlite3';
 
 // Créer la base de données SQLite
-export function initializeDatabase(dbPath)
-{
-    const db = new Database(dbPath);
+export function initializeDatabase(dbPath) {
+	const db = new Database(dbPath);
 	// test
-    // table users : id, username, password, avatar, settings, wins, losses
-    db.prepare(`
+	// table users : id, username, password, avatar, settings, wins, losses
+	db.prepare(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE COLLATE NOCASE,
@@ -23,7 +22,7 @@ export function initializeDatabase(dbPath)
         )
     `).run();
 
-    // table games : id, player1_id, player2_id, score_player1, score_player2, winner_id, date
+    // table games : id, player1_id, player2_id, score_player1, score_player2, winner_id, created_at
     db.prepare(`
         CREATE TABLE IF NOT EXISTS games (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,15 +31,15 @@ export function initializeDatabase(dbPath)
             score_player1 INTEGER DEFAULT 0,
             score_player2 INTEGER DEFAULT 0,
             winner_id INTEGER,
-            date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (player1_id) REFERENCES users(id),
             FOREIGN KEY (player2_id) REFERENCES users(id),
             FOREIGN KEY (winner_id) REFERENCES users(id)
         )
     `).run();
 
-    // table friendships : user_id, friend_id, date
-    db.prepare(`
+	// table friendships : user_id, friend_id, date
+	db.prepare(`
         CREATE TABLE IF NOT EXISTS friendships (
             user_id INTEGER,
             friend_id INTEGER,
@@ -52,8 +51,8 @@ export function initializeDatabase(dbPath)
         )
     `).run();
 
-    // table blocks : blocker_id, blocked_id, date
-    db.prepare(`
+	// table blocks : blocker_id, blocked_id, date
+	db.prepare(`
         CREATE TABLE IF NOT EXISTS blocks (
             blocker_id INTEGER,
             blocked_id INTEGER,
@@ -65,6 +64,34 @@ export function initializeDatabase(dbPath)
         )
     `).run();
 
-    return db;
+	// table chats : une ligne par paire d'utilisateurs
+	db.prepare(`
+    	CREATE TABLE IF NOT EXISTS chats (
+    	    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    	    user1_id INTEGER NOT NULL,
+    	    user2_id INTEGER NOT NULL,
+    	    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    	    UNIQUE(user1_id, user2_id),
+    	    FOREIGN KEY (user1_id) REFERENCES users(id),
+    	    FOREIGN KEY (user2_id) REFERENCES users(id),
+    	    CHECK (user1_id != user2_id)
+	    )
+	`).run();
+
+	// table chat_messages : tous les messages associés à un chat
+	db.prepare(`
+    	CREATE TABLE IF NOT EXISTS chat_messages (
+    	    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    	    chat_id INTEGER NOT NULL,
+    	    sender_id INTEGER NOT NULL,
+    	    content TEXT NOT NULL,
+    	    sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    	    FOREIGN KEY (chat_id) REFERENCES chats(id),
+    	    FOREIGN KEY (sender_id) REFERENCES users(id)
+	    )
+	`).run();
+
+
+	return db;
 }
 

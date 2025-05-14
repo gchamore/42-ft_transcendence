@@ -354,6 +354,24 @@ export async function handleDirectMessage(fastify, senderId, recipientUsername, 
 		return { success: false, error: 'Failed to deliver message. Recipient may have disconnected.' };
 	}
 
+	let chat = fastify.db.prepare(`
+		SELECT id FROM chats
+		WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
+	`).get(senderId, recipientUser.id, recipientUser.id, senderId);
+
+	if (!chat) {
+		const insertChat = fastify.db.prepare(`
+		INSERT INTO chats (user1_id, user2_id) VALUES (?, ?)
+	`);
+		const result = insertChat.run(senderId, recipientUser.id);
+		chat = { id: result.lastInsertRowid };
+	}
+
+	fastify.db.prepare(`
+		INSERT INTO chat_messages (chat_id, sender_id, content)
+		VALUES (?, ?, ?)
+	`).run(chat.id, senderId, message.trim());
+
 	return { success: true };
 }
 
