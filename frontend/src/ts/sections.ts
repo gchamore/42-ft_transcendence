@@ -1,6 +1,6 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
-import { add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
+import { add_online, user, get_user_messages, get_user_directmessages, OtherUser, Message, add_message } from './users.js';
 import { login, register, logout, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar} from './api.js';
 
 /* Custom types */
@@ -1138,6 +1138,8 @@ class DirectMessage extends ASection {
 	btn1 = document.getElementById('directmessage-btn1') as HTMLButtonElement;
 	btn2 = document.getElementById('directmessage-btn2') as HTMLButtonElement;
 	message = document.getElementById('directmessage-input') as HTMLInputElement;
+	readonly chat_box = document.getElementById('directmessage-box') as HTMLUListElement;
+
 
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
@@ -1158,8 +1160,13 @@ class DirectMessage extends ASection {
 		this.btn2.textContent = 'Send';
 		this.message.value = '';
 
-		this.btn1.onclick = () => go_section('search', '');
-		this.btn2.onclick = () => send(this.message.value, 'direct_chat_message', this.friend_username);
+		this.btn1.onclick = () => go_section('friends', '');
+		this.btn2.onclick = () => {
+			send(this.message.value, 'direct_chat_message', this.friend_username);
+			add_message(user?.name!, this.message.value, 'direct_message');
+			this.message.value = '';
+		}
+		this.load_messages(get_user_directmessages());
 		this.activate_section();
 	}
 	leave() {
@@ -1175,6 +1182,23 @@ class DirectMessage extends ASection {
 	}
 	switch_logged_off() { }
 	switch_logged_in() { }
+	load_messages(messages: Array<Message> | undefined) {
+		console.log('load_messages');
+		if (messages === undefined)
+			return;
+
+		let chat_box_childNodes: Array<ChildNode> = [];
+		this.chat_box.childNodes.forEach((childNode) => { chat_box_childNodes.push(childNode); });
+		for (let i = 0; i < chat_box_childNodes.length; ++i)
+			chat_box_childNodes[i].remove();
+
+		for (let i = messages.length - 1; i >= 0; --i) {
+			let element = document.createElement('label');
+			element.textContent = messages[i].format_message();
+			this.chat_box.appendChild(element);
+		}
+	}
+
 }
 
 sections = [new Home(), new Profile(), new Friends(), new Chat(), new Actions(),

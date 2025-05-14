@@ -101,6 +101,7 @@ export class User {
 						add_message(data.user, data.message, 'livechat');
 						break;
 					case 'direct_message':
+						console.log('direct_message');
 						add_message(data.user, data.message, 'direct_message');
 						break;
 					case 'matchFound':
@@ -306,26 +307,35 @@ export function get_user_messages(): Array<Message> | undefined {
 	return user?.livechat;
 }
 
-export function add_message(username: string, message: string, type: string) {
-	let new_message: Message = new Message(username, message);
-	let messages: Array<Message> | undefined;
+export function get_user_directmessages(): Array<Message> | undefined {
+	return user?.direct_messages;
+}
 
+export function add_message(username: string, message: string, type: string) {
+	if (user === undefined)
+		return;
+	
+	
+	let messages: Array<Message>;
 	if (type === 'livechat')
 		messages = user?.livechat;
-	else /*(type === 'direct_message') */
+	else if (type === 'direct_message')
 		messages = user?.direct_messages;
-
-	if (messages === undefined)
+	else
 		return;
 
+	console.log(user?.livechat);
+	console.log(user?.direct_messages);
 	if (messages.length === 20)
 		messages.pop();
 	for (let i = messages.length - 1; i >= 0; --i)
 		messages[i + 1] = messages[i];
-	messages[0] = new_message;
+	messages[0] = new Message(username, message);
 
 	if (type === 'livechat' && section_index === get_type_index('chat'))
 		(sections[get_type_index('chat')!] as Chat).load_messages(user?.livechat);
+	if (type === 'direct_message' && section_index === get_type_index('directmessage'))
+		(sections[get_type_index('directmessage')!] as Chat).load_messages(user?.direct_messages);
 }
 /* --------- */
 
