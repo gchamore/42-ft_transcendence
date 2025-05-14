@@ -47,11 +47,12 @@ export async function wsRoutes(fastify, options) {
 		return { success: true };
 	});
 
-	fastify.get('/api/chats/:username', async (request, reply) => {
+	fastify.get('/chats/:username', async (request, reply) => {
 		const userId_1 = request.user.userId;
 		const to_username = request.params.username;
 
-		if (!userId_1) {
+		fastify.log.info(`Fetching chat for user: ${userId_1} with ${to_username}`);
+		if (!userId_1 || !to_username) {
 			return reply.status(401).send({ error: 'Unauthorized' });
 		}
 
@@ -62,6 +63,10 @@ export async function wsRoutes(fastify, options) {
 		}
 		const userId_2 = user2.id;
 
+		if (userId_1 === userId_2) {
+			fastify.log.warn(`User ${userId_1} tried to start a chat with themselves`);
+			return reply.code(400).send({ success: false, error: "Cannot start a chat with yourself" });
+		}
 		// Récupère ou crée le chat entre user1 et user2
 		let chat = fastify.db.prepare(`
 		SELECT * FROM chats
