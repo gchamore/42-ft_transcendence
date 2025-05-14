@@ -65,7 +65,7 @@ export class User {
 		}
 		this.name = username;
 
-		if (email !== undefined) {
+		if (email !== undefined && email !== null) {
 			this.email = email;
 		}
 		this.avatar_path = avatarPath || 'avatar/avatar.png';

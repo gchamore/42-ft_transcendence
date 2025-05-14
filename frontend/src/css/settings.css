@@ -18,18 +18,23 @@
 #settings-content {
     border: rgb(255, 255, 255) solid 3px;
 	flex-grow: 1;
+	flex-direction: column;
 }
 
-#settings-content li {
+#settings-content {
 	display: block;
 }
+#settings-content div:not(.active) {
+	display: none;
+}
 
-#settings-content li:not(.active) {
+.account-input:not(.active) {
 	display: none;
 }
 
 #account-content {
 	border: rgb(0, 0, 0) solid 1px;
+	display: flex;
 }
 #stats-content {
 	border: rgb(180, 152, 255) solid 1px;

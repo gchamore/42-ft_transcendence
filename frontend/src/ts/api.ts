@@ -396,6 +396,35 @@ export async function activate2fa(token: string): Promise<boolean> {
     }
 }
 
+export async function update(
+    username : string, email : string,
+    old_password : string, new_password : string): Promise<boolean> {
+    try {
+        let body = {username : username, email : email, old_password : old_password, new_password};
+        const response = await fetch('/api/update', {
+            method: 'PUT',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('/api/update failed:', data.error);
+            return false;
+        }
+
+        if (data.success) {
+            return true;
+        }
+    } catch (error) {
+        console.error('/api/2fa/verify error:', error);
+    }
+    return false;
+}
+
 export async function verify2fa(token: string, temp_token: string): Promise<boolean> {
     try {
         const response = await fetch('/api/2fa/verify', {

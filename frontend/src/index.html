@@ -316,24 +316,33 @@
 			</nav>
 		</aside>
 
-		<ul id="settings-content">
-			<li id="account-content">
-			
-			</li>
-			
-			<li id="stats-content">
+		<main id="settings-content">
+			<div id="account-content">
+				<label id="l-username-account"></label>
+				<input class="account-input" id="i-username-account"></input>
 
-			</li>
+				<label id="l-email-account"></label>
+				<input class="account-input" id="i-email-account"></input>
+				
+				<label id="l-password-account"></label>
+				<input class="account-input" type="password" id="i-password-account"></input>
+
+				<button id="update-btn"></button>
+			</div>
 			
-			<li id="confidentiality-content">
+			<div id="stats-content">
+
+			</div>
+			
+			<div id="confidentiality-content">
 				<label id="gdpr-text">
 					"GDPR"Lorem ipsum dolor sit amet consectetur adipisicing elit. Numquam est eaque nesciunt distinctio?
 					A reprehenderit qui vero earum accusamus, saepe ullam sit.
 					Minima suscipit temporibus omnis ab impedit modi sint!
 				</label>
 				<button id="unregister-btn">Unregister</button>
-			</li>
-		</ul>
+			</div>
+		</main>
 	</article>
 
 	<script type="module" src="/dist/history_api.js"></script>

@@ -1,7 +1,7 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
-import { add_online, user, get_user_messages, get_user_directmessages, OtherUser, Message, add_message } from './users.js';
-import { login, register, logout, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar} from './api.js';
+import { update_user, User, add_online, user, get_user_messages, get_user_directmessages, OtherUser, Message, add_message } from './users.js';
+import { update, login, register, logout, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar} from './api.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -1059,29 +1059,100 @@ class Settings extends ASection {
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
 	dependencies = [];
 
+
 	/* Properties */
-	options : Array<string> = ['account', 'stats', 'confidentiality'];
-	account_btn = document.getElementById('account-btn') as HTMLLIElement;
-	stats_btn = document.getElementById('stats-btn') as HTMLLIElement;
-	confidentiality_btn = document.getElementById('confidentiality-btn') as HTMLLIElement;
-	back_btn = document.getElementById('back-btn') as HTMLLIElement;
+	readonly options : Array<string> = ['account', 'stats', 'confidentiality'];
+	/* Sidebar */
+	readonly account_btn = document.getElementById('account-btn') as HTMLLIElement;
+	readonly stats_btn = document.getElementById('stats-btn') as HTMLLIElement;
+	readonly confidentiality_btn = document.getElementById('confidentiality-btn') as HTMLLIElement;
+	readonly back_btn = document.getElementById('back-btn') as HTMLLIElement;
+	/* Account */
+	username_l = document.getElementById('l-username-account') as HTMLLabelElement;
+	username_i = document.getElementById('i-username-account') as HTMLInputElement;
+	email_l = document.getElementById('l-email-account') as HTMLLabelElement;
+	email_i = document.getElementById('i-email-account') as HTMLInputElement;
+	password_l = document.getElementById('l-password-account') as HTMLLabelElement;
+	password_i = document.getElementById('i-password-account') as HTMLInputElement;
+	update_btn = document.getElementById('update-btn') as HTMLButtonElement;
 
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
 		return this.is_option(option);
 	}
+	clear() {
+		this.account_btn.onclick = () => go_section('settings', 'account');
+		this.stats_btn.onclick = () => go_section('settings', 'stats');
+		this.confidentiality_btn.onclick = () => go_section('settings', 'confidentiality');
+		this.back_btn.onclick = () => go_section('profile', '');
+
+		this.username_l.textContent = 'Username: ';
+		this.email_l.textContent = 'Email: ';
+		this.password_l.textContent = 'Password: ********';
+		this.update_btn.removeAttribute('onclick');
+		let inputs : NodeListOf<HTMLInputElement> = document.querySelectorAll('.account-input');
+			inputs.forEach(input => {
+				input.classList.remove('active');
+			input.value = '';
+		});
+	}
+	async account() {
+		if (user === undefined)
+			return;
+		console.log(user?.email);
+
+		this.username_l.textContent += user?.name;
+		this.email_l.textContent += user?.email;
+		this.update_btn.textContent = 'Edit';
+		this.update_btn.onclick = async () => {
+			let inputs : NodeListOf<HTMLInputElement> = document.querySelectorAll('.account-input');
+			inputs.forEach(input => {
+				input.classList.add('active');
+			});
+
+			this.update_btn.textContent = 'Save';
+			this.update_btn.onclick = async () => {
+				let old_password : string = await this.get_old_password();
+				if (await update(this.username_i.value, this.email_i.value, old_password, this.password_i.value) === true)
+					update_user(new User(this.username_i.value, user?.userId, this.email_i.value, user?.avatar_path));
+				this.clear();
+				this.account();
+			}
+		}
+	}
+	async get_old_password() : Promise<string> {
+        try {
+            const accountType = await getUserAccountType();
+
+            if (!accountType) {
+                alert("Impossible de vérifier le type de compte");
+                return '';
+            }
+
+            if (accountType.has_password) {
+                const password = prompt("Veuillez entrer votre mot de passe:");
+                return (password === null) ? '' : password;
+			}
+
+			return '';
+		} catch (err) {
+            console.error("Error edition of the account:", err);
+            alert("Une erreur s'est produite lors de l'edit du compte.");
+        }
+		return '';
+    }
 	enter(verified: boolean) {
 		if (verified !== true) {
 			console.log("Try to enter Settings section as unauthenticated");
 			return;
 		}
 
-		this.account_btn.onclick = () => go_section('settings', 'account');
-		this.stats_btn.onclick = () => go_section('settings', 'stats');
-		this.confidentiality_btn.onclick = () => go_section('settings', 'confidentiality');
-		this.back_btn.onclick = () => go_section('profile', '');
+		this.clear();
 
-		this.select(get_url_option(window.location.pathname))
+		let option = get_url_option(window.location.pathname);
+		this.select(option);
+		if (option === 'account')
+			this.account();
 		this.activate_section();
 	}
 	leave() {
@@ -1106,7 +1177,7 @@ class Settings extends ASection {
 	print(option : string) {
 		for (let i = 0; i < this.options.length; ++i) {
 			let id : string = this.options[i] + '-content';
-			let subsection = (document.getElementById(id)! as HTMLLIElement);
+			let subsection = (document.getElementById(id)! as HTMLDivElement);
 			if (this.options[i] === option)
 				subsection.classList.add('active');
 			else
