@@ -1,5 +1,7 @@
 import { user, User, update_user, OtherUser } from './users.js';
 import { showTwofaVerificationModal } from './sections.js';
+import { showSuccess, showError } from './notifications.js';
+
 
 export async function verify_token(): Promise<void> {
 	try {
@@ -9,17 +11,12 @@ export async function verify_token(): Promise<void> {
 		});
 		const data = await response.json();
 
-		if (response.status === 401) {
-			console.error("Unauthorized!");
-
-		}
-
-		if (!response.ok)
-			console.error("/api/verify_token failed:", data.error);
-		else if (data.valid) {
-			if (user !== undefined && user.name === data.username)
+		if (!response.ok || !data.sucess)
+			console.warn("Session expired");
+		else if (data.sucess) {
+			if (user !== undefined && user.name === data.username) {
 				return;
-
+			}
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(new User(data.username, data.id, data.email, data.avatar));
@@ -29,7 +26,6 @@ export async function verify_token(): Promise<void> {
 	} catch (error) {
 		console.error("/api/verify_token error:", error);
 	}
-
 	update_user(undefined);
 }
 
@@ -45,12 +41,15 @@ export async function register(username: string, password: string) {
 		});
 		const data = await response.json();
 
-		if (!response.ok)
-			console.error("/api/register failed:", data.error);
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || data?.message || "Registering failed";
+			console.error("Registering failed: ", errorMessage);
+		    showError("Registering failed: ", errorMessage);
+		}
 		else if (data.success) {
 			update_user(new User(data.username, data.id));
-
 			console.log(username, "registered");
+			showSuccess(`Welcome, ${username}!`);
 		}
 
 	} catch (error) {
@@ -70,11 +69,14 @@ export async function login(username: string, password: string) {
 		});
 		const data = await response.json();
 
-		if (!response.ok)
-			console.error("/api/login failed:", data.error);
-		else if (data.success) {
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || data?.message || "Login failed";
+			console.error("Login failed:", errorMessage);
+		    showError(data.error || "Login failed");
+		} else if (data.success) {
 			update_user(new User(data.username, data.id, data.email, data.avatar));
 			console.log(username, "logged-in");
+			showSuccess(`Welcome back, ${username}!`);
 		}
 		else if (data.step === "2fa_required") {
 			showTwofaVerificationModal(data.temp_token, username);
@@ -94,14 +96,17 @@ export async function logout() {
 		});
 		const data = await response.json();
 
-		if (!response.ok)
-			console.error("/api/logout failed:", data.error);
+		if (!response.ok) {
+			const errorMessage = data?.error || data?.message || "Logout failed";
+			console.error("Logout failed:", errorMessage);
+		    showError(data.error || "Logout failed");
+		}
 		else if (data.success) {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			showSuccess(`Successfully logged out!`);
 		}
-
 	} catch (error) {
 		console.error("/api/logout error:", error);
 	}

@@ -24,11 +24,11 @@ export async function twofaroutes(fastify, options) {
 		// Check if the user exists in the database
 		const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 		if (!user)
-			return reply.code(404).send({ error: "User not found" });
+			return reply.code(404).send({ success: false, error: "User not found" });
 
 		// Check if the user already has 2FA enabled
 		if (user.twofa_secret) {
-			return reply.code(400).send({ error: "2FA is already enabled for this user" });
+			return reply.code(400).send({ success: false, error: "2FA is already enabled for this user" });
 		}
 
 		// Prepare the secret for the user using speakeasy
@@ -41,7 +41,7 @@ export async function twofaroutes(fastify, options) {
 		await redis.setex(`2fa_setup_${userId}`, 300, secret.base32);
 
 		// Stock le le secret dans la base de données
-		return reply.send({
+		return reply.code(200).send({
 			otpauth_url: secret.otpauth_url,
 			qrCode, // To be displayed in the front-end
 			// secret: secret.base32
@@ -60,14 +60,15 @@ export async function twofaroutes(fastify, options) {
 
 		// token is the verification code entered by the user
 		const secret = await redis.get(`2fa_setup_${userId}`);
-		if (!secret) return reply.code(400).send({ error: "2FA setup expired" });
+		if (!secret) 
+			return reply.code(400).send({ success: false, error: "2FA setup expired" });
 
 
 		// Check if the user exists in the database
 		const isValid = speakeasy.totp.verify({ secret, encoding: 'base32', token });
 
 		if (!isValid)
-			return reply.code(400).send({ error: "Invalid verification code" });
+			return reply.code(400).send({ success: false, error: "Invalid verification code" });
 		fastify.log.info(`[2FA] Secret validé et stocké : ${secret}`);
 
 		// Finally store the secret in the database
@@ -76,7 +77,7 @@ export async function twofaroutes(fastify, options) {
 		// Delete the secret from Redis
 		await redis.del(`2fa_setup_${userId}`);
 
-		return reply.send({ success: true, message: "2FA activated" });
+		return reply.code(200).send({ success: true, message: "2FA activated" });
 	});
 
 	/*** 📌 Route: 2fa/verify ***/
@@ -98,7 +99,7 @@ export async function twofaroutes(fastify, options) {
 
 		// Check if user has 2FA enabled
 		if (!user?.twofa_secret) {
-			return reply.code(400).send({ error: "2FA not configured for this user" });
+			return reply.code(400).send({ success: false, error: "2FA not configured for this user" });
 		}
 
 		// Verify the 2FA code with the secret stored in the database
@@ -109,7 +110,7 @@ export async function twofaroutes(fastify, options) {
 		});
 
 		if (!isValid)
-			return reply.code(400).send({ error: "Invalid 2FA code" });
+			return reply.code(400).send({ success: false, error: "Invalid 2FA code" });
 
 		// Generate the access and refresh tokens
 		const { accessToken, refreshToken } = await authService.generateTokens(user.id);
@@ -118,7 +119,7 @@ export async function twofaroutes(fastify, options) {
 		authUtils.ft_setCookie(reply, accessToken, 15, isLocal);
 		authUtils.ft_setCookie(reply, refreshToken, 7, isLocal);
 
-		return reply.send({
+		return reply.code(200).send({
 			success: true,
 			message: "2FA verification successful",
 			username: user.username,
@@ -142,12 +143,12 @@ export async function twofaroutes(fastify, options) {
 
 		if (!user) {
 			fastify.log.warn(`[2FA] Désactivation échouée : utilisateur introuvable (ID: ${userId})`);
-			return reply.code(404).send({ error: "User not found" });
+			return reply.code(404).send({ success: false, error: "User not found" });
 		}
 
 		if (!user.twofa_secret) {
 			fastify.log.info(`[2FA] Tentative de désactivation ignorée : 2FA déjà désactivée pour ${user.username}`);
-			return reply.code(400).send({ error: "2FA is not enabled for this user" });
+			return reply.code(400).send({ success: false, error: "2FA is not enabled for this user" });
 		}
 
 
@@ -161,14 +162,14 @@ export async function twofaroutes(fastify, options) {
 			// Check if the required fields are present
 			if (!password) {
 				fastify.log.warn("Password is required to disable 2FA");
-				return reply.code(400).send({ error: "Password is required to disable 2FA" });
+				return reply.code(400).send({ success: false, error: "Password is required to disable 2FA" });
 			}
 
 			// Check if the password is correct
 			const validPassword = await bcrypt.compare(password, user.password);
 			if (!validPassword) {
 				fastify.log.warn(`[2FA] Mauvais mot de passe lors de la désactivation pour ${user.username}`);
-				return reply.code(401).send({ error: "Invalid password" });
+				return reply.code(401).send({ success: false, error: "Invalid password" });
 			}
 		}
 
@@ -176,7 +177,7 @@ export async function twofaroutes(fastify, options) {
 		db.prepare("UPDATE users SET twofa_secret = NULL WHERE id = ?").run(userId);
 		fastify.log.info(`[2FA] Désactivation réussie pour ${user.username}`);
 
-		return reply.send({ success: true, message: "2FA has been disabled" });
+		return reply.code(200).send({ success: true, message: "2FA has been disabled" });
 	});
 
 
@@ -190,7 +191,7 @@ export async function twofaroutes(fastify, options) {
 		const user = db.prepare("SELECT twofa_secret FROM users WHERE id = ?").get(userId);
 
 		if (!user) {
-			return reply.code(404).send({ error: "User not found" });
+			return reply.code(404).send({ success: false, error: "User not found" });
 		}
 
 		return {

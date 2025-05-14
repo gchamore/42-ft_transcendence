@@ -4,7 +4,7 @@ import authUtils from '../auth/auth.utils.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
-
+return reply.code(404).send({ success: false, error: "User not found" });
 const oauth2Client = new google.auth.OAuth2(
 	process.env.GOOGLE_CLIENT_ID,
 	process.env.GOOGLE_CLIENT_SECRET,
@@ -22,7 +22,7 @@ export async function oauthRoutes(fastify, options) {
 		try {
 			const { code } = request.body;
 			if (!code) {
-				return reply.code(400).send({ error: 'Authorization code is required' });
+				return reply.code(400).send({ success: false, error: 'Authorization code is required' });
 			}
 
 			// Trade the authorization code for tokens
@@ -113,19 +113,19 @@ export async function oauthRoutes(fastify, options) {
 			// Check if the user already exists in the database
 			const emailExists = fastify.db.prepare("SELECT 1 FROM users WHERE email = ?").get(payload.email);
 			if (emailExists) {
-				return reply.code(400).send({ error: "Account already created with this email" });
+				return reply.code(400).send({ success: false, error: "Account already created with this email" });
 			}
 			
 			// Check if the username respects the rules :
 			const trimmedUsername = username?.trim();
 			const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
 			if (!trimmedUsername || !usernameRegex.test(trimmedUsername)) {
-				return reply.code(400).send({ error: "Invalid username format" });
+				return reply.code(400).send({ success: false, error: "Invalid username format" });
 			}
 			const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1).toLowerCase();
 			const existingUser = fastify.db.prepare("SELECT 1 FROM users WHERE username = ?").get(capitalizedUsername);
 			if (existingUser) {
-				return reply.code(400).send({ error: "Username already taken" });
+				return reply.code(400).send({ success: false, error: "Username already taken" });
 			}
 	
 			// Créer l'utilisateur en DB avec les infos du token
@@ -202,7 +202,7 @@ export async function oauthRoutes(fastify, options) {
 			const isGoogle = !!user.is_google_account;
 			const hasPassword = !!(user.password && user.password.trim().length > 0);
 	
-			return reply.send({
+			return reply.code(200).send({
 				success: true,
 				message: "user account type retrieved",
 				data : {

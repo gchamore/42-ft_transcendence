@@ -84,7 +84,7 @@ export class User {
 		const declineBtn = document.getElementById('decline-invite-btn') as HTMLButtonElement;
 
 		this.web_socket.onopen = () => {
-			console.log('Connected to WebSocket');
+			console.log('Connected');
 		}
 
 		this.web_socket.onmessage = (event) => {
@@ -181,7 +181,7 @@ export class User {
 		};
 
 		this.web_socket.onclose = (event) => {
-			console.log(`User WebSocket disconnected with code: ${event.code} and reason: ${event.reason}`);
+			console.log(`[${event.code}] Disconnected : ${event.reason}`);
 			update_user(undefined);
 		};
 
