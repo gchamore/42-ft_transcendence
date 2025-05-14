@@ -66,8 +66,7 @@ export async function authMiddleware(fastify, request, reply, done) {
         request.log.error(error, 'Auth middleware error');
 		reply.code(500).send({
 				success: false,
-				error: "Internal authentication error",
-				details: error.message
+				error: "Internal authentication error"
 			});
     }
 }

@@ -51,8 +51,7 @@ export async function twofaroutes(fastify, options) {
 			fastify.log.error(error, `Error while setting up 2FA`);
 			return reply.code(500).send({
 				success: false,
-				error: "Internal server error while setting up 2FA",
-				details: error.message
+				error: "Internal server error while setting up 2FA"
 			});
 		}
 	});
@@ -92,8 +91,7 @@ export async function twofaroutes(fastify, options) {
 			fastify.log.error(error, `Error while activating 2FA`);
 			return reply.code(500).send({
 				success: false,
-				error: "Internal server error while activating 2FA",
-				details: error.message
+				error: "Internal server error while activating 2FA"
 			});
 		}
 	});
@@ -150,8 +148,7 @@ export async function twofaroutes(fastify, options) {
 			fastify.log.error(error, `Error while verifying 2FA`);
 			return reply.code(500).send({
 				success: false,
-				error: "Internal server error while verifying 2FA",
-				details: error.message
+				error: "Internal server error while verifying 2FA"
 			});
 		}
 	});
@@ -213,8 +210,7 @@ export async function twofaroutes(fastify, options) {
 			fastify.log.error(error, `Error while disabling 2FA`);
 			return reply.code(500).send({
 				success: false,
-				error: "Internal server error while disabling 2FA",
-				details: error.message
+				error: "Internal server error while disabling 2FA"
 			});
 		}
 	});
@@ -242,8 +238,7 @@ export async function twofaroutes(fastify, options) {
 			fastify.log.error(error, `Error while checking 2FA status`);
 			return reply.code(500).send({
 				success: false,
-				error: "Internal server error while checking 2FA status",
-				details: error.message
+				error: "Internal server error while checking 2FA status"
 			});
 		}
 	});

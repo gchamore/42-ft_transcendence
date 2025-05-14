@@ -16,15 +16,19 @@ export async function userRoutes(fastify, options) {
 		fastify.log.info(`Try to add friend: ${friendUsername}`);
 
 		try {
+			const checked_friendUsername = authUtils.checkUsername(fastify, friendUsername);
+			if (typeof checked === 'object' && checked.error) {
+				return reply.status(400).send(checked);
+			}
 			// Check if the user to be added exists
-			const friend = db.prepare("SELECT id, username FROM users WHERE username = ?").get(friendUsername);
+			const friend = db.prepare("SELECT id, username FROM users WHERE username = ?").get(checked_friendUsername);
 			if (!friend) {
-				fastify.log.warn(`User not found: ${friendUsername}`);
+				fastify.log.warn(`User not found: ${checked_friendUsername}`);
 				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 			// Check if the user is trying to add themselves
 			const currentUser = db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-			if (currentUser.username === friendUsername) {
+			if (currentUser.username === checked_friendUsername) {
 				return reply.code(400).send({ success: false, error: "Cannot add yourself as friend" });
 			}
 			// Check if the user is already a friend
@@ -40,16 +44,12 @@ export async function userRoutes(fastify, options) {
 				"INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)"
 			).run(userId, friend.id);
 
-			fastify.log.info(`Friend added successfully: ${friendUsername}`);
+			fastify.log.info(`Friend added successfully: ${checked_friendUsername}`);
 			return { success: true };
 
 		} catch (error) {
-			fastify.log.error(error, `Error adding friend: ${friendUsername}`);
-			return reply.code(500).send({
-				success: false,
-				error: "Internal server error while adding friend",
-				details: error.message
-			});
+			fastify.log.error(error, `Error adding friend: ${checked_friendUsername}`);
+			return reply.code(500).send({ success: false, error: "Internal server error while adding friend" });
 		}
 	});
 
@@ -78,7 +78,7 @@ export async function userRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error(`Error removing friend: ${friendUsername}`, error);
-			return reply.code(500).send({ success: false, error: "Failed to remove friend" });
+			return reply.code(500).send({ success: false, error: "Internal server error while removing friend" });
 		}
 	});
 
@@ -87,6 +87,10 @@ export async function userRoutes(fastify, options) {
         const searchedUsername = request.params.username;
         const userId = request.user.userId;
 
+		const checked_username = authUtils.checkUsername(fastify, searchedUsername);
+		if (typeof checked === 'object' && checked.error) {
+			return reply.status(400).send(checked);
+		}
 		try {
 			// Check if the user exists
 			const searchedUser = db.prepare(`
@@ -95,7 +99,7 @@ export async function userRoutes(fastify, options) {
                        wins, losses
                 FROM users 
                 WHERE username = ?
-            `).get(searchedUsername);
+            `).get(checked_username);
 
 			if (!searchedUser) {
 				return reply.code(404).send({
@@ -165,8 +169,8 @@ export async function userRoutes(fastify, options) {
 			};
 
 		} catch (error) {
-			fastify.log.error(`Error searching user: ${searchedUsername}`, error);
-			return reply.code(500).send({ success: false, error: "Failed to search user" });
+			fastify.log.error(`Error searching user: ${checked_username}`, error);
+			return reply.code(500).send({ success: false, error: "Internal server error while searching user" });
 		}
 	});
 
@@ -205,7 +209,7 @@ export async function userRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error(error);
-			return reply.code(500).send({ success: false, error: "Failed to block user" });
+			return reply.code(500).send({ success: false, error: "Internal server error while blocking user" });
 		}
 	});
 
@@ -234,7 +238,7 @@ export async function userRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error(error);
-			return reply.code(500).send({ success: false, error: "Failed to unblock user" });
+			return reply.code(500).send({ success: false, error: "Internal server error while unblocking user" });
 		}
 	});
 
@@ -258,7 +262,7 @@ export async function userRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error(error);
-			return reply.code(500).send({ success: false, error: "Failed to fetch blocked users" });
+			return reply.code(500).send({ success: false, error: "Internal server error while fetching blocked users" });
 		}
 	});
 
@@ -295,18 +299,15 @@ export async function userRoutes(fastify, options) {
 
 			// Username
 			if (username && username !== user.username) {
-				const trimmedUsername = username.trim();
-				const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1);
-			
-				const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
-				if (!usernameRegex.test(capitalizedUsername)) {
-					return reply.code(400).send({ success: false, error: "Username must be 3-20 characters, letters/numbers/underscores only." });
+				const checked_username = authUtils.checkUsername(fastify, username);
+				if (typeof checked === 'object' && checked.error) {
+					return reply.status(400).send(checked);
 				}
 			
-				const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(capitalizedUsername, userId);
+				const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(checked_username, userId);
 				if (exists) return reply.code(400).send({ success: false, error: "Username already taken" });
 			
-				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(capitalizedUsername, userId);
+				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(checked_username, userId);
 				somethingUpdated = true;
 			}
 
@@ -360,9 +361,9 @@ export async function userRoutes(fastify, options) {
 			const updatedUser = db.prepare("SELECT id, username, email FROM users WHERE id = ?").get(userId);
 			return reply.code(200).send({ success: true, user: updatedUser });
 
-		} catch (err) {
-			fastify.log.error(err);
-			return reply.code(500).send({ success: false, error: "Server error" });
+		} catch (error) {
+			fastify.log.error(error);
+			return reply.code(500).send({ success: false, error: "Internal server while updating user info" });
 		}
 	});
 
@@ -413,9 +414,9 @@ export async function userRoutes(fastify, options) {
 			const updatedUser = db.prepare("SELECT id, avatar FROM users WHERE id = ?").get(userId);
 			return reply.send({ success: true, user: updatedUser });
 
-		} catch (err) {
-			fastify.log.error(err);
-			return reply.code(500).send({ success: false, error: "Server error" });
+		} catch (error) {
+			fastify.log.error(error);
+			return reply.code(500).send({ success: false, error: "Internal server error while updating avatar" });
 		}
 	});
 

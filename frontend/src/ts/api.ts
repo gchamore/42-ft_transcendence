@@ -1,6 +1,6 @@
 import { user, User, update_user, OtherUser } from './users.js';
 import { showTwofaVerificationModal } from './sections.js';
-import { showSuccess, showError } from './notifications.js';
+import { showSuccess, showError, showInfo } from './notifications.js';
 
 
 export async function verify_token(): Promise<void> {
@@ -11,23 +11,27 @@ export async function verify_token(): Promise<void> {
 		});
 		const data = await response.json();
 
-		if (!response.ok || !data.sucess)
-			console.warn("Session expired");
-		else if (data.sucess) {
-			if (user !== undefined && user.name === data.username) {
-				return;
-			}
-			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
-				user.web_socket.close(1000);
-			update_user(new User(data.username, data.id, data.email, data.avatar));
+		if (!response.ok || !data.success) {
+			update_user(undefined);
 			return;
 		}
 
+		if (user !== undefined && user.name === data.username) {
+			return;
+		}
+
+		if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN) {
+			user.web_socket.close(1000);
+		}
+
+		update_user(new User(data.username, data.id, data.email, data.avatar));
+
 	} catch (error) {
 		console.error("/api/verify_token error:", error);
+		update_user(undefined);
 	}
-	update_user(undefined);
 }
+
 
 export async function register(username: string, password: string) {
 	try {
@@ -42,14 +46,12 @@ export async function register(username: string, password: string) {
 		const data = await response.json();
 
 		if (!response.ok || !data.success) {
-			const errorMessage = data?.error || data?.message || "Registering failed";
-			console.error("Registering failed: ", errorMessage);
-		    showError("Registering failed: ", errorMessage);
+			const errorMessage = data?.error || "Registering failed";
+		    showError(errorMessage);
 		}
 		else if (data.success) {
 			update_user(new User(data.username, data.id));
-			console.log(username, "registered");
-			showSuccess(`Welcome, ${username}!`);
+			showSuccess(`Welcome, ${username} !`);
 		}
 
 	} catch (error) {
@@ -70,13 +72,11 @@ export async function login(username: string, password: string) {
 		const data = await response.json();
 
 		if (!response.ok || !data.success) {
-			const errorMessage = data?.error || data?.message || "Login failed";
-			console.error("Login failed:", errorMessage);
-		    showError(data.error || "Login failed");
+			const errorMessage = data?.error || "Login failed";
+		    showError(errorMessage);
 		} else if (data.success) {
 			update_user(new User(data.username, data.id, data.email, data.avatar));
-			console.log(username, "logged-in");
-			showSuccess(`Welcome back, ${username}!`);
+			showSuccess(`Welcome back, ${username} !`);
 		}
 		else if (data.step === "2fa_required") {
 			showTwofaVerificationModal(data.temp_token, username);
@@ -97,15 +97,14 @@ export async function logout() {
 		const data = await response.json();
 
 		if (!response.ok) {
-			const errorMessage = data?.error || data?.message || "Logout failed";
-			console.error("Logout failed:", errorMessage);
-		    showError(data.error || "Logout failed");
+			const errorMessage = data?.error || "Logout failed";
+		    showError(errorMessage);
 		}
 		else if (data.success) {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
-			showSuccess(`Successfully logged out!`);
+			showSuccess(`Successfully\nlogged out!`);
 		}
 	} catch (error) {
 		console.error("/api/logout error:", error);
@@ -121,18 +120,17 @@ export async function search(friend_username: string): Promise<OtherUser | Error
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
-			return new Error();
+			return undefined;
 		}
 
-		if (!response.ok)
-			console.error(`/api/search/${friend_username} failed:`, data.error);
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "Search failed";
+		    showError(errorMessage);
+		}
 		else if (data.success) {
-			console.log(data.user.isConnected);
 			if (data.isFriend)
 				return new OtherUser(data.user.username, data.isFriend, data.user.isConnected,
 					data.user.friendSince, data.user.winRate, data.user.gamesTogether);
@@ -156,16 +154,17 @@ export async function add(friend_username: string): Promise<boolean | Error> {
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
-			return new Error();
+			return false;
 		}
 
-		if (!response.ok)
-			console.error(`/api/add/${friend_username} failed:`, data.error);
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "Adding friend failed";
+		    showError(errorMessage);
+		}
+		showInfo(`User ${friend_username}\nAdded !`);
 		return data.success;
 
 	} catch (error) {
@@ -184,16 +183,16 @@ export async function remove(friend_username: string): Promise<boolean | Error> 
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
-			return new Error();
+			return false;
 		}
 
-		if (!response.ok)
-			console.error(`/api/remove/${friend_username} failed:`, data.error);
+		if (!response.ok) {
+			const errorMessage = data?.error || "Search failed";
+		    showError(errorMessage);
+		}
 		return data.success;
 
 	} catch (error) {
@@ -227,22 +226,21 @@ export async function send(message: string, type: string, to: string = ''): Prom
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
 			return false;
 		}
 
-		if (!response.ok) {
-			console.error(url + ' error: ', data.error);
+		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "Sending message failed";
+		    showError(errorMessage);
 			return true;
 		}
 		return data.success;
 
 	} catch (error) {
-		console.error(url + ' error: ', error);
+		console.error(`/api/${type} error:`, error);
 	}
 
 	return true;
@@ -257,8 +255,6 @@ export async function get_blocked_users(): Promise<Array<string> | undefined> {
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
@@ -266,7 +262,6 @@ export async function get_blocked_users(): Promise<Array<string> | undefined> {
 		}
 
 		if (!response.ok) {
-			console.error(`/api/blocked failed:`, data.error);
 			return undefined;
 		}
 
@@ -287,8 +282,6 @@ export async function block(username: string): Promise<boolean> {
 		const data = await response.json();
 
 		if (response.status === 401) {
-			console.error("Unauthorized!");
-
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
@@ -296,7 +289,8 @@ export async function block(username: string): Promise<boolean> {
 		}
 
 		if (!response.ok) {
-			console.error(`/api/block/${username} failed:`, data.error);
+			const errorMessage = data?.error || "Blocking user failed";
+		    showError(errorMessage);
 			return false;
 		}
 		return data.success;

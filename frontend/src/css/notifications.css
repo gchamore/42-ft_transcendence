@@ -38,11 +38,14 @@
 .notification-content {
   display: flex;
   align-items: center;
+  /* justify-content: space-between; */
 }
 
 .notification-message {
   flex-grow: 1;
+  text-align: center; /* ← centre le texte horizontalement */
 }
+
 
 .notification-close {
   background: none;

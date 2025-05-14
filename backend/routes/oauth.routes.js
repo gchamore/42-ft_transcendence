@@ -92,11 +92,7 @@ export async function oauthRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error('Google OAuth error:', error);
-			return reply.code(500).send({
-				success: false,
-				error: 'Internal server error while processing Google OAuth',
-				details: error.message,
-			});
+			return reply.code(500).send({ success: false, error: 'Internal server error while processing Google OAuth' });
 		}
 	});
 
@@ -113,14 +109,11 @@ export async function oauthRoutes(fastify, options) {
 				return reply.code(400).send({ success: false, error: "Account already created with this email" });
 			}
 
-			// Check if the username respects the rules :
-			const trimmedUsername = username?.trim();
-			const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
-			if (!trimmedUsername || !usernameRegex.test(trimmedUsername)) {
-				return reply.code(400).send({ success: false, error: "Invalid username format" });
+			const checked_username = authUtils.checkUsername(fastify, username);
+			if (typeof checked === 'object' && checked.error) {
+				return reply.status(400).send(checked);
 			}
-			const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1).toLowerCase();
-			const existingUser = fastify.db.prepare("SELECT 1 FROM users WHERE username = ?").get(capitalizedUsername);
+			const existingUser = fastify.db.prepare("SELECT 1 FROM users WHERE username = ?").get(checked_username);
 			if (existingUser) {
 				return reply.code(400).send({ success: false, error: "Username already taken" });
 			}
@@ -129,7 +122,7 @@ export async function oauthRoutes(fastify, options) {
 			const result = fastify.db.prepare(`
 				INSERT INTO users (username, email, avatar, is_google_account, google_name)
 				VALUES (?, ?, ?, 1, ?)
-			`).run(capitalizedUsername, payload.email, payload.avatar, payload.google_name);
+			`).run(checked_username, payload.email, payload.avatar, payload.google_name);
 
 			const userId = result.lastInsertRowid;
 
@@ -172,11 +165,7 @@ export async function oauthRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error('Google OAuth complete-register error:', error);
-			return reply.code(500).send({
-				success: false,
-				error: 'Internal server error while completing Google account registration',
-				details: error.message,
-			});
+			return reply.code(500).send({ success: false, error: 'Internal server error while completing Google account registration' });
 		}
 	});
 
@@ -207,11 +196,7 @@ export async function oauthRoutes(fastify, options) {
 			});
 		} catch (error) {
 			fastify.log.error(error, `Error with user account type retrieved`);
-			return reply.code(500).send({
-				success: false,
-				error: "Internal server error while retrieving user account type",
-				details: error.message
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error while retrieving user account type" });
 		}
 	});
 

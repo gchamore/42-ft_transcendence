@@ -83,10 +83,6 @@ export class User {
 		const acceptBtn = document.getElementById('accept-invite-btn') as HTMLButtonElement;
 		const declineBtn = document.getElementById('decline-invite-btn') as HTMLButtonElement;
 
-		this.web_socket.onopen = () => {
-			console.log('Connected');
-		}
-
 		this.web_socket.onmessage = (event) => {
 			try {
 				const data = JSON.parse(event.data);
@@ -180,8 +176,8 @@ export class User {
 			}
 		};
 
-		this.web_socket.onclose = (event) => {
-			console.log(`[${event.code}] Disconnected : ${event.reason}`);
+		this.web_socket.onclose = () => {
+			// console.log(`[${event.code}] Disconnected : ${event.reason}`);
 			update_user(undefined);
 		};
 

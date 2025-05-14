@@ -18,24 +18,12 @@ export async function authRoutes(fastify, options) {
 	fastify.post("/register", async (request, reply) => {
 		const { username, password } = request.body;
 
-		const trimmedUsername = username ? username.trim() : '';
-
-		// Verify if the required fields are present
-		if (!trimmedUsername || !password) {
-			fastify.log.warn("Failed registration: username or password missing");
-			return reply.code(400).send({ success: false, error: "Username and password are required" });
+		const checked_username = authUtils.checkUsername(fastify, username);
+		if (typeof checked === 'object' && checked.error) {
+			return reply.status(400).send(checked);
 		}
 
-		const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1).toLowerCase();
-
-		// // Validate username format
-		// const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
-		// if (!usernameRegex.test(capitalizedUsername)) {
-		// 	return reply.code(400).send({ success: false, 
-		// 		error: "Username must be 3-20 characters, letters/numbers/underscores only."
-		// 	});
-		// }
-
+		fastify.log.info(`Attempting to register user: ${checked_username}`);
 		// // Validate password strength
 		// const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 		// if (!passwordRegex.test(password)) {
@@ -45,9 +33,9 @@ export async function authRoutes(fastify, options) {
 		// }
 
 		// Verify if the username already exists in the database
-		const existingUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(capitalizedUsername);
+		const existingUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(checked_username);
 		if (existingUser) {
-			fastify.log.warn(`Failed registration: Username already taken (${capitalizedUsername})`);
+			fastify.log.warn(`Failed registration: Username already taken (${checked_username})`);
 			return reply.code(400).send({ success: false, error: "Username already taken" });
 		}
 
@@ -57,7 +45,7 @@ export async function authRoutes(fastify, options) {
 			const hashedPassword = await authUtils.hashPassword(password);
 
 			// Insert the user into the database
-			const result = fastify.db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(capitalizedUsername, hashedPassword);
+			const result = fastify.db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(checked_username, hashedPassword);
 			const newUserId = result.lastInsertRowid;
 
 			// Get the newly created user from the database
@@ -81,11 +69,7 @@ export async function authRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error(error, "Error during registration");
-			return reply.code(500).send({
-				success: false,
-				error: "Registration failed",
-				details: error.message
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error while registering user" });
 		}
 	});
 
@@ -122,7 +106,7 @@ export async function authRoutes(fastify, options) {
 				// Check if the required fields are present
 				if (!password) {
 					fastify.log.warn("Failed to delete: missing fields");
-					return reply.code(400).send({ success: false, error: "Username and password are required" });
+					return reply.code(400).send({ success: false, error: "Password are required" });
 				}
 
 				// Check if the password is correct
@@ -184,11 +168,7 @@ export async function authRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error(error, `Error while deleting user`);
-			return reply.code(500).send({
-				success: false,
-				error: "Failed to delete user",
-				details: error.message
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error while deleting user" });
 		}
 	});
 
@@ -252,8 +232,13 @@ export async function authRoutes(fastify, options) {
 			const { username, password } = request.body;
 			fastify.log.info({ username }, "Tentative de connexion");
 
+			const checked_username = authUtils.checkUsername(fastify, username);
+			if (typeof checked === 'object' && checked.error) {
+				return reply.status(400).send(checked);
+			}
+
 			// Verify if user and password are provided and if password is valid using bcrypt
-			const user = fastify.db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+			const user = fastify.db.prepare("SELECT * FROM users WHERE username = ?").get(checked_username);
 			if (!user) {
 				fastify.log.warn(`Invalid credentials`);
 				return reply.code(401).send({ success: false, error: "Invalid credentials" });
@@ -265,7 +250,7 @@ export async function authRoutes(fastify, options) {
 			}
 			
 			if (!(await bcrypt.compare(password, user.password))) {
-				fastify.log.warn(`Login failed for: ${username}`);
+				fastify.log.warn(`Login failed for: ${checked_username}`);
 				return reply.code(401).send({ success: false, error: "Invalid credentials" });
 			}
 
@@ -304,11 +289,7 @@ export async function authRoutes(fastify, options) {
 			});
 		} catch (error) {
 			fastify.log.error(error, "Error during login attempt");
-			return reply.code(500).send({
-				success: false,
-				error: "Login failed",
-				details: error.message
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error during login" });
 		}
 	});
 
@@ -356,11 +337,7 @@ export async function authRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error(error, `Error during token refresh`);
-			return reply.code(500).send({
-				success: false,
-				error: "Failed to refresh user",
-				details: error.message
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error during token refresh" });
 		}
 	});
 
@@ -408,11 +385,7 @@ export async function authRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error(error, 'Logout error:');
-			return reply.code(500).send({
-				success: false,
-				error: "Failed to logout",
-				details: error.message
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error during logout" });
 		}
 	});
 
@@ -473,11 +446,7 @@ export async function authRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error('Revoke error:', error);
-			return reply.code(500).send({
-				success: false,
-				error: "Failed to revoke user",
-				details: error.message
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error during token revocation" });
 		}
 	});
 
@@ -552,7 +521,7 @@ export async function authRoutes(fastify, options) {
 				.code(500)
 				.clearCookie('accessToken', cookieOptions)
 				.clearCookie('refreshToken', cookieOptions)
-				.send({ success: false, error: 'Failed to verify token', details: error.message });
+				.send({ success: false, error: 'Internal server error during token verification' });
 		}
 	});
 }
