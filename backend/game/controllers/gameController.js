@@ -81,7 +81,7 @@ export async function handleGameConnection(fastify, connection, request, userId)
 				games.set(gameId, game);
 				cleanupLobby(gameId);
 			}
-
+			socket.playerNumber = playerNumber;
 			handleNewGamePlayer(socket, game, fastify, isTournament);
 		} else {
 			console.error('Invalid mode:', mode);

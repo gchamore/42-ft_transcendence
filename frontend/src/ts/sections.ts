@@ -245,7 +245,7 @@ export class GameSection extends ASection {
 			gamePage = null;
 		}
 		tournamentSettingsChosen = false;
-		this.enableTournamentButton();
+		this.enableSidebarButtons();
 		this.deactivate_section();
 	}
 	switch_logged_off() {
@@ -269,8 +269,8 @@ export class GameSection extends ASection {
 			if (this.queueUsernameEntry) {
 				this.queueUsernameEntry.style.display = 'none';
 			}
-			if (type === 'tournament' && inQueue) {
-				this.disableTournamentButton();
+			if (inQueue) {
+				this.disableSidebarButtons();
 			}
 			return;
 		}
@@ -289,8 +289,8 @@ export class GameSection extends ASection {
 			if (this.queueUsernameEntry) {
 				this.queueUsernameEntry.style.display = 'block';
 			}
-			if (type === 'tournament' && inQueue) {
-				this.disableTournamentButton();
+			if ( inQueue) {
+				this.disableSidebarButtons();
 			}
 			if (this.tournamentUsernameInput && this.tournamentUsernameValidateBtn) {
 				this.tournamentUsernameInput.value = '';
@@ -307,23 +307,27 @@ export class GameSection extends ASection {
 	hideQueueMessage() {
 		if (this.queueMessageContainer)
 			this.queueMessageContainer.style.display = 'none';
-		this.enableTournamentButton();
+		this.enableSidebarButtons();
 	};
 
-	disableTournamentButton() {
-		const btn = document.getElementById('playTournament-btn') as HTMLButtonElement;
-		if (btn) {
-			btn.disabled = true;
-			btn.classList.add('disabled');
-		}
+	// Add inside GameSection class
+
+	disableSidebarButtons() {
+		const home = sections[get_type_index('home')!] as any;
+		home.profile_btn.disabled = true;
+		home.friends_btn.disabled = true;
+		home.chat_btn.disabled = true;
+		home.play1v1_btn.disabled = true;
+		home.playTournament_btn.disabled = true;
 	}
 
-	enableTournamentButton() {
-		const btn = document.getElementById('playTournament-btn') as HTMLButtonElement;
-		if (btn) {
-			btn.disabled = false;
-			btn.classList.remove('disabled');
-		}
+	enableSidebarButtons() {
+		const home = sections[get_type_index('home')!] as any;
+		home.profile_btn.disabled = false;
+		home.friends_btn.disabled = false;
+		home.chat_btn.disabled = false;
+		home.play1v1_btn.disabled = false;
+		home.playTournament_btn.disabled = false;
 	}
 
 	async play1v1() {
