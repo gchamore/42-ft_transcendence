@@ -24,6 +24,10 @@
 	display: block;
 }
 
+#settings-content li:not(.active) {
+	display: none;
+}
+
 #account-content {
 	border: rgb(0, 0, 0) solid 1px;
 }
