@@ -34,7 +34,7 @@
 			</nav>
 		</aside>
 		<!-- Game and Website Content -->
-		<main class="section home game" id="game-overlay">
+		<main id="game-overlay">
 			<!-- Game Settings Panel -->
 			<div id="settings-page" class="controls" style="display: none;">
 				<h2>Pong Game Settings</h2>
@@ -86,16 +86,12 @@
 						<button id="tournament-username-validate-btn">Validate</button>
 					</div>
 			</div>
-			
+
 			<!-- Game Container -->
 			<div id="game-container">
 				<div id="score-display">0 - 0</div>
 				<canvas id="gameCanvas" width="800" height="600"></canvas>
 				<canvas id="uiCanvas" width="800" height="600"></canvas>
-				<div id="babylon-loading-screen" style="opacity:1;">
-					<div id="loading-title">Loading 3D Scene...</div>
-					<div id="loading-spinner"></div>
-				</div>
 			</div>
 
 			<!-- FPS Counter -->
@@ -307,31 +303,37 @@
 					<li id="stats-btn">Stats</li>
 					<li id="confidentiality-btn">Confidentiality</li>
 					<li id="back-btn">Back</li>
-
+	
 					<!-- <li><button id="account-btn"></button>Account</li>
-					<li><button id="stats-btn"></button> Stats</li>
-					<li><button id="confidentiality-btn"></button>Confidentiality</li>
-					<li><button id="back-btn"></button>Back</li> -->
+						<li><button id="stats-btn"></button> Stats</li>
+						<li><button id="confidentiality-btn"></button>Confidentiality</li>
+						<li><button id="back-btn"></button>Back</li> -->
 				</ul>
 			</nav>
 		</aside>
-
+	
 		<ul id="settings-content">
 			<li id="account-content">
-			
+	
 			</li>
-			
+	
 			<li id="stats-content">
-
+	
 			</li>
-			
+	
 			<li id="confidentiality-content">
-				<label id="gdpr-text">
-					"GDPR"Lorem ipsum dolor sit amet consectetur adipisicing elit. Numquam est eaque nesciunt distinctio?
-					A reprehenderit qui vero earum accusamus, saepe ullam sit.
-					Minima suscipit temporibus omnis ab impedit modi sint!
-				</label>
-				<button id="unregister-btn">Unregister</button>
+				<div id="gdpr-text">
+					<p>We value your privacy and are committed to ensuring the protection of your personal data in
+						accordance with the General Data Protection Regulation (GDPR EU Regulation 2016/679).</p>
+					<p>Your personal data is collected and processed solely for legitimate and clearly defined purposes
+						related to the operation of our services. We do not share your information with third parties
+						without your explicit consent.</p>
+					<p>You have the right to access, rectify, and delete your personal data at any time. If you wish to
+						exercise your right to erasure, you may do so by clicking the "Unregister" button below. This
+						will permanently delete all personal data associated with your account from our systems.</p>
+					<p>For more information about how we handle your data, please refer to our Privacy Policy.</p>
+				</div>
+					<button id="unregister-btn">Unregister</button>
 			</li>
 		</ul>
 	</article>
@@ -339,4 +341,4 @@
 	<script type="module" src="/dist/history_api.js"></script>
 </body>
 
-</html>
+<!-- </html>

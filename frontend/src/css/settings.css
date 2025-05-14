@@ -37,3 +37,27 @@
 #confidentiality-content {
 	border: rgb(255, 54, 54) solid 1px;
 }
+
+#confidentiality-content:hover {
+	transform: none !important;
+}
+
+#unregister-btn {
+    display: inline-block;
+	margin: 20px 0 30px 0;
+    padding: 10px 20px;
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+	margin-bottom: 30px;
+}
+
+
+#unregister-btn:hover {
+    background-color: #e60000;
+}

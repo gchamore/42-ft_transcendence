@@ -1,7 +1,7 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { add_online, user, get_user_messages, get_user_directmessages, OtherUser, Message, add_message } from './users.js';
-import { login, register, logout, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar} from './api.js';
+import { login, register, logout, unregister, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar} from './api.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -1065,6 +1065,8 @@ class Settings extends ASection {
 	stats_btn = document.getElementById('stats-btn') as HTMLLIElement;
 	confidentiality_btn = document.getElementById('confidentiality-btn') as HTMLLIElement;
 	back_btn = document.getElementById('back-btn') as HTMLLIElement;
+	unregister_btn = document.getElementById('unregister-btn') as HTMLButtonElement;
+
 
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
@@ -1080,6 +1082,8 @@ class Settings extends ASection {
 		this.stats_btn.onclick = () => go_section('settings', 'stats');
 		this.confidentiality_btn.onclick = () => go_section('settings', 'confidentiality');
 		this.back_btn.onclick = () => go_section('profile', '');
+		this.unregister_btn.onclick = () => this.UnregisterConfirmation();
+
 
 		this.select(get_url_option(window.location.pathname))
 		this.activate_section();
@@ -1091,6 +1095,7 @@ class Settings extends ASection {
 		this.stats_btn.removeAttribute('onclick');
 		this.confidentiality_btn.removeAttribute('onclick');
 		this.back_btn.removeAttribute('onclick');
+		this.unregister_btn.removeAttribute('onclick');
 	}
 	switch_logged_off() {}
 	switch_logged_in() {}
@@ -1121,6 +1126,43 @@ class Settings extends ASection {
 			return;
 		}
 		this.print(option);
+	}
+
+	async handleUnregisterClick() {
+		try {
+			const accountType = await getUserAccountType();
+
+			if (!accountType) {
+				alert("Impossible de vérifier le type de compte");
+				return;
+			}
+
+			let success;
+			if (!accountType.is_google_account && accountType.has_password) {
+				const password = prompt("Veuillez entrer votre mot de passe pour SUPPRIMER votre compte:");
+				if (!password) return; // User cancelled
+
+				success = await unregister(password);
+			} else {
+				success = await unregister();
+			}
+
+			if (success) {
+				alert("Your account has been successfully deleted.");
+				go_section('home', '');
+			} else {
+				alert("Error unregistering account:");
+			}
+		} catch (err) {
+			console.error("Error unregistering account:", err);
+			alert("Une erreur s'est produite lors de la suppression du compte.");
+		}
+	}
+
+	UnregisterConfirmation() {
+		if (confirm("Êtes-vous sûr de vouloir Supprimer votre compte?")) {
+			this.handleUnregisterClick();
+		}
 	}
 }
 
