@@ -18,12 +18,8 @@
 #settings-content {
 	border: rgb(255, 255, 255) solid 3px;
 	flex-grow: 1;
-	flex-direction: column;
 }
 
-#settings-content {
-	display: block;
-}
 #settings-content div:not(.active) {
 	display: none;
 }
@@ -32,9 +28,19 @@
 	display: none;
 }
 
+#update-btn {
+	color: #fff;
+	background-color: #4f2b2b;
+	border: rgb(255, 255, 255) solid 1px;
+	border-radius : 10%;
+	height: 35px;
+	width: 60px;
+	margin: 20px;
+}
+
 #account-content {
-	border: rgb(0, 0, 0) solid 1px;
 	display: flex;
+	flex-direction: column;
 }
 
 #stats-content {
