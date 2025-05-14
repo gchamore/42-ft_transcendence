@@ -37,10 +37,10 @@ export function handleDisconnect(socket, game, fastify) {
 			tournaments.delete(tournament.tournamentId);
 		return;
 	}
+	saveGameResults(game, fastify);
 	game.removePlayer(socket);
 	if (game.players.size === 1) {
 		handleRemainingPlayers(game, playerNumber);
-		saveGameResults(game, fastify);
 	}
 	cleanUpSocketListeners(socket);
 	const userConnections = fastify.connections.get(String(socket.userId));
@@ -111,13 +111,15 @@ function saveGameResults(game, fastify) {
 		const score = game.getState().score;
 		const entries = Array.from(game.players.entries());
 		if (entries.length < 2) {
-			console.error('Not enough players to save game results');
+			console.error('game already saved or not enough players');
 			return;
 		}
 		// Get player IDs
 		const [player1Id] = entries[0];
 		const [player2Id] = entries[1];
-		const winnerId = score.player1Score > score.player2Score ? player1Id : player2Id;
+		const player1Score = score.player1?.score ?? 0;
+		const player2Score = score.player2?.score ?? 0;
+		const winnerId = player1Score > player2Score ? player1Id : player2Id;
 
 		// Insert game record
 		const gameQuery = `
@@ -133,8 +135,8 @@ function saveGameResults(game, fastify) {
 		fastify.db.prepare(gameQuery).run(
 			player1Id,
 			player2Id,
-			score.player1Score,
-			score.player2Score,
+			player1Score,
+			player2Score,
 			winnerId,
 			new Date().toISOString()
 		);

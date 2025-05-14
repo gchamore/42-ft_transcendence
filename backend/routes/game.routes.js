@@ -268,8 +268,26 @@ export async function gameRoutes(fastify, options) {
 			ORDER BY created_at DESC
 			LIMIT 10
 		`).all(userId, userId);
-	
-		return reply.send({ games });
+		const userIds = new Set();
+		games.forEach(game => {
+			userIds.add(game.player1_id);
+			userIds.add(game.player2_id);
+			userIds.add(game.winner_id);
+		});
+		const idList = Array.from(userIds);
+		const placeholders = idList.map(() => '?').join(',');
+		const users = fastify.db.prepare(`SELECT id, username FROM users WHERE id IN (${placeholders})`).all(...idList);
+		const idToUsername = {};
+		users.forEach(user => {
+			idToUsername[user.id] = user.username;
+		});
+		const gamesWithUsernames = games.map(game => ({
+			...game,
+			player1_username: idToUsername[game.player1_id],
+			player2_username: idToUsername[game.player2_id],
+			winner_username: idToUsername[game.winner_id],
+		}));
+		return reply.send({ games: gamesWithUsernames });
 	});
 
 	// WebSocket route

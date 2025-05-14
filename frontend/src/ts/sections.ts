@@ -1147,15 +1147,18 @@ class Settings extends ASection {
 			}
 			statsMessage.textContent = "";
 			for (const g of games) {
-				const opponent = (g.player1_id == String(user?.userId ?? '')) ? g.player2_id : g.player1_id;
-				const score = `${g.score_player1} - ${g.score_player2}`;
-				const win = g.winner_id == String(user?.userId ?? '');
+				const isPlayer1 = g.player1_username === user.name;
+				const opponent = isPlayer1 ? g.player2_username : g.player1_username;
+				const score1 = g.score_player1 ?? 0;
+				const score2 = g.score_player2 ?? 0;
+				const score = `${score1} - ${score2}`;
+				const win = g.winner_username === user.name;
 				const date = new Date(g.created_at).toLocaleString();
 
 				const row = document.createElement('tr');
 				row.innerHTML = `
                 <td>${date}</td>
-                <td>${opponent}</td>
+                <td>${opponent ?? '-'}</td>
                 <td>${score}</td>
                 <td style="color:${win ? 'green' : 'red'}">${win ? 'Win' : 'Loss'}</td>
             `;

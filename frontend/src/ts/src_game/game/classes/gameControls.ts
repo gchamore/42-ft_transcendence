@@ -334,7 +334,7 @@ export class GameControls {
 	private updateBallPosition(): void {
 		const now = performance.now();
 		// Return if the buffer is empty or has only one entry
-		if (this.ballPositionBuffer.length < 2) return (console.log("Ball position buffer too small"));
+		if (this.ballPositionBuffer.length < 2) return;
 
 		// Get the two positions to interpolate between
 		const targetTime = now - this.ballInterpolationDelay;
