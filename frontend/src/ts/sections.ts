@@ -156,7 +156,6 @@ export class GameSection extends ASection {
 
 	chooseGameSettings(gameId: string) {
 		if (!settingsPage) {
-			console.log('sections settingpage userID:', user?.userId);
 			if (user && user.userId)
 				settingsPage = new SettingsPage(gameId, false);
 			this.settingsPage.style.display = 'block';
@@ -198,6 +197,10 @@ export class GameSection extends ASection {
 		this.gamePage.style.display = 'block';
 		this.gameContainer.style.display = 'block';
 		this.fpsCounter.style.display = 'block';
+		const container = document.getElementById("game-over-menu") as HTMLElement;
+		if (container) {
+			container.style.display = 'none';
+		}
 
 		// Initialize the game
 		if (user && user.userId)
@@ -205,6 +208,10 @@ export class GameSection extends ASection {
 	}
 
 	showTournamentInfo(round: string, players: string[], onDone?: () => void) {
+		const gameOverMenu = document.getElementById("game-over-menu");
+		if (gameOverMenu) {
+			gameOverMenu.style.display = "none";
+		}
 		this.settingsPage.style.display = 'none';
 		const container = document.getElementById("tournament-info");
 		if (container) {
@@ -334,7 +341,7 @@ export class GameSection extends ASection {
 						headers: { "Content-Type": "application/json" }
 					});
 				} catch (err) {
-					console.error('Error leaving queue:', err);
+					console.error('Error leaving queue:');
 					setTimeout(this.hideQueueMessage, 2000);
 				}
 				this.hideQueueMessage();
@@ -356,7 +363,7 @@ export class GameSection extends ASection {
 				this.showQueueMessage(`Queue error: ${err.error}`, 'game', false, false);
 			}
 		} catch (err) {
-			console.error('play1v1: error', err);
+			console.error('play1v1: error');
 			this.showQueueMessage('Failed to join 1v1 queue', 'game', false, false);
 			go_section('home', '');
 			setTimeout(this.hideQueueMessage, 2000);
@@ -390,7 +397,7 @@ export class GameSection extends ASection {
 						headers: { "Content-Type": "application/json" }
 					});
 				} catch (err) {
-					console.error('Error leaving tournament queue:', err);
+					console.error('Error leaving tournament queue:');
 				}
 				this.hideQueueMessage();
 			};
@@ -417,7 +424,7 @@ export class GameSection extends ASection {
 				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament', false, false);
 			}
 		} catch (err) {
-			console.error('playTournament: error', err);
+			console.error('playTournament: error');
 			this.showQueueMessage('Failed to join tournament queue', 'tournament', false, false);
 			go_section('home', '');
 			setTimeout(this.hideQueueMessage, 2000);
@@ -1035,18 +1042,25 @@ export class Actions extends ASection {
 				alert(data.error || 'Failed to send invite');
 			}
 		} catch (err) {
-			console.error('Error sending invite:', err);
-			alert('Error sending invite');
+			console.error('Error sending invite:');
 		}
 	}
 
 	showInviteWaitingScreen(username: string) {
 		const overlay = document.getElementById('invite-waiting-overlay') as HTMLElement;
 		const message = document.getElementById('invite-waiting-message') as HTMLElement;
+		const cancelBtn = document.getElementById('cancel-invite-btn') as HTMLElement;
+		const acceptBtn = document.getElementById('accept-invite-btn') as HTMLElement;
+		const declineBtn = document.getElementById('decline-invite-btn') as HTMLElement;
 
 		if (overlay && message) {
 			message.innerHTML = `Waiting for <b>${username}</b> to accept your invite...`;
 			overlay.style.display = 'flex';
+
+			// Show only the Cancel button for the inviter
+			if (cancelBtn) cancelBtn.style.display = 'block';
+			if (acceptBtn) acceptBtn.style.display = 'none';
+			if (declineBtn) declineBtn.style.display = 'none';
 		}
 	}
 }

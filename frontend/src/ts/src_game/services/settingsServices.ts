@@ -31,6 +31,6 @@ export class SettingsService {
 		localStorage.setItem("paddleSpeed", settings.paddleSpeed);
 		localStorage.setItem("paddleLength", settings.paddleLength);
 		localStorage.setItem("mapType", settings.mapType);
-		localStorage.setItem("powerUpsEnabled",	settings.powerUpsEnabled.toString());
+		localStorage.setItem("powerUpsEnabled", settings.powerUpsEnabled.toString());
 	}
 }

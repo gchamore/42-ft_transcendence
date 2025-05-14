@@ -132,6 +132,10 @@ export class BabylonManager {
 		this.environmentFactory.createCenterLine();
 		if (this.mapType === "custom") {
 			this.environmentFactory.createCustomMap();
+			const obstacle1 = this.environmentFactory['obstacle1'];
+			const obstacle2 = this.environmentFactory['obstacle2'];
+			if (obstacle1) this.lightManager.addShadowCaster(obstacle1);
+			if (obstacle2) this.lightManager.addShadowCaster(obstacle2);
 		}
 	}
 
@@ -146,21 +150,19 @@ export class BabylonManager {
 	public render(timestamp: number): void {
 		this.lastRenderTime = timestamp;
 
-			// Update positions
-			this.paddleManager.updatePositions();
+		this.paddleManager.updatePositions();
 
-			if (this.gameStarted) {
-				this.ballManager.updatePosition();
-			} else if (!this.ballManager.isCentered()) {
-				this.ballManager.centerBall();
-			}
+		if (this.gameStarted) {
+			this.ballManager.updatePosition();
+		} else if (!this.ballManager.isCentered()) {
+			this.ballManager.centerBall();
+		}
 
-			if (!GameConfig.TEST_MODE) {
-				this.collisionManager.updatePositions();
-			}
+		if (!GameConfig.TEST_MODE) {
+			this.collisionManager.updatePositions();
+		}
 
-			// Render the scene
-			this.sceneManager.render();
+		this.sceneManager.render();
 	}
 
 	public renderLocalPaddle(): void {
@@ -173,7 +175,6 @@ export class BabylonManager {
 	public updateGameState(gameState: GameState): void {
 		this.gameStarted = gameState.gameStarted;
 
-		// Update paddle dimensions if needed
 		if (gameState.paddle1) {
 			this.paddleManager.updatePaddle1Dimensions(gameState.paddle1);
 		}
@@ -182,7 +183,6 @@ export class BabylonManager {
 			this.paddleManager.updatePaddle2Dimensions(gameState.paddle2);
 		}
 
-		// Update ball dimensions if needed
 		if (gameState.ball) {
 			this.ballManager.updateDimensions(gameState.ball);
 		}

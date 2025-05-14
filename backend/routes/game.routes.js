@@ -16,25 +16,6 @@ export const tournamentQueue = [];
 let tournamentId = 1;
 const invites = [];
 
-function notifyPlayers(fastify, gameId, playerId) {
-	const connections = fastify.connections.get(String(playerId));
-
-	if (connections) {
-		for (const [, socket] of connections.entries()) {
-			if (socket.readyState === 1) {
-				socket.send(JSON.stringify({
-					type: 'matchFound',
-					gameId,
-				}));
-				break;
-			}
-		}
-	} else {
-		fastify.log.warn(`No WebSocket connection found for player ${playerId}`);
-	}
-}
-
-
 export async function gameRoutes(fastify, options) {
 	const { db } = fastify;
 
@@ -111,7 +92,7 @@ export async function gameRoutes(fastify, options) {
 		}
 		tournamentQueue.push(userId);
 		tournamentDisplayNames.set(userId, displayName);
-	
+
 		// If 4 players, create tournament
 		if (tournamentQueue.length >= 4) {
 			const players = tournamentQueue.splice(0, 4);
@@ -187,17 +168,17 @@ export async function gameRoutes(fastify, options) {
 	fastify.post('/invites', async (request, reply) => {
 		const userId = request.user?.userId;
 		const { toUsername, gameType, tournamentId } = request.body;
-	
+
 		if (!userId || !toUsername || !gameType) {
 			return reply.code(400).send({ error: 'Missing fields' });
 		}
-	
+
 		// Find the invited user's id
 		const invitedUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(toUsername);
 		if (!invitedUser) {
 			return reply.code(404).send({ error: 'User not found' });
 		}
-	
+
 		// Notify the invited user via WebSocket
 		const connections = fastify.connections.get(String(invitedUser.id));
 		if (connections) {
@@ -214,7 +195,7 @@ export async function gameRoutes(fastify, options) {
 		} else {
 			fastify.log.warn(`No WebSocket connection found for invited user ${invitedUser.id}`);
 		}
-	
+
 		invites.push({ fromId: userId, toUsername, gameType, tournamentId });
 		return reply.send({ invited: true });
 	});
@@ -255,11 +236,11 @@ export async function gameRoutes(fastify, options) {
 
 		return reply.send({ ok: true });
 	});
-	
+
 	fastify.get('/game/history/:userId', async (request, reply) => {
 		const userId = request.params.userId;
 		if (!userId) return reply.code(400).send({ error: 'Missing userId' });
-	
+
 		const games = fastify.db.prepare(`
 			SELECT 
 				id, player1_id, player2_id, score_player1, score_player2, winner_id, created_at
@@ -290,7 +271,7 @@ export async function gameRoutes(fastify, options) {
 		return reply.send({ games: gamesWithUsernames });
 	});
 
-	// WebSocket route
+	// Game WebSocket route
 	fastify.get('/game/:gameId', { websocket: true }, async (connection, request) => {
 		try {
 			fastify.log.info('Starting WebSocket connection setup...');
@@ -346,7 +327,7 @@ export async function gameRoutes(fastify, options) {
 
 			const displayName = tournamentDisplayNames.get(userId);
 			connection.socket.displayName = displayName;
-	
+
 			// Vérifie si l'utilisateur a déjà une connexion active
 			const existingConnections = fastify.connections.get(String(userId));
 			if (!existingConnections) {
@@ -358,7 +339,7 @@ export async function gameRoutes(fastify, options) {
 			const connectionId = wsService.generateConnectionId();
 			fastify.log.info(`Generated connection ID: ${connectionId}`);
 			connection.socket.connectionId = connectionId;
-	
+
 			// Ajoute cette nouvelle connexion à la map des connexions de l'utilisateur
 			existingConnections.set(connectionId, connection.socket);
 			fastify.log.info(`New WebSocket connection [ID: ${connectionId}] for user: ${userId}`);
@@ -370,20 +351,25 @@ export async function gameRoutes(fastify, options) {
 			fastify.log.error('Error setting up WebSocket connection:', error);
 		}
 	});
-
-
 	// Start game update loop
 	setupGameUpdateInterval(fastify);
 }
 
-// connection.socket.on('close', () => {
-// 	const idxG = gameQueue.indexOf(userId);
-// 	if (idxG  !== -1) {
-// 		gameQueue.splice(idxG , 1);
-// 	}
-// 	const idxT = tournamentQueue.indexOf(userId);
-// 	if (idxT !== -1) {
-// 		queue.splice(idxT, 1);
-// 	}
-// 	fastify.connections.delete(userId);
-// });
+function notifyPlayers(fastify, gameId, playerId) {
+	const connections = fastify.connections.get(String(playerId));
+
+	if (connections) {
+		for (const [, socket] of connections.entries()) {
+			if (socket.readyState === 1) {
+				socket.send(JSON.stringify({
+					type: 'matchFound',
+					gameId,
+				}));
+				break;
+			}
+		}
+	} else {
+		fastify.log.warn(`No WebSocket connection found for player ${playerId}`);
+	}
+}
+

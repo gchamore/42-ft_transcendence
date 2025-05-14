@@ -4,7 +4,8 @@ import { tournaments } from '../../routes/game.routes.js';
 import { cleanupTournamentMappings } from './gameMessageHandlers.js'
 
 export function handleDisconnect(socket, game, fastify) {
-	if (!validateDisconnectParams(socket, game)) return;
+	if (!validateDisconnectParams(socket, game)) 
+		return;
 
 	const playerNumber = socket.playerNumber;
 	console.log(`Player ${playerNumber} disconnected from game ${game.gameId}`);
@@ -30,18 +31,16 @@ export function handleDisconnect(socket, game, fastify) {
 		if (userConnections)
 			userConnections.delete(socket.connectionId);
 		const idx = tournament.players.indexOf(socket.clientId);
-		if (idx !== -1) {
+		if (idx !== -1)
 			tournament.players.splice(idx, 1);
-		}
 		if (tournament.players.size === 0)
 			tournaments.delete(tournament.tournamentId);
 		return;
 	}
 	saveGameResults(game, fastify);
 	game.removePlayer(socket);
-	if (game.players.size === 1) {
+	if (game.players.size === 1)
 		handleRemainingPlayers(game, playerNumber);
-	}
 	cleanUpSocketListeners(socket);
 	const userConnections = fastify.connections.get(String(socket.userId));
 	if (userConnections)
@@ -56,9 +55,8 @@ export function handleDisconnect(socket, game, fastify) {
 
 function findTournamentByGameId(gameId) {
 	for (const tournament of tournaments.values()) {
-		if (tournament.bracket.some(match => match.matchId === gameId)) {
+		if (tournament.bracket.some(match => match.matchId === gameId))
 			return tournament;
-		}
 	}
 	return null;
 }
@@ -111,7 +109,6 @@ function saveGameResults(game, fastify) {
 		const score = game.getState().score;
 		const entries = Array.from(game.players.entries());
 		if (entries.length < 2) {
-			console.error('game already saved or not enough players');
 			return;
 		}
 		// Get player IDs

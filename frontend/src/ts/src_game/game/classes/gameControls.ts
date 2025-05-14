@@ -15,9 +15,9 @@ export class GameControls {
 	private inputSequence: number = 1;
 	private inputHistory: PaddleInput[] = [];
 	private remotePaddleBuffer: { time: number; position: number; height: number; speed: number }[] = [];
-	private paddleInterpolationDelay: number = 100;
+	private paddleInterpolationDelay: number = 75;
 	private ballPositionBuffer: { time: number; position: { x: number, y: number }; speedX: number; speedY: number }[] = [];
-	private ballInterpolationDelay: number = 150;
+	private ballInterpolationDelay: number = 75;
 
 	private babylonManager: BabylonManager;
 
@@ -84,9 +84,9 @@ export class GameControls {
 					this.sendPaddleMovements();
 				}
 				break;
-				case "a":
-					case "A":
-					case "ArrowLeft":
+			case "a":
+			case "A":
+			case "ArrowLeft":
 				delete this.keysPressed[event.key];
 				if (!this.isAnyMovementKeyPressed()) {
 					this.localPaddle.velocity = 0;
@@ -172,19 +172,8 @@ export class GameControls {
 				const jsonMessage = JSON.stringify(message);
 				socket.send(jsonMessage);
 			} catch (e) {
-				console.error("Error sending message:", e);
+				console.error("Error sending message:");
 			}
-		} else {
-			// console.log("Cannot send message, socket state:", {
-			// 	current: socket.readyState,
-			// 	states: {
-			// 		CONNECTING: WebSocket.CONNECTING,
-			// 		OPEN: WebSocket.OPEN,
-			// 		CLOSING: WebSocket.CLOSING,
-			// 		CLOSED: WebSocket.CLOSED,
-			// 	},
-			// 	expectedState: `OPEN (${WebSocket.OPEN})`,
-			// });
 		}
 	}
 
@@ -355,7 +344,6 @@ export class GameControls {
 
 		// If we found appropriate interpolation points
 		if (prev && next) {
-			console.log(`interpolating`);
 			// Calculate interpolation factor
 			const timeFactor = (targetTime - prev.time) / (next.time - prev.time);
 			const t = this.cubicEaseInOut(timeFactor);
@@ -365,7 +353,6 @@ export class GameControls {
 			this.ball.y = prev.position.y * (1 - t) + next.position.y * t;
 
 		} else {
-			console.log(`extrapolating`);
 			const latest = this.ballPositionBuffer[this.ballPositionBuffer.length - 1];
 			const isNearWall = this.isNearBoundary(latest.position.x, latest.position.y);
 
@@ -376,14 +363,13 @@ export class GameControls {
 				this.ball.y = latest.position.y + latest.speedY * safeTimeElapsed;
 			} else {
 				// Near wall/paddle: do not extrapolate, just hold last known position
-
 				this.ball.x = latest.position.x;
 				this.ball.y = latest.position.y;
 			}
 		}
 
 		// Periodically clean up (less frequently than each frame)
-		if (now % 1000 < 16) { // Clean once per second approximately
+		if (now % 1000 < 16) {
 			this.cleanupBuffer();
 		}
 	}
@@ -396,10 +382,10 @@ export class GameControls {
 		const rightPaddle = this.playerNumber === 1 ? this.remotePaddle : this.localPaddle;
 
 
-		const nearTopWall = y - ballRadius < 10;
-		const nearBottomWall = y + ballRadius > canvasHeight - 10;
-		const nearLeftPaddle = x - ballRadius < leftPaddle.width + 10 && Math.abs(y - leftPaddle.y) < leftPaddle.height / 2 + 10;
-		const nearRightPaddle = x + ballRadius > canvasWidth - rightPaddle.width - 10 && Math.abs(y - rightPaddle.y) < rightPaddle.height / 2 + 10;
+		const nearTopWall = y - ballRadius < 1;
+		const nearBottomWall = y + ballRadius > canvasHeight - 1;
+		const nearLeftPaddle = x - ballRadius < leftPaddle.width + 1 && Math.abs(y - leftPaddle.y) < leftPaddle.height / 2 + 1;
+		const nearRightPaddle = x + ballRadius > canvasWidth - rightPaddle.width - 1 && Math.abs(y - rightPaddle.y) < rightPaddle.height / 2 + 1;
 		return nearTopWall || nearBottomWall || nearLeftPaddle || nearRightPaddle;
 	}
 

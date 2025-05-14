@@ -8,16 +8,5 @@ export function safeSend(socket, message) {
 		} catch (e) {
 			console.error('Error sending message:', e);
 		}
-	} else {
-		// fastify.log.warn('Cannot send message, socket state:', {
-		// 	current: socket.readyState,
-		// 	states: {
-		// 		CONNECTING: WebSocket.CONNECTING,
-		// 		OPEN: WebSocket.OPEN,
-		// 		CLOSING: WebSocket.CLOSING,
-		// 		CLOSED: WebSocket.CLOSED
-		// 	},
-		// 	expectedState: `OPEN (${WebSocket.OPEN})`
-		// });
 	}
 }
