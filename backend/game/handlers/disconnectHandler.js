@@ -4,7 +4,8 @@ import { tournaments } from '../../routes/game.routes.js';
 import { cleanupTournamentMappings } from './gameMessageHandlers.js'
 
 export function handleDisconnect(socket, game, fastify) {
-	if (!validateDisconnectParams(socket, game)) return;
+	if (!validateDisconnectParams(socket, game)) 
+		return;
 
 	const playerNumber = socket.playerNumber;
 	console.log(`Player ${playerNumber} disconnected from game ${game.gameId}`);
@@ -30,18 +31,16 @@ export function handleDisconnect(socket, game, fastify) {
 		if (userConnections)
 			userConnections.delete(socket.connectionId);
 		const idx = tournament.players.indexOf(socket.clientId);
-		if (idx !== -1) {
+		if (idx !== -1)
 			tournament.players.splice(idx, 1);
-		}
 		if (tournament.players.size === 0)
 			tournaments.delete(tournament.tournamentId);
 		return;
 	}
-	saveGameResults(game, fastify);
+	saveGameResults(game, fastify, socket);
 	game.removePlayer(socket);
-	if (game.players.size === 1) {
+	if (game.players.size === 1)
 		handleRemainingPlayers(game, playerNumber);
-	}
 	cleanUpSocketListeners(socket);
 	const userConnections = fastify.connections.get(String(socket.userId));
 	if (userConnections)
@@ -56,9 +55,8 @@ export function handleDisconnect(socket, game, fastify) {
 
 function findTournamentByGameId(gameId) {
 	for (const tournament of tournaments.values()) {
-		if (tournament.bracket.some(match => match.matchId === gameId)) {
+		if (tournament.bracket.some(match => match.matchId === gameId))
 			return tournament;
-		}
 	}
 	return null;
 }
@@ -105,13 +103,12 @@ function validateDisconnectParams(socket, game) {
 	return true;
 }
 
-function saveGameResults(game, fastify) {
+function saveGameResults(game, fastify, socket) {
 	try {
 		console.log('Saving game results...');
 		const score = game.getState().score;
 		const entries = Array.from(game.players.entries());
 		if (entries.length < 2) {
-			console.error('game already saved or not enough players');
 			return;
 		}
 		// Get player IDs
@@ -119,7 +116,15 @@ function saveGameResults(game, fastify) {
 		const [player2Id] = entries[1];
 		const player1Score = score.player1?.score ?? 0;
 		const player2Score = score.player2?.score ?? 0;
-		const winnerId = player1Score > player2Score ? player1Id : player2Id;
+		let winnerId;
+		// If neither player reached 3, winner is the one who did NOT disconnect
+		if ((player1Score < 3 && player2Score < 3) && socket) {
+			// The remaining player is the winner
+			const remainingPlayerId = player1Id === socket.clientId ? player2Id : player1Id;
+			winnerId = remainingPlayerId;
+		} else {
+			winnerId = player1Score > player2Score ? player1Id : player2Id;
+		}
 
 		// Insert game record
 		const gameQuery = `

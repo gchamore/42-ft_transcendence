@@ -37,13 +37,8 @@ export async function handleGameConnection(fastify, connection, request, userId)
 			isTournament = true;
 		} else {
 			console.error('User is not in any player number map:', userId);
-			// Optionally close the socket or handle error
 		}
 		console.log('playerId:', userId, ' playerNumber:', playerNumber);
-
-		console.log('🎮 Game WS connection:', { gameId, mode, userId });
-
-
 
 		if (mode === 'lobby') {
 			let lobby = lobbies.get(gameId) || new LobbyManager(gameId, isTournament);
@@ -68,7 +63,7 @@ export async function handleGameConnection(fastify, connection, request, userId)
 				}
 			}
 			socket.playerNumber = playerNumber;
-			handleNewGamePlayer(socket, game, fastify, isTournament); 
+			handleNewGamePlayer(socket, game, fastify, isTournament);
 			return;
 		} else if (!isTournament && mode === 'game') {
 			let game = games.get(gameId);
@@ -86,8 +81,8 @@ export async function handleGameConnection(fastify, connection, request, userId)
 				games.set(gameId, game);
 				cleanupLobby(gameId);
 			}
-
-			handleNewGamePlayer(socket, game, fastify, isTournament); 
+			socket.playerNumber = playerNumber;
+			handleNewGamePlayer(socket, game, fastify, isTournament);
 		} else {
 			console.error('Invalid mode:', mode);
 			socket.close();
@@ -97,8 +92,6 @@ export async function handleGameConnection(fastify, connection, request, userId)
 		connection.socket.close();
 	}
 }
-
-
 
 export function setupGameUpdateInterval(fastify) {
 	let lastUpdateTime = Date.now();

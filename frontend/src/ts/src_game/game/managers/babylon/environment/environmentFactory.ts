@@ -90,17 +90,18 @@ export class EnvironmentFactory {
 
 		const customMapMaterial = new BABYLON.StandardMaterial("customMapMaterial", this.scene);
 		customMapMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.1, 0.1);
+		const hoverHeight = 0.15;
 
-		this.obstacle1 = BABYLON.MeshBuilder.CreateBox( "obstacle1", { width: 0.5, height: 1, depth: 3 }, this.scene );
-		this.obstacle1.position = new BABYLON.Vector3( -3, 0, 0 );
+		this.obstacle1 = BABYLON.MeshBuilder.CreateBox("obstacle1", { width: 0.3, height: 0.5, depth: 1.5 }, this.scene);
+		this.obstacle1.position = new BABYLON.Vector3(0, hoverHeight, -2.5);
 		this.obstacle1.material = customMapMaterial;
 		this.obstacle1.receiveShadows = true;
-		this.obstacle2 = BABYLON.MeshBuilder.CreateBox( "obstacle2", { width: 0.5, height: 1, depth: 3 }, this.scene );
-		this.obstacle2.position = new BABYLON.Vector3( 3, 0, 0 );
+		this.obstacle2 = BABYLON.MeshBuilder.CreateBox("obstacle2", { width: 0.3, height: 0.5, depth: 1.5 }, this.scene);
+		this.obstacle2.position = new BABYLON.Vector3(0, hoverHeight, 2.5);
 		this.obstacle2.material = customMapMaterial;
 		this.obstacle2.receiveShadows = true;
 	}
-	
+
 	public getTableMesh(): BABYLON.Mesh | null {
 		return this.tableMesh;
 	}

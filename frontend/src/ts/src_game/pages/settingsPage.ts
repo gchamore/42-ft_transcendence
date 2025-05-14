@@ -43,7 +43,7 @@ export class SettingsPage {
 			console.error('Start button not found');
 			return;
 		}
-		
+
 		this.connectWebSocket(); //first game ws 
 	}
 
@@ -55,50 +55,19 @@ export class SettingsPage {
 
 		this.socket.onmessage = (message) => {
 			const data = JSON.parse(message.data);
-			console.log('Received message : ', data);
 			switch (data.type) {
 				case 'playerNumber':
-					this.playerNumber = data.playerNumber;
-					if (this.playerNumber === 1) {
-						this.setSettingsEnabled(true);
-						const savedSettings = SettingsService.loadSettings();
-						this.updateSettings(savedSettings);
-						this.setupListeners();
-						this.handleSettingsChange();
-					}
-					else {
-						this.setSettingsEnabled(false);
-						this.setupListeners();
-					}
-					this.updateStartButtonState();
+					this.playerNumberUpdate(data);
 					break;
 				case 'settingsUpdate':
 					this.updateSettings(data.settings);
 					break;
 				case 'gameStart':
-					if (data.gameId){
-						const gameSection = sections[get_type_index('game')!] as GameSection;
-						gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
-					} else {
-						console.error('Game ID not provided');
-					}
+					this.gameStart(data);
 					break;
 				case 'TournamentGameStart':
-					if (data.gameId) {
-						this.intentionnallyClosed = true;
-						if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-							this.socket.close(1000, 'Starting tournament game');
-						}
-						const gameSection = sections[get_type_index('game')!] as GameSection;
-						if (data.round && data.players)
-							gameSection.showTournamentInfo(data.round, data.players, () => {
-								gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
-							});
-					} else {
-						console.error('Game ID not provided');
-					}
+					this.tournamentGameStart(data);
 					break;
-
 				case 'playerReady':
 					this.readyPlayers.add(data.playerNumber);
 					this.updateStartButtonState();
@@ -109,8 +78,8 @@ export class SettingsPage {
 						'opponent-disconnected'
 					);
 					break;
-				case 'error':
-					console.error(data.message);
+				default:
+					console.error("Unknown message in game type:" , data.type);
 					break;
 			}
 		};
@@ -120,12 +89,51 @@ export class SettingsPage {
 			this.handleConnectionIssues();
 		};
 
-		this.socket.onclose = (event) => {
-			console.log('WebSocket connection closed in settings:', event.code, event.reason);
+		this.socket.onclose = () => {
 			if (!this.intentionnallyClosed)
 				this.handleConnectionIssues();
 		};
-		
+	}
+
+	private gameStart(data: any) {
+		if (data.gameId) {
+			const gameSection = sections[get_type_index('game')!] as GameSection;
+			gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
+		} else {
+			console.error('Game ID not provided');
+		}
+	}
+
+	private playerNumberUpdate(data: any) {
+		this.playerNumber = data.playerNumber;
+		if (this.playerNumber === 1) {
+			this.setSettingsEnabled(true);
+			const savedSettings = SettingsService.loadSettings();
+			this.updateSettings(savedSettings);
+			this.setupListeners();
+			this.handleSettingsChange();
+		}
+		else {
+			this.setSettingsEnabled(false);
+			this.setupListeners();
+		}
+		this.updateStartButtonState();
+	}
+
+	private tournamentGameStart(data: any) {
+		if (data.gameId) {
+			this.intentionnallyClosed = true;
+			if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+				this.socket.close(1000, 'Starting tournament game');
+			}
+			const gameSection = sections[get_type_index('game')!] as GameSection;
+			if (data.round && data.players)
+				gameSection.showTournamentInfo(data.round, data.players, () => {
+					gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
+				});
+		} else {
+			console.error('Game ID not provided');
+		}
 	}
 
 	private handleConnectionIssues(
@@ -147,7 +155,6 @@ export class SettingsPage {
 			container.prepend(error);
 		}
 
-		//redirect to home page
 		setTimeout(() => {
 			(window as any).go_section('home');
 			this.cleanup();
@@ -171,7 +178,7 @@ export class SettingsPage {
 
 	private handleSettingsChange() {
 		const settings = this.getCurrentSettings();
-    
+
 		// Save to local storage
 		if (this.playerNumber === 1) {
 			SettingsService.saveSettings(settings);
@@ -227,10 +234,8 @@ export class SettingsPage {
 	}
 
 	private setupStartButtonListener() {
-		// Start game listener
 		this.startButtonClickHandler = () => {
 			if (this.playerNumber !== 1 && !this.playerReady) {
-				console.log('Player 2 ready');
 				this.playerReady = true;
 				this.socket.send(JSON.stringify({
 					type: 'playerReady',
@@ -238,7 +243,6 @@ export class SettingsPage {
 				}));
 				this.updateStartButtonState();
 			} else if (this.playerNumber === 1 && !this.startButton.disabled) {
-				console.log('player 1 ready and requesting game start');
 				this.socket.send(JSON.stringify({
 					type: 'playerReady',
 					playerNumber: 1
@@ -251,7 +255,7 @@ export class SettingsPage {
 		this.startButton.addEventListener('click', this.startButtonClickHandler);
 	}
 
-	private  updateStartButtonState() {
+	private updateStartButtonState() {
 		if (!this.startButton) return;
 		let totalPlayers = 0;
 		if (this.isTournament) {
@@ -296,21 +300,20 @@ export class SettingsPage {
 			powerUpsEnabled: false
 		};
 		const safeSettings = { ...defaultSettings, ...settings };
-		try { 
+		try {
 			this.ballSpeedSlider.value = safeSettings.ballSpeed.toString();
 			this.ballSpeedValue.textContent = safeSettings.ballSpeed.toString();
-	
+
 			this.paddleSpeedSlider.value = safeSettings.paddleSpeed.toString();
 			this.paddleSpeedValue.textContent = safeSettings.paddleSpeed.toString();
-	
+
 			this.paddleLengthSlider.value = safeSettings.paddleLength.toString();
 			this.paddleLengthValue.textContent = safeSettings.paddleLength.toString();
-	
+
 			this.mapSelect.value = safeSettings.mapType;
 			this.powerUpsToggle.checked = safeSettings.powerUpsEnabled;
-			console.log('Settings updated successfully');
 		} catch (error) {
-			console.error('Error updating settings:', error);
+			console.error('Error updating settings:');
 			this.updateSettings(defaultSettings);
 		}
 	}

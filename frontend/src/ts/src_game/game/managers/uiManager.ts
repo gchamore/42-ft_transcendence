@@ -96,17 +96,7 @@ export class UIManager {
 		this.context.restore();
 	}
 
-
-	clearOverlay(): void {
-		const gameOverMenu = document.getElementById('game-over-menu');
-		if (gameOverMenu) {
-			gameOverMenu.remove();
-		}
-		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-	}
-
 	public addActivePowerup(powerupId: number, type: string, player: number): void {
-		console.log(`Adding powerup ${powerupId} of type ${type} for player ${player}`);
 		if (!this.activePowerupsByType.has(type)) {
 			this.activePowerupsByType.set(type, new Map());
 		}

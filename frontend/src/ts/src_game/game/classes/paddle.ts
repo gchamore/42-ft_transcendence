@@ -30,7 +30,6 @@ export class Paddle {
 		this.height = paddleState.height;
 		this.y = paddleState.y;
 		this.clampPosition();
-		console.log('update :', this.y, this.height);
 	}
 
 	move(deltaTime: number = 16.67): void { //default value to 60 fps if not provided
@@ -41,7 +40,6 @@ export class Paddle {
 			if (this.y <= this.height / 2 || this.y >= GameConfig.CANVAS_HEIGHT - this.height / 2) {
 				this.velocity = 0;
 			}
-			console.log('move :', this.y, this.height);
 		}
 	}
 }

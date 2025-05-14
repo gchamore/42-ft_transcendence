@@ -64,7 +64,7 @@ export class PowerUpManager {
 		if (paddleMesh) {
 			// Create collection effect
 			const particleSystem = new BABYLON.ParticleSystem(`powerup-collect-${powerupId}`, 100, this.scene);
-			particleSystem.particleTexture = new BABYLON.Texture("/assets/textures/flare.png", this.scene);
+			particleSystem.particleTexture = new BABYLON.Texture("/assets/textures/sparkle.png", this.scene);
 			particleSystem.emitter = powerupMesh.position;
 			particleSystem.color1 = new BABYLON.Color4(1, 1, 1, 1); // White color
 			particleSystem.color2 = new BABYLON.Color4(1, 0.84, 0.4, 0.8); // Light orange color

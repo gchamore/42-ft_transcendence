@@ -2,7 +2,7 @@ export class ScoreBoard {
 	private player1Score: number = 0;
 	private player2Score: number = 0;
 	private player1Name: string = "Player1";
-    private player2Name: string = "Player2";
+	private player2Name: string = "Player2";
 	private display: HTMLDivElement | null = null;
 
 	// Create a new ScoreBoard instance

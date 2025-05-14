@@ -58,6 +58,11 @@ export class User {
 	web_socket: WebSocket | undefined;
 	livechat: Array<Message>;
 	onlines: Array<string>;
+	overlay = document.getElementById('invite-waiting-overlay') as HTMLElement;
+	message = document.getElementById('invite-waiting-message') as HTMLElement;
+	cancelBtn = document.getElementById('cancel-invite-btn') as HTMLButtonElement;
+	acceptBtn = document.getElementById('accept-invite-btn') as HTMLButtonElement;
+	declineBtn = document.getElementById('decline-invite-btn') as HTMLButtonElement;
 
 	constructor(username: string, userId?: number, email?: string, avatarPath?: string) {
 		if (userId !== undefined) {
@@ -76,11 +81,6 @@ export class User {
 	connect_to_ws() {
 		this.web_socket = new WebSocket(`wss://${window.location.host}/api/ws`);
 
-		const overlay = document.getElementById('invite-waiting-overlay') as HTMLElement;
-		const message = document.getElementById('invite-waiting-message') as HTMLElement;
-		const cancelBtn = document.getElementById('cancel-invite-btn') as HTMLButtonElement;
-		const acceptBtn = document.getElementById('accept-invite-btn') as HTMLButtonElement;
-		const declineBtn = document.getElementById('decline-invite-btn') as HTMLButtonElement;
 
 		this.web_socket.onopen = () => {
 			console.log('Connected to WebSocket');
@@ -113,69 +113,19 @@ export class User {
 						showTournamentResults(data.placements, data.message);
 						break;
 					case 'TournamentGameStart':
-						if (data.gameId) {
-							console.log('TournamentGameStart from user', data.gameId);
-							const gameSection = sections[get_type_index('game')!] as GameSection;
-							this.hideWaitingScreen();
-							if (data.round && data.players)
-								gameSection.showTournamentInfo(data.round, data.players, () => {
-									gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
-								});
-						} else {
-							console.error('Game ID not provided');
-						}
+						this.tournamentGameStart(data);
 						break;
 					case 'gameInvite':
-
-						if (overlay && message && cancelBtn && acceptBtn && declineBtn) {
-							message.innerHTML = `<b>${data.fromUsername}</b> invites you to a ${data.gameType} game.<br>Do you accept?`;
-							overlay.style.display = 'flex';
-
-							acceptBtn.onclick = () => {
-								overlay.style.display = 'none';
-								fetch('/api/invites/respond', {
-									method: 'POST',
-									credentials: 'include',
-									headers: { "Content-Type": "application/json" },
-									body: JSON.stringify({
-										fromUserId: data.fromUserId,
-										accepted: true
-									})
-								});
-							};
-							declineBtn.onclick = () => {
-								overlay.style.display = 'none';
-								fetch('/api/invites/respond', {
-									method: 'POST',
-									credentials: 'include',
-									headers: { "Content-Type": "application/json" },
-									body: JSON.stringify({
-										fromUserId: data.fromUserId,
-										accepted: false
-									})
-								});
-							};
-							cancelBtn.onclick = () => {
-								overlay.style.display = 'none';
-							};
-						}
+						this.invite(data);
 						break;
 					case 'inviteResult':
-						if (overlay && message) {
-							overlay.style.display = 'flex';
-							if (data.accepted) {
-								message.innerHTML = `<b>${data.username}</b> accepted your invite!<br>Starting game...`;
-							} else {
-								message.innerHTML = `<b>${data.username}</b> declined your invite.`;
-							}
-							setTimeout(() => { overlay.style.display = 'none'; }, 1500);
-						}
+						this.inviteResult(data);
 						break;
 					default:
 						console.error('Unknown message in user type:', data.type);
 				}
 			} catch (error) {
-				console.error('WebSocket message parsing error:', error);
+				console.error('WebSocket message parsing error:');
 			}
 		};
 
@@ -187,6 +137,66 @@ export class User {
 		this.web_socket.onerror = (error) => {
 			console.log('WebSocket error:', error);
 		};
+	}
+
+	tournamentGameStart(data: any) {
+		if (data.gameId) {
+			const gameSection = sections[get_type_index('game')!] as GameSection;
+			this.hideWaitingScreen();
+			if (data.round && data.players)
+				gameSection.showTournamentInfo(data.round, data.players, () => {
+					gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
+				});
+		} else {
+			console.error('Game ID not provided');
+		}
+	}
+
+	invite(data: any) {
+		if (this.overlay && this.message && this.cancelBtn && this.acceptBtn && this.declineBtn) {
+			this.message.innerHTML = `<b>${data.fromUsername}</b> invites you to a ${data.gameType} game.<br>Do you accept?`;
+			this.overlay.style.display = 'flex';
+
+			this.acceptBtn.onclick = () => {
+				this.overlay.style.display = 'none';
+				fetch('/api/invites/respond', {
+					method: 'POST',
+					credentials: 'include',
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						fromUserId: data.fromUserId,
+						accepted: true
+					})
+				});
+			};
+			this.declineBtn.onclick = () => {
+				this.overlay.style.display = 'none';
+				fetch('/api/invites/respond', {
+					method: 'POST',
+					credentials: 'include',
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						fromUserId: data.fromUserId,
+						accepted: false
+					})
+				});
+			};
+			this.cancelBtn.onclick = () => {
+				this.overlay.style.display = 'none';
+			};
+		}
+	}
+
+	inviteResult(data: any) {
+		if (this.overlay && this.message) {
+			this.overlay.style.display = 'flex';
+			if (data.accepted) {
+				this.message.innerHTML = `<b>${data.username}</b> accepted your invite!<br>Starting game...`;
+			} else {
+				this.message.innerHTML = `<b>${data.username}</b> declined your invite.`;
+			}
+			setTimeout(() => { this.overlay.style.display = 'none'; }, 1500);
+		}
 	}
 
 	hideWaitingScreen() {
@@ -229,8 +239,6 @@ export class User {
 
 function tournamentStart(tournamentId: string, bracket: string) {
 	go_section('chat', '');
-	const queueMsg = document.getElementById('queue-message-container');
-	if (queueMsg) queueMsg.style.display = 'none';
 	(sections[get_type_index('chat')!] as Chat).load_messages(get_user_messages());
 	let countdown = 10;
 
@@ -310,7 +318,6 @@ export async function add_message(username: string, message: string, type: strin
 	if (user === undefined)
 		return;
 	
-	
 	if (type === 'livechat') {
 		let messages: Array<Message>;
 		messages = user?.livechat;
@@ -363,7 +370,7 @@ export class OtherUser {
 
 		stats[1] += this.stat1;
 		stats[2] += this.stat2 + '%';
-		stats[3] += this.stat3 + '%';
+		stats[3] += this.stat3;
 		return stats;
 	}
 }

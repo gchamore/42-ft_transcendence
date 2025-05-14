@@ -122,15 +122,7 @@
    }
    ```
 
-7. **`error`**: Error message from server
-   ```javascript
-   {
-     type: "error",
-     message: "Error message"
-   }
-   ```
-
-8. **`gameOver`**: Game has ended
+7. **`gameOver`**: Game has ended
    ```javascript
    {
      type: "gameOver",

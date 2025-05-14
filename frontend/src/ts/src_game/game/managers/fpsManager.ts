@@ -7,16 +7,12 @@ export class FPSManager {
 
 	constructor() {
 		this.fpsCounterElement = document.getElementById('fps-counter');
-
-		// Create the FPS counter element if it doesn't exist
 		if (!this.fpsCounterElement) {
 			this.createFpsCounter();
 		}
 	}
 
-	/**
-	 * Create the FPS counter element if not present in the DOM
-	 */
+	//Create the FPS counter element if not present in the DOM
 	private createFpsCounter(): void {
 		this.fpsCounterElement = document.createElement('div');
 		this.fpsCounterElement.id = 'fps-counter';
@@ -34,22 +30,17 @@ export class FPSManager {
 		document.body.appendChild(this.fpsCounterElement);
 	}
 
-	/**
-	 * Toggle visibility of the FPS counter
-	 */
+	// Toggle visibility of the FPS counter
 	toggleVisibility(visible?: boolean): void {
 		if (!this.fpsCounterElement) return;
 
 		if (visible === undefined) {
-			// Toggle current state
 			const isVisible = this.fpsCounterElement.style.display !== 'none';
 			this.fpsCounterElement.style.display = isVisible ? 'none' : 'block';
 		} else {
-			// Set to specified value
 			this.fpsCounterElement.style.display = visible ? 'block' : 'none';
 		}
 	}
-
 
 	update(timestamp: number): void {
 		this.frameCount++;
@@ -68,10 +59,8 @@ export class FPSManager {
 	updateFpsDisplay(fps: number): void {
 		if (!this.fpsCounterElement) return;
 
-		// Update the FPS text
 		this.fpsCounterElement.textContent = `FPS: ${fps}`;
 
-		// Color-code based on performance
 		if (fps >= 50) {
 			this.fpsCounterElement.style.color = '#4CAF50'; // Green for good
 		} else if (fps >= 30) {

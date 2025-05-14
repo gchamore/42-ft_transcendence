@@ -6,7 +6,7 @@
 /*   By: anferre <anferre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/28 16:45:49 by anferre           #+#    #+#             */
-/*   Updated: 2025/04/28 16:45:53 by anferre          ###   ########.fr       */
+/*   Updated: 2025/05/14 16:18:30 by anferre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -141,10 +141,19 @@ export class PhysicManager {
 	}
 
 	checkCustomMapCollision(ball, players) {
-		// obstacle positions & half‐sizes from your createCustomMap (width=0.5, depth=3)
+
+		const CANVAS_WIDTH = GameConfig.CANVAS_WIDTH;
+		const CANVAS_HEIGHT = GameConfig.CANVAS_HEIGHT;
+		const scaleX = 20 / CANVAS_WIDTH;
+		const scaleY = 15 / CANVAS_HEIGHT;
+
+		const zPositions = [-2.5, 2.5];
+		const gameYPositions = zPositions.map(z => CANVAS_HEIGHT / 2 - z / scaleY);
+
+		// obstacle positions & half‐sizes
 		const obstacles = [
-			{ x: -3, y: 0, halfW: 0.25, halfH: 1.5 },
-			{ x: 3, y: 0, halfW: 0.25, halfH: 1.5 }
+			{ x: CANVAS_WIDTH / 2, y: gameYPositions[0], halfW: 0.15 / scaleX, halfH: 0.75 / scaleY },
+			{ x: CANVAS_WIDTH / 2, y: gameYPositions[1], halfW: 0.15 / scaleX, halfH: 0.75 / scaleY }
 		];
 
 		for (const obs of obstacles) {
@@ -173,7 +182,7 @@ export class PhysicManager {
 				// notify clients
 				players.forEach(player =>
 					safeSend(player, {
-						type: "obstacleBounce",
+						type: "wallBounce",
 						position: { x: ball.x, y: ball.y }
 					})
 				);
