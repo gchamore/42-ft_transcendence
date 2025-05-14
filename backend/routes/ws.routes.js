@@ -1,6 +1,7 @@
 import * as wsUtils from '../ws/ws.utils.js';
 import wsService from '../ws/ws.service.js';
 import authService from '../auth/auth.service.js';
+import authUtils from '../auth/auth.utils.js';
 
 
 export async function wsRoutes(fastify, options) {
@@ -17,7 +18,7 @@ export async function wsRoutes(fastify, options) {
 		const result = await wsUtils.handleLiveChatMessage(fastify, userId, message);
 
 		if (!result.success) {
-			return reply.code(400).send({ error: result.error });
+			return reply.code(400).send({ success: false, error: result.error });
 		}
 
 		return { success: true };
@@ -37,41 +38,42 @@ export async function wsRoutes(fastify, options) {
 		const result = await wsUtils.handleDirectMessage(fastify, senderId, to, message);
 
 		if (!result.success) {
-			return reply.code(400).send({ error: result.error });
+			return reply.code(400).send({ success: false, error: result.error });
 		}
 
 		if (result.warning) {
-			return reply.code(200).send({ warning: result.warning });
+			return reply.code(200).send({ success: false, warning: result.warning });
 		}
 
 		return { success: true };
 	});
 
 	fastify.get('/chats/:username', async (request, reply) => {
+	fastify.get('/chats/:username', async (request, reply) => {
 		const userId_1 = request.user.userId;
 		const to_username = request.params.username;
 
-		fastify.log.info(`Fetching chat for user: ${userId_1} with ${to_username}`);
-		if (!userId_1 || !to_username) {
-			return reply.status(401).send({ error: 'Unauthorized' });
-		}
+		if (!to_username)
+			return reply.code(400).send({ success: false, error: "Receiver username is required" });
 
-		// Vérifie si user2 existe
-		const user2 = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(to_username);
+		const checked_username = authUtils.checkUsername(fastify, to_username);
+		if (typeof checked === 'object' && checked.error)
+			return reply.status(400).send(checked);
+
+		const user2 = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(checked_username);
 		if (!user2) {
-			return reply.status(404).send({ error: 'User not found' });
+			return reply.code(404).send({ success: false, error: 'User not found' });
 		}
 		const userId_2 = user2.id;
 
 		if (userId_1 === userId_2) {
-			fastify.log.warn(`User ${userId_1} tried to start a chat with themselves`);
-			return reply.code(400).send({ success: false, error: "Cannot start a chat with yourself" });
+			return reply.code(400).send({ success: false, error: "You cannot chat with yourself" });
 		}
-		// Récupère ou crée le chat entre user1 et user2
+
 		let chat = fastify.db.prepare(`
-		SELECT * FROM chats
-		WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
-	`).get(userId_1, userId_2, userId_2, userId_1);
+			SELECT * FROM chats
+			WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
+		`).get(userId_1, userId_2, userId_2, userId_1);
 
 		if (!chat) {
 			const info = fastify.db.prepare(`
@@ -83,14 +85,14 @@ export async function wsRoutes(fastify, options) {
 
 		// Récupère les messages du chat
 		const messages = fastify.db.prepare(`
-		SELECT chat_messages.id, chat_messages.content, chat_messages.sent_at, users.username AS sender
-		FROM chat_messages
-		JOIN users ON users.id = chat_messages.sender_id
-		WHERE chat_id = ?
-		ORDER BY sent_at ASC
-	`).all(chat.id);
+			SELECT chat_messages.id, chat_messages.content, chat_messages.sent_at, users.username AS sender
+			FROM chat_messages
+			JOIN users ON users.id = chat_messages.sender_id
+			WHERE chat_id = ?
+			ORDER BY sent_at ASC
+		`).all(chat.id);
 
-		return reply.send({ messages });
+		return reply.code(200).send({ success: true, messages });
 	});
 
 
@@ -115,7 +117,7 @@ export async function wsRoutes(fastify, options) {
 
 			if (!accessToken && !refreshToken) {
 				fastify.log.warn('No access and refresh token provided');
-				return reply.code(401).send({ valid: false, message: 'No token provided' });
+				return reply.code(401).send({ success: false, message: 'No token provided' });
 			}
 
 			const result = await authService.validate_and_refresh_Tokens(fastify, accessToken, refreshToken);
@@ -135,7 +137,7 @@ export async function wsRoutes(fastify, options) {
 					.code(401)
 					.clearCookie('accessToken', cookieOptions)
 					.clearCookie('refreshToken', cookieOptions)
-					.send({ valid: false, message: 'Invalid or expired token' });
+					.send({ success: false, message: 'Invalid or expired token' });
 			}
 
 			if (result.newAccessToken) {

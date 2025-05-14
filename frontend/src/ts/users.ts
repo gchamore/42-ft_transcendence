@@ -82,10 +82,6 @@ export class User {
 		this.web_socket = new WebSocket(`wss://${window.location.host}/api/ws`);
 
 
-		this.web_socket.onopen = () => {
-			console.log('Connected to WebSocket');
-		}
-
 		this.web_socket.onmessage = (event) => {
 			try {
 				const data = JSON.parse(event.data);
@@ -129,8 +125,8 @@ export class User {
 			}
 		};
 
-		this.web_socket.onclose = (event) => {
-			console.log(`User WebSocket disconnected with code: ${event.code} and reason: ${event.reason}`);
+		this.web_socket.onclose = () => {
+			// console.log(`[${event.code}] Disconnected : ${event.reason}`);
 			update_user(undefined);
 		};
 

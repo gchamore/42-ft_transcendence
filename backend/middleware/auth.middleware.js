@@ -15,7 +15,7 @@ export async function authMiddleware(fastify, request, reply, done) {
 	// Check Access and Refresh tokens if they are provided
 	if (!accessToken && !refreshToken) {
 		fastify.log.warn('No access and refresh token provided');
-		return reply.code(401).send({ valid: false, message: 'No token provided' });
+		return reply.code(401).send({ error: "No token provided" });
     }
 
 	// Set cookie options :
@@ -64,6 +64,9 @@ export async function authMiddleware(fastify, request, reply, done) {
 
     } catch (error) {
         request.log.error(error, 'Auth middleware error');
-        reply.code(500).send({ error: 'Internal authentication error' });
+		reply.code(500).send({
+				success: false,
+				error: "Internal authentication error"
+			});
     }
 }

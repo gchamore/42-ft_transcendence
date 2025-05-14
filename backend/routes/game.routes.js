@@ -58,7 +58,8 @@ export async function gameRoutes(fastify, options) {
 	fastify.delete('/game/queue/leave', async (request, reply) => {
 		const userId = request.user?.userId;
 
-		if (!userId) return reply.code(401).send({ error: 'Unauthorized' });
+		if (!userId) 
+			return reply.code(401).send({ error: 'Unauthorized' });
 
 		const index = gameQueue.indexOf(userId);
 		if (index !== -1) {
@@ -154,7 +155,8 @@ export async function gameRoutes(fastify, options) {
 	// Tournament queue: leave
 	fastify.delete('/tournament/queue/leave', async (request, reply) => {
 		const userId = request.user?.userId;
-		if (!userId) return reply.code(401).send({ error: 'Unauthorized' });
+		if (!userId) 
+			return reply.code(401).send({ error: 'Unauthorized' });
 		const index = tournamentQueue.indexOf(userId);
 		if (index !== -1) {
 			tournamentQueue.splice(index, 1);
@@ -239,8 +241,9 @@ export async function gameRoutes(fastify, options) {
 
 	fastify.get('/game/history/:userId', async (request, reply) => {
 		const userId = request.params.userId;
-		if (!userId) return reply.code(400).send({ error: 'Missing userId' });
-
+		if (!userId) 
+			return reply.code(400).send({ error: 'Missing userId' });
+	
 		const games = fastify.db.prepare(`
 			SELECT 
 				id, player1_id, player2_id, score_player1, score_player2, winner_id, created_at

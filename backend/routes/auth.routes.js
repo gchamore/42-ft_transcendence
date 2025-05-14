@@ -18,46 +18,32 @@ export async function authRoutes(fastify, options) {
 	fastify.post("/register", async (request, reply) => {
 		const { username, password } = request.body;
 
-		const trimmedUsername = username ? username.trim() : '';
-
-		// Verify if the required fields are present
-		if (!trimmedUsername || !password) {
-			fastify.log.warn("Failed registration: username or password missing");
-			return reply.code(400).send({ error: "Username and password are required" });
-		}
-
-		const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1).toLowerCase();
-
-		// // Validate username format
-		// const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
-		// if (!usernameRegex.test(capitalizedUsername)) {
-		// 	return reply.code(400).send({
-		// 		error: "Username must be 3-20 characters, letters/numbers/underscores only."
-		// 	});
-		// }
-
-		// // Validate password strength
-		// const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-		// if (!passwordRegex.test(password)) {
-		// 	return reply.code(400).send({
-		// 		error: "Password must be at least 8 characters, include uppercase, lowercase, number, and special character."
-		// 	});
-		// }
-
-		// Verify if the username already exists in the database
-		const existingUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(capitalizedUsername);
-		if (existingUser) {
-			fastify.log.warn(`Failed registration: Username already taken (${capitalizedUsername})`);
-			return reply.code(400).send({ error: "Username already taken" });
-		}
+		if (!username || !password)
+			return reply.code(400).send({ success: false, error: "Username and password are required" });
 
 		// Register the user in the database
 		try {
+			const checked_username = authUtils.checkUsername(fastify, username);
+			if (typeof checked === 'object' && checked.error)
+				return reply.status(400).send(checked);
+
+			// // Validate password strength
+			// const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+			// if (!passwordRegex.test(password)) {
+			// 	return reply.code(400).send({ success: false, 
+			// 		error: "Password must be at least 8 characters, include uppercase, lowercase, number, and special character."
+			// 	});
+			// }
+			const existingUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(checked_username);
+			if (existingUser) {
+				fastify.log.warn(`Failed registration: Username already taken (${checked_username})`);
+				return reply.code(400).send({ success: false, error: "Username already taken" });
+			}
 			// Hash the password using bcrypt
 			const hashedPassword = await authUtils.hashPassword(password);
 
 			// Insert the user into the database
-			const result = fastify.db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(capitalizedUsername, hashedPassword);
+			const result = fastify.db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(checked_username, hashedPassword);
 			const newUserId = result.lastInsertRowid;
 
 			// Get the newly created user from the database
@@ -81,11 +67,7 @@ export async function authRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error(error, "Error during registration");
-			return reply.code(500).send({
-				success: false,
-				error: "Registration failed",
-				details: error.message
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error while registering user" });
 		}
 	});
 
@@ -107,7 +89,7 @@ export async function authRoutes(fastify, options) {
 			const user = fastify.db.prepare("SELECT username, password, is_google_account FROM users WHERE id = ?").get(userId);
 			if (!user) {
 				fastify.log.warn(`Failed to delete: User not found (ID: ${userId})`);
-				return reply.code(404).send({ error: "User not found" });
+				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 
 			fastify.log.info(`${user.username} Attempting to delete account`);
@@ -122,14 +104,14 @@ export async function authRoutes(fastify, options) {
 				// Check if the required fields are present
 				if (!password) {
 					fastify.log.warn("Failed to delete: missing fields");
-					return reply.code(400).send({ error: "Username and password are required" });
+					return reply.code(400).send({ success: false, error: "Password are required" });
 				}
 
 				// Check if the password is correct
 				const validPassword = await bcrypt.compare(password, user.password);
 				if (!validPassword) {
 					fastify.log.warn(`Failed to delete: Invalid password for user ${user.username}`);
-					return reply.code(401).send({ error: "Invalid password" });
+					return reply.code(401).send({ success: false, error: "Invalid password" });
 				}
 			}
 
@@ -177,16 +159,14 @@ export async function authRoutes(fastify, options) {
 
 			fastify.log.info(`Account deleted and games anonymized successfully`);
 
-			return reply.send({
+			return reply.code(200).send({
 				success: true,
 				message: "User deleted and games anonymized successfully"
 			});
 
 		} catch (error) {
 			fastify.log.error(error, `Error while deleting user`);
-			return reply.code(500).send({
-				error: "Failed to delete user"
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error while deleting user" });
 		}
 	});
 
@@ -195,46 +175,46 @@ export async function authRoutes(fastify, options) {
 	// If the user exists, return true
 	// If the user does not exist, return false
 	// This route is used to check if a username is already taken
-	fastify.get("/isUser/:username", async (request, reply) => {
-		const { username } = request.params;
-		fastify.log.info(`Verfication of user existence: ${username}`);
+	// fastify.get("/isUser/:username", async (request, reply) => {
+	// 	const { username } = request.params;
+	// 	fastify.log.info(`Verfication of user existence: ${username}`);
 
-		const user = fastify.db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-		const exists = !!user;
+	// 	const user = fastify.db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+	// 	const exists = !!user;
 
-		if (exists) {
-			fastify.log.info(`User found: ${username}\n`);
-		} else {
-			fastify.log.info(`User not found: ${username}\n`);
-		}
+	// 	if (exists) {
+	// 		fastify.log.info(`User found: ${username}\n`);
+	// 	} else {
+	// 		fastify.log.info(`User not found: ${username}\n`);
+	// 	}
 
-		return reply.send({ exists });
-	});
+	// 	return reply.code(200).send({ success: true, exists });
+	// });
 
 	/*** 📌 Route: GET USER ID ***/
 	// Get the user ID from the database using the username
 	// If the user exists, return the user ID
 	// If the user does not exist, return an error
 	// This route is used to get the user ID for the WebSocket connection
-	fastify.post("/getUserId", async (request, reply) => {
-		const { username } = request.body;
+	// fastify.post("/getUserId", async (request, reply) => {
+	// 	const { username } = request.body;
 
-		if (!username) {
-			fastify.log.warn("Attempt to get user ID without username");
-			return reply.code(400).send({ error: "Username is required" });
-		}
+	// 	if (!username) {
+	// 		fastify.log.warn("Attempt to get user ID without username");
+	// 		return reply.code(400).send({ success: false, error: "Username is required" });
+	// 	}
 
-		fastify.log.info(`Searching for ID for user: ${username}`);
+	// 	fastify.log.info(`Searching for ID for user: ${username}`);
 
-		const user = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(username);
-		if (!user) {
-			fastify.log.warn(`User not found: ${username}`);
-			return reply.code(404).send({ error: "User not found" });
-		}
+	// 	const user = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(username);
+	// 	if (!user) {
+	// 		fastify.log.warn(`User not found: ${username}`);
+	// 		return reply.code(404).send({ success: false, error: "User not found" });
+	// 	}
 
-		fastify.log.info(`User ID found for ${username}: ${user.id}`);
-		return { success: true, id: user.id };
-	});
+	// 	fastify.log.info(`User ID found for ${username}: ${user.id}`);
+	// 	return { success: true, id: user.id };
+	// });
 
 	/*** 📌 Route: LOGIN ***/
 	// Login a user
@@ -248,23 +228,29 @@ export async function authRoutes(fastify, options) {
 	fastify.post("/login", async (request, reply) => {
 		try {
 			const { username, password } = request.body;
-			fastify.log.info({ username }, "Tentative de connexion");
+
+			if (!username || !password)
+				return reply.code(400).send({ success: false, error: "Username and password are required" });
+			const checked_username = authUtils.checkUsername(fastify, username);
+			if (typeof checked === 'object' && checked.error) {
+				return reply.status(400).send(checked);
+			}
 
 			// Verify if user and password are provided and if password is valid using bcrypt
-			const user = fastify.db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+			const user = fastify.db.prepare("SELECT * FROM users WHERE username = ?").get(checked_username);
 			if (!user) {
 				fastify.log.warn(`Invalid credentials`);
-				return reply.code(401).send({ error: "Invalid credentials" });
+				return reply.code(401).send({ success: false, error: "Invalid credentials" });
 			}
-			
+
 			if (user.is_google_account) {
 				fastify.log.warn(`This account uses Google login. Please sign in with Google.`);
-				return reply.code(403).send({ error: "This account uses Google login. Please sign in with Google." });
+				return reply.code(403).send({ success: false, error: "This account uses Google login. Please sign in with Google." });
 			}
-			
+
 			if (!(await bcrypt.compare(password, user.password))) {
-				fastify.log.warn(`Login failed for: ${username}`);
-				return reply.code(401).send({ error: "Invalid credentials" });
+				fastify.log.warn(`Login failed for: ${checked_username}`);
+				return reply.code(401).send({ success: false, error: "Invalid credentials" });
 			}
 
 			// Verify if 2FA is active for the user
@@ -292,7 +278,7 @@ export async function authRoutes(fastify, options) {
 			authUtils.ft_setCookie(reply, accessToken, 15, isLocal); // accessToken : 15 min
 			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal); // refreshToken : 7 jours
 
-			reply.code(200).send({
+			return reply.code(200).send({
 				success: true,
 				message: "Login successful",
 				id: user.id,
@@ -302,9 +288,7 @@ export async function authRoutes(fastify, options) {
 			});
 		} catch (error) {
 			fastify.log.error(error, "Error during login attempt");
-			return reply.code(500).send({
-				error: "Login failed"
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error during login" });
 		}
 	});
 
@@ -321,14 +305,14 @@ export async function authRoutes(fastify, options) {
 		const refreshToken = request.cookies.refreshToken;
 		// Check if the refresh token is provided
 		if (!refreshToken) {
-			return reply.code(401).send({ error: "No refresh token provided" });
+			return reply.code(401).send({ success: false, error: "No refresh token provided" });
 		}
 
 		try {
 			// Vérifier si le refresh token est valide
 			const newAccessToken = await authService.refreshAccessToken(refreshToken);
 			if (!newAccessToken) {
-				return reply.code(401).send({ error: "Invalid refresh token" });
+				return reply.code(401).send({ success: false, error: "Invalid refresh token" });
 			}
 
 			// Décoder le token pour obtenir l'userId
@@ -346,15 +330,13 @@ export async function authRoutes(fastify, options) {
 			fastify.log.info('Access token refreshed successfully for user:', user.username);
 
 			return reply.code(200).send({
-				valid: true,
+				success: true,
 				username: user.username
 			});
 
 		} catch (error) {
 			fastify.log.error(error, `Error during token refresh`);
-			return reply.code(500).send({
-				error: "Failed to refresh token"
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error during token refresh" });
 		}
 	});
 
@@ -374,7 +356,7 @@ export async function authRoutes(fastify, options) {
 			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 			if (!user) {
 				fastify.log.info(`User not found for logout: ID ${userId}`);
-				return reply.code(404).send({ error: "User not found" });
+				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 			// Fermer la connexion WebSocket pour l'utilisateur et mettre à jour son statut
 			await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'User Logged Out');
@@ -402,10 +384,7 @@ export async function authRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error(error, 'Logout error:');
-			return reply.code(500).send({
-				error: 'Logout failed',
-				details: error.message
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error during logout" });
 		}
 	});
 
@@ -422,7 +401,7 @@ export async function authRoutes(fastify, options) {
 
 		if (!userId) {
 			fastify.log.info("Attempt to revoke without userId");
-			return reply.code(400).send({ error: "User ID is required" });
+			return reply.code(400).send({ success: false, error: "User ID is required" });
 		}
 
 		try {
@@ -430,7 +409,7 @@ export async function authRoutes(fastify, options) {
 			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 			if (!user) {
 				fastify.log.info(`User not found in fastify.db for revoke: ID ${userId}`);
-				return reply.code(404).send({ error: "User not found" });
+				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 
 			fastify.log.info(`Revoking tokens for user: ${user.username} (ID: ${userId})`);
@@ -466,9 +445,7 @@ export async function authRoutes(fastify, options) {
 
 		} catch (error) {
 			fastify.log.error('Revoke error:', error);
-			return reply.code(500).send({
-				error: 'Revoke failed'
-			});
+			return reply.code(500).send({ success: false, error: "Internal server error during token revocation" });
 		}
 	});
 
@@ -494,7 +471,7 @@ export async function authRoutes(fastify, options) {
 			// Check if the access token and refresh token are provided
 			if (!accessToken && !refreshToken) {
 				fastify.log.info('No token provided');
-				return reply.code(401).send({ valid: false, message: 'No token provided' });
+				return reply.code(200).send({ success: false, message: 'No token provided' });
 			}
 			// Validate the Access and if necessary, refresh the tokens
 			const result = await authService.validate_and_refresh_Tokens(fastify, accessToken, refreshToken);
@@ -513,10 +490,10 @@ export async function authRoutes(fastify, options) {
 					}
 				}
 				return reply
-					.code(401)
+					.code(200)
 					.clearCookie('accessToken', cookieOptions)
 					.clearCookie('refreshToken', cookieOptions)
-					.send({ valid: false, message: 'Invalid or expired token' });
+					.send({ success: false, message: 'Invalid or expired token' });
 			}
 			// If the access token has been refreshed, update the cookie
 			if (result.newAccessToken) {
@@ -528,14 +505,14 @@ export async function authRoutes(fastify, options) {
 			if (!user) {
 				fastify.log.warn(`User not found for ID: ${result.userId}`);
 				return reply
-					.code(401)
+					.code(200)
 					.clearCookie('accessToken', cookieOptions)
 					.clearCookie('refreshToken', cookieOptions)
-					.send({ valid: false, message: 'User not found' });
+					.send({ success: false, message: 'User not found' });
 			}
 
 			fastify.log.info('Token verified successfully for user:', user.username);
-			return reply.send({ valid: true, username: user.username, email: user.email, avatar: user.avatar });
+			return reply.code(200).send({ success: true, username: user.username, email: user.email, avatar: user.avatar });
 
 		} catch (error) {
 			fastify.log.error(error, 'Error during token verification');
@@ -543,7 +520,7 @@ export async function authRoutes(fastify, options) {
 				.code(500)
 				.clearCookie('accessToken', cookieOptions)
 				.clearCookie('refreshToken', cookieOptions)
-				.send({ valid: false, message: 'Token verification failed' });
+				.send({ success: false, error: 'Internal server error during token verification' });
 		}
 	});
 }
