@@ -75,12 +75,10 @@ export async function oauthRoutes(fastify, options) {
 
 			// If no 2FA, proceed with the normal process
 			const { accessToken, refreshToken } = await authService.generateTokens(user.id);
-			// Check if the application is running locally or in production
-			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Set cookies with tokens
-			authUtils.ft_setCookie(reply, accessToken, 15, isLocal);
-			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal);
+			authUtils.ft_setCookie(reply, accessToken, 15);
+			authUtils.ft_setCookie(reply, refreshToken, 7);
 
 			return reply.code(200).send({
 				success: true,
@@ -148,11 +146,10 @@ export async function oauthRoutes(fastify, options) {
 
 			// Generate access and refresh tokens
 			const { accessToken, refreshToken } = await authService.generateTokens(user.id);
-			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Send the response with the tokens in cookies
-			authUtils.ft_setCookie(reply, accessToken, 15, isLocal);
-			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal);
+			authUtils.ft_setCookie(reply, accessToken, 15);
+			authUtils.ft_setCookie(reply, refreshToken, 7);
 
 			return reply.code(201).send({
 				success: true,

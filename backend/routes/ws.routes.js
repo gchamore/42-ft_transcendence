@@ -141,7 +141,7 @@ export async function wsRoutes(fastify, options) {
 
 			if (result.newAccessToken) {
 				fastify.log.info('New access token generated, updating cookie');
-				authUtils.ft_setCookie(reply, result.newAccessToken, 15, isLocal);
+				authUtils.ft_setCookie(reply, result.newAccessToken, 15);
 			}
 
 			fastify.log.info('Token validated, fetching user info...');

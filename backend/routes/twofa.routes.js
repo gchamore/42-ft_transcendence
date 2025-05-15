@@ -133,10 +133,9 @@ export async function twofaroutes(fastify, options) {
 
 			// Generate the access and refresh tokens
 			const { accessToken, refreshToken } = await authService.generateTokens(user.id);
-			const isLocal = request.headers.host.startsWith("localhost");
 
-			authUtils.ft_setCookie(reply, accessToken, 15, isLocal);
-			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal);
+			authUtils.ft_setCookie(reply, accessToken, 15);
+			authUtils.ft_setCookie(reply, refreshToken, 7);
 
 			return reply.code(200).send({
 				success: true,
