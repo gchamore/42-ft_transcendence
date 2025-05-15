@@ -127,6 +127,8 @@ export class GameSection extends ASection {
 	logged_off = this.parent.querySelectorAll('.non-existent-class') as NodeListOf<Element>;
 	logged_in = this.parent.querySelectorAll('.non-existent-class') as NodeListOf<Element>;
 	dependencies = ['home'];
+	inGameQueue: boolean = false;
+	inTournamentQueue: boolean = false;
 
 
 	readonly settingsPage = document.getElementById('settings-page') as HTMLElement;
@@ -232,7 +234,26 @@ export class GameSection extends ASection {
 	}
 
 	async leave() {
-
+		if (this.inGameQueue) {
+			try {
+				await fetch('/api/game/queue/leave', {
+					method: 'DELETE',
+					credentials: 'include',
+					headers: { "Content-Type": "application/json" }
+				});
+			} catch (err) { }
+			this.inGameQueue = false;
+		}
+		if (this.inTournamentQueue) {
+			try {
+				await fetch('/api/tournament/queue/leave', {
+					method: 'DELETE',
+					credentials: 'include',
+					headers: { "Content-Type": "application/json" }
+				});
+			} catch (err) { }
+			this.inTournamentQueue = false;
+		}
 		this.settingsPage.style.display = 'none';
 		this.gamePage.style.display = 'none';
 		this.gameContainer.style.display = 'none';
@@ -271,9 +292,6 @@ export class GameSection extends ASection {
 			if (this.queueUsernameEntry) {
 				this.queueUsernameEntry.style.display = 'none';
 			}
-			if (inQueue) {
-				this.disableSidebarButtons();
-			}
 			return;
 		}
 
@@ -291,9 +309,6 @@ export class GameSection extends ASection {
 			if (this.queueUsernameEntry) {
 				this.queueUsernameEntry.style.display = 'block';
 			}
-			if ( inQueue) {
-				this.disableSidebarButtons();
-			}
 			if (this.tournamentUsernameInput && this.tournamentUsernameValidateBtn) {
 				this.tournamentUsernameInput.value = '';
 				const validateHandler = () => {
@@ -309,14 +324,12 @@ export class GameSection extends ASection {
 	hideQueueMessage() {
 		if (this.queueMessageContainer)
 			this.queueMessageContainer.style.display = 'none';
-		this.enableSidebarButtons();
 	}
 
 	// Add inside GameSection class
 
 	disableSidebarButtons() {
 		const home = sections[get_type_index('home')!] as any;
-		home.profile_btn.disabled = true;
 		home.friends_btn.disabled = true;
 		home.chat_btn.disabled = true;
 		home.play1v1_btn.disabled = true;
@@ -325,7 +338,6 @@ export class GameSection extends ASection {
 
 	enableSidebarButtons() {
 		const home = sections[get_type_index('home')!] as any;
-		home.profile_btn.disabled = false;
 		home.friends_btn.disabled = false;
 		home.chat_btn.disabled = false;
 		home.play1v1_btn.disabled = false;
@@ -337,7 +349,7 @@ export class GameSection extends ASection {
 			// console.error('play1v1: not logged in');
 			return;
 		}
-
+		
 		if (this.leaveQueueBtn) {
 			this.leaveQueueBtn.onclick = async () => {
 				try {
@@ -349,7 +361,10 @@ export class GameSection extends ASection {
 				} catch (err) {
 					// console.error('Error leaving queue:');
 					setTimeout(this.hideQueueMessage, 2000);
+					go_section('home', '');
 				}
+				this.inGameQueue = false;
+				this.enableSidebarButtons();
 				this.hideQueueMessage();
 			};
 		}
@@ -361,8 +376,12 @@ export class GameSection extends ASection {
 				body: JSON.stringify({ userId: user.userId })
 			});
 			if (resp.status === 202) {
+				this.disableSidebarButtons();
+				this.inGameQueue = true;
 				this.showQueueMessage('Waiting for an opponent...', 'game', true, false);
 			} else if (resp.ok) {
+				this.inGameQueue = true;
+				this.disableSidebarButtons();
 				return;
 			} else {
 				const err = await resp.json();
@@ -408,6 +427,8 @@ export class GameSection extends ASection {
 					go_section('home', '');
 					// console.error('Error leaving tournament queue:');
 				}
+				this.inTournamentQueue = false;
+				this.enableSidebarButtons();
 				this.hideQueueMessage();
 			};
 		}
@@ -426,9 +447,13 @@ export class GameSection extends ASection {
 				setTimeout(() => this.playTournament(), 2000);
 				return;
 			} else if (resp.status === 202) {
+				this.inTournamentQueue = true;
+				this.disableSidebarButtons();
 				this.showQueueMessage('Waiting for tournament players...', 'tournament', true, false);
 				setTimeout(this.hideQueueMessage, 2000);
 			} else if (resp.ok) {
+				this.inTournamentQueue = true;
+				this.disableSidebarButtons();
 				return;
 			} else {
 				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament', false, false);

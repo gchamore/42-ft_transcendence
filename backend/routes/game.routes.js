@@ -73,15 +73,9 @@ export async function gameRoutes(fastify, options) {
 	// —— TOURNAMENT ——
 	fastify.post('/tournament/queue', async (request, reply) => {
 		const { userId, displayName } = request.body;
+		
 		if (!userId || !displayName) {
 			return reply.code(401).send({ error: 'Unauthorized' });
-		}
-
-		const lowerDisplayName = displayName.trim().toLowerCase();
-		for (const name of tournamentDisplayNames.values()) {
-			if (name.toLowerCase() === lowerDisplayName) {
-				return reply.code(409).send({ error: 'Display name already taken' });
-			}
 		}
 
 		if (gameQueue.includes(userId)) {
@@ -91,6 +85,14 @@ export async function gameRoutes(fastify, options) {
 		if (tournamentQueue.includes(userId)) {
 			return reply.code(400).send({ error: 'Already in tournament queue' });
 		}
+
+		const lowerDisplayName = displayName.trim().toLowerCase();
+		for (const name of tournamentDisplayNames.values()) {
+			if (name.toLowerCase() === lowerDisplayName) {
+				return reply.code(409).send({ error: 'Display name already taken' });
+			}
+		}
+		
 		tournamentQueue.push(userId);
 		tournamentDisplayNames.set(userId, displayName);
 
