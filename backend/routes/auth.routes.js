@@ -318,22 +318,21 @@ export async function authRoutes(fastify, options) {
 		}
 
 		try {
-			// Vérifier si le refresh token est valide
+			// Verify if the refresh token is valid
 			const newAccessToken = await authService.refreshAccessToken(refreshToken);
 			if (!newAccessToken) {
 				return reply.code(401).send({ success: false, error: "Invalid refresh token" });
 			}
 
-			// Décoder le token pour obtenir l'userId
+			// Decode the new access token to get the userId
 			const decoded = jwt.verify(newAccessToken, JWT_SECRET);
 
-			// Récupérer les informations de l'utilisateur
+			// Recover the user information from the database
 			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(decoded.userId);
 
-			// Check if the application is running locally or in production
 			const isLocal = request.headers.host.startsWith("localhost");
 
-			// Définir le nouveau cookie avec le même format que verify_token
+			// Define cookie options
 			authUtils.ft_setCookie(reply, newAccessToken, 15, isLocal);
 
 			fastify.log.info('Access token refreshed successfully for user:', user.username);
@@ -361,17 +360,17 @@ export async function authRoutes(fastify, options) {
 		fastify.log.info('Processing logout for user:', userId);
 
 		try {
-			// Vérifier si l'utilisateur existe dans la base de données
+			// Verify if the user exists in the database
 			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 			if (!user) {
 				fastify.log.info(`User not found for logout: ID ${userId}`);
 				return reply.code(404).send({ success: false, error: "User not found" });
 			}
-			// Fermer la connexion WebSocket pour l'utilisateur et mettre à jour son statut
+			// Close the WebSocket connection for the user
 			await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'User Logged Out');
-			// Révoquer les tokens de l'utilisateur
+			// Revoke the user's tokens
 			await authService.revokeTokens(userId);
-			// Vérification de l'environnement local ou de production
+			// Verify if the application is running locally or in production
 			const isLocal = request.headers.host.startsWith("localhost");
 			const cookieOptions = {
 				path: '/',
@@ -382,7 +381,7 @@ export async function authRoutes(fastify, options) {
 
 			fastify.log.info('Logout successful for user:', userId);
 
-			// Effacer les cookies pour accessToken et refreshToken
+			// Erase the cookies for the tokens
 			return reply
 				.code(200)
 				.clearCookie('accessToken', cookieOptions)

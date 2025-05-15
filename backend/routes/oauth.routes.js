@@ -48,7 +48,7 @@ export async function oauthRoutes(fastify, options) {
 
 				const tempToken = await authService.generateTempToken(tempPayload, "google_oauth", 600);
 
-				// Répondre au frontend pour qu'il affiche le formulaire de choix de username
+				// Answer with a 202 status code and a message to choose a username
 				return reply.code(202).send({
 					step: "choose_username",
 					message: "Please choose a username to complete your Google account setup",
@@ -118,7 +118,7 @@ export async function oauthRoutes(fastify, options) {
 				return reply.code(400).send({ success: false, error: "Username already taken" });
 			}
 
-			// Créer l'utilisateur en DB avec les infos du token
+			// Create the user in the database
 			const result = fastify.db.prepare(`
 				INSERT INTO users (username, email, avatar, is_google_account, google_name)
 				VALUES (?, ?, ?, 1, ?)
@@ -126,10 +126,10 @@ export async function oauthRoutes(fastify, options) {
 
 			const userId = result.lastInsertRowid;
 
-			// Récupérer le user
+			// Get the user from the database
 			const user = fastify.db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 
-			// Si 2FA activé (ce qui ne devrait pas être le cas pour un nouveau user normalement ?)
+			// If 2FA is enabled for the user Should not happen during registering
 			if (user.twofa_secret) {
 				try {
 					const tempToken = await authService.generateTempToken({ userId: user.id }, "2fa", 300);
@@ -146,7 +146,7 @@ export async function oauthRoutes(fastify, options) {
 				}
 			}
 
-			// Générer tokens JWT
+			// Generate access and refresh tokens
 			const { accessToken, refreshToken } = await authService.generateTokens(user.id);
 			const isLocal = request.headers.host.startsWith("localhost");
 
