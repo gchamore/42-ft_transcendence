@@ -140,6 +140,7 @@ export class User {
 					gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
 				});
 		} else {
+			go_section('home', '');
 			// console.error('Game ID not provided');
 		}
 	}

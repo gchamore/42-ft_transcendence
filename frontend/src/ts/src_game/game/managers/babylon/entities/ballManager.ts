@@ -23,7 +23,7 @@ export class BallManager {
 
 		if (!GameConfig.TEST_MODE) {
 			ballMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
-			ballMaterial.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+			ballMaterial.emissiveColor = new BABYLON.Color3(156/255, 41/255, 46/255);
 		}
 
 		this.ballMesh = BABYLON.MeshBuilder.CreateSphere(

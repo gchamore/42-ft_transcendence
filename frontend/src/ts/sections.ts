@@ -163,6 +163,7 @@ export class GameSection extends ASection {
 			this.gameContainer.style.display = 'none';
 			this.fpsCounter.style.display = 'none';
 		} else {
+			go_section('home', '');
 			console.error('No active game ID or tournament ID found');
 		}
 		if (this.queueMessageContainer)
@@ -181,6 +182,7 @@ export class GameSection extends ASection {
 			this.fpsCounter.style.display = 'none';
 			tournamentSettingsChosen = true;
 		} else {
+			go_section('home', '');
 			console.error('No active game ID or tournament ID found');
 		}
 	}
@@ -365,6 +367,7 @@ export class GameSection extends ASection {
 			} else {
 				const err = await resp.json();
 				this.showQueueMessage(`Queue error: ${err.error}`, 'game', false, false);
+				setTimeout(this.hideQueueMessage, 2000);
 			}
 		} catch (err) {
 			// console.error('play1v1: error');
@@ -401,6 +404,8 @@ export class GameSection extends ASection {
 						headers: { "Content-Type": "application/json" }
 					});
 				} catch (err) {
+					this.hideQueueMessage();
+					go_section('home', '');
 					// console.error('Error leaving tournament queue:');
 				}
 				this.hideQueueMessage();
@@ -422,10 +427,12 @@ export class GameSection extends ASection {
 				return;
 			} else if (resp.status === 202) {
 				this.showQueueMessage('Waiting for tournament players...', 'tournament', true, false);
+				setTimeout(this.hideQueueMessage, 2000);
 			} else if (resp.ok) {
 				return;
 			} else {
 				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament', false, false);
+				setTimeout(this.hideQueueMessage, 2000);
 			}
 		} catch (err) {
 			// console.error('playTournament: error');
