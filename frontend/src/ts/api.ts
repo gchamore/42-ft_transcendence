@@ -27,7 +27,8 @@ export async function verify_token(): Promise<void> {
 		update_user(new User(data.username, data.id, data.email, data.avatar));
 
 	} catch (error) {
-		console.error("/api/verify_token error:", error);
+		// console.error("/api/verify_token error:", error);
+		showError("Session expired");
 		update_user(undefined);
 	}
 }
@@ -59,7 +60,8 @@ export async function register(username: string, password: string) {
 		}
 
 	} catch (error) {
-		console.error("/api/register error:", error);
+		// console.error("/api/register error:", error);
+		showError("Sorry, Registering failed");
 	}
 }
 
@@ -94,7 +96,8 @@ export async function login(username: string, password: string) {
 		showSuccess(`Welcome back, ${username} !`);
 
 	} catch (error) {
-		console.error("/api/login error:", error);
+		// console.error("/api/login error:", error);
+		showError("Sorry, login failed");
 	}
 }
 
@@ -107,13 +110,10 @@ export async function logout(): Promise<void> {
 		});
 		const data = await response.json();
 
-		if (!response.ok || !data.success) {
-			if (response.status === 401 || !data.success) {
-				if (user?.web_socket?.readyState === WebSocket.OPEN)
-					user.web_socket.close(1000);
-				update_user(undefined);
-				return;
-			}
+		if (response.status === 401 || !response.ok || !data.success) {
+			if (user?.web_socket?.readyState === WebSocket.OPEN)
+				user.web_socket.close(1000);
+			update_user(undefined);
 			const errorMessage = data?.error || "Logout failed";
 			showError(errorMessage);
 			return;
@@ -125,7 +125,8 @@ export async function logout(): Promise<void> {
 		showSuccess(`Successfully\nlogged out!`);
 
 	} catch (error) {
-		console.error("/api/logout error:", error);
+		// console.error("/api/logout error:", error);
+		showError("Sorry, logout failed");
 	}
 }
 
@@ -146,6 +147,8 @@ export async function search(friend_username: string): Promise<OtherUser | Error
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return undefined;
 		}
 
@@ -163,7 +166,8 @@ export async function search(friend_username: string): Promise<OtherUser | Error
 		}
 
 	} catch (error) {
-		console.error(`/api/search/${friend_username} error:`, error);
+		// console.error(`/api/search/${friend_username} error:`, error);
+		showError("Sorry, search failed");
 	}
 	return undefined;
 }
@@ -184,6 +188,8 @@ export async function add(friend_username: string): Promise<boolean | Error> {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return false;
 		}
 
@@ -196,7 +202,8 @@ export async function add(friend_username: string): Promise<boolean | Error> {
 		return data.success;
 
 	} catch (error) {
-		console.error(`/api/add/${friend_username} error:`, error);
+		// console.error(`/api/add/${friend_username} error:`, error);
+		showError("Sorry, adding friend failed");
 		return false;
 	}
 }
@@ -217,6 +224,8 @@ export async function remove(friend_username: string): Promise<boolean | Error> 
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return false;
 		}
 
@@ -229,7 +238,8 @@ export async function remove(friend_username: string): Promise<boolean | Error> 
 		return data.success;
 
 	} catch (error) {
-		console.error(`/api/remove/${friend_username} error:`, error);
+		// console.error(`/api/remove/${friend_username} error:`, error);
+		showError("Sorry, removing friend failed");
 		return false;
 	}
 }
@@ -261,6 +271,8 @@ export async function send(message: string, type: string, to: string = ''): Prom
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return false;
 		}
 
@@ -272,23 +284,24 @@ export async function send(message: string, type: string, to: string = ''): Prom
 		return data.success;
 
 	} catch (error) {
-		console.error(`/api/${type} error:`, error);
+		// console.error(`/api/${type} error:`, error);
+		showError("Sorry, sending message failed");
 		return false;
 	}
 }
 
 export interface t_DirectMessage {
-    id: number;
-    content: string;
-    sent_at: string;
-    sender: string;
+	id: number;
+	content: string;
+	sent_at: string;
+	sender: string;
 }
 
 export interface ChatResponse {
-    messages: t_DirectMessage[];
+	messages: t_DirectMessage[];
 }
 
-export async function get_direct_messages(username : string): Promise<ChatResponse | undefined> {
+export async function get_direct_messages(username: string): Promise<ChatResponse | undefined> {
 	try {
 		const response = await fetch(`/api/chats/${username}`, {
 			method: "GET",
@@ -296,12 +309,23 @@ export async function get_direct_messages(username : string): Promise<ChatRespon
 		});
 		const data = await response.json();
 
-		if (!response.ok) {
+		if (response.status === 401) {
+			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+				user.web_socket.close(1000);
+			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
+			return undefined;
+		}
+
+		if (!response.ok || !data.success) {
 			return undefined;
 		}
 		return data;
 	} catch (error) {
-        return undefined;
+		// console.error(`/api/chats/${username} error:`, error);
+		showError("Sorry, fetching messages failed");
+		return undefined;
 	}
 }
 
@@ -317,6 +341,8 @@ export async function get_blocked_users(): Promise<Array<string> | undefined> {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return undefined;
 		}
 
@@ -326,7 +352,8 @@ export async function get_blocked_users(): Promise<Array<string> | undefined> {
 
 		return data.blockedUsers;
 	} catch (error) {
-		console.error(`/api/blocked error:`, error);
+		// console.error(`/api/blocked error:`, error);
+		showError("Sorry, getting blocked users failed");
 		return undefined;
 	}
 }
@@ -347,6 +374,8 @@ export async function block(username: string): Promise<boolean> {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return false;
 		}
 
@@ -359,7 +388,8 @@ export async function block(username: string): Promise<boolean> {
 		return data.success;
 
 	} catch (error) {
-		console.error(`/api/block/${username} error:`, error);
+		// console.error(`/api/block/${username} error:`, error);
+		showError("Sorry, blocking user failed");
 		return false;
 	}
 }
@@ -380,6 +410,8 @@ export async function unblock(username: string): Promise<boolean> {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return false;
 		}
 
@@ -392,7 +424,8 @@ export async function unblock(username: string): Promise<boolean> {
 		return data.success;
 
 	} catch (error) {
-		console.error(`/api/unblock/${username} error:`, error);
+		// console.error(`/api/unblock/${username} error:`, error);
+		showError("Sorry, unblocking user failed");
 		return false;
 	}
 }
@@ -409,6 +442,8 @@ export async function setup2fa(): Promise<{ otpauth_url: string, qrCode: string 
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return undefined;
 		}
 
@@ -423,7 +458,8 @@ export async function setup2fa(): Promise<{ otpauth_url: string, qrCode: string 
 			qrCode: data.qrCode
 		};
 	} catch (error) {
-		console.error('/api/2fa/setup error:', error);
+		// console.error('/api/2fa/setup error:', error);
+		showError("Sorry, 2FA setup failed");
 		return undefined;
 	}
 }
@@ -444,6 +480,8 @@ export async function activate2fa(token: string): Promise<boolean> {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return false;
 		}
 
@@ -455,44 +493,48 @@ export async function activate2fa(token: string): Promise<boolean> {
 		showInfo(`2FA activated !`);
 		return data.success;
 	} catch (error) {
-		console.error('/api/2fa/activate error:', error);
+		// console.error('/api/2fa/activate error:', error);
+		showError("Sorry, 2FA activation failed");
 		return false;
 	}
 }
 
 export async function update(
-    username : string, email : string,
-    old_password : string, new_password : string): Promise<boolean> {
-    // console.log(old_password);
-    try {
-        let body = {username : username, email : email, old_password : old_password, new_password : new_password};
-        const response = await fetch('/api/update', {
-            method: 'PUT',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
-        });
-        const data = await response.json();
+	username: string, email: string,
+	old_password: string, new_password: string): Promise<boolean> {
+	// console.log(old_password);
+	try {
+		let body = { username: username, email: email, old_password: old_password, new_password: new_password };
+		const response = await fetch('/api/update', {
+			method: 'PUT',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(body)
+		});
+		const data = await response.json();
 
 		if (response.status === 401) {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return false;
 		}
-        if (!response.ok || !data.success) {
+		if (!response.ok || !data.success) {
 			const errorMessage = data?.error || "Updating account failed";
 			showError(errorMessage);
 			return false;
 		}
 		showSuccess(`Account updated !`);
-        return true;
-    } catch (error) {
-        console.error('/api/update error:', error);
-    }
-    return false;
+		return true;
+	} catch (error) {
+		// console.error('/api/update error:', error);
+		showError("Sorry, updating account failed");
+	}
+	return false;
 }
 
 export async function verify2fa(token: string, temp_token: string): Promise<boolean> {
@@ -520,7 +562,8 @@ export async function verify2fa(token: string, temp_token: string): Promise<bool
 
 		return data.success;
 	} catch (error) {
-		console.error('/api/2fa/verify error:', error);
+		// console.error('/api/2fa/verify error:', error);
+		showError("Sorry, 2FA verification failed");
 		return false;
 	}
 }
@@ -545,6 +588,8 @@ export async function disable2fa(password?: string): Promise<boolean> {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return false;
 		}
 
@@ -556,7 +601,8 @@ export async function disable2fa(password?: string): Promise<boolean> {
 
 		return data.success;
 	} catch (error) {
-		console.error('/api/2fa/disable error:', error);
+		// console.error('/api/2fa/disable error:', error);
+		showError("Sorry, disabling 2FA failed");
 		return false;
 	}
 }
@@ -573,6 +619,8 @@ export async function get2faStatus(): Promise<boolean | undefined> {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return undefined;
 		}
 
@@ -582,7 +630,8 @@ export async function get2faStatus(): Promise<boolean | undefined> {
 
 		return data.enabled;
 	} catch (error) {
-		console.error('/api/2fa/status error:', error);
+		// console.error('/api/2fa/status error:', error);
+		showError("Sorry, getting 2FA status failed");
 		return undefined;
 	}
 }
@@ -599,6 +648,8 @@ export async function getUserAccountType(): Promise<{ is_google_account: boolean
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return undefined;
 		}
 
@@ -608,7 +659,8 @@ export async function getUserAccountType(): Promise<{ is_google_account: boolean
 
 		return data.data;
 	} catch (error) {
-		console.error('/api/auth/account_type error:', error);
+		// console.error('/api/auth/account_type error:', error);
+		showError("Sorry, impossible to get your account");
 		return undefined;
 	}
 }
@@ -671,7 +723,8 @@ export async function processGoogleOAuth(code: string): Promise<void> {
 		}
 
 	} catch (error) {
-		console.error("api/auth/google error:", error);
+		// console.error("api/auth/google error:", error);
+		showError("Failed to process Google OAuth");
 	}
 }
 
@@ -702,12 +755,18 @@ async function completeGoogleRegistration(username: string, tempToken: string): 
 		}
 
 	} catch (error) {
-		console.error("api/auth/google/username error:", error);
+		// console.error("api/auth/google/username error:", error);
+		showError("Failed to complete Google registration");
 	}
 }
-
 export async function updateAvatar(file: File): Promise<boolean> {
 	try {
+		const maxSize = 2 * 1024 * 1024;
+		if (file.size > maxSize) {
+			showError("File size exceeds 2MB");
+			return false;
+		}
+
 		const formData = new FormData();
 		formData.append('avatar', file);
 
@@ -716,12 +775,22 @@ export async function updateAvatar(file: File): Promise<boolean> {
 			body: formData,
 			credentials: 'include'
 		});
-		const data = await response.json();
+
+		const text = await response.text();
+		let data;
+		try {
+			data = JSON.parse(text);
+		} catch (e) {
+			showError("Updating avatar failed");
+			return false;
+		}
 
 		if (response.status === 401) {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
 			return false;
 		}
 
@@ -741,20 +810,47 @@ export async function updateAvatar(file: File): Promise<boolean> {
 		}
 		return false;
 	} catch (error) {
-		console.error('/api/update_avatar error:', error);
+		// console.error('/api/update_avatar error:', error);
+		showError("Updating avatar failed");
 		return false;
 	}
 }
 
 
+
 export async function getGameHistory(userId: string) {
-	const resp = await fetch(`/api/game/history/${userId}`, {
-		method: 'GET',
-		credentials: 'include',
-		headers: { "Content-Type": "application/json" }
-	});
-	if (!resp.ok) throw new Error('Failed to fetch game history');
-	return (await resp.json()).games;
+	try {
+		const response = await fetch(`/api/game/history/${userId}`, {
+			method: 'GET',
+			credentials: 'include',
+			headers: { "Content-Type": "application/json" }
+		});
+
+		const data = await response.json();
+
+		if (response.status === 401) {
+			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
+				user.web_socket.close(1000);
+			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
+			throw new Error('Failed to fetch game history');
+		}
+
+		if (!response.ok || !data.success) {
+			throw new Error('Failed to fetch game history');
+		}
+
+		if (!data.games) {
+			showError("No game history available");
+			throw new Error("Missing 'games' in server response");
+		}
+		return data.games;
+	} catch (error) {
+		// console.error('/api/game/history error:', error);
+		showError("Fetching game history failed");
+		return;
+	}
 }
 
 
@@ -776,7 +872,7 @@ export async function unregister(password?: string): Promise<boolean> {
 				user.web_socket.close(1000);
 			update_user(undefined);
 
-			if (response.status === 401){
+			if (response.status === 401) {
 				const errorMessage = data?.error || "Session expired";
 				showError(errorMessage);
 				return false;
@@ -794,7 +890,8 @@ export async function unregister(password?: string): Promise<boolean> {
 		return true;
 
 	} catch (error) {
-		console.error('/api/unregister error:', error);
+		// console.error('/api/unregister error:', error);
+		showError("Sorry, unregistering failed");
 		return false;
 	}
 }
