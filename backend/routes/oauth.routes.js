@@ -110,8 +110,8 @@ export async function oauthRoutes(fastify, options) {
 			}
 
 			const checked_username = authUtils.checkUsername(fastify, username);
-			if (typeof checked === 'object' && checked.error) {
-				return reply.status(400).send(checked);
+			if (typeof checked_username === 'object' && checked_username.error) {
+				return reply.status(400).send({ success: false, error: checked_username.error });
 			}
 			const existingUser = fastify.db.prepare("SELECT 1 FROM users WHERE username = ?").get(checked_username);
 			if (existingUser) {

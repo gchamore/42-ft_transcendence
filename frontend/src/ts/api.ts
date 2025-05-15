@@ -484,13 +484,10 @@ export async function update(
 			showError(errorMessage);
 			return false;
 		}
-
-        if (data.success) {
-			showSuccess(`Account updated !`);
-            return true;
-        }
+		showSuccess(`Account updated !`);
+        return true;
     } catch (error) {
-        console.error('/api/2fa/verify error:', error);
+        console.error('/api/update error:', error);
     }
     return false;
 }

@@ -24,8 +24,8 @@ export async function authRoutes(fastify, options) {
 		// Register the user in the database
 		try {
 			const checked_username = authUtils.checkUsername(fastify, username);
-			if (typeof checked === 'object' && checked.error)
-				return reply.status(400).send(checked);
+			if (typeof checked_username === 'object' && checked_username.error)
+				return reply.status(400).send({ success: false, error: checked_username.error });
 
 			// // Validate password strength
 			// const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
@@ -232,8 +232,8 @@ export async function authRoutes(fastify, options) {
 			if (!username || !password)
 				return reply.code(400).send({ success: false, error: "Username and password are required" });
 			const checked_username = authUtils.checkUsername(fastify, username);
-			if (typeof checked === 'object' && checked.error) {
-				return reply.status(400).send(checked);
+			if (typeof checked_username === 'object' && checked_username.error) {
+				return reply.status(400).send({ success: false, error: checked_username.error });
 			}
 
 			// Verify if user and password are provided and if password is valid using bcrypt

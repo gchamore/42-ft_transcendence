@@ -56,8 +56,8 @@ export async function wsRoutes(fastify, options) {
 			return reply.code(400).send({ success: false, error: "Receiver username is required" });
 
 		const checked_username = authUtils.checkUsername(fastify, to_username);
-		if (typeof checked === 'object' && checked.error)
-			return reply.status(400).send(checked);
+		if (typeof checked_username === 'object' && checked_username.error)
+			return reply.status(400).send({ success: false, error: checked_username.error });
 
 		const user2 = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(checked_username);
 		if (!user2) {

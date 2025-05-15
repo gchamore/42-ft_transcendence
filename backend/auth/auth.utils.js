@@ -53,7 +53,6 @@ export class AuthUtils {
 
 		const capitalizedUsername = trimmedUsername.charAt(0).toUpperCase() + trimmedUsername.slice(1).toLowerCase();
 		const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
-
 		if (!usernameRegex.test(capitalizedUsername)) {
 			return { error: "Username must be 3-15 characters, letters/numbers/underscores only." };
 		}

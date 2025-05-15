@@ -20,8 +20,8 @@ export async function userRoutes(fastify, options) {
 				return reply.code(400).send({ success: false, error: "Username is required" });
 
 			const checked_friendUsername = authUtils.checkUsername(fastify, friendUsername);
-			if (typeof checked === 'object' && checked.error)
-				return reply.status(400).send(checked);
+			if (typeof checked === 'object' && checked_friendUsername.error)
+				return reply.status(400).send({ success: false, error: checked_friendUsername.error });
 
 			// Check if the user to be added exists
 			const friend = db.prepare("SELECT id, username FROM users WHERE username = ?").get(checked_friendUsername);
@@ -66,8 +66,8 @@ export async function userRoutes(fastify, options) {
 				return reply.code(400).send({ success: false, error: "Username is required" });
 
 			const checked_friendUsername = authUtils.checkUsername(fastify, friendUsername);
-			if (typeof checked === 'object' && checked.error)
-				return reply.status(400).send(checked);
+			if (typeof checked_friendUsername === 'object' && checked_friendUsername.error)
+				return reply.status(400).send({ success: false, error: checked_friendUsername.error });
 			// Check if the user to be removed exists
 			const friend = db.prepare("SELECT id FROM users WHERE username = ?").get(checked_friendUsername);
 			if (!friend) {
@@ -101,8 +101,8 @@ export async function userRoutes(fastify, options) {
 				return reply.code(400).send({ success: false, error: "Username is required" });
 
 			const checked_username = authUtils.checkUsername(fastify, searchedUsername);
-			if (typeof checked === 'object' && checked.error)
-				return reply.status(400).send(checked);
+			if (typeof checked_username === 'object' && checked_username.error)
+				return reply.status(400).send({ success: false, error: checked_username.error });
 
 			// Check if the user exists
 			const searchedUser = db.prepare(`
@@ -196,8 +196,8 @@ export async function userRoutes(fastify, options) {
 				return reply.code(400).send({ success: false, error: "Username is required" });
 
 			const checked_friendUsername = authUtils.checkUsername(fastify, blockedUsername);
-			if (typeof checked === 'object' && checked.error)
-				return reply.status(400).send({ success: false, checked});
+			if (typeof checked_friendUsername === 'object' && checked_friendUsername.error)
+				return reply.status(400).send({ success: false, error: checked_friendUsername.error });
 
 			// Check if the user to block exists
 			const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(checked_friendUsername);
@@ -242,8 +242,8 @@ export async function userRoutes(fastify, options) {
 				return reply.code(400).send({ success: false, error: "Username is required" });
 
 			const checked_friendUsername = authUtils.checkUsername(fastify, blockedUsername);
-			if (typeof checked === 'object' && checked.error)
-				return reply.status(400).send({ success: false, checked});
+			if (typeof checked_friendUsername === 'object' && checked_friendUsername.error)
+				return reply.status(400).send({ success: false, error: checked_friendUsername.error });
 
 			// Check if the user to unblock exists
 			const blockedUser = db.prepare("SELECT id FROM users WHERE username = ?").get(checked_friendUsername);
@@ -324,18 +324,24 @@ export async function userRoutes(fastify, options) {
 			let somethingUpdated = false;
 
 			// Username
-			if (username && username !== user.username) {
+			if (username) {
 				const checked_username = authUtils.checkUsername(fastify, username);
-				if (typeof checked === 'object' && checked.error) {
-					return reply.status(400).send(checked);
+				if (typeof checked_username === 'object' && checked_username.error)
+					return reply.status(400).send({ success: false, error: checked_username.error });
+			
+				if (checked_username !== user.username) {
+					const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(checked_username, userId);
+					if (exists) {
+						return reply.code(400).send({ success: false, error: "Username already taken" });
+					}
+					db.prepare("UPDATE users SET username = ? WHERE id = ?").run(checked_username, userId);
+					somethingUpdated = true;
+				} else {
+					fastify.log.info("Same username submitted, skipping update.");
 				}
-			
-				const exists = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(checked_username, userId);
-				if (exists) return reply.code(400).send({ success: false, error: "Username already taken" });
-			
-				db.prepare("UPDATE users SET username = ? WHERE id = ?").run(checked_username, userId);
-				somethingUpdated = true;
 			}
+			
+			
 
 			// Password
 			if (new_password) {
@@ -351,21 +357,23 @@ export async function userRoutes(fastify, options) {
 			}
 			
 			// Email
-			if (email && email !== user.email) {
-				fastify.log.info(`🔧 Attempt to update email with:, ${email}, ${userId}`);
-
+			if (email && email.trim() !== user.email) {
+				const trimmedEmail = email.trim();
+				fastify.log.info(`🔧 Attempt to update email with: ${trimmedEmail}, userId: ${userId}`);
+			
 				if (user.is_google_account) {
 					return reply.code(400).send({ success: false, error: "Cannot change email for Google-authenticated accounts" });
 				}
-
+			
 				const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-				if (!emailRegex.test(email)) {
+				if (!emailRegex.test(trimmedEmail)) {
 					return reply.code(400).send({ success: false, error: "Invalid email format" });
 				}
-
-				db.prepare("UPDATE users SET email = ? WHERE id = ?").run(email, userId);
+			
+				db.prepare("UPDATE users SET email = ? WHERE id = ?").run(trimmedEmail, userId);
 				somethingUpdated = true;
 			}
+			
 
 
 			if (!somethingUpdated)
