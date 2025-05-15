@@ -17,7 +17,7 @@ export class GameControls {
 	private remotePaddleBuffer: { time: number; position: number; height: number; speed: number }[] = [];
 	private paddleInterpolationDelay: number = 75;
 	private ballPositionBuffer: { time: number; position: { x: number, y: number }; speedX: number; speedY: number }[] = [];
-	private ballInterpolationDelay: number = 75;
+	private ballInterpolationDelay: number = 100;
 	private lastPaddleSendTime = 0;
 	private paddleSendInterval = 30;
 
@@ -318,7 +318,7 @@ export class GameControls {
 		});
 
 		// Keep only the last 10 positions
-		const maxBufferSize = 10;
+		const maxBufferSize = 30;
 		if (this.ballPositionBuffer.length > maxBufferSize) {
 			this.ballPositionBuffer = this.ballPositionBuffer.slice(-maxBufferSize);
 		}
@@ -362,7 +362,7 @@ export class GameControls {
 
 			if (!isNearWall && this.ballPositionBuffer.length >= 2) {
 				const timeElapsed = (now - latest.time) / 1000;
-				const safeTimeElapsed = Math.min(timeElapsed, 0.1);
+				const safeTimeElapsed = Math.min(timeElapsed, 0.05);
 				this.ball.x = latest.position.x + latest.speedX * safeTimeElapsed;
 				this.ball.y = latest.position.y + latest.speedY * safeTimeElapsed;
 			} else {
@@ -394,7 +394,7 @@ export class GameControls {
 	}
 
 	private cleanupBuffer(): void {
-		const maxAgeMs = 1000; // Keep positions from last second
+		const maxAgeMs = 500;
 		const now = performance.now();
 		this.ballPositionBuffer = this.ballPositionBuffer.filter(point =>
 			now - point.time < maxAgeMs);
