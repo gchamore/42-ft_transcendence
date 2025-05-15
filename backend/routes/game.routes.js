@@ -242,7 +242,7 @@ export async function gameRoutes(fastify, options) {
 	fastify.get('/game/history/:userId', async (request, reply) => {
 		const userId = request.params.userId;
 		if (!userId) 
-			return reply.code(400).send({ error: 'Missing userId' });
+			return reply.code(400).send({ success: false, error: 'Missing userId' });
 	
 		const games = fastify.db.prepare(`
 			SELECT 
@@ -271,7 +271,7 @@ export async function gameRoutes(fastify, options) {
 			player2_username: idToUsername[game.player2_id],
 			winner_username: idToUsername[game.winner_id],
 		}));
-		return reply.send({ games: gamesWithUsernames });
+		return reply.send({ success: true, games: gamesWithUsernames });
 	});
 
 	// Game WebSocket route

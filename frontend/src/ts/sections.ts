@@ -310,7 +310,7 @@ export class GameSection extends ASection {
 		if (this.queueMessageContainer)
 			this.queueMessageContainer.style.display = 'none';
 		this.enableSidebarButtons();
-	};
+	}
 
 	// Add inside GameSection class
 
@@ -1250,6 +1250,7 @@ class Settings extends ASection {
 			const result = await getGameHistory(String(user.userId));
 			const games = Array.isArray(result) ? result : result?.games || [];
 			if (!games || games.length === 0) {
+				console.log('No games found');
 				statsMessage.textContent = "No games played yet.";
 				return;
 			}

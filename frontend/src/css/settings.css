@@ -18,9 +18,14 @@
 #settings-content {
 	border: rgb(255, 255, 255) solid 3px;
 	flex-grow: 1;
+	flex-direction: column;
 }
 
-#settings-content div:not(.active) {
+#settings-content {
+	display: block;
+}
+
+#settings-content > div:not(.active) {
 	display: none;
 }
 

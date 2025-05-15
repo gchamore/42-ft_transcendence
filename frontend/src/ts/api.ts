@@ -816,8 +816,6 @@ export async function updateAvatar(file: File): Promise<boolean> {
 	}
 }
 
-
-
 export async function getGameHistory(userId: string) {
 	try {
 		const response = await fetch(`/api/game/history/${userId}`, {
@@ -825,9 +823,7 @@ export async function getGameHistory(userId: string) {
 			credentials: 'include',
 			headers: { "Content-Type": "application/json" }
 		});
-
 		const data = await response.json();
-
 		if (response.status === 401) {
 			if (user?.web_socket && user?.web_socket.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
@@ -836,14 +832,8 @@ export async function getGameHistory(userId: string) {
 			showError(errorMessage);
 			throw new Error('Failed to fetch game history');
 		}
-
 		if (!response.ok || !data.success) {
 			throw new Error('Failed to fetch game history');
-		}
-
-		if (!data.games) {
-			showError("No game history available");
-			throw new Error("Missing 'games' in server response");
 		}
 		return data.games;
 	} catch (error) {
