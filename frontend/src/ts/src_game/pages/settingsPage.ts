@@ -1,6 +1,6 @@
 import { SettingsService } from '../services/settingsServices.js';
 import { WebSocketService } from '../services/webSocketService.js';
-import { sections, get_type_index, GameSection } from '../../sections.js';
+import { sections, get_type_index, GameSection, go_section } from '../../sections.js';
 
 export class SettingsPage {
 	private ballSpeedSlider: HTMLInputElement;
@@ -100,6 +100,7 @@ export class SettingsPage {
 			const gameSection = sections[get_type_index('game')!] as GameSection;
 			gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
 		} else {
+			go_section('home', '');
 			// console.error('Game ID not provided');
 		}
 	}
@@ -132,6 +133,7 @@ export class SettingsPage {
 					gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
 				});
 		} else {
+			go_section('home', '');
 			// console.error('Game ID not provided');
 		}
 	}

@@ -167,9 +167,6 @@ export class BabylonManager {
 
 	public renderLocalPaddle(): void {
 		this.paddleManager.updatePositions();
-		if (!this.gameStarted) {
-			this.sceneManager.render();
-		}
 	}
 
 	public updateGameState(gameState: GameState): void {

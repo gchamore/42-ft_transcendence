@@ -12,7 +12,7 @@ export class SceneManager {
 
 		this.scene = new BABYLON.Scene(this.engine);
 		if (this.scene) {
-			this.scene.clearColor = new BABYLON.Color4(0.05, 0.05, 0.15, 1); // Dark blue
+			this.scene.clearColor = new BABYLON.Color4(0.35, 0.05, 0.07, 1); // Dark blue
 		}
 	}
 

@@ -14,7 +14,7 @@ export class EnvironmentFactory {
 		if (!this.scene) return;
 
 		const tableMaterial = new BABYLON.StandardMaterial("tableMaterial", this.scene);
-		tableMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.3);
+		tableMaterial.diffuseColor = new BABYLON.Color3(0.64, 0.40, 0.40);
 		tableMaterial.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
 
 		this.tableMesh = BABYLON.MeshBuilder.CreatePlane(
@@ -35,7 +35,7 @@ export class EnvironmentFactory {
 		if (!this.scene) return;
 
 		const wallMaterial = new BABYLON.StandardMaterial("wallMaterial", this.scene);
-		wallMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.3);
+		wallMaterial.diffuseColor = new BABYLON.Color3(0.57, 0.33, 0.33);
 		wallMaterial.alpha = 1;
 
 		// Top wall
@@ -89,7 +89,7 @@ export class EnvironmentFactory {
 		if (!this.scene) return;
 
 		const customMapMaterial = new BABYLON.StandardMaterial("customMapMaterial", this.scene);
-		customMapMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.1, 0.1);
+		customMapMaterial.diffuseColor = new BABYLON.Color3(0.64, 0.40, 0.40);
 		const hoverHeight = 0.15;
 
 		this.obstacle1 = BABYLON.MeshBuilder.CreateBox("obstacle1", { width: 0.3, height: 0.5, depth: 1.5 }, this.scene);

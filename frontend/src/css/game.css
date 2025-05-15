@@ -22,7 +22,7 @@
 /* Game Canvas */
 #gameCanvas {
     display: block;
-    border: 1px solid white;
+	border: none;
 }
 
 /* UI Canvas */
@@ -61,7 +61,7 @@
 
 #game-over-score {
     font-size: 22px;
-    color: #ffd700;
+    color: #22c55e;
     margin-bottom: 18px;
     margin-top: -10px;
     text-align: center;

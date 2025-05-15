@@ -18,6 +18,8 @@ export class GameControls {
 	private paddleInterpolationDelay: number = 75;
 	private ballPositionBuffer: { time: number; position: { x: number, y: number }; speedX: number; speedY: number }[] = [];
 	private ballInterpolationDelay: number = 75;
+	private lastPaddleSendTime = 0;
+	private paddleSendInterval = 30;
 
 	private babylonManager: BabylonManager;
 
@@ -141,8 +143,10 @@ export class GameControls {
 			needsUpdate = true;
 		}
 
-		if (needsUpdate || oldVelocity !== 0) {
+		const now = performance.now();
+		if ((needsUpdate || oldVelocity !== 0) && (now - this.lastPaddleSendTime > this.paddleSendInterval)) {
 			this.sendPaddleMovements(deltaTime);
+			this.lastPaddleSendTime = now;
 		}
 	}
 
