@@ -51,11 +51,10 @@ export async function authRoutes(fastify, options) {
 
 			// Generate the access and refresh tokens for the user
 			const { accessToken, refreshToken } = await authService.generateTokens(newUser.id);
-			const isLocal = request.headers.host.startsWith("localhost");
 
 			// Send the response with the tokens in cookies
-			authUtils.ft_setCookie(reply, accessToken, 15, isLocal);
-			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal);
+			authUtils.ft_setCookie(reply, accessToken, 15);
+			authUtils.ft_setCookie(reply, refreshToken, 7);
 
 			return reply.code(201).send({
 				success: true,
@@ -234,12 +233,9 @@ export async function authRoutes(fastify, options) {
 			// Generate access and refresh tokens
 			const { accessToken, refreshToken } = await authService.generateTokens(user.id);
 
-			// Check if the application is running locally or in production
-			const isLocal = request.headers.host.startsWith("localhost");
-
 			// Set the cookies for the tokens
-			authUtils.ft_setCookie(reply, accessToken, 15, isLocal); // accessToken : 15 min
-			authUtils.ft_setCookie(reply, refreshToken, 7, isLocal); // refreshToken : 7 jours
+			authUtils.ft_setCookie(reply, accessToken, 15); // accessToken : 15 min
+			authUtils.ft_setCookie(reply, refreshToken, 7); // refreshToken : 7 jours
 
 			return reply.code(200).send({
 				success: true,
@@ -284,10 +280,8 @@ export async function authRoutes(fastify, options) {
 			// Recover the user information from the database
 			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(decoded.userId);
 
-			const isLocal = request.headers.host.startsWith("localhost");
-
 			// Define cookie options
-			authUtils.ft_setCookie(reply, newAccessToken, 15, isLocal);
+			authUtils.ft_setCookie(reply, newAccessToken, 15);
 
 			fastify.log.info('Access token refreshed successfully for user:', user.username);
 
@@ -324,11 +318,10 @@ export async function authRoutes(fastify, options) {
 			await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'User Logged Out');
 			// Revoke the user's tokens
 			await authService.revokeTokens(userId);
-			// Verify if the application is running locally or in production
-			const isLocal = request.headers.host.startsWith("localhost");
+
 			const cookieOptions = {
 				path: '/',
-				secure: !isLocal,
+				secure: true,
 				httpOnly: true,
 				sameSite: 'None'
 			};
@@ -386,12 +379,9 @@ export async function authRoutes(fastify, options) {
 			// Revoke the user's tokens
 			await authService.revokeTokens(userId);
 
-			// Check if the application is running locally or in production
-			const isLocal = request.headers.host.startsWith("localhost");
-
 			const cookieOptions = {
 				path: '/',
-				secure: !isLocal,
+				secure: true,
 				httpOnly: true,
 				sameSite: 'None'
 			};
@@ -421,12 +411,11 @@ export async function authRoutes(fastify, options) {
 		const accessToken = request.cookies?.accessToken;
 		const refreshToken = request.cookies?.refreshToken;
 
-		const isLocal = request.headers.host.startsWith("localhost");
 		const cookieOptions = {
 			path: '/',
-			secure: !isLocal,
+			secure: true,
 			httpOnly: true,
-			sameSite: !isLocal ? 'None' : 'Lax'
+			sameSite: 'None'
 		};
 
 		try {
@@ -460,7 +449,7 @@ export async function authRoutes(fastify, options) {
 			// If the access token has been refreshed, update the cookie
 			if (result.newAccessToken) {
 				fastify.log.info('New access token generated, updating cookie');
-				authUtils.ft_setCookie(reply, result.newAccessToken, 15, isLocal);
+				authUtils.ft_setCookie(reply, result.newAccessToken, 15);
 			}
 			// If the tokens are valid, set the userId in the request object
 			const user = fastify.db.prepare("SELECT * FROM users WHERE id = ?").get(result.userId);

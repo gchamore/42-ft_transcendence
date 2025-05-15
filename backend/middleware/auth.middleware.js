@@ -10,7 +10,6 @@ import jwt from 'jsonwebtoken';
 export async function authMiddleware(fastify, request, reply, done) {
     const accessToken = request.cookies?.accessToken;
     const refreshToken = request.cookies?.refreshToken;
-	const isLocal = request.headers.host.startsWith("localhost");
 
 	// Check Access and Refresh tokens if they are provided
 	if (!accessToken && !refreshToken) {
@@ -21,9 +20,9 @@ export async function authMiddleware(fastify, request, reply, done) {
 	// Set cookie options :
 	const cookieOptions = {
 		path: '/',
-		secure: !isLocal,
+		secure: true,
 		httpOnly: true,
-		sameSite: !isLocal ? 'None' : 'Lax'
+		sameSite: 'none'
 	};
 
     try {
@@ -53,7 +52,7 @@ export async function authMiddleware(fastify, request, reply, done) {
 		// If the access token has been refreshed, update the cookie
         if (result.newAccessToken) {
             request.log.info('New access token generated, updating cookie');
-            authUtils.ft_setCookie(reply, result.newAccessToken, 15, isLocal);
+            authUtils.ft_setCookie(reply, result.newAccessToken, 15);
         }
 		// If the tokens are valid, set the userId in the request object
         request.user = {

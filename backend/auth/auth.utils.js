@@ -12,12 +12,12 @@ export class AuthUtils {
 	}
 
 	// Configure and set cookies with flexible expiration times
-	ft_setCookie(reply, token, duration, isLocal = false) {
+	ft_setCookie(reply, token, duration) {
 		const cookieOptions = {
-			httpOnly: true,
-			secure: !isLocal,
-			sameSite: isLocal ? 'Lax' : 'None',
 			path: '/',
+			secure: true,
+			httpOnly: true,
+			sameSite: 'None',
 		};
 
 		// accepted cases: 1min (debug), 5min, 15min or 7days
