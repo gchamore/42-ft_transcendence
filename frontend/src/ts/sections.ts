@@ -885,7 +885,8 @@ export class Chat extends ASection {
 			chat_box_childNodes[i].remove();
 
 		for (let i = messages.length - 1; i >= 0; --i) {
-			let element = document.createElement('label');
+			let element = document.createElement('li');
+			element.classList.add('except');
 			element.textContent = messages[i].format_message();
 			this.chat_box.appendChild(element);
 		}
@@ -1420,7 +1421,8 @@ export class DirectMessage extends ASection {
 			chat_box_childNodes[i].remove();
 
 		for (let i = 0; i < 20 && i < messages.messages.length; ++i) {
-			let element = document.createElement('label');
+			let element = document.createElement('li');
+			element.classList.add('except');
 			element.textContent = this.format_direct_messages(messages.messages[i]);
 			this.chat_box.appendChild(element);
 		}

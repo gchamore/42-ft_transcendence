@@ -60,7 +60,7 @@
 
 .not-found:not(.active),
 .found:not(.active),
-.found li.online:not(.active){
+.found li:not(.except).online:not(.active){
     display: none;
 }
 
@@ -76,7 +76,7 @@
     border-radius: 4% / 8.8%;
 }
 
-#chat-box label, #directmessage-box label {
+#chat-box li, #directmessage-box li {
     white-space: normal;
     overflow-wrap: break-word;
     flex-shrink: 0;
@@ -119,7 +119,7 @@
     height: 260px;
 }
 
-ul.boxes li {
+ul.boxes li:not(.except) {
     flex-shrink: 0;
     text-align: center;
     width: 90%;
@@ -128,12 +128,12 @@ ul.boxes li {
     border-radius: 5% / 20%;
     transition: none;
 }
-ul.boxes li:hover {
+ul.boxes li:not(.except):hover {
     background-color: rgb(156, 41, 46);
     transform: none;
 }
 
-ul.boxes li.active {
+ul.boxes li:not(.except).active {
     background-color: rgb(58, 44, 204);
 }
 /* --------- */
@@ -141,7 +141,7 @@ ul.boxes li.active {
 
 
 /* Navigation */
-ul.modal li {
+ul.modal li:not(.except) {
     border-radius: 12% / 26%;
     height: 55px;
     position: absolute;
@@ -150,24 +150,24 @@ ul.modal li {
     pointer-events: auto;
 }
 
-ul.modal li:active {
+ul.modal li:not(.except):active {
     transform: scale(0.85);
 }
 
-li.l1 {
+li:not(.except).l1 {
     left: 5%;
 }
 
-li.l2 {
+li:not(.except).l2 {
     width: 120px; 
     left: calc(50% - 60px);
 }
 
-li.l3 {
+li:not(.except).l3 {
     right: 5%;
 }
 
-ul.modal li button {
+ul.modal li:not(.except) button {
     width: 120px;
     height: 50px;
     position: relative;

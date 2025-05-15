@@ -3,7 +3,6 @@
 	box-sizing: border-box;
 	margin: 0;
 	padding: 0;
-	overflow: hidden;
 }
 
 body {
@@ -40,7 +39,7 @@ input {
 	font-weight: bolder;
 }
 
-li.hidden {
+li:not(.except).hidden {
 	display: none;
 }
 
@@ -106,7 +105,7 @@ button {
 	background: none;
 }
 
-li {
+li:not(.except) {
 	background-color: rgb(153, 29, 35);
 
 	border-color: black;
@@ -116,7 +115,7 @@ li {
 	transition: transform 0.1s ease-in-out;
 }
 
-li:hover {
+li:not(.except):hover {
 	background-color: rgb(156, 41, 46);
 	transform: scale(1.05);
 }

@@ -25,11 +25,11 @@ ul.sidebar li{
     border-radius: 50%;
 }
 
-ul.sidebar li:active {
+ul.sidebar li:not(.except):active {
     transform: scale(0.90) rotateZ(180deg);
 }
 
-ul.sidebar li button{
+ul.sidebar li:not(.except) button{
     height: 80px;
     width: 80px;
     overflow:visible;
