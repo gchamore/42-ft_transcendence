@@ -748,7 +748,9 @@ class Friends extends ASection {
 			}
 
 			this.btn3.onclick = () => {
-				window.location.href = "directmessage" + '/' + this.anotherUser?.username;
+				if (this.anotherUser?.username) {
+					go_section('directmessage', this.anotherUser.username);
+				}
 			};
 			this.btn3.textContent = 'Message';
 
@@ -1367,8 +1369,8 @@ export class DirectMessage extends ASection {
 			add_message(this.friend_username!, this.message.value, 'direct_message');
 			this.message.value = '';
 		}
-		this.load_messages(await get_direct_messages(this.friend_username!));
 		this.activate_section();
+		this.load_messages(await get_direct_messages(this.friend_username!));
 	}
 	leave() {
 		this.btn1.textContent = '';
