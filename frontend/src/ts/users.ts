@@ -1,4 +1,4 @@
-import { update_status, DirectMessage, update_sections, Chat, Actions, get_type_index, sections, section_index, set_section_index, GameSection, go_section } from "./sections.js";
+import { update_status, DirectMessage, update_sections, Chat, Actions, get_type_index, sections, section_index, set_section_index, GameSection, go_section,  showInviteOverlay } from "./sections.js";
 import { get_direct_messages } from "./api.js";
 
 /* Global variables */
@@ -146,50 +146,49 @@ export class User {
 	}
 
 	invite(data: any) {
-		if (this.overlay && this.message && this.cancelBtn && this.acceptBtn && this.declineBtn) {
-			this.message.innerHTML = `<b>${data.fromUsername}</b> invites you to a ${data.gameType} game.<br>Do you accept?`;
-			this.overlay.style.display = 'flex';
-
-			this.acceptBtn.onclick = () => {
-				this.overlay.style.display = 'none';
-				fetch('/api/invites/respond', {
-					method: 'POST',
-					credentials: 'include',
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						fromUserId: data.fromUserId,
-						accepted: true
-					})
-				});
-			};
-			this.declineBtn.onclick = () => {
-				this.overlay.style.display = 'none';
-				fetch('/api/invites/respond', {
-					method: 'POST',
-					credentials: 'include',
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						fromUserId: data.fromUserId,
-						accepted: false
-					})
-				});
-			};
-			this.cancelBtn.onclick = () => {
-				this.overlay.style.display = 'none';
-			};
-		}
+		showInviteOverlay(
+			`<b>${data.fromUsername}</b> invites you to a ${data.gameType} game.<br>Do you accept?`,
+			{
+				showAccept: true,
+				showDecline: true,
+				onAccept: () => {
+					document.getElementById('invite-waiting-overlay')!.style.display = 'none';
+					fetch('/api/invites/respond', {
+						method: 'POST',
+						credentials: 'include',
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							fromUserId: data.fromUserId,
+							accepted: true
+						})
+					});
+				},
+				onDecline: () => {
+					document.getElementById('invite-waiting-overlay')!.style.display = 'none';
+					fetch('/api/invites/respond', {
+						method: 'POST',
+						credentials: 'include',
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							fromUserId: data.fromUserId,
+							accepted: false
+						})
+					});
+				}
+			}
+		);
 	}
 
 	inviteResult(data: any) {
-		if (this.overlay && this.message) {
-			this.overlay.style.display = 'flex';
-			if (data.accepted) {
-				this.message.innerHTML = `<b>${data.username}</b> accepted your invite!<br>Starting game...`;
-			} else {
-				this.message.innerHTML = `<b>${data.username}</b> declined your invite.`;
-			}
-			setTimeout(() => { this.overlay.style.display = 'none'; }, 1500);
-		}
+		showInviteOverlay(
+			data.accepted
+				? `<b>${data.username}</b> accepted your invite!<br>Starting game...`
+				: `<b>${data.username}</b> declined your invite.`,
+			{}
+		);
+		setTimeout(() => {
+			document.getElementById('invite-waiting-overlay')!.style.display = 'none';
+		}, 1500);
 	}
 
 	hideWaitingScreen() {

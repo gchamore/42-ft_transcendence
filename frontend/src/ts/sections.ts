@@ -1098,26 +1098,10 @@ export class Actions extends ASection {
 	}
 
 	showInviteWaitingScreen(username: string) {
-		const overlay = document.getElementById('invite-waiting-overlay') as HTMLElement;
-		const message = document.getElementById('invite-waiting-message') as HTMLElement;
-		const cancelBtn = document.getElementById('cancel-invite-btn') as HTMLElement;
-		const acceptBtn = document.getElementById('accept-invite-btn') as HTMLElement;
-		const declineBtn = document.getElementById('decline-invite-btn') as HTMLElement;
-
-		if (overlay && message) {
-			message.innerHTML = `Waiting for <b>${username}</b> to accept your invite...`;
-			overlay.style.display = 'flex';
-
-			// Show only the Cancel button for the inviter
-			if (cancelBtn) {
-				cancelBtn.style.display = 'block';
-				cancelBtn.onclick = () => {
-					overlay.style.display = 'none';
-				};
-			}
-			if (acceptBtn) acceptBtn.style.display = 'none';
-			if (declineBtn) declineBtn.style.display = 'none';
-		}
+		showInviteOverlay(
+			`Waiting for <b>${username}</b> to accept your invite...`,
+			{ showCancel: true }
+		);
 	}
 }
 
@@ -1640,4 +1624,33 @@ export function showTwofaVerificationModal(tempToken: string, username: string) 
 			modal.style.display = 'none';
 		}
 	};
+}
+
+export function showInviteOverlay(message: string, options: { showCancel?: boolean, showAccept?: boolean, showDecline?: boolean, onCancel?: () => void, onAccept?: () => void, onDecline?: () => void } = {}) {
+	const overlay = document.getElementById('invite-waiting-overlay') as HTMLElement;
+	const msg = document.getElementById('invite-waiting-message') as HTMLElement;
+	const cancelBtn = document.getElementById('cancel-invite-btn') as HTMLButtonElement;
+	const acceptBtn = document.getElementById('accept-invite-btn') as HTMLButtonElement;
+	const declineBtn = document.getElementById('decline-invite-btn') as HTMLButtonElement;
+
+	if (!overlay || !msg) return;
+
+	msg.innerHTML = message;
+	overlay.style.display = 'flex';
+
+	// Cancel button
+	if (cancelBtn) {
+		cancelBtn.style.display = options.showCancel ? 'block' : 'none';
+		cancelBtn.onclick = options.onCancel || (() => { overlay.style.display = 'none'; });
+	}
+	// Accept button
+	if (acceptBtn) {
+		acceptBtn.style.display = options.showAccept ? 'block' : 'none';
+		acceptBtn.onclick = options.onAccept || (() => { });
+	}
+	// Decline button
+	if (declineBtn) {
+		declineBtn.style.display = options.showDecline ? 'block' : 'none';
+		declineBtn.onclick = options.onDecline || (() => { });
+	}
 }
