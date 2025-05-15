@@ -896,8 +896,6 @@ export class Chat extends ASection {
 		if (await send(input, 'livechat') === true) {
 			add_message(user!.name, input, 'livechat');
 		}
-		else
-			this.leave();
 	}
 }
 
@@ -1003,10 +1001,12 @@ export class Actions extends ASection {
 		});
 		this.load_mutex = false;
 	}
-	click(element: HTMLLIElement) {
+	async click(element: HTMLLIElement) {
 		if (this.current?.textContent === element.textContent) {
-			element.classList.remove('active');
-			this.current = undefined;
+			let username = element.textContent;
+			go_section('friends', '');
+			await (sections[get_type_index('friends')!] as Friends).search(username!);
+			return;
 		}
 		else {
 			element.classList.add('active');

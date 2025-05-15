@@ -69,7 +69,6 @@
     display: flex;
     flex-direction: column;
     justify-content: end;
-    overflow: auto;
     margin: 10px;
     width: 440px;
     height: 200px;
@@ -78,6 +77,8 @@
 }
 
 #chat-box label, #directmessage-box label {
+    white-space: normal;
+    overflow-wrap: break-word;
     flex-shrink: 0;
     padding-left: 5px;
     font-size: small;
@@ -116,7 +117,6 @@
     align-items: center;
     padding: 5px;
     height: 260px;
-    overflow-y: auto;
 }
 
 ul.boxes li {
