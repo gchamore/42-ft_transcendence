@@ -1,4 +1,5 @@
 import * as wsUtils from './ws.utils.js';
+import { cleanGameTournamentQueue } from '../routes/game.routes.js';
 
 export class WebSocketService {
 
@@ -75,7 +76,9 @@ export class WebSocketService {
 					clearInterval(pingInterval);
 					return;
 				}
-		
+
+				cleanGameTournamentQueue(userId);
+				
 				connection.socket.isDisconnecting = true;
 
 				fastify.log.warn(`❌ Unexpected WebSocket close for user ${username} [connID: ${connectionId}] - Code: ${code} Reason: "${reason}"`);
