@@ -33,8 +33,8 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 				}
 			}
 		} else {
-			let player1 = game.players.get(1);
-			let player2 = game.players.get(2);
+			let player1 = Array.from(game.players.values()).find(s => s.playerNumber === 1);
+			let player2 = Array.from(game.players.values()).find(s => s.playerNumber === 2);
 			if (player1 && player1.clientId)
 				player1Name = fastify.db.prepare('SELECT username FROM users WHERE id = ?').get(player1.clientId)?.username || player1Name;
 			if (player2 && player2.clientId)
