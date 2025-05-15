@@ -213,6 +213,12 @@ export async function gameRoutes(fastify, options) {
 			return reply.code(400).send({ error: 'Missing fields' });
 		}
 
+		let username = request.user?.username;
+		if (!username) {
+			const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
+			username = user?.username;
+		}
+
 		// Notify inviter via WebSocket
 		const inviterConnections = fastify.connections.get(String(fromUserId));
 		if (inviterConnections) {
@@ -220,7 +226,7 @@ export async function gameRoutes(fastify, options) {
 				socket.send(JSON.stringify({
 					type: 'inviteResult',
 					accepted,
-					username: request.user?.username
+					username
 				}));
 				break;
 			}

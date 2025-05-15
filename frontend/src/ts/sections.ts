@@ -391,8 +391,10 @@ export class GameSection extends ASection {
 		} catch (err) {
 			// console.error('play1v1: error');
 			this.showQueueMessage('Failed to join 1v1 queue', 'game', false, false);
-			go_section('home', '');
-			setTimeout(this.hideQueueMessage, 2000);
+			setTimeout(() => {
+				this.hideQueueMessage();
+				go_section('home', '');
+			}, 2000);
 		}
 	}
 
@@ -410,7 +412,10 @@ export class GameSection extends ASection {
 		) as string | null;
 		if (!displayName || displayName.trim().length === 0) {
 			this.showQueueMessage('Display name is required for tournaments', 'tournament', false, false);
-			setTimeout(() => this.playTournament(), 2000);
+			setTimeout(() => {
+				this.hideQueueMessage();
+				this.playTournament();
+			}, 2000);
 			return;
 		}
 		displayName = displayName.trim();
@@ -444,7 +449,10 @@ export class GameSection extends ASection {
 				user.isTournamentCreator = !!data.isCreator;
 			if (resp.status === 409) {
 				this.showQueueMessage('Display name already taken. Please try another.', 'tournament', false, false);
-				setTimeout(() => this.playTournament(), 2000);
+				setTimeout(() => {
+					this.hideQueueMessage();
+					this.playTournament();
+				}, 2000);
 				return;
 			} else if (resp.status === 202) {
 				this.inTournamentQueue = true;
@@ -457,13 +465,14 @@ export class GameSection extends ASection {
 				return;
 			} else {
 				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament', false, false);
-				setTimeout(this.hideQueueMessage, 2000);
+				setTimeout(() => { this.hideQueueMessage(); }, 2000);
 			}
 		} catch (err) {
 			// console.error('playTournament: error');
-			this.showQueueMessage('Failed to join tournament queue', 'tournament', false, false);
-			go_section('home', '');
-			setTimeout(this.hideQueueMessage, 2000);
+			setTimeout(() => {
+				this.hideQueueMessage();
+				go_section('home', '');
+			}, 2000);
 		}
 	}
 }
@@ -890,6 +899,9 @@ export class Chat extends ASection {
 			element.textContent = messages[i].format_message();
 			this.chat_box.appendChild(element);
 		}
+		if (this.chat_box) {
+			this.chat_box.scrollTop = this.chat_box.scrollHeight;
+		}
 	}
 	async send() {
 		let input: string = this.msg_input.value;
@@ -1087,26 +1099,10 @@ export class Actions extends ASection {
 	}
 
 	showInviteWaitingScreen(username: string) {
-		const overlay = document.getElementById('invite-waiting-overlay') as HTMLElement;
-		const message = document.getElementById('invite-waiting-message') as HTMLElement;
-		const cancelBtn = document.getElementById('cancel-invite-btn') as HTMLElement;
-		const acceptBtn = document.getElementById('accept-invite-btn') as HTMLElement;
-		const declineBtn = document.getElementById('decline-invite-btn') as HTMLElement;
-
-		if (overlay && message) {
-			message.innerHTML = `Waiting for <b>${username}</b> to accept your invite...`;
-			overlay.style.display = 'flex';
-
-			// Show only the Cancel button for the inviter
-			if (cancelBtn) {
-				cancelBtn.style.display = 'block';
-				cancelBtn.onclick = () => {
-					overlay.style.display = 'none';
-				};
-			}
-			if (acceptBtn) acceptBtn.style.display = 'none';
-			if (declineBtn) declineBtn.style.display = 'none';
-		}
+		showInviteOverlay(
+			`Waiting for <b>${username}</b> to accept your invite...`,
+			{ showCancel: true }
+		);
 	}
 }
 
@@ -1630,4 +1626,33 @@ export function showTwofaVerificationModal(tempToken: string, username: string) 
 			modal.style.display = 'none';
 		}
 	};
+}
+
+export function showInviteOverlay(message: string, options: { showCancel?: boolean, showAccept?: boolean, showDecline?: boolean, onCancel?: () => void, onAccept?: () => void, onDecline?: () => void } = {}) {
+	const overlay = document.getElementById('invite-waiting-overlay') as HTMLElement;
+	const msg = document.getElementById('invite-waiting-message') as HTMLElement;
+	const cancelBtn = document.getElementById('cancel-invite-btn') as HTMLButtonElement;
+	const acceptBtn = document.getElementById('accept-invite-btn') as HTMLButtonElement;
+	const declineBtn = document.getElementById('decline-invite-btn') as HTMLButtonElement;
+
+	if (!overlay || !msg) return;
+
+	msg.innerHTML = message;
+	overlay.style.display = 'flex';
+
+	// Cancel button
+	if (cancelBtn) {
+		cancelBtn.style.display = options.showCancel ? 'block' : 'none';
+		cancelBtn.onclick = options.onCancel || (() => { overlay.style.display = 'none'; });
+	}
+	// Accept button
+	if (acceptBtn) {
+		acceptBtn.style.display = options.showAccept ? 'block' : 'none';
+		acceptBtn.onclick = options.onAccept || (() => { });
+	}
+	// Decline button
+	if (declineBtn) {
+		declineBtn.style.display = options.showDecline ? 'block' : 'none';
+		declineBtn.onclick = options.onDecline || (() => { });
+	}
 }
