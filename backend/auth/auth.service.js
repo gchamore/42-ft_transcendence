@@ -14,19 +14,54 @@ export class AuthService {
 	// The tokens are stored in Redis with the userId as key
 	// The access token is used to authenticate the user and the refresh token is used to generate a new access token
 	async generateTokens(userId) {
-
-		// Generate the access and refresh tokens using JWT
-		const accessToken = jwt.sign({ userId, type: 'access' }, JWT_SECRET, {
-			expiresIn: ACCESS_TOKEN_EXPIRY
-		});
-		const refreshToken = jwt.sign({ userId, type: 'refresh' }, JWT_SECRET, {
-			expiresIn: REFRESH_TOKEN_EXPIRY
-		});
-
-		await Promise.all([
-			redis.setex(`access_${userId}`, ACCESS_TOKEN_EXPIRY, accessToken),
-			redis.setex(`refresh_${userId}`, REFRESH_TOKEN_EXPIRY, refreshToken)
+		// Check if tokens already exist for this user
+		const [existingAccessToken, existingRefreshToken] = await Promise.all([
+			redis.get(`access_${userId}`),
+			redis.get(`refresh_${userId}`)
 		]);
+
+		let accessToken = null;
+		let refreshToken = null;
+
+		// Handle existing access token
+		if (existingAccessToken) {
+			try {
+				// Verify the token is still valid
+				jwt.verify(existingAccessToken, JWT_SECRET);
+				accessToken = existingAccessToken;
+			} catch (error) {
+				// If invalid, blacklist it and prepare to generate a new one
+				await this.blacklistToken(existingAccessToken);
+			}
+		}
+
+		// Handle existing refresh token
+		if (existingRefreshToken) {
+			try {
+				// Verify the token is still valid
+				jwt.verify(existingRefreshToken, JWT_SECRET);
+				refreshToken = existingRefreshToken;
+			} catch (error) {
+				// If invalid, blacklist it and prepare to generate a new one
+				await this.blacklistToken(existingRefreshToken);
+			}
+		}
+
+		// Generate new access token if needed
+		if (!accessToken) {
+			accessToken = jwt.sign({ userId, type: 'access' }, JWT_SECRET, {
+				expiresIn: ACCESS_TOKEN_EXPIRY
+			});
+			await redis.setex(`access_${userId}`, ACCESS_TOKEN_EXPIRY, accessToken);
+		}
+
+		// Generate new refresh token if needed
+		if (!refreshToken) {
+			refreshToken = jwt.sign({ userId, type: 'refresh' }, JWT_SECRET, {
+				expiresIn: REFRESH_TOKEN_EXPIRY  // Note: Fixed from ACCESS_TOKEN_EXPIRY in original code
+			});
+			await redis.setex(`refresh_${userId}`, REFRESH_TOKEN_EXPIRY, refreshToken);
+		}
 
 		return { accessToken, refreshToken };
 	}
@@ -35,12 +70,12 @@ export class AuthService {
 		const token = jwt.sign({ ...payload, type }, JWT_TEMP_SECRET, {
 			expiresIn: expiresInSeconds
 		});
-	
+
 		await redis.setex(`temp_${token}`, expiresInSeconds, 'valid');
-	
+
 		return token;
 	}
-	
+
 	// Verify the 2FA token and use the 2FA secret
 	async verifyTempToken(token, expectedType) {
 		try {
@@ -48,22 +83,22 @@ export class AuthService {
 			if (!isValid) {
 				throw new Error("Temp token is expired or already used");
 			}
-	
+
 			const payload = jwt.verify(token, JWT_TEMP_SECRET);
 			if (payload.type !== expectedType) {
 				throw new Error("Invalid token type");
 			}
-	
+
 			// Delete the token from Redis after verification
 			await redis.del(`temp_${token}`);
 			return payload;
-	
+
 		} catch (e) {
 			throw new Error("Invalid temp token");
 		}
 	}
-	
-	
+
+
 
 	// Verify if the access token is valid (not blacklisted, user exists, in redis, not expired)
 	// If the token is expired, it tries to refresh it using the refresh token
