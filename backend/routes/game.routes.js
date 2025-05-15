@@ -21,7 +21,7 @@ export async function gameRoutes(fastify, options) {
 
 	// 1v1
 	fastify.post('/game/queue', async (request, reply) => {
-		const { userId } = request.body;
+		const userId = request.user.userId;
 
 		if (!userId) {
 			return reply.code(401).send({ error: 'Unauthorized' });
@@ -72,7 +72,8 @@ export async function gameRoutes(fastify, options) {
 
 	// —— TOURNAMENT ——
 	fastify.post('/tournament/queue', async (request, reply) => {
-		const { userId, displayName } = request.body;
+		const { displayName } = request.body;
+		const userId = request.user.userId;
 		
 		if (!userId || !displayName) {
 			return reply.code(401).send({ error: 'Unauthorized' });
@@ -248,7 +249,7 @@ export async function gameRoutes(fastify, options) {
 	});
 
 	fastify.get('/game/history/:userId', async (request, reply) => {
-		const userId = request.params.userId;
+		const userId = request.user.userId;
 		if (!userId) 
 			return reply.code(400).send({ success: false, error: 'Missing userId' });
 	
@@ -381,6 +382,20 @@ function notifyPlayers(fastify, gameId, playerId) {
 		}
 	} else {
 		fastify.log.warn(`No WebSocket connection found for player ${playerId}`);
+	}
+}
+
+export function cleanGameTournamentQueue(userId) {
+	let numberUserId = Number(userId);
+	const gameIndex = gameQueue.indexOf(numberUserId);
+	if (gameIndex !== -1) {
+		gameQueue.splice(gameIndex, 1);
+		
+	}
+	const tournamentIndex = tournamentQueue.indexOf(numberUserId);
+	if (tournamentIndex !== -1) {
+		tournamentQueue.splice(tournamentIndex, 1);
+		tournamentDisplayNames.delete(numberUserId);
 	}
 }
 
