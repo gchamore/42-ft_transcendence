@@ -56,7 +56,7 @@ export async function register(username: string, password: string) {
 		}
 		else if (data.success) {
 			update_user(new User(data.username, data.id));
-			showSuccess(`Welcome, ${username} !`);
+			showSuccess(`Welcome, ${data.username} !`);
 		}
 
 	} catch (error) {
@@ -93,7 +93,7 @@ export async function login(username: string, password: string) {
 		}
 
 		update_user(new User(data.username, data.id, data.email, data.avatar));
-		showSuccess(`Welcome back, ${username} !`);
+		showSuccess(`Welcome back, ${data.username} !`);
 
 	} catch (error) {
 		// console.error("/api/login error:", error);
@@ -278,7 +278,7 @@ export async function send(message: string, type: string, to: string = ''): Prom
 
 		if (!response.ok || !data.success) {
 			const errorMessage = data?.error || "Sending message failed";
-			showError(errorMessage);
+			alert(errorMessage);
 			return false;
 		}
 		return data.success;

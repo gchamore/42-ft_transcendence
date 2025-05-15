@@ -262,8 +262,21 @@ export async function handleLiveChatMessage(fastify, userId, message) {
 		return { success: false, error: 'Invalid message' };
 	}
 
-	if (message.trim().length > 1000) {
-		return { success: false, error: 'Message too long (max 1000 characters)' };
+	if (message.trim().length > 100) {
+		return { success: false, error: 'Message too long (max 100 characters)' };
+	}
+	
+	// Security checks for code injection and script attacks
+	const sanitizedMessage = sanitizeMessage(message.trim());
+	
+	// Check for potential XSS attacks
+	if (containsXSS(sanitizedMessage)) {
+		return { success: false, error: 'Message contains potentially harmful content' };
+	}
+	
+	// Check for SQL injection attempts
+	if (containsSQLInjection(sanitizedMessage)) {
+		return { success: false, error: 'Message contains invalid syntax' };
 	}
 
 	const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
@@ -274,7 +287,7 @@ export async function handleLiveChatMessage(fastify, userId, message) {
 	const payload = {
 		type: 'livechat',
 		user: user.username,
-		message: message.trim()
+		message: sanitizedMessage
 	};
 
 	broadcastToAllExceptSender(fastify, payload, userId);
@@ -305,8 +318,21 @@ export async function handleDirectMessage(fastify, senderId, recipientUsername, 
 		return { success: false, error: 'Invalid recipient' };
 	}
 
-	if (message.trim().length > 1000) {
-		return { success: false, error: 'Message too long (max 1000 characters)' };
+	if (message.trim().length > 100) {
+		return { success: false, error: 'Message too long (max 100 characters)' };
+	}
+	
+	// Security checks for code injection and script attacks
+	const sanitizedMessage = sanitizeMessage(message.trim());
+	
+	// Check for potential XSS attacks
+	if (containsXSS(sanitizedMessage)) {
+		return { success: false, error: 'Message contains potentially harmful content' };
+	}
+	
+	// Check for SQL injection attempts
+	if (containsSQLInjection(sanitizedMessage)) {
+		return { success: false, error: 'Message contains invalid syntax' };
 	}
 
 	const sender = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(senderId);
@@ -345,7 +371,7 @@ export async function handleDirectMessage(fastify, senderId, recipientUsername, 
 		type: 'direct_message',
 		user: sender.username,
 		recipient: recipientUsername,
-		message: message.trim()
+		message: sanitizedMessage
 	};
 
 	const delivered = sendToUser(fastify, recipientUser.id, payload);
@@ -370,9 +396,45 @@ export async function handleDirectMessage(fastify, senderId, recipientUsername, 
 	fastify.db.prepare(`
 		INSERT INTO chat_messages (chat_id, sender_id, content)
 		VALUES (?, ?, ?)
-	`).run(chat.id, senderId, message.trim());
+	`).run(chat.id, senderId, sanitizedMessage);
 
 	return { success: true };
+}
+
+// Helper function to sanitize message content
+function sanitizeMessage(message) {
+	// Replace HTML special characters to prevent HTML injection
+	return message
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;');
+}
+
+// Check for potential XSS patterns
+function containsXSS(message) {
+	const xssPatterns = [
+		/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/i, // <script> tags
+		/javascript\s*:/i,                                    // javascript: protocol
+		/on\w+\s*=/i,                                        // event handlers like onclick=
+		/src\s*=/i,                                          // src attributes
+		/data\s*:/i                                          // data: protocol
+	];
+	
+	return xssPatterns.some(pattern => pattern.test(message));
+}
+
+// Check for SQL injection attempts
+function containsSQLInjection(message) {
+	const sqlPatterns = [
+		/(\b(select|insert|update|delete|drop|alter|create|exec)\b)/i, // SQL keywords
+		/(\b(union|join)\b.*\b(select)\b)/i,                         // UNION or JOIN with SELECT
+		/--/,                                                        // SQL comment
+		/;.*$/                                                       // Multiple statements
+	];
+	
+	return sqlPatterns.some(pattern => pattern.test(message));
 }
 
 // This function retrieves the list of online users
