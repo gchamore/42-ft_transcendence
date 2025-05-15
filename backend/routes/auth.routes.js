@@ -146,6 +146,15 @@ export async function authRoutes(fastify, options) {
 				fastify.db.prepare(`
 					DELETE FROM blocks WHERE blocker_id = ? OR blocked_id = ?
 				`).run(userId, userId);
+				fastify.db.prepare(`
+				    UPDATE chat_messages SET sender_id = 0 WHERE sender_id = ?
+				`).run(userId);
+				fastify.db.prepare(`
+				    UPDATE chats
+				    SET user1_id = CASE WHEN user1_id = ? THEN 0 ELSE user1_id END,
+				        user2_id = CASE WHEN user2_id = ? THEN 0 ELSE user2_id END
+				    WHERE user1_id = ? OR user2_id = ?
+				`).run(userId, userId, userId, userId);
 
 				// Delete the user from the database
 				fastify.db.prepare("DELETE FROM users WHERE id = ?").run(userId);
