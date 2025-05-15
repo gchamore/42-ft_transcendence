@@ -147,7 +147,7 @@ export class GameSection extends ASection {
 	}
 	async enter(verified: boolean) {
 		if (verified !== true) {
-			console.log("Try to enter Game section as unauthenticated");
+			// console.log("Try to enter Game section as unauthenticated");
 			return;
 		}
 
@@ -332,7 +332,7 @@ export class GameSection extends ASection {
 
 	async play1v1() {
 		if (!user) {
-			console.error('play1v1: not logged in');
+			// console.error('play1v1: not logged in');
 			return;
 		}
 
@@ -345,7 +345,7 @@ export class GameSection extends ASection {
 						headers: { "Content-Type": "application/json" }
 					});
 				} catch (err) {
-					console.error('Error leaving queue:');
+					// console.error('Error leaving queue:');
 					setTimeout(this.hideQueueMessage, 2000);
 				}
 				this.hideQueueMessage();
@@ -367,7 +367,7 @@ export class GameSection extends ASection {
 				this.showQueueMessage(`Queue error: ${err.error}`, 'game', false, false);
 			}
 		} catch (err) {
-			console.error('play1v1: error');
+			// console.error('play1v1: error');
 			this.showQueueMessage('Failed to join 1v1 queue', 'game', false, false);
 			go_section('home', '');
 			setTimeout(this.hideQueueMessage, 2000);
@@ -377,7 +377,7 @@ export class GameSection extends ASection {
 
 	async playTournament() {
 		if (!user) {
-			console.error('playTournament: not logged in');
+			// console.error('playTournament: not logged in');
 			return;
 		}
 		let displayName = await this.showQueueMessage(
@@ -401,7 +401,7 @@ export class GameSection extends ASection {
 						headers: { "Content-Type": "application/json" }
 					});
 				} catch (err) {
-					console.error('Error leaving tournament queue:');
+					// console.error('Error leaving tournament queue:');
 				}
 				this.hideQueueMessage();
 			};
@@ -428,7 +428,7 @@ export class GameSection extends ASection {
 				this.showQueueMessage(`Tournament queue error: ${data.error}`, 'tournament', false, false);
 			}
 		} catch (err) {
-			console.error('playTournament: error');
+			// console.error('playTournament: error');
 			this.showQueueMessage('Failed to join tournament queue', 'tournament', false, false);
 			go_section('home', '');
 			setTimeout(this.hideQueueMessage, 2000);
@@ -468,7 +468,8 @@ class Profile extends ASection {
 				this.btn2.onclick = () => this.show2FAModal();
 			}
 		} catch (error) {
-			console.error("Error checking 2FA status:", error);
+			return;
+			// console.error("Error checking 2FA status:", error);
 		}
 	}
 
@@ -476,7 +477,7 @@ class Profile extends ASection {
 		try {
 			const response = await setup2fa();
 			if (!response) {
-				console.error("Failed to set up 2FA");
+				// console.error("Failed to set up 2FA");
 				return;
 			}
 
@@ -530,7 +531,7 @@ class Profile extends ASection {
 				}
 			};
 		} catch (error) {
-			console.error("Error showing 2FA modal:", error);
+			return;
 		}
 	}
 	async handleDisable2FA() {
@@ -559,7 +560,7 @@ class Profile extends ASection {
 				alert("Échec de la désactivation de la 2FA.");
 			}
 		} catch (err) {
-			console.error("Error disabling 2FA:", err);
+			// console.error("Error disabling 2FA:", err);
 			alert("Une erreur s'est produite lors de la désactivation de la 2FA.");
 		}
 	}
@@ -598,7 +599,7 @@ class Profile extends ASection {
 	}
 	switch_logged_in() {
 		if (user === undefined) {
-			console.error("Profile.switch_logged_off: user undefined");
+			// console.error("Profile.switch_logged_off: user undefined");
 			return;
 		}
 
@@ -678,7 +679,7 @@ class Friends extends ASection {
 	}
 	async enter(verified: boolean) {
 		if (verified !== true) {
-			console.log("Try to enter Friends section as unauthenticated");
+			// console.log("Try to enter Friends section as unauthenticated");
 			return;
 		}
 
@@ -811,7 +812,7 @@ export class Chat extends ASection {
 	}
 	async enter(verified: boolean) {
 		if (verified !== true) {
-			console.log("Try to enter Chat section as unauthenticated");
+			// console.log("Try to enter Chat section as unauthenticated");
 			return;
 		}
 		this.btn1.onclick = () => go_section('home', '');
@@ -895,7 +896,7 @@ export class Actions extends ASection {
 	}
 	async enter(verified: boolean) {
 		if (verified !== true) {
-			console.log("Try to enter Actions section as unauthenticated");
+			// console.log("Try to enter Actions section as unauthenticated");
 			return;
 		}
 		this.btn1.onclick = () => go_section('chat', '');
@@ -1046,7 +1047,7 @@ export class Actions extends ASection {
 				alert(data.error || 'Failed to send invite');
 			}
 		} catch (err) {
-			console.error('Error sending invite:');
+			// console.error('Error sen
 		}
 	}
 
@@ -1120,7 +1121,7 @@ class Settings extends ASection {
 	async account() {
 		if (user === undefined)
 			return;
-		console.log(user?.email);
+		// console.log(user?.email);
 
 		this.username_l.textContent += user?.name;
 		this.email_l.textContent += user?.email;
@@ -1158,14 +1159,14 @@ class Settings extends ASection {
 
 			return '';
 		} catch (err) {
-            console.error("Error edition of the account:", err);
+            // console.error("Error edition of the account:", err);
             alert("Une erreur s'est produite lors de l'edit du compte.");
         }
 		return '';
     }
 	async enter(verified: boolean) {
 		if (verified !== true) {
-			console.log("Try to enter Settings section as unauthenticated");
+			// console.log("Try to enter Settings section as unauthenticated");
 			return;
 		}
 
@@ -1211,7 +1212,7 @@ class Settings extends ASection {
 				subsection.classList.add('active');
 			else
 			subsection.classList.remove('active');
-			console.log(option, ':', subsection.classList);
+			// console.log(option, ':', subsection.classList);
 		}
 		const statsTableContainer = document.getElementById('stats-content');
 		if (statsTableContainer) {
@@ -1222,7 +1223,7 @@ class Settings extends ASection {
 		}
 	}
 	select(option: string) {
-		console.log('Selecting', option);
+		// console.log('Selecting', option);
 		if (!this.is_option(option)) {
 			go_section('profile', '');
 			return;
@@ -1266,7 +1267,7 @@ class Settings extends ASection {
 			}
 		} catch (err) {
 			statsMessage.textContent = `Error loading history.`;
-			console.error('Error loading game history:', err);
+			// console.error('Error loading game history:', err);
 		}
 	}
 
@@ -1299,7 +1300,7 @@ class Settings extends ASection {
 				alert("Error unregistering account:");
 			}
 		} catch (err) {
-			console.error("Error unregistering account:", err);
+			// console.error("Error unregistering account:", err);
 			alert("An error occurred while unregistering your account.");
 		}
 	}
@@ -1339,7 +1340,7 @@ export class DirectMessage extends ASection {
 	}
 	async enter(verified: boolean) {
 		if (verified !== true) {
-			console.log("Try to enter DirectMessage section as unauthenticated");
+			// console.log("Try to enter DirectMessage section as unauthenticated");
 			return;
 		}
 
@@ -1569,7 +1570,7 @@ export function showTwofaVerificationModal(tempToken: string, username: string) 
 				errorMsg.textContent = "Invalid verification code. Please try again.";
 			}
 		} catch (error) {
-			console.error("2FA verification error:", error);
+			// console.error("2FA verification error:", error);
 			errorMsg.textContent = "An error occurred during verification. Please try again.";
 		}
 	};

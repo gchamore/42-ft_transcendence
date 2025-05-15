@@ -96,7 +96,7 @@ export class User {
 						add_message(data.user, data.message, 'livechat');
 						break;
 					case 'direct_message':
-						console.log('direct_message');
+						// console.log('direct_message');
 						add_message(data.user, data.message, 'direct_message');
 						break;
 					case 'matchFound':
@@ -118,20 +118,16 @@ export class User {
 						this.inviteResult(data);
 						break;
 					default:
-						console.error('Unknown message in user type:', data.type);
+						// console.error('Unknown message in user type:', data.type);
 				}
 			} catch (error) {
-				console.error('WebSocket message parsing error:');
+				// console.error('WebSocket message parsing error:');
 			}
 		};
 
 		this.web_socket.onclose = () => {
 			// console.log(`[${event.code}] Disconnected : ${event.reason}`);
 			update_user(undefined);
-		};
-
-		this.web_socket.onerror = (error) => {
-			console.log('WebSocket error:', error);
 		};
 	}
 
@@ -144,7 +140,7 @@ export class User {
 					gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
 				});
 		} else {
-			console.error('Game ID not provided');
+			// console.error('Game ID not provided');
 		}
 	}
 
@@ -295,7 +291,7 @@ export function update_user(new_user_value: User | undefined) {
 			user.connect_to_ws();
 	}
 	catch (error) {
-		console.log('WebSocket error:', error);
+		// console.log('WebSocket error:', error);
 		update_user(undefined);
 	}
 
@@ -317,7 +313,7 @@ export async function add_message(username: string, message: string, type: strin
 	if (type === 'livechat') {
 		let messages: Array<Message>;
 		messages = user?.livechat;
-		console.log(user?.livechat);
+		// console.log(user?.livechat);
 		if (messages.length === 20)
 			messages.pop();
 		for (let i = messages.length - 1; i >= 0; --i)

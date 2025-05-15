@@ -9,7 +9,7 @@ export class EngineManager {
 		try {
 			this.engine = new BABYLON.Engine(this.canvas, true);
 		} catch (e) {
-			console.error("Error initializing Babylon.js engine", e);
+			// console.error("Error initializing Babylon.js engine", e);
 		}
 	}
 

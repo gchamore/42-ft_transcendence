@@ -172,7 +172,7 @@ export class GameControls {
 				const jsonMessage = JSON.stringify(message);
 				socket.send(jsonMessage);
 			} catch (e) {
-				console.error("Error sending message:");
+				// console.error("Error sending message:");
 			}
 		}
 	}

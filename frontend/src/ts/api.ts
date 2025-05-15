@@ -152,6 +152,7 @@ export async function search(friend_username: string): Promise<OtherUser | Error
 		if (!response.ok || !data.success) {
 			const errorMessage = data?.error || "Search failed";
 			showError(errorMessage);
+			return undefined;
 		}
 		else if (data.success) {
 			if (data.isFriend)
@@ -189,6 +190,7 @@ export async function add(friend_username: string): Promise<boolean | Error> {
 		if (!response.ok || !data.success) {
 			const errorMessage = data?.error || "Adding friend failed";
 			showError(errorMessage);
+			return false;
 		}
 		showInfo(`User ${friend_username}\nAdded !`);
 		return data.success;
@@ -218,9 +220,10 @@ export async function remove(friend_username: string): Promise<boolean | Error> 
 			return false;
 		}
 
-		if (!response.ok) {
+		if (!response.ok || !data.success) {
 			const errorMessage = data?.error || "remove friend failed";
 			showError(errorMessage);
+			return false;
 		}
 		showInfo(`User ${friend_username}\nremoved from friends !`);
 		return data.success;
@@ -347,7 +350,7 @@ export async function block(username: string): Promise<boolean> {
 			return false;
 		}
 
-		if (!response.ok) {
+		if (!response.ok || !data.success) {
 			const errorMessage = data?.error || "Blocking user failed";
 			showError(errorMessage);
 			return false;
@@ -380,7 +383,7 @@ export async function unblock(username: string): Promise<boolean> {
 			return false;
 		}
 
-		if (!response.ok) {
+		if (!response.ok || !data.success) {
 			const errorMessage = data?.error || "Unblocking user failed";
 			showError(errorMessage);
 			return false;
@@ -460,7 +463,7 @@ export async function activate2fa(token: string): Promise<boolean> {
 export async function update(
     username : string, email : string,
     old_password : string, new_password : string): Promise<boolean> {
-    console.log(old_password);
+    // console.log(old_password);
     try {
         let body = {username : username, email : email, old_password : old_password, new_password : new_password};
         const response = await fetch('/api/update', {
@@ -573,7 +576,7 @@ export async function get2faStatus(): Promise<boolean | undefined> {
 			return undefined;
 		}
 
-		if (!response.ok) {
+		if (!response.ok || !data.success) {
 			return undefined;
 		}
 

@@ -8,13 +8,13 @@ export function handleDisconnect(socket, game, fastify) {
 		return;
 
 	const playerNumber = socket.playerNumber;
-	console.log(`Player ${playerNumber} disconnected from game ${game.gameId}`);
+	// console.log(`Player ${playerNumber} disconnected from game ${game.gameId}`);
 
 	const tournament = findTournamentByGameId(game.gameId);
 	if (tournament) {
 		if (!tournament.ended) {
 			tournament.ended = true;
-			console.log(`Player ${playerNumber} disconnected from tournament ${tournament.tournamentId}`);
+			// console.log(`Player ${playerNumber} disconnected from tournament ${tournament.tournamentId}`);
 
 			// Use the score from the current game or a default score
 			const score = game.getState().score || {
@@ -49,7 +49,7 @@ export function handleDisconnect(socket, game, fastify) {
 		games.delete(game.gameId);
 		const gameId = game.gameId;
 		game.cleanup();
-		console.log(`Game ${gameId} removed after player disconnect`);
+		// console.log(`Game ${gameId} removed after player disconnect`);
 	}
 }
 
@@ -105,7 +105,7 @@ function validateDisconnectParams(socket, game) {
 
 function saveGameResults(game, fastify, socket) {
 	try {
-		console.log('Saving game results...');
+		// console.log('Saving game results...');
 		const score = game.getState().score;
 		const entries = Array.from(game.players.entries());
 		if (entries.length < 2) {
@@ -203,13 +203,13 @@ function handleRemainingPlayers(game, disconnectedPlayerNumber) {
 }
 
 function scheduleGameCleanup(gameId, delay = 5000) {
-	console.log(`Scheduling game cleanup for game ${gameId} after ${delay}ms`);
+	// console.log(`Scheduling game cleanup for game ${gameId} after ${delay}ms`);
 	setTimeout(() => {
 		const game = games.get(gameId);
 		if (game) {
 			game.cleanup();
 			games.delete(gameId);
-			console.log(`Game ${gameId} removed after player disconnect`);
+			// console.log(`Game ${gameId} removed after player disconnect`);
 		}
 	}, delay);
 }
@@ -226,7 +226,7 @@ function cleanUpSocketListeners(socket) {
 		socket.isDisconnecting = true;
 		socket.playerNumber = null;
 
-		console.log(`Cleaned up listeners for player ${playerNum}`);
+		// console.log(`Cleaned up listeners for player ${playerNum}`);
 	} catch (e) {
 		console.error('Error cleaning up socket listeners:', e);
 	}

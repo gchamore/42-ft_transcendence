@@ -82,7 +82,7 @@ export class GameStateManager {
 		const player1Score = this.gameState.score.player1.score;
 		const player2Score = this.gameState.score.player2.score;
 		const maxScore = GameConfig.DEFAULT_MAX_SCORE;
-		console.log(`Checking win: P1=${player1Score}, P2=${player2Score}, max=${maxScore}`);
+		// console.log(`Checking win: P1=${player1Score}, P2=${player2Score}, max=${maxScore}`);
 		if (player1Score >= maxScore || player2Score >= maxScore) {
 			return player1Score > player2Score ? 1 : 2;
 		}

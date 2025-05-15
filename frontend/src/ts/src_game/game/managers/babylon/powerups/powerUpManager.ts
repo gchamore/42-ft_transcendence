@@ -27,7 +27,7 @@ export class PowerUpManager {
 				this.powerupMeshes.set(powerup.id, mesh);
 			}
 		} catch (error) {
-			console.error(`Error creating powerup ${powerup.id}:`, error);
+			// console.error(`Error creating powerup ${powerup.id}:`, error);
 		}
 	}
 

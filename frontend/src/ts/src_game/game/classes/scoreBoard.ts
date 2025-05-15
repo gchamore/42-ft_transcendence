@@ -12,7 +12,7 @@ export class ScoreBoard {
 		) as HTMLDivElement;
 
 		if (!this.display) {
-			console.error("Could not find score display element");
+			// console.error("Could not find score display element");
 		} else {
 			this.updateDisplay();
 		}

@@ -40,7 +40,7 @@ export class SettingsPage {
 		this.powerUpsToggle = document.getElementById('power-ups-toggle') as HTMLInputElement;
 		this.startButton = document.getElementById('start-game') as HTMLButtonElement;
 		if (!this.startButton) {
-			console.error('Start button not found');
+			// console.error('Start button not found');
 			return;
 		}
 
@@ -50,7 +50,7 @@ export class SettingsPage {
 	private connectWebSocket() {
 		this.socket = WebSocketService.getInstance().connect(this.lobbyId, 'lobby');
 		this.socket.onopen = () => {
-			console.log('Settings socket connected');
+			// console.log('Settings socket connected');
 		};
 
 		this.socket.onmessage = (message) => {
@@ -79,13 +79,13 @@ export class SettingsPage {
 					);
 					break;
 				default:
-					console.error("Unknown message in game type:" , data.type);
+					// console.error("Unknown message in game type:" , data.type);
 					break;
 			}
 		};
 
-		this.socket.onerror = (error) => {
-			console.error('WebSocket error:', error);
+		this.socket.onerror = () => {
+			// console.error('WebSocket error:', error);
 			this.handleConnectionIssues();
 		};
 
@@ -100,7 +100,7 @@ export class SettingsPage {
 			const gameSection = sections[get_type_index('game')!] as GameSection;
 			gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
 		} else {
-			console.error('Game ID not provided');
+			// console.error('Game ID not provided');
 		}
 	}
 
@@ -132,7 +132,7 @@ export class SettingsPage {
 					gameSection.transitionToGame(data.gameId, data.settings, data.playerNumber);
 				});
 		} else {
-			console.error('Game ID not provided');
+			// console.error('Game ID not provided');
 		}
 	}
 
@@ -313,7 +313,7 @@ export class SettingsPage {
 			this.mapSelect.value = safeSettings.mapType;
 			this.powerUpsToggle.checked = safeSettings.powerUpsEnabled;
 		} catch (error) {
-			console.error('Error updating settings:');
+			// console.error('Error updating settings:');
 			this.updateSettings(defaultSettings);
 		}
 	}

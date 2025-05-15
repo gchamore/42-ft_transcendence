@@ -18,7 +18,7 @@ export class LobbyManager {
 		fastify.log.info(`addPlayer clientId: ${clientId}`);
 
 		if (this.players.size >= this.nbPlayers) {
-			console.error(`Lobby ${this.lobbyId} is full. Cannot add client ${clientId} size: ${this.players.size}`);
+			fastify.log.info(`Lobby ${this.lobbyId} is full. Cannot add client ${clientId} size: ${this.players.size}`);
 			return false;
 		}
 
@@ -40,7 +40,7 @@ export class LobbyManager {
 		this.players.delete(clientId);
 		if (this.players.size === 0) {
 			this.cleanup();
-			console.log(`Lobby ${this.lobbyId} deleted due to emptiness`);
+			// console.log(`Lobby ${this.lobbyId} deleted due to emptiness`);
 		}
 	}
 

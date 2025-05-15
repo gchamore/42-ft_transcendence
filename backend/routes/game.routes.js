@@ -44,9 +44,9 @@ export async function gameRoutes(fastify, options) {
 			settingsManagers.set(gameId, new SettingsManager());
 
 			gamePlayerNumbers.set(String(p1), 1);
-			console.log('Player 1:', p1);
+			// console.log('Player 1:', p1);
 			gamePlayerNumbers.set(String(p2), 2);
-			console.log('Player 2:', p2);
+			// console.log('Player 2:', p2);
 			notifyPlayers(fastify, gameId, p1);
 			notifyPlayers(fastify, gameId, p2);
 
@@ -109,7 +109,7 @@ export async function gameRoutes(fastify, options) {
 			players.forEach((pid, idx) => {
 				tournamentPlayerNumbers.set(String(pid), idx + 1);
 				tournamentDisplayNames.delete(pid);
-				console.log('Tournament Player:', pid, 'Number:', idx + 1);
+				// console.log('Tournament Player:', pid, 'Number:', idx + 1);
 			});
 			// Randomize player order
 			const shuffled = players.slice().sort(() => Math.random() - 0.5);

@@ -51,7 +51,7 @@ export class GameInstance {
 
 		if (!this.players.has(cliendId)) {
 			this.players.set(cliendId, socket);
-			console.log(`Player ${playerNumber} (Client ${cliendId}) added to game ${this.gameId}`);
+			// console.log(`Player ${playerNumber} (Client ${cliendId}) added to game ${this.gameId}`);
 		}
 		return true;
 	}
@@ -64,7 +64,7 @@ export class GameInstance {
 		}
 
 		this.players.delete(clientId);
-		console.log(`Player ${socket.playerNumber} (Client ${clientId}) removed from game ${this.gameId}`);
+		// console.log(`Player ${socket.playerNumber} (Client ${clientId}) removed from game ${this.gameId}`);
 
 		removePlayerFromQueuesAndMaps(clientId);
 

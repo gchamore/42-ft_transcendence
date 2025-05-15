@@ -72,7 +72,7 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 
 function handleLobbyDisconnect(socket, lobby, fastify) {
 
-	console.log(`Player ${socket.playerNumber} disconnected from lobby ${lobby.lobbyId}`);
+	// console.log(`Player ${socket.playerNumber} disconnected from lobby ${lobby.lobbyId}`);
 	let message = `Player ${socket.playerNumber} disconnected`;
 	if (lobby.isTournament) {
 		message = `Player ${socket.playerNumber} disconnected, tournament has ended`;
@@ -112,7 +112,7 @@ function handleLobbyMessage(socket, lobby, data, fastify) {
 			break;
 
 		case 'playerReady':
-			console.log(`Player ${playerNumber} is ready`);
+			// console.log(`Player ${playerNumber} is ready`);
 			if (playerNumber !== 1) {
 				const player1 = Array.from(lobby.players.values()).find((player) => player.playerNumber === 1);
 				if (player1) {
@@ -126,7 +126,7 @@ function handleLobbyMessage(socket, lobby, data, fastify) {
 		case 'startGameRequest':
 			if (playerNumber === 1) {
 				const tournament = tournaments.get(Number(lobby.lobbyId));
-				console.log(`Starting game from lobby ${lobby.lobbyId}`);
+				// console.log(`Starting game from lobby ${lobby.lobbyId}`);
 				startGameFromLobby(lobby, tournament, fastify);
 			}
 			break;
@@ -148,7 +148,7 @@ function startGameFromLobby(lobby, tournament = null, fastify) {
 
 function startNormalGame(lobby, gameId, settings, fastify) {
 	const game = new GameInstance(gameId, settings);
-	console.log(`Transitioning game from Lobby ${lobby.lobbyId} to ${gameId}`);
+	// console.log(`Transitioning game from Lobby ${lobby.lobbyId} to ${gameId}`);
 
 	games.set(gameId, game);
 
@@ -163,7 +163,7 @@ function startNormalGame(lobby, gameId, settings, fastify) {
 		handleNewGamePlayer(player, game, fastify);
 	});
 
-	console.log(`Game successfully transitioned  to ${gameId}`);
+	// console.log(`Game successfully transitioned  to ${gameId}`);
 }
 
 function startTournamentGame(lobby, tournament, gameId, settings) {
@@ -187,7 +187,7 @@ function startTournamentGame(lobby, tournament, gameId, settings) {
 				});
 			}
 		});
-		console.log(`starting tournament game ${match.matchId} with players ${match.players}`);
+		// console.log(`starting tournament game ${match.matchId} with players ${match.players}`);
 	});
 	return;
 }
@@ -204,7 +204,7 @@ function cleanUpSocketListeners(socket) {
 		socket.isDisconnecting = true;
 		socket.playerNumber = null;
 
-		console.log(`Cleaned up listeners for player ${playerNum}`);
+		// console.log(`Cleaned up listeners for player ${playerNum}`);
 	} catch (e) {
 		console.error('Error cleaning up socket listeners:');
 	}

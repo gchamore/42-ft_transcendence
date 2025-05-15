@@ -73,7 +73,7 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 
 		socket.on('close', (code, reason) => {
 			if (code === 1000 || (reason && reason.toString().includes('Game Finished'))) {
-				console.log(`Socket closed intentionally (code: ${code}, reason: ${reason}). Not treating as disconnect.`);
+				// console.log(`Socket closed intentionally (code: ${code}, reason: ${reason}). Not treating as disconnect.`);
 				if (socket.gameInstance && socket.playerNumber)
 					socket.gameInstance.removePlayer(socket);
 				return;
@@ -84,13 +84,13 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 				console.error('No close handler set for socket');
 			}
 		});
-		console.log(`socket.on close handler set for player ${playerNumber}`);
+		// console.log(`socket.on close handler set for player ${playerNumber}`);
 	}
 
 	socket.currentHandler = (data) => handleGameMessage(socket, game, data, fastify);
 	socket.currentCloseHandler = (fastify) => handleGameDisconnect(socket, game, fastify);
 
-	console.log(`Player ${playerNumber} joined game ${game.gameId}`);
+	// console.log(`Player ${playerNumber} joined game ${game.gameId}`);
 
 	// Send welcome messages
 	safeSend(socket, {
@@ -110,7 +110,7 @@ export function handleGameDisconnect(socket, game, fastify) {
 
 	const playerNum = socket.playerNumber;
 	const gameInst = socket.gameInstance;
-	console.log(`Player ${playerNum} disconnected from on.close`);
+	// console.log(`Player ${playerNum} disconnected from on.close`);
 
 	if (gameInst) {
 		handleDisconnect(socket, gameInst, fastify);
@@ -142,9 +142,9 @@ export function handleGameMessage(socket, game, data, fastify) {
 function handleStartGame(socket, game, playerNumber) {
 	const gameState = game.gameStateManager.getState();
 	if (playerNumber === gameState.servingPlayer) {
-		console.log('players length', game.players.size);
+		// console.log('players length', game.players.size);
 		if (game.players.size === 2) {
-			console.log(`Player ${playerNumber} starting game ${game.gameId}`);
+			// console.log(`Player ${playerNumber} starting game ${game.gameId}`);
 			gameState.gameStarted = true;
 		}
 	}
@@ -159,9 +159,9 @@ function handleGameOver(data, fastify) {
 			const match = tournament.bracket.find((match) => match.matchId === data.matchId);
 			if (match && !match.winner) {
 				match.winner = data.winner;
-				console.log(`Match ${data.matchId} winner: ${data.winner}`);
+				// console.log(`Match ${data.matchId} winner: ${data.winner}`);
 			} else {
-				console.log(`Match ${data.matchId} already has a winner: ${match.winner}, ignoring duplicate gameOver`);
+				// console.log(`Match ${data.matchId} already has a winner: ${match.winner}, ignoring duplicate gameOver`);
 				return;
 			}
 			handleTournamentCompletion(tournament, tid, fastify);
@@ -192,7 +192,7 @@ function handleTournamentCompletion(tournament, tid, fastify) {
 		notifyTournamentResults(tournament, placements, winnerPlayer.displayName, fastify);
 		cleanupTournamentMappings(tournament);
 		tournaments.delete(tid);
-		console.log(`Tournament ${tournament.id} cleaned up after completion.`);
+		// console.log(`Tournament ${tournament.id} cleaned up after completion.`);
 	}
 }
 
@@ -248,11 +248,11 @@ function handleSemifinalCompletion(tournament, fastify) {
 			loser: null
 		};
 		tournament.bracket.push(finalMatch, thirdPlaceMatch);
-		console.log(`Final match created: ${finalMatch.matchId}`);
-		console.log(`[Tournament Notify] Final:`, finalMatch.players.map(p => p.displayName));
+		// console.log(`Final match created: ${finalMatch.matchId}`);
+		// console.log(`[Tournament Notify] Final:`, finalMatch.players.map(p => p.displayName));
 		notifyMatchPlayers(finalMatch, fastify);
-		console.log(`Third place match created: ${thirdPlaceMatch.matchId}`);
-		console.log(`[Tournament Notify] Third:`, thirdPlaceMatch.players.map(p => p.id));
+		// console.log(`Third place match created: ${thirdPlaceMatch.matchId}`);
+		// console.log(`[Tournament Notify] Third:`, thirdPlaceMatch.players.map(p => p.id));
 		notifyMatchPlayers(thirdPlaceMatch, fastify);
 	}
 }

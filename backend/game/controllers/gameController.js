@@ -29,7 +29,7 @@ export async function handleGameConnection(fastify, connection, request, userId)
 		socket.clientId = userId;
 		let playerNumber = null;
 		const userIdStr = String(userId);
-		console.log(`gamePlayerNumbers:`, gamePlayerNumbers);
+		// console.log(`gamePlayerNumbers:`, gamePlayerNumbers);
 		if (gamePlayerNumbers.has(userIdStr)) {
 			playerNumber = gamePlayerNumbers.get(userIdStr);
 		} else if (tournamentPlayerNumbers.has(userIdStr)) {
@@ -38,7 +38,7 @@ export async function handleGameConnection(fastify, connection, request, userId)
 		} else {
 			console.error('User is not in any player number map:', userId);
 		}
-		console.log('playerId:', userId, ' playerNumber:', playerNumber);
+		// console.log('playerId:', userId, ' playerNumber:', playerNumber);
 
 		if (mode === 'lobby') {
 			let lobby = lobbies.get(gameId) || new LobbyManager(gameId, isTournament);

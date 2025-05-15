@@ -73,13 +73,13 @@ export class Game {
 			const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 
 			if (!gl) {
-				console.warn("WebGL not available, skipping 3D mode");
+				// console.warn("WebGL not available, skipping 3D mode");
 				this.isLoading = false;
 				return;
 			}
 
 			if (!BABYLON.Engine.isSupported()) {
-				console.error("WebGL not supported");
+				// console.error("WebGL not supported");
 				return;
 			}
 
@@ -103,7 +103,7 @@ export class Game {
 				this.fpsManager = new FPSManager();
 			}
 		} catch (error) {
-			console.error("Error initializing Babylon scene");
+			// console.error("Error initializing Babylon scene");
 			this.isLoading = false;
 			this.stopGame("Error initializing Babylon scene");
 		}
@@ -127,7 +127,7 @@ export class Game {
 		this.socket = WebSocketService.getInstance().connect(this.gameId, 'game');
 
 		this.socket.onopen = () => {
-			console.log("Connected to the game");
+			// console.log("Connected to the game");
 		};
 		//listen for messages
 		this.socket.onmessage = (message) => {
@@ -181,18 +181,18 @@ export class Game {
 					this.socket.send(JSON.stringify({ type: 'pong' }));
 					break;
 				default:
-					console.error("Unknown message in game type:", data.type);
+					// console.error("Unknown message in game type:", data.type);
 					break;
 			}
 		};
 
-		this.socket.onerror = (error) => {
-			console.error("WebSocket error:", error);
+		this.socket.onerror = () => {
+			// console.error("WebSocket error:", error);
 			this.uiManager.drawErrorMessage("Connection error");
 		};
 
 		this.socket.onclose = () => {
-			console.log("WS Disconnected from the game");
+			// console.log("WS Disconnected from the game");
 			if (this.gameStarted) {
 				this.uiManager.drawErrorMessage("Connection to server lost");
 			}
@@ -212,7 +212,7 @@ export class Game {
 
 	private updateGameState(gameState: GameState) {
 		if (!gameState) {
-			console.error("Received invalid game state");
+			// console.error("Received invalid game state");
 			return;
 		}
 		this.gameStarted = gameState.gameStarted ?? false;
