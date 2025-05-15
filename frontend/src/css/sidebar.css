@@ -21,17 +21,19 @@ ul.sidebar {
     flex-direction: column;
 }
 
-ul.sidebar li{
-    border-radius: 50%;
+ul.sidebar li:active{
+    transform: rotateZ(180deg);
 }
 
-ul.sidebar li:not(.except):active {
-    transform: scale(0.90) rotateZ(180deg);
+ul.sidebar li{
+    border-radius: 50%;
+    height: 80px;
+    width: 80px;
 }
 
 ul.sidebar li:not(.except) button{
-    height: 80px;
-    width: 80px;
+    height: 100%;
+    width: 100%;
     overflow:visible;
 }
 /* --------- */
