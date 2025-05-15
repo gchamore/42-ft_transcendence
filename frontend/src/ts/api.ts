@@ -319,6 +319,8 @@ export async function get_direct_messages(username: string): Promise<ChatRespons
 		}
 
 		if (!response.ok || !data.success) {
+			const errorMessage = data?.error || "Getting messages history failed";
+			showError(errorMessage);
 			return undefined;
 		}
 		return data;
