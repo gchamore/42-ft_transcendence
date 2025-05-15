@@ -304,7 +304,7 @@ export async function userRoutes(fastify, options) {
 				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 			if (user.is_google_account && !user.password) {
-				fastify.log.info(`Utilisateur Google, update without password allowed for : (${user.username})`);
+				fastify.log.info(`Google USer, update without password allowed for : (${user.username})`);
 			}
 			// normal user or Google user with password
 			else {
@@ -391,7 +391,7 @@ export async function userRoutes(fastify, options) {
 	fastify.put("/update_avatar", async (request, reply) => {
 		const userId = request.user.userId;
 		const avatar = await request.file();
-		fastify.log.info(`Avatar reçu: ${avatar}`);
+		fastify.log.info(`Avatar received: ${avatar}`);
 		try {
 			const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 			if (!currentUser) {
