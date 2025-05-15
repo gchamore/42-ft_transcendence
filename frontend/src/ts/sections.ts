@@ -310,7 +310,7 @@ export class GameSection extends ASection {
 		if (this.queueMessageContainer)
 			this.queueMessageContainer.style.display = 'none';
 		this.enableSidebarButtons();
-	};
+	}
 
 	// Add inside GameSection class
 
@@ -1070,7 +1070,12 @@ export class Actions extends ASection {
 			overlay.style.display = 'flex';
 
 			// Show only the Cancel button for the inviter
-			if (cancelBtn) cancelBtn.style.display = 'block';
+			if (cancelBtn) {
+				cancelBtn.style.display = 'block';
+				cancelBtn.onclick = () => {
+					overlay.style.display = 'none';
+				};
+			}
 			if (acceptBtn) acceptBtn.style.display = 'none';
 			if (declineBtn) declineBtn.style.display = 'none';
 		}
