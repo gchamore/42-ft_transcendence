@@ -82,7 +82,7 @@ export async function wsRoutes(fastify, options) {
 			chat = { id: info.lastInsertRowid };
 		}
 
-		// Récupère les messages du chat
+		// Get the chat messages
 		const messages = fastify.db.prepare(`
 			SELECT chat_messages.id, chat_messages.content, chat_messages.sent_at, users.username AS sender
 			FROM chat_messages
@@ -129,7 +129,7 @@ export async function wsRoutes(fastify, options) {
 				if (userId) {
 					const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
 					if (user) {
-						await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'Invalid token from middleware');
+						await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'Invalid token from ws');
 					}
 				}
 				return reply

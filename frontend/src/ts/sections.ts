@@ -1,8 +1,8 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
 import { update_user, User, add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
-import { t_DirectMessage, update} from './api.js';
-import { get_direct_messages, ChatResponse, login, register, logout, unregister, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar, getGameHistory} from './api.js';
+import { t_DirectMessage, update } from './api.js';
+import { get_direct_messages, ChatResponse, login, register, logout, unregister, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar, getGameHistory } from './api.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -590,7 +590,7 @@ class Profile extends ASection {
 				if (!password) return; // User cancelled
 
 				success = await disable2fa(password);
-			} else if (accountType.is_google_account && !accountType.has_password){
+			} else if (accountType.is_google_account && !accountType.has_password) {
 				success = await disable2fa();
 			}
 
@@ -819,7 +819,7 @@ class Friends extends ASection {
 		this.reset();
 		this.search(user);
 	}
-	update_status(username : string, online: boolean) {
+	update_status(username: string, online: boolean) {
 		if (username !== this.anotherUser?.username)
 			return;
 
@@ -904,8 +904,21 @@ export class Chat extends ASection {
 		}
 	}
 	async send() {
-		let input: string = this.msg_input.value;
+		let input: string = this.msg_input.value.trim();
+
+		// Vérification basique avant envoi
+		if (input.length === 0) {
+			alert("Le message ne peut pas être vide.");
+			return;
+		}
+
+		if (input.length > 100) {
+			alert("Le message est trop long (max 100 caractères).");
+			return;
+		}
+
 		this.msg_input.value = '';
+
 		if (await send(input, 'livechat') === true) {
 			add_message(user!.name, input, 'livechat');
 		}
@@ -1117,7 +1130,7 @@ class Settings extends ASection {
 
 
 	/* Properties */
-	readonly options : Array<string> = ['account', 'stats', 'confidentiality'];
+	readonly options: Array<string> = ['account', 'stats', 'confidentiality'];
 	/* Sidebar */
 	readonly account_btn = document.getElementById('account-btn') as HTMLLIElement;
 	readonly stats_btn = document.getElementById('stats-btn') as HTMLLIElement;
@@ -1148,9 +1161,9 @@ class Settings extends ASection {
 		this.email_l.textContent = 'Email: ';
 		this.password_l.textContent = 'Password: ********';
 		this.update_btn.removeAttribute('onclick');
-		let inputs : NodeListOf<HTMLInputElement> = document.querySelectorAll('.account-input');
-			inputs.forEach(input => {
-				input.classList.remove('active');
+		let inputs: NodeListOf<HTMLInputElement> = document.querySelectorAll('.account-input');
+		inputs.forEach(input => {
+			input.classList.remove('active');
 			input.value = '';
 		});
 	}
@@ -1164,14 +1177,14 @@ class Settings extends ASection {
 		this.update_btn.textContent = 'Edit';
 		this.update_btn.onclick = async () => {
 			this.clear();
-			let inputs : NodeListOf<HTMLInputElement> = document.querySelectorAll('.account-input');
+			let inputs: NodeListOf<HTMLInputElement> = document.querySelectorAll('.account-input');
 			inputs.forEach(input => {
 				input.classList.add('active');
 			});
 
 			this.update_btn.textContent = 'Save';
 			this.update_btn.onclick = async () => {
-				let old_password : string = await this.get_old_password();
+				let old_password: string = await this.get_old_password();
 				if (await update(this.username_i.value, this.email_i.value, old_password, this.password_i.value) === true)
 					update_user(new User(this.username_i.value, user?.userId, this.email_i.value, user?.avatar_path));
 				this.clear();
@@ -1179,27 +1192,27 @@ class Settings extends ASection {
 			}
 		}
 	}
-	async get_old_password() : Promise<string> {
-        try {
-            const accountType = await getUserAccountType();
+	async get_old_password(): Promise<string> {
+		try {
+			const accountType = await getUserAccountType();
 
-            if (!accountType) {
-                alert("Impossible de vérifier le type de compte");
-                return '';
-            }
+			if (!accountType) {
+				alert("Impossible de vérifier le type de compte");
+				return '';
+			}
 
-            if (accountType.has_password) {
-                const password = prompt("Veuillez entrer votre mot de passe:");
-                return (password === null) ? '' : password;
+			if (accountType.has_password) {
+				const password = prompt("Veuillez entrer votre mot de passe:");
+				return (password === null) ? '' : password;
 			}
 
 			return '';
 		} catch (err) {
-            // console.error("Error edition of the account:", err);
-            alert("Une erreur s'est produite lors de l'edit du compte.");
-        }
+			// console.error("Error edition of the account:", err);
+			alert("Une erreur s'est produite lors de l'edit du compte.");
+		}
 		return '';
-    }
+	}
 	async enter(verified: boolean) {
 		if (verified !== true) {
 			// console.log("Try to enter Settings section as unauthenticated");
@@ -1229,25 +1242,25 @@ class Settings extends ASection {
 		this.back_btn.removeAttribute('onclick');
 		this.unregister_btn.removeAttribute('onclick');
 	}
-	switch_logged_off() {}
-	switch_logged_in() {}
-	
+	switch_logged_off() { }
+	switch_logged_in() { }
+
 	/* Settings methods */
-	is_option(option : string) : boolean {
+	is_option(option: string): boolean {
 		for (let i = 0; i < this.options.length; ++i) {
 			if (this.options[i] === option)
 				return true;
 		}
 		return false;
 	}
-	print(option : string) {
+	print(option: string) {
 		for (let i = 0; i < this.options.length; ++i) {
-			let id : string = this.options[i] + '-content';
+			let id: string = this.options[i] + '-content';
 			let subsection = (document.getElementById(id)! as HTMLDivElement);
 			if (this.options[i] === option)
 				subsection.classList.add('active');
 			else
-			subsection.classList.remove('active');
+				subsection.classList.remove('active');
 			// console.log(option, ':', subsection.classList);
 		}
 		const statsTableContainer = document.getElementById('stats-content');
@@ -1359,7 +1372,7 @@ export class DirectMessage extends ASection {
 	dependencies = ['home'];
 
 	/* Properties */
-	friend_username : undefined | string = undefined;
+	friend_username: undefined | string = undefined;
 	btn1 = document.getElementById('directmessage-btn1') as HTMLButtonElement;
 	btn2 = document.getElementById('directmessage-btn2') as HTMLButtonElement;
 	message = document.getElementById('directmessage-input') as HTMLInputElement;
@@ -1368,7 +1381,7 @@ export class DirectMessage extends ASection {
 
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
-		let myUser : OtherUser | Error | undefined = await search(option);
+		let myUser: OtherUser | Error | undefined = await search(option);
 		if (myUser instanceof Error || myUser === undefined)
 			return false;
 
@@ -1386,13 +1399,40 @@ export class DirectMessage extends ASection {
 		this.message.value = '';
 
 		this.btn1.onclick = () => go_section('friends', '');
-		this.btn2.onclick = () => {
-			send(this.message.value, 'direct_chat_message', this.friend_username);
-			add_message(this.friend_username!, this.message.value, 'direct_message');
-			this.message.value = '';
-		}
+		this.btn2.onclick = () => this.validateAndSendMessage();
+
 		this.activate_section();
 		this.load_messages(await get_direct_messages(this.friend_username!));
+	}
+
+	validateAndSendMessage() {
+		const messageContent = this.message.value.trim();
+
+		// Verify message isn't empty
+		if (messageContent.length === 0) {
+			alert("Message cannot be empty");
+			return;
+		}
+
+		// Verify message length
+		if (messageContent.length > 100) {
+			alert("Message is too long (maximum 100 characters)");
+			return;
+		}
+
+		// Check for potentially harmful content (simple example)
+		const forbiddenPatterns = [/<script/i, /javascript:/i];
+		for (const pattern of forbiddenPatterns) {
+			if (pattern.test(messageContent)) {
+				alert("Message contains forbidden content");
+				return;
+			}
+		}
+
+		// If all checks pass, send the message
+		send(messageContent, 'direct_chat_message', this.friend_username);
+		add_message(this.friend_username!, messageContent, 'direct_message');
+		this.message.value = '';
 	}
 	leave() {
 		this.btn1.textContent = '';
@@ -1423,7 +1463,7 @@ export class DirectMessage extends ASection {
 			this.chat_box.appendChild(element);
 		}
 	}
-	format_direct_messages(message : t_DirectMessage) : string {
+	format_direct_messages(message: t_DirectMessage): string {
 		return message.sent_at + ' ' + message.sender + ': ' + message.content;
 	}
 }
@@ -1523,7 +1563,7 @@ function is_sidebar_section(type: string, option: string): boolean {
 	return false;
 }
 
-export async function go_section(type : string, option : string) {
+export async function go_section(type: string, option: string) {
 	let previous_type = get_url_type(window.location.pathname);
 	let previous_option = get_url_option(window.location.pathname);
 	if (is_sidebar_section(type, option) && is_sidebar_section(previous_type, previous_option)
