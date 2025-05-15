@@ -179,52 +179,6 @@ export async function authRoutes(fastify, options) {
 		}
 	});
 
-	/*** 📌 Route: IS USER ***/
-	// Check if a user exists in the database
-	// If the user exists, return true
-	// If the user does not exist, return false
-	// This route is used to check if a username is already taken
-	// fastify.get("/isUser/:username", async (request, reply) => {
-	// 	const { username } = request.params;
-	// 	fastify.log.info(`Verfication of user existence: ${username}`);
-
-	// 	const user = fastify.db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-	// 	const exists = !!user;
-
-	// 	if (exists) {
-	// 		fastify.log.info(`User found: ${username}\n`);
-	// 	} else {
-	// 		fastify.log.info(`User not found: ${username}\n`);
-	// 	}
-
-	// 	return reply.code(200).send({ success: true, exists });
-	// });
-
-	/*** 📌 Route: GET USER ID ***/
-	// Get the user ID from the database using the username
-	// If the user exists, return the user ID
-	// If the user does not exist, return an error
-	// This route is used to get the user ID for the WebSocket connection
-	// fastify.post("/getUserId", async (request, reply) => {
-	// 	const { username } = request.body;
-
-	// 	if (!username) {
-	// 		fastify.log.warn("Attempt to get user ID without username");
-	// 		return reply.code(400).send({ success: false, error: "Username is required" });
-	// 	}
-
-	// 	fastify.log.info(`Searching for ID for user: ${username}`);
-
-	// 	const user = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(username);
-	// 	if (!user) {
-	// 		fastify.log.warn(`User not found: ${username}`);
-	// 		return reply.code(404).send({ success: false, error: "User not found" });
-	// 	}
-
-	// 	fastify.log.info(`User ID found for ${username}: ${user.id}`);
-	// 	return { success: true, id: user.id };
-	// });
-
 	/*** 📌 Route: LOGIN ***/
 	// Login a user
 	// Verify if the username and password are correct
