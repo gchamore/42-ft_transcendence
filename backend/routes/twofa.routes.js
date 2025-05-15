@@ -41,7 +41,7 @@ export async function twofaroutes(fastify, options) {
 			// Store the secret temporarily in Redis with a 5-minute expiration
 			await redis.setex(`2fa_setup_${userId}`, 300, secret.base32);
 
-			// Stock le le secret dans la base de données
+			// Store the secret in the database
 			return reply.code(200).send({
 				success: true,
 				otpauth_url: secret.otpauth_url,
@@ -78,7 +78,7 @@ export async function twofaroutes(fastify, options) {
 
 			if (!isValid)
 				return reply.code(400).send({ success: false, error: "Invalid verification code" });
-			fastify.log.info(`[2FA] Secret validé et stocké : ${secret}`);
+			fastify.log.info(`[2FA] Secret verified for user: ${userId}`);
 
 			// Finally store the secret in the database
 			db.prepare("UPDATE users SET twofa_secret = ? WHERE id = ?").run(secret, userId);
@@ -112,7 +112,7 @@ export async function twofaroutes(fastify, options) {
 			// twofaCode is the verification code entered by the user
 			// temp_token is the temporary token sent to the user
 
-			// Vérifier le token temporaire
+			// Verify the temporary token
 			const payload = await authService.verifyTempToken(temp_token, "2fa");
 			const user = db.prepare("SELECT * FROM users WHERE id = ?").get(payload.userId);
 
@@ -166,23 +166,23 @@ export async function twofaroutes(fastify, options) {
 			const userId = request.user.userId;
 			const { password } = request.body;
 
-			// Récupérer l'utilisateur
+			// Get the user from the database
 			const user = db.prepare("SELECT password, username, is_google_account, twofa_secret FROM users WHERE id = ?").get(userId);
 
 			if (!user) {
-				fastify.log.warn(`[2FA] Désactivation échouée : utilisateur introuvable (ID: ${userId})`);
+				fastify.log.warn(`[2FA] Disable attempt failed: User not found`);
 				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 
 			if (!user.twofa_secret) {
-				fastify.log.info(`[2FA] Tentative de désactivation ignorée : 2FA déjà désactivée pour ${user.username}`);
+				fastify.log.info(`[2FA] Disable attempt failed: 2FA not enabled for user`);
 				return reply.code(400).send({ success: false, error: "2FA is not enabled for this user" });
 			}
 
 
 			// if user Google without password
 			if (user.is_google_account && !user.password) {
-				fastify.log.info(`[2FA] Utilisateur Google, désactivation sans mot de passe autorisée (${user.username})`);
+				fastify.log.info(`[2FA] Google user without password`);
 			}
 
 			// normal user or Google user with password
@@ -196,14 +196,14 @@ export async function twofaroutes(fastify, options) {
 				// Check if the password is correct
 				const validPassword = await bcrypt.compare(password, user.password);
 				if (!validPassword) {
-					fastify.log.warn(`[2FA] Mauvais mot de passe lors de la désactivation pour ${user.username}`);
+					fastify.log.warn(`[2FA] Bad password attempt for user`);
 					return reply.code(401).send({ success: false, error: "Invalid password" });
 				}
 			}
 
-			// Supprimer la 2FA
+			// Remove the 2FA secret from the database
 			db.prepare("UPDATE users SET twofa_secret = NULL WHERE id = ?").run(userId);
-			fastify.log.info(`[2FA] Désactivation réussie pour ${user.username}`);
+			fastify.log.info(`[2FA] Disable attempt successful for user`);
 
 			return reply.code(200).send({ success: true, message: "2FA has been disabled" });
 		} catch (error) {
