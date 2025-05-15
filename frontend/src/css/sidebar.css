@@ -18,6 +18,7 @@ ul.sidebar {
     
     display: flex;
     align-items: center;
+    overflow:hidden;
     flex-direction: column;
 }
 

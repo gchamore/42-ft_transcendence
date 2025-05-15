@@ -3,6 +3,7 @@ import { Game } from './src_game/pages/gamePage.js';
 import { update_user, User, add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
 import { t_DirectMessage, update } from './api.js';
 import { get_direct_messages, ChatResponse, login, register, logout, unregister, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar, getGameHistory } from './api.js';
+import { showError } from './notifications.js';
 
 /* Custom types */
 // const ACCEPTED = 1;
@@ -761,8 +762,8 @@ class Friends extends ASection {
 		this.status.textContent = '';
 		this.status.style.color = 'black';
 	}
-	async search(user: string = this.username_i.value) {
-		let status: OtherUser | Error | undefined = await search(user);
+	async search(username: string = this.username_i.value) {
+		let status: OtherUser | Error | undefined = await search(username);
 		if (status instanceof Error)
 			return;
 
@@ -772,36 +773,38 @@ class Friends extends ASection {
 		if (this.anotherUser !== undefined) {
 			this.avatar.src = this.anotherUser.avatar;
 
-			if (this.anotherUser.is_friend === true) {
-				this.btn2.onclick = () => this.remove();
-				this.btn2.textContent = 'Remove';
-			}
-			else {
-				this.btn2.onclick = () => this.add();
-				this.btn2.textContent = 'Add';
-			}
-
-			this.btn3.onclick = () => {
-				if (this.anotherUser?.username) {
-					go_section('directmessage', this.anotherUser.username);
+			if (this.anotherUser.username !== user?.name) {
+				if (this.anotherUser.is_friend === true) {
+					this.btn2.onclick = () => this.remove();
+					this.btn2.textContent = 'Remove';
 				}
-			};
-			this.btn3.textContent = 'Message';
+				else {
+					this.btn2.onclick = () => this.add();
+					this.btn2.textContent = 'Add';
+				}
 
+				this.btn3.onclick = () => {
+					if (this.anotherUser?.username) {
+						go_section('directmessage', this.anotherUser.username);
+					}
+				};
+				this.btn3.textContent = 'Message';
+			}
+			
 			const stats = this.anotherUser.format_stats();
 			this.stat1.textContent = stats[0];
 			this.stat2.textContent = stats[1];
 			this.stat3.textContent = stats[2];
 			this.stat4.textContent = stats[3];
 
-			activate(this.founds);
+			activate(this.anotherUser?.username, this.founds);
 			deactivate(this.not_founds);
 
 			this.update_status(this.anotherUser.username, this.anotherUser.is_connected);
 		}
 		else {
 			this.reset();
-			activate(this.not_founds);
+			activate('', this.founds);
 			deactivate(this.founds);
 		}
 	}
@@ -820,7 +823,7 @@ class Friends extends ASection {
 		this.search(user);
 	}
 	update_status(username: string, online: boolean) {
-		if (username !== this.anotherUser?.username)
+		if (user?.name === username)
 			return;
 
 		this.status.textContent = (online) ? 'Online' : 'Offline';
@@ -1381,6 +1384,10 @@ export class DirectMessage extends ASection {
 
 	/* Methods */
 	async is_option_valid(option: string): Promise<boolean> {
+		if (option === user?.name) {
+			showError('Cannot send messages to yourself');
+			return false;
+		}
 		let myUser: OtherUser | Error | undefined = await search(option);
 		if (myUser instanceof Error || myUser === undefined)
 			return false;
@@ -1583,9 +1590,12 @@ export async function go_section(type: string, option: string) {
 	update_sections();
 }
 
-function activate(list: NodeListOf<Element>): void {
+function activate(username : string, list: NodeListOf<Element>): void {
 	list.forEach(element => {
-		element.classList.add('active');
+		if (username === user?.name && element.id === 'not-himself')
+			element.classList.remove('active');
+		else
+			element.classList.add('active');
 	});
 }
 
