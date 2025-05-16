@@ -34,6 +34,7 @@ update_env_ip:
 # Lancer l'infrastructure
 run: check_deps update_env_ip
 	@cd frontend && npm install --silent > /dev/null 2>&1
+	@npm run build --prefix ./frontend
 	@$(DOCKER_COMPOSE) up --build -d
 	@FRONTEND_URL=$$(grep FRONTEND_URL .env | cut -d '=' -f2); \
 	echo "$(GREEN)Application disponible sur : $$FRONTEND_URL$(RESET)"
