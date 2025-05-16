@@ -296,31 +296,14 @@ export async function userRoutes(fastify, options) {
 
 	fastify.put("/update", async (request, reply) => {
 		const userId = request.user.userId;
-		const { username, email, new_password, old_password } = request.body;
-		fastify.log.info(`Update user data: ${username}, ${email}, ${new_password}, ${old_password}`);
+		const { username, email, new_password} = request.body;
+		fastify.log.info(`Update user data: ${username}, ${email}, ${new_password}`);
 
 		try {
 			// if user Google without password
 			const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 			if (!user) {
 				return reply.code(404).send({ success: false, error: "User not found" });
-			}
-			if (user.is_google_account && !user.password) {
-				fastify.log.info(`Google USer, update without password allowed for : (${user.username})`);
-			}
-			// normal user or Google user with password
-			else {
-				// Check if the required fields are present
-				if (!old_password) {
-					fastify.log.warn("Password is required to update user info");
-					return reply.code(400).send({ success: false, error: "Password is required to update user info" });
-				}
-				// Check if the password is correct
-				const validPassword = await bcrypt.compare(old_password, user.password);
-				if (!validPassword) {
-					fastify.log.warn(`Wrong Passord for update infor  ${user.username}`);
-					return reply.code(400).send({ success: false, error: "Invalid password" });
-				}
 			}
 
 			let somethingUpdated = false;
@@ -343,8 +326,6 @@ export async function userRoutes(fastify, options) {
 				}
 			}
 			
-			
-
 			// Password
 			if (new_password) {
 				const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;

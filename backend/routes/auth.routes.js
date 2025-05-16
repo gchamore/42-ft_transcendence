@@ -81,7 +81,6 @@ export async function authRoutes(fastify, options) {
 	// Return a success message
 	fastify.post("/unregister", async (request, reply) => {
 		const userId = request.user.userId;
-		const { password } = request.body;
 
 		try {
 			// Check if the user exists in the database
@@ -92,27 +91,6 @@ export async function authRoutes(fastify, options) {
 			}
 
 			fastify.log.info(`${user.username} Attempting to delete account`);
-
-			// if user Google without password
-			if (user.is_google_account && !user.password) {
-				fastify.log.info(`${user.username} is a Google-only user with no password. Skipping password check.`);
-			}
-
-			// normal user or Google user with password
-			else {
-				// Check if the required fields are present
-				if (!password) {
-					fastify.log.warn("Failed to delete: missing fields");
-					return reply.code(400).send({ success: false, error: "Password are required" });
-				}
-
-				// Check if the password is correct
-				const validPassword = await bcrypt.compare(password, user.password);
-				if (!validPassword) {
-					fastify.log.warn(`Failed to delete: Invalid password for user ${user.username}`);
-					return reply.code(400).send({ success: false, error: "Invalid password" });
-				}
-			}
 
 			// Using a transaction for atomic deletion
 			const transaction = fastify.db.transaction(async () => {

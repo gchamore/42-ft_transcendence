@@ -163,8 +163,7 @@ export async function twofaroutes(fastify, options) {
 		try {
 
 			const userId = request.user.userId;
-			const { password } = request.body;
-
+			
 			// Get the user from the database
 			const user = db.prepare("SELECT password, username, is_google_account, twofa_secret FROM users WHERE id = ?").get(userId);
 
@@ -176,28 +175,6 @@ export async function twofaroutes(fastify, options) {
 			if (!user.twofa_secret) {
 				fastify.log.info(`[2FA] Disable attempt failed: 2FA not enabled for user`);
 				return reply.code(400).send({ success: false, error: "2FA is not enabled for this user" });
-			}
-
-
-			// if user Google without password
-			if (user.is_google_account && !user.password) {
-				fastify.log.info(`[2FA] Google user without password`);
-			}
-
-			// normal user or Google user with password
-			else {
-				// Check if the required fields are present
-				if (!password) {
-					fastify.log.warn("Password is required to disable 2FA");
-					return reply.code(400).send({ success: false, error: "Password is required to disable 2FA" });
-				}
-
-				// Check if the password is correct
-				const validPassword = await bcrypt.compare(password, user.password);
-				if (!validPassword) {
-					fastify.log.warn(`[2FA] Bad password attempt for user`);
-					return reply.code(401).send({ success: false, error: "Invalid password" });
-				}
 			}
 
 			// Remove the 2FA secret from the database

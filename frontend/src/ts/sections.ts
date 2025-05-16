@@ -585,17 +585,8 @@ class Profile extends ASection {
 				alert("Not possible to verify account type.");
 				return;
 			}
-			let success = false;
 
-			if (accountType.has_password) {
-				const password = prompt("Veuillez entrer votre mot de passe pour désactiver la 2FA:");
-				if (!password) return; // User cancelled
-
-				success = await disable2fa(password);
-			} else if (accountType.is_google_account && !accountType.has_password) {
-				success = await disable2fa();
-			}
-
+			const success = await disable2fa();
 			if (success) {
 				alert("2FA désactivé avec succès.");
 				this.check2FAStatus();
@@ -1205,8 +1196,7 @@ class Settings extends ASection {
 
 			this.update_btn.textContent = 'Save';
 			this.update_btn.onclick = async () => {
-				let old_password: string = await this.get_old_password();
-				const updateResult = await update(this.username_i.value, this.email_i.value, old_password, this.password_i.value);
+				const updateResult = await update(this.username_i.value, this.email_i.value, this.password_i.value);
 				if (updateResult && typeof updateResult === 'object' && updateResult.success && updateResult.user) {
 					update_user_data(updateResult.user.username, updateResult.user.email);
 				}
@@ -1214,27 +1204,6 @@ class Settings extends ASection {
 				this.account();
 			}
 		}
-	}
-	async get_old_password(): Promise<string> {
-		try {
-			const accountType = await getUserAccountType();
-
-			if (!accountType) {
-				alert("Not possible to check account type");
-				return '';
-			}
-
-			if (accountType.has_password) {
-				const password = prompt("Veuillez entrer votre mot de passe:");
-				return (password === null) ? '' : password;
-			}
-
-			return '';
-		} catch (err) {
-			// console.error("Error edition of the account:", err);
-			alert("Une erreur s'est produite lors de l'edit du compte.");
-		}
-		return '';
 	}
 	async enter(verified: boolean) {
 		if (verified !== true) {
@@ -1353,18 +1322,7 @@ class Settings extends ASection {
 				return;
 			}
 
-			let success;
-			if (accountType.has_password) {
-				const password = prompt("Please enter your password to DELETE your account:");
-				if (!password) return;
-
-				success = await unregister(password);
-			} else if (accountType.is_google_account && !accountType.has_password) {
-				success = await unregister();
-			} else {
-				alert("Not possible to delete your account !");
-				return;
-			}
+			const success = await unregister();
 
 			if (success) {
 				alert("Your account has been successfully deleted.");

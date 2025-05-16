@@ -510,12 +510,11 @@ export async function activate2fa(token: string): Promise<boolean> {
 }
 
 export async function update(
-	username: string, email: string,
-	old_password: string, new_password: string): Promise<{success: boolean, user: any} | false> {
+	username: string, email: string, new_password: string): Promise<{success: boolean, user: any} | false> {
 	try {
 
-		let body = { username: username.trim(), email: email.trim(), old_password: old_password.trim(), new_password: new_password.trim() };
-		if (username.length > 50 || email.length > 50 || old_password.length > 50 || new_password.length > 50) {
+		let body = { username: username.trim(), email: email.trim(), new_password: new_password.trim() };
+		if (username.length > 50 || email.length > 50 || new_password.length > 50) {
 			showError("Username, Email or Password too long");
 			return false;
 		}
@@ -584,19 +583,15 @@ export async function verify2fa(token: string, temp_token: string): Promise<bool
 	}
 }
 
-export async function disable2fa(password?: string): Promise<boolean> {
+export async function disable2fa(): Promise<boolean> {
 	try {
-		if (password && password.length > 50) {
-			showError("Password too long");
-			return false;
-		}
 		const response = await fetch('/api/2fa/disable', {
 			method: 'POST',
 			credentials: 'include',
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({ password })
+			body: JSON.stringify({})
 		});
 		const data = await response.json();
 
@@ -866,14 +861,14 @@ export async function getGameHistory(userId: string) {
 	}
 }
 
-export async function unregister(password?: string): Promise<boolean> {
+export async function unregister(): Promise<boolean> {
 	try {
 		const response = await fetch("/api/unregister", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify({ password }),
+			body: JSON.stringify({ }),
 			credentials: "include",
 		});
 
