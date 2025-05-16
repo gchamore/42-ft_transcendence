@@ -901,8 +901,11 @@ export class Chat extends ASection {
 			let element = document.createElement('li');
 			element.classList.add('except');
 			element.onclick = async () => {
+				let username = this.get_username(element.textContent)
+				if (username === 'TournamentSystem')
+					return;
 				go_section('friends', '');
-				await (sections[get_type_index('friends')!] as Friends).search(this.get_username(element.textContent));
+				await (sections[get_type_index('friends')!] as Friends).search(username);
 			}
 			element.textContent = messages[i].format_message();
 			this.chat_box.appendChild(element);

@@ -257,8 +257,10 @@ function tournamentStart(tournamentId: string, bracket: string) {
 
 	const overlay = document.getElementById('tournament-countdown-overlay') as HTMLElement;
 	const text = document.getElementById('tournament-countdown-text') as HTMLElement;
+	const queueMessage = document.getElementById('queue-message') as HTMLElement;
 	if (!overlay || !text) return;
-
+	if (queueMessage)
+		queueMessage.style.display = 'none';
 	overlay.style.display = 'flex';
 	text.textContent = `Tournament starting in ${countdown} seconds...`;
 
