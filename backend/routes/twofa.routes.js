@@ -230,9 +230,7 @@ export async function twofaroutes(fastify, options) {
 				return reply.code(404).send({ success: false, error: "User not found" });
 			}
 
-			return {
-				enabled: !!user.twofa_secret
-			};
+			return reply.code(200).send({ success: true, enabled: !!user.twofa_secret });
 		} catch (error) {
 			fastify.log.error(error, `Error while checking 2FA status`);
 			return reply.code(500).send({
