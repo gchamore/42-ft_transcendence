@@ -411,7 +411,7 @@ export class GameSection extends ASection {
 			false,
 			true
 		) as string | null;
-		if (!displayName || displayName.trim().length === 0) {
+		if (!displayName || displayName.trim().length === 0 || displayName.length > 30) {
 			this.showQueueMessage('Display name is required for tournaments', 'tournament', false, false);
 			setTimeout(() => {
 				this.hideQueueMessage();

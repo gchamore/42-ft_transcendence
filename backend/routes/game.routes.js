@@ -4,6 +4,7 @@ import { safeSend } from '../game/utils/socketUtils.js';
 import wsService from '../ws/ws.service.js';
 import * as wsUtils from '../ws/ws.utils.js';
 import authService from '../auth/auth.service.js';
+import authUtils from '../auth/auth.utils.js';
 
 
 export const settingsManagers = new Map();
@@ -74,10 +75,13 @@ export async function gameRoutes(fastify, options) {
 	fastify.post('/tournament/queue', async (request, reply) => {
 		const { displayName } = request.body;
 		const userId = request.user.userId;
-		
+
 		if (!userId || !displayName) {
 			return reply.code(401).send({ error: 'Unauthorized' });
 		}
+		const checked_display_name = authUtils.checkUsername(fastify, displayName);
+		if (typeof checked_display_name === 'object' && checked_display_name.error)
+			return reply.status(400).send({ success: false, error: checked_display_name.error });
 
 		if (gameQueue.includes(userId)) {
 			return reply.code(400).send({ error: 'Cannot join tournament queue while in game queue' });
@@ -87,15 +91,14 @@ export async function gameRoutes(fastify, options) {
 			return reply.code(400).send({ error: 'Already in tournament queue' });
 		}
 
-		const lowerDisplayName = displayName.trim().toLowerCase();
 		for (const name of tournamentDisplayNames.values()) {
-			if (name.toLowerCase() === lowerDisplayName) {
+			if (name === checked_display_name) {
 				return reply.code(409).send({ error: 'Display name already taken' });
 			}
 		}
 		
 		tournamentQueue.push(userId);
-		tournamentDisplayNames.set(userId, displayName);
+		tournamentDisplayNames.set(userId, checked_display_name);
 
 		// If 4 players, create tournament
 		if (tournamentQueue.length >= 4) {

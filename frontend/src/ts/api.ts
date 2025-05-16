@@ -513,7 +513,12 @@ export async function update(
 	username: string, email: string,
 	old_password: string, new_password: string): Promise<{success: boolean, user: any} | false> {
 	try {
-		let body = { username: username, email: email, old_password: old_password, new_password: new_password };
+
+		let body = { username: username.trim(), email: email.trim(), old_password: old_password.trim(), new_password: new_password.trim() };
+		if (username.length > 50 || email.length > 50 || old_password.length > 50 || new_password.length > 50) {
+			showError("Username, Email or Password too long");
+			return false;
+		}
 		const response = await fetch('/api/update', {
 			method: 'PUT',
 			credentials: 'include',
