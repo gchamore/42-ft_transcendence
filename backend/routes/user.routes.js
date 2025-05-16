@@ -319,7 +319,7 @@ export async function userRoutes(fastify, options) {
 				const validPassword = await bcrypt.compare(old_password, user.password);
 				if (!validPassword) {
 					fastify.log.warn(`Wrong Passord for update infor  ${user.username}`);
-					return reply.code(401).send({ success: false, error: "Invalid password" });
+					return reply.code(400).send({ success: false, error: "Invalid password" });
 				}
 			}
 

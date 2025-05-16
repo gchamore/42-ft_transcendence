@@ -879,18 +879,17 @@ export async function unregister(password?: string): Promise<boolean> {
 
 		const data = await response.json();
 
-		if (response.status === 401 || !data.success || !response.ok) {
+		if (response.status === 401) {
 			if (user?.web_socket?.readyState === WebSocket.OPEN)
 				user.web_socket.close(1000);
 			update_user(undefined);
+			const errorMessage = data?.error || "Session expired";
+			showError(errorMessage);
+			check_redirect();
+			return false;
+		}
 
-			if (response.status === 401) {
-				const errorMessage = data?.error || "Session expired";
-				showError(errorMessage);
-				check_redirect();
-				return false;
-			}
-
+		else if (!response.ok || !data.success) {
 			const errorMessage = data?.error || "Unregistering failed";
 			showError(errorMessage);
 			return false;

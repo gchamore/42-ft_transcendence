@@ -110,7 +110,7 @@ export async function authRoutes(fastify, options) {
 				const validPassword = await bcrypt.compare(password, user.password);
 				if (!validPassword) {
 					fastify.log.warn(`Failed to delete: Invalid password for user ${user.username}`);
-					return reply.code(401).send({ success: false, error: "Invalid password" });
+					return reply.code(400).send({ success: false, error: "Invalid password" });
 				}
 			}
 

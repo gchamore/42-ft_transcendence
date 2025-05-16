@@ -1147,7 +1147,7 @@ class Settings extends ASection {
 	parent = document.getElementById('settings-parent') as HTMLElement;
 	logged_off = this.parent.querySelectorAll('.logged-off') as NodeListOf<Element>;
 	logged_in = this.parent.querySelectorAll('.logged-in') as NodeListOf<Element>;
-	dependencies = [];
+	dependencies = ['home'];
 
 
 	/* Properties */
@@ -1368,9 +1368,10 @@ class Settings extends ASection {
 
 			if (success) {
 				alert("Your account has been successfully deleted.");
-				go_section('home', '');
+				go_section('settings', 'confidentiality');
 			} else {
 				alert("Error unregistering account:");
+				go_section('settings', 'confidentiality');
 			}
 		} catch (err) {
 			// console.error("Error unregistering account:", err);

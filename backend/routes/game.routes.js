@@ -81,7 +81,7 @@ export async function gameRoutes(fastify, options) {
 		}
 		const checked_display_name = authUtils.checkUsername(fastify, displayName);
 		if (typeof checked_display_name === 'object' && checked_display_name.error)
-			return reply.status(400).send({ success: false, error: checked_display_name.error });
+			return reply.status(400).send({ error: checked_display_name.error });
 
 		if (gameQueue.includes(userId)) {
 			return reply.code(400).send({ error: 'Cannot join tournament queue while in game queue' });
