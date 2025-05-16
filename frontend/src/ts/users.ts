@@ -50,9 +50,9 @@ export class Message {
 
 /* User */
 export class User {
-	readonly name: string;
+	name: string; // Changed from readonly to updatable
 	readonly userId: number = 0;
-	readonly email: string = '';
+	email: string = ''; // Changed from readonly to updatable
 	readonly avatar_path: string = '';
 	isTournamentCreator?: boolean = false;
 	web_socket: WebSocket | undefined;
@@ -299,6 +299,17 @@ export function update_user(new_user_value: User | undefined) {
 		let profile_i = get_type_index('profile')!;
 		set_section_index(section_index === profile_i ? get_type_index('profile') : get_type_index('home'));
 	}
+	update_sections();
+}
+
+export function update_user_data(username: string, email: string) {
+	if (user === undefined) {
+		return;
+	}
+	
+	user.name = username;
+	user.email = email;
+	
 	update_sections();
 }
 

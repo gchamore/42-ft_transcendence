@@ -334,6 +334,7 @@ export async function userRoutes(fastify, options) {
 					if (exists) {
 						return reply.code(400).send({ success: false, error: "Username already taken" });
 					}
+					fastify.log.info(`🔧 Attempt to update username with: ${checked_username}, userId: ${userId}`);
 					db.prepare("UPDATE users SET username = ? WHERE id = ?").run(checked_username, userId);
 					somethingUpdated = true;
 				} else {

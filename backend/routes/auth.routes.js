@@ -431,15 +431,8 @@ export async function authRoutes(fastify, options) {
 				// If the access token is invalid and the refresh token is also invalid
 				fastify.log.info('Invalid or expired token');
 				// Try to decode the token to get the userId
-				const decoded = jwt.decode(accessToken || refreshToken);
-				const userId = decoded?.userId;
-
-				if (userId) {
-					const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-					if (user) {
-						await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'Invalid token from verify_token');
-					}
-				}
+				// fastify.log.info(`Clearing cookies for invalid token : ${accessToken}`);
+				// fastify.log.info(`Clearing cookies for invalid token : ${refreshToken}`);
 				return reply
 					.code(200)
 					.clearCookie('accessToken', cookieOptions)
