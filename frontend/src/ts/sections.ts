@@ -899,6 +899,10 @@ export class Chat extends ASection {
 		for (let i = messages.length - 1; i >= 0; --i) {
 			let element = document.createElement('li');
 			element.classList.add('except');
+			element.onclick = async () => {
+				go_section('friends', '');
+				await (sections[get_type_index('friends')!] as Friends).search(this.get_username(element.textContent));
+			}
 			element.textContent = messages[i].format_message();
 			this.chat_box.appendChild(element);
 		}
@@ -925,6 +929,16 @@ export class Chat extends ASection {
 		if (await send(input, 'livechat') === true) {
 			add_message(user!.name, input, 'livechat');
 		}
+	}
+	get_username(text : string | null) : string {
+		if (text ===  null)
+			return '';
+
+		let end_index = 12;
+		while (text[end_index] !== ':')
+			end_index++;
+		console.log(text.substring(12, end_index));
+		return text.substring(12, end_index);
 	}
 }
 
@@ -1465,12 +1479,26 @@ export class DirectMessage extends ASection {
 		for (let i = 0; i < 20 && i < messages.messages.length; ++i) {
 			let element = document.createElement('li');
 			element.classList.add('except');
+			element.onclick = async () => {
+				go_section('friends', '');
+				await (sections[get_type_index('friends')!] as Friends).search(this.get_username(element.textContent));
+			}
 			element.textContent = this.format_direct_messages(messages.messages[i]);
 			this.chat_box.appendChild(element);
 		}
 	}
 	format_direct_messages(message: t_DirectMessage): string {
 		return message.sent_at + ' ' + message.sender + ': ' + message.content;
+	}
+	get_username(text : string | null) : string {
+		if (text ===  null)
+			return '';
+
+		let end_index = 20;
+		while (text[end_index] !== ':')
+			end_index++;
+		console.log(text.substring(20, end_index));
+		return text.substring(20, end_index);
 	}
 }
 

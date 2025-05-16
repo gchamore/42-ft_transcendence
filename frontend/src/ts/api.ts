@@ -159,9 +159,9 @@ export async function search(friend_username: string): Promise<OtherUser | Error
 		else if (data.success) {
 			if (data.isFriend)
 				return new OtherUser(data.user.username, data.isFriend, data.user.isConnected,
-					data.user.friendSince, data.user.winRate, data.user.gamesTogether);
+					data.user.friendSince, data.user.winRate, data.user.gamesTogether, data.user.avatar);
 			return new OtherUser(data.user.username, data.isFriend, data.user.isConnected,
-				data.user.createdAt, data.user.winRate, data.user.gamesPlayed);
+				data.user.createdAt, data.user.winRate, data.user.gamesPlayed, data.user.avatar);
 		}
 
 	} catch (error) {
@@ -822,6 +822,7 @@ export async function updateAvatar(file: File): Promise<boolean> {
 				avatar.src = `${data.user.avatar}?${Date.now()}`;
 			});
 			showInfo("Avatar updated successfully!");
+			user.avatar_path = data.user.avatar;
 			return true;
 		}
 		return false;

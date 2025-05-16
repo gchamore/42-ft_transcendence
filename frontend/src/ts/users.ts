@@ -53,7 +53,7 @@ export class User {
 	name: string; // Changed from readonly to updatable
 	readonly userId: number = 0;
 	email: string = ''; // Changed from readonly to updatable
-	readonly avatar_path: string = '';
+	avatar_path: string = '';
 	isTournamentCreator?: boolean = false;
 	web_socket: WebSocket | undefined;
 	livechat: Array<Message>;
@@ -349,16 +349,17 @@ export class OtherUser {
 	readonly stat1: string;
 	readonly stat2: number;
 	readonly stat3: number;
-	readonly avatar: string = 'avatar/avatar.png';
+	readonly avatar: string;
 
 	constructor(username: string, is_friend: boolean, is_connected: boolean = false,
-		stat1: string, stat2: number, stat3: number) {
+		stat1: string, stat2: number, stat3: number, avatar: string ='avatar/avatar.png') {
 		this.username = username;
 		this.is_friend = is_friend;
 		this.is_connected = is_connected;
 		this.stat1 = stat1;
 		this.stat2 = stat2;
 		this.stat3 = stat3;
+		this.avatar = avatar;
 	}
 
 	format_stats(): string[] {
