@@ -1,6 +1,6 @@
 import { SettingsPage } from './src_game/pages/settingsPage.js';
 import { Game } from './src_game/pages/gamePage.js';
-import { update_user, User, add_online, user, get_user_messages, OtherUser, Message, add_message } from './users.js';
+import { add_online, user, get_user_messages, OtherUser, Message, add_message, update_user_data } from './users.js';
 import { t_DirectMessage, update } from './api.js';
 import { get_direct_messages, ChatResponse, login, register, logout, unregister, add, remove, search, send, get_blocked_users, block, unblock, setup2fa, activate2fa, verify2fa, disable2fa, get2faStatus, getUserAccountType, initiateGoogleLogin, updateAvatar, getGameHistory } from './api.js';
 import { showError } from './notifications.js';
@@ -1188,8 +1188,10 @@ class Settings extends ASection {
 			this.update_btn.textContent = 'Save';
 			this.update_btn.onclick = async () => {
 				let old_password: string = await this.get_old_password();
-				if (await update(this.username_i.value, this.email_i.value, old_password, this.password_i.value) === true)
-					update_user(new User(this.username_i.value, user?.userId, this.email_i.value, user?.avatar_path));
+				const updateResult = await update(this.username_i.value, this.email_i.value, old_password, this.password_i.value);
+				if (updateResult && typeof updateResult === 'object' && updateResult.success && updateResult.user) {
+					update_user_data(updateResult.user.username, updateResult.user.email);
+				}
 				this.clear();
 				this.account();
 			}
@@ -1460,9 +1462,6 @@ export class DirectMessage extends ASection {
 
 		let chat_box_childNodes: Array<ChildNode> = [];
 		this.chat_box.childNodes.forEach((childNode) => { chat_box_childNodes.push(childNode); });
-		for (let i = 0; i < chat_box_childNodes.length; ++i)
-			chat_box_childNodes[i].remove();
-
 		for (let i = 0; i < 20 && i < messages.messages.length; ++i) {
 			let element = document.createElement('li');
 			element.classList.add('except');

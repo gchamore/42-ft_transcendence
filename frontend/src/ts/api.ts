@@ -503,8 +503,7 @@ export async function activate2fa(token: string): Promise<boolean> {
 
 export async function update(
 	username: string, email: string,
-	old_password: string, new_password: string): Promise<boolean> {
-	// console.log(old_password);
+	old_password: string, new_password: string): Promise<{success: boolean, user: any} | false> {
 	try {
 		let body = { username: username, email: email, old_password: old_password, new_password: new_password };
 		const response = await fetch('/api/update', {
@@ -531,7 +530,7 @@ export async function update(
 			return false;
 		}
 		showSuccess(`Account updated !`);
-		return true;
+		return data;
 	} catch (error) {
 		// console.error('/api/update error:', error);
 		showError("Sorry, updating account failed");
