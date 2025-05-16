@@ -106,7 +106,7 @@ export async function userRoutes(fastify, options) {
 
 			// Check if the user exists
 			const searchedUser = db.prepare(`
-                SELECT id, username, 
+                SELECT id, username, avatar,
                        strftime('%d-%m-%Y', created_at) as created_at,
                        wins, losses
                 FROM users 
@@ -157,6 +157,7 @@ export async function userRoutes(fastify, options) {
 					isFriend: true,
 					user: {
 						username: searchedUser.username,
+						avatar: searchedUser.avatar,
 						friendSince: friendship.friend_since,
 						gamesPlayed: gameStats.total_games,
 						winRate: winRate,
@@ -173,6 +174,7 @@ export async function userRoutes(fastify, options) {
 				isFriend: false,
 				user: {
 					username: searchedUser.username,
+					avatar: searchedUser.avatar,
 					createdAt: searchedUser.created_at,
 					gamesPlayed: gameStats.total_games,
 					winRate: winRate,
@@ -346,12 +348,12 @@ export async function userRoutes(fastify, options) {
 
 			// Password
 			if (new_password) {
-				// const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-				// if (!passwordRegex.test(new_password)) {
-				// 	return reply.code(400).send({
-				// 		error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character."
-				// 	});
-				// }
+				const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+				if (!passwordRegex.test(new_password)) {
+					return reply.code(400).send({
+						error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character."
+					});
+				}
 				const hashedPassword = await authUtils.hashPassword(new_password);
 				db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, userId);
 				somethingUpdated = true;

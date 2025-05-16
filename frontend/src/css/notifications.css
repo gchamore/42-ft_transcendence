@@ -8,7 +8,9 @@
   border-radius: 8px;
   font-weight: 600;
   color: white;
-  max-width: 350px;
+  min-width: 250px;
+  max-width: 500px;
+  width: auto;
   z-index: 10000;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   opacity: 0;
@@ -43,9 +45,11 @@
 
 .notification-message {
   flex-grow: 1;
-  text-align: center; /* ← centre le texte horizontalement */
+  text-align: center;
+  word-wrap: break-word; /* Allows text to wrap */
+  overflow-wrap: break-word; /* Handle long words */
+  hyphens: auto; /* Add hyphens if necessary */
 }
-
 
 .notification-close {
   background: none;

@@ -27,13 +27,13 @@ export async function authRoutes(fastify, options) {
 			if (typeof checked_username === 'object' && checked_username.error)
 				return reply.status(400).send({ success: false, error: checked_username.error });
 
-			// // Validate password strength
-			// const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-			// if (!passwordRegex.test(password)) {
-			// 	return reply.code(400).send({ success: false, 
-			// 		error: "Password must be at least 8 characters, include uppercase, lowercase, number, and special character."
-			// 	});
-			// }
+			// Validate password strength
+			const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+			if (!passwordRegex.test(password)) {
+				return reply.code(400).send({ success: false, 
+					error: "Password must be at least 8 characters, include uppercase, lowercase, number, and special character."
+				});
+			}
 			const existingUser = fastify.db.prepare("SELECT id FROM users WHERE username = ?").get(checked_username);
 			if (existingUser) {
 				fastify.log.warn(`Failed registration: Username already taken (${checked_username})`);
