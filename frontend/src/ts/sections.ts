@@ -1385,13 +1385,13 @@ export class DirectMessage extends ASection {
 		this.message.value = '';
 
 		this.btn1.onclick = () => go_section('friends', '');
-		this.btn2.onclick = () => this.validateAndSendMessage();
+		this.btn2.onclick = async () => this.validateAndSendMessage();
 
 		this.activate_section();
 		this.load_messages(await get_direct_messages(this.friend_username!));
 	}
 
-	validateAndSendMessage() {
+	async validateAndSendMessage() {
 		const messageContent = this.message.value.trim();
 
 		// Verify message isn't empty
@@ -1416,8 +1416,9 @@ export class DirectMessage extends ASection {
 		}
 
 		// If all checks pass, send the message
-		send(messageContent, 'direct_chat_message', this.friend_username);
-		add_message(this.friend_username!, messageContent, 'direct_message');
+		await send(messageContent, 'direct_chat_message', this.friend_username);
+		await add_message(this.friend_username!, messageContent, 'direct_message');
+		this.load_messages(await get_direct_messages(this.friend_username!));
 		this.message.value = '';
 	}
 	leave() {
@@ -1436,7 +1437,9 @@ export class DirectMessage extends ASection {
 	load_messages(messages: ChatResponse | undefined) {
 		if (messages === undefined)
 			return;
-
+		while (this.chat_box.firstChild) {
+    		this.chat_box.removeChild(this.chat_box.firstChild);
+		}
 		let chat_box_childNodes: Array<ChildNode> = [];
 		this.chat_box.childNodes.forEach((childNode) => { chat_box_childNodes.push(childNode); });
 		for (let i = 0; i < 20 && i < messages.messages.length; ++i) {

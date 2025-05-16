@@ -1,4 +1,4 @@
-import { update_status, DirectMessage, update_sections, Chat, Actions, get_type_index, sections, section_index, set_section_index, GameSection, go_section,  showInviteOverlay } from "./sections.js";
+import { update_status, DirectMessage, update_sections, Chat, Actions, get_type_index, sections, section_index, set_section_index, GameSection, go_section,  showInviteOverlay, get_url_option } from "./sections.js";
 import { get_direct_messages } from "./api.js";
 import { showError } from "./notifications.js";
 
@@ -359,7 +359,7 @@ export async function add_message(username: string, message: string, type: strin
 
 	if (type === 'livechat' && section_index === get_type_index('chat'))
 		(sections[get_type_index('chat')!] as Chat).load_messages(user?.livechat);
-	if (type === 'direct_message' && section_index === get_type_index('directmessage'))
+	if (type === 'direct_message' && section_index === get_type_index('directmessage') && (username === get_url_option(window.location.pathname) || username === user!.name))
 		(sections[get_type_index('directmessage')!] as DirectMessage).load_messages(await get_direct_messages(username));
 }
 /* --------- */
