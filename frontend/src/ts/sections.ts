@@ -938,7 +938,7 @@ export class Chat extends ASection {
 		let end_index = 12;
 		while (text[end_index] !== ':')
 			end_index++;
-		console.log(text.substring(12, end_index));
+		// console.log(text.substring(12, end_index));
 		return text.substring(12, end_index);
 	}
 }
@@ -1312,7 +1312,7 @@ class Settings extends ASection {
 			const result = await getGameHistory(String(user.userId));
 			const games = Array.isArray(result) ? result : result?.games || [];
 			if (!games || games.length === 0) {
-				console.log('No games found');
+				// console.log('No games found');
 				statsMessage.textContent = "No games played yet.";
 				return;
 			}
@@ -1498,7 +1498,7 @@ export class DirectMessage extends ASection {
 		let end_index = 20;
 		while (text[end_index] !== ':')
 			end_index++;
-		console.log(text.substring(20, end_index));
+		// console.log(text.substring(20, end_index));
 		return text.substring(20, end_index);
 	}
 }
