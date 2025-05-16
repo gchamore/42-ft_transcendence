@@ -1,7 +1,6 @@
 import { games, broadcastGameState } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
-import { tournaments } from '../../routes/game.routes.js';
-import { cleanupTournamentMappings } from './gameMessageHandlers.js'
+import { tournaments, tournamentQueue } from '../../routes/game.routes.js';
 
 export function handleDisconnect(socket, game, fastify) {
 	if (!validateDisconnectParams(socket, game)) 
@@ -14,7 +13,6 @@ export function handleDisconnect(socket, game, fastify) {
 	if (tournament) {
 		if (!tournament.ended) {
 			tournament.ended = true;
-			// console.log(`Player ${playerNumber} disconnected from tournament ${tournament.tournamentId}`);
 
 			// Use the score from the current game or a default score
 			const score = game.getState().score || {
@@ -23,18 +21,24 @@ export function handleDisconnect(socket, game, fastify) {
 			};
 
 			notifyTournamentPlayers(tournament, score, `A player disconnected. The tournament has ended.`);
-			cleanupTournamentMappings(tournament);
+			idx = tournamentQueue.indexOf(socket.clientId);
+			if (idx !== -1) {
+				tournamentQueue.splice(idx, 1);
+			}
 		}
 		game.removePlayer(socket);
 		cleanUpSocketListeners(socket);
-		const userConnections = fastify.connections.get(String(socket.clientId));
-		if (userConnections)
-			userConnections.delete(socket.connectionId);
 		const idx = tournament.players.indexOf(socket.clientId);
 		if (idx !== -1)
 			tournament.players.splice(idx, 1);
+		
 		if (tournament.players.size === 0)
 			tournaments.delete(tournament.tournamentId);
+		const userConnections = fastify.connections.get(String(socket.clientId));
+		if (userConnections)
+		{
+			userConnections.delete(socket.connectionId);
+		}
 		return;
 	}
 	saveGameResults(game, fastify, socket);
@@ -216,8 +220,6 @@ function scheduleGameCleanup(gameId, delay = 5000) {
 
 function cleanUpSocketListeners(socket) {
 	try {
-		const playerNum = socket.playerNumber;
-
 		socket.removeAllListeners('message');
 		socket.removeAllListeners('close');
 		socket.removeAllListeners('error');

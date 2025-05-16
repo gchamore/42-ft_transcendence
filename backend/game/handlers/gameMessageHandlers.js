@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleDisconnect } from './disconnectHandler.js';
-import { tournaments, tournamentPlayerNumbers, tournamentDisplayNames } from '../../routes/game.routes.js';
+import { tournaments, tournamentPlayerNumbers, tournamentDisplayNames, tournamentQueue, cleanGameTournamentQueue } from '../../routes/game.routes.js';
 
 
 export function handleNewGamePlayer(socket, game, fastify, isTournament) {
@@ -78,6 +78,7 @@ export function handleNewGamePlayer(socket, game, fastify, isTournament) {
 					socket.gameInstance.removePlayer(socket);
 				return;
 			}
+			
 			if (socket.currentCloseHandler) {
 				socket.currentCloseHandler(fastify);
 			} else {
@@ -114,6 +115,7 @@ export function handleGameDisconnect(socket, game, fastify) {
 
 	if (gameInst) {
 		handleDisconnect(socket, gameInst, fastify);
+		cleanGameTournamentQueue(socket.clientId, fastify);
 	} else {
 		console.error('Game instance not found for player disconnect');
 	}
@@ -284,18 +286,13 @@ export function cleanupTournamentMappings(tournament) {
 			tournamentDisplayNames.delete(player.id);
 		}
 	}
+	tournamentQueue.length = 0;
+	console.log(`Tournament mappings cleaned up for tournament ${tournament.id}`);
 }
 
 
 function handleMovePaddle(socket, game, playerNumber, data) {
-	if (data.playerNumber !== playerNumber) {
-		safeSend(socket, {
-			type: 'error',
-			message: 'Player trying to move paddle that is not theirs'
-		});
-		console.error('Player trying to move paddle that is not theirs');
-		return;
-	}
+
 	const gameState = game.gameStateManager.getState();
 	const paddle = gameState[`paddle${playerNumber}`];
 	// validate input sequence

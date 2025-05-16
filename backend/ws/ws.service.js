@@ -77,7 +77,7 @@ export class WebSocketService {
 					return;
 				}
 
-				cleanGameTournamentQueue(userId);
+				cleanGameTournamentQueue(userId, fastify);
 				
 				connection.socket.isDisconnecting = true;
 
@@ -85,7 +85,7 @@ export class WebSocketService {
 		
 				clearInterval(pingInterval);
 		
-				await wsUtils.handleSingleUserConnectionClose( fastify, connection, code, (reason || 'Unexpected disconnect'), userId, username, connectionId);
+				await wsUtils.handleAllUserConnectionsClose(fastify, userId, username, 'Disconnected by server');
 		
 			} catch (error) {
 				fastify.log.error(error, `Error handling WebSocket close for user ${username}`);

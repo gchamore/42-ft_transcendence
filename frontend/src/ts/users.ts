@@ -1,8 +1,10 @@
 import { update_status, DirectMessage, update_sections, Chat, Actions, get_type_index, sections, section_index, set_section_index, GameSection, go_section,  showInviteOverlay } from "./sections.js";
 import { get_direct_messages } from "./api.js";
+import { showError } from "./notifications.js";
 
 /* Global variables */
 export var user: undefined | User = undefined;
+let tournamentCountdownInterval: ReturnType<typeof setInterval> | null = null;
 
 const options: Intl.DateTimeFormatOptions = {
 	timeZone: 'Europe/Paris',
@@ -117,6 +119,9 @@ export class User {
 					case 'inviteResult':
 						this.inviteResult(data);
 						break;
+					case 'tournamentDisconnection':
+						this.handleDisconnection(data.message);
+						break;
 					default:
 						// console.error('Unknown message in user type:', data.type);
 				}
@@ -129,6 +134,22 @@ export class User {
 			// console.log(`[${event.code}] Disconnected : ${event.reason}`);
 			update_user(undefined);
 		};
+	}
+
+	handleDisconnection(message: string) {
+		if (tournamentCountdownInterval) {
+			clearInterval(tournamentCountdownInterval);
+			tournamentCountdownInterval = null;
+		}
+		const container = document.getElementById("tournament-countdown-overlay") as HTMLElement;
+		if (container)
+			container.style.display = 'none';
+		const goContainer = document.getElementById("game-over-menu") as HTMLElement;
+		if (goContainer) {
+			goContainer.style.display = 'none';
+		}
+		showError(message, 3000);
+		go_section('home', '');
 	}
 
 	tournamentGameStart(data: any) {
@@ -241,12 +262,14 @@ function tournamentStart(tournamentId: string, bracket: string) {
 	overlay.style.display = 'flex';
 	text.textContent = `Tournament starting in ${countdown} seconds...`;
 
-	const interval = setInterval(() => {
+	if (tournamentCountdownInterval) clearInterval(tournamentCountdownInterval);
+	tournamentCountdownInterval = setInterval(() => {
 		countdown--;
 		if (countdown > 0) {
 			text.textContent = `Tournament starting in ${countdown} seconds...`;
 		} else {
-			clearInterval(interval);
+			clearInterval(tournamentCountdownInterval!);
+			tournamentCountdownInterval = null;
 			text.textContent = `Tournament is starting!`;
 			setTimeout(() => {
 				overlay.style.display = 'none';

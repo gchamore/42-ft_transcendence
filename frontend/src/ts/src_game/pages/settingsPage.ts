@@ -142,6 +142,10 @@ export class SettingsPage {
 		message: string = 'Connection to server lost. Please refresh the page.',
 		errorId: string = 'connection-error'
 	) {
+		const goContainer = document.getElementById("game-over-menu") as HTMLElement;
+		if (goContainer) {
+			goContainer.style.display = 'none';
+		}
 		const container = document.getElementById('settings-page');
 		if (container) {
 			const existingError = document.getElementById(errorId);

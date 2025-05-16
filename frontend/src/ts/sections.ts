@@ -462,6 +462,7 @@ export class GameSection extends ASection {
 				setTimeout(this.hideQueueMessage, 2000);
 			} else if (resp.ok) {
 				this.inTournamentQueue = true;
+				this.hideQueueMessage();
 				this.disableSidebarButtons();
 				return;
 			} else {

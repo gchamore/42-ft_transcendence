@@ -2,7 +2,7 @@ import { GameInstance } from '../classes/gameInstance.js';
 import { games } from '../controllers/gameController.js';
 import { safeSend } from '../utils/socketUtils.js';
 import { handleNewGamePlayer } from './gameMessageHandlers.js';
-import { tournaments, gamePlayerNumbers, tournamentPlayerNumbers, tournamentQueue, tournamentDisplayNames } from '../../routes/game.routes.js';
+import { tournaments, gamePlayerNumbers, tournamentPlayerNumbers, tournamentQueue, tournamentDisplayNames, cleanGameTournamentQueue } from '../../routes/game.routes.js';
 import WebSocket from 'ws';
 
 export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fastify) {
@@ -24,12 +24,11 @@ export function handleNewLobbyPlayer(socket, lobby, clientId, playerNumber, fast
 				if (tournamentPlayerNumbers.has(clientIdStr)) {
 					tournamentPlayerNumbers.delete(clientIdStr);
 				}
-				const tqIdx = tournamentQueue.indexOf(socket.clientId);
-				if (tqIdx !== -1) {
-					tournamentQueue.splice(tqIdx, 1);
-				}
-				tournamentDisplayNames.delete(socket.clientId);
+				cleanGameTournamentQueue(socket.clientId, fastify);
 			}
+			const userConnections = fastify.connections.get(String(socket.clientId));
+			if (userConnections)
+				userConnections.delete(socket.connectionId);
 		} else {
 			console.error('No close handler set for socket');
 		}

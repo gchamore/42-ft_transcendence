@@ -385,17 +385,37 @@ function notifyPlayers(fastify, gameId, playerId) {
 	}
 }
 
-export function cleanGameTournamentQueue(userId) {
+export function cleanGameTournamentQueue(userId, fastify) {
 	let numberUserId = Number(userId);
 	const gameIndex = gameQueue.indexOf(numberUserId);
 	if (gameIndex !== -1) {
 		gameQueue.splice(gameIndex, 1);
-		
+
 	}
 	const tournamentIndex = tournamentQueue.indexOf(numberUserId);
 	if (tournamentIndex !== -1) {
 		tournamentQueue.splice(tournamentIndex, 1);
-		tournamentDisplayNames.delete(numberUserId);
+	}
+	for (const [tid, tournament] of tournaments.entries()) {
+		if (tournament.players && tournament.players.includes(numberUserId)) {
+			tournament.players = tournament.players.filter(pid => pid !== numberUserId);
+
+			for (const pid of tournament.players) {
+				const userConnections = fastify.connections.get(String(pid));
+				if (userConnections) {
+					for (const [, socket] of userConnections.entries()) {
+						safeSend(socket, {
+							type: 'tournamentDisconnection',
+							message: 'A player left the tournament. Returning to home.',
+						});
+						break;
+					}
+				}
+				tournamentDisplayNames.delete(pid);
+			}
+			tournamentQueue.length = 0;
+			tournaments.delete(tid);
+			break;
+		}
 	}
 }
-
