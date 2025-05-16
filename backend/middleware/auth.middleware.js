@@ -30,18 +30,7 @@ export async function authMiddleware(fastify, request, reply, done) {
         const result = await authService.validate_and_refresh_Tokens(fastify, accessToken, refreshToken);
 		if (!result.success) {
 			// If the access token is invalid and the refresh token is also invalid
-			request.log.warn('Invalid or expired token');
-			// Try to decode the token to get the userId
-			const decoded = jwt.decode(accessToken || refreshToken);
-			const userId = decoded?.userId;
-			
-			if (userId) {
-				const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-				if (user) {
-					await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'Invalid token from middleware');
-				}
-			}
-			
+			request.log.warn('Invalid or expired token');			
 			// Clear the cookies and return a 401 error
             return reply
 				.code(401)

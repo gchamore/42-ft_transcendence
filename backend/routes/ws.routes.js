@@ -123,15 +123,6 @@ export async function wsRoutes(fastify, options) {
 			if (!result.success) {
 				fastify.log.info('Invalid or expired token');
 
-				const decoded = jwt.decode(accessToken || refreshToken);
-				const userId = decoded?.userId;
-
-				if (userId) {
-					const user = fastify.db.prepare("SELECT username FROM users WHERE id = ?").get(userId);
-					if (user) {
-						await wsUtils.handleAllUserConnectionsClose(fastify, String(userId), user.username, 'Invalid token from ws');
-					}
-				}
 				return reply
 					.code(401)
 					.clearCookie('accessToken', cookieOptions)
