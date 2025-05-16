@@ -581,7 +581,7 @@ class Profile extends ASection {
 			const accountType = await getUserAccountType();
 
 			if (!accountType) {
-				alert("Impossible de vérifier le type de compte");
+				alert("Not possible to verify account type.");
 				return;
 			}
 			let success = false;
@@ -1202,7 +1202,7 @@ class Settings extends ASection {
 			const accountType = await getUserAccountType();
 
 			if (!accountType) {
-				alert("Impossible de vérifier le type de compte");
+				alert("Not possible to check account type");
 				return '';
 			}
 

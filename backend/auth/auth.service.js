@@ -135,6 +135,9 @@ export class AuthService {
 			// Verify if the token is the latest
 			const currentAccessToken = await redis.get(`access_${decoded.userId}`);
 			if (accessToken !== currentAccessToken) {
+				// fastify.log.info(`Token cookies: ${accessToken}`);
+				// fastify.log.info(`Token Back: ${currentAccessToken}`);
+
 				fastify.log.warn(`Token is not the latest one.`);
 				throw new Error('Token is not the latest one.');
 			}
