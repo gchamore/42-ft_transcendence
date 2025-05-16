@@ -1,5 +1,5 @@
 import { user, User, update_user, OtherUser } from './users.js';
-import { showTwofaVerificationModal } from './sections.js';
+import { ASection, go_section, sections, get_type_index, get_url_type, showTwofaVerificationModal, update_sections } from './sections.js';
 import { showSuccess, showError, showInfo } from './notifications.js';
 
 
@@ -32,7 +32,6 @@ export async function verify_token(): Promise<void> {
 		update_user(undefined);
 	}
 }
-
 
 export async function register(username: string, password: string) {
 	try {
@@ -101,7 +100,6 @@ export async function login(username: string, password: string) {
 	}
 }
 
-
 export async function logout(): Promise<void> {
 	try {
 		const response = await fetch(`/api/logout`, {
@@ -116,6 +114,7 @@ export async function logout(): Promise<void> {
 			update_user(undefined);
 			const errorMessage = data?.error || "Logout failed";
 			showError(errorMessage);
+			check_redirect();
 			return;
 		}
 
@@ -129,7 +128,6 @@ export async function logout(): Promise<void> {
 		showError("Sorry, logout failed");
 	}
 }
-
 
 export async function search(friend_username: string): Promise<OtherUser | Error | undefined> {
 	try {
@@ -149,6 +147,7 @@ export async function search(friend_username: string): Promise<OtherUser | Error
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return undefined;
 		}
 
@@ -160,9 +159,9 @@ export async function search(friend_username: string): Promise<OtherUser | Error
 		else if (data.success) {
 			if (data.isFriend)
 				return new OtherUser(data.user.username, data.isFriend, data.user.isConnected,
-					data.user.friendSince, data.user.winRate, data.user.gamesTogether);
+					data.user.friendSince, data.user.winRate, data.user.gamesTogether, data.user.avatar);
 			return new OtherUser(data.user.username, data.isFriend, data.user.isConnected,
-				data.user.createdAt, data.user.winRate, data.user.gamesPlayed);
+				data.user.createdAt, data.user.winRate, data.user.gamesPlayed, data.user.avatar);
 		}
 
 	} catch (error) {
@@ -190,6 +189,7 @@ export async function add(friend_username: string): Promise<boolean | Error> {
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return false;
 		}
 
@@ -226,6 +226,7 @@ export async function remove(friend_username: string): Promise<boolean | Error> 
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return false;
 		}
 
@@ -273,6 +274,7 @@ export async function send(message: string, type: string, to: string = ''): Prom
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return false;
 		}
 
@@ -315,6 +317,7 @@ export async function get_direct_messages(username: string): Promise<ChatRespons
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return undefined;
 		}
 
@@ -345,6 +348,7 @@ export async function get_blocked_users(): Promise<Array<string> | undefined> {
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return undefined;
 		}
 
@@ -378,6 +382,7 @@ export async function block(username: string): Promise<boolean> {
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return false;
 		}
 
@@ -414,6 +419,7 @@ export async function unblock(username: string): Promise<boolean> {
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return false;
 		}
 
@@ -446,6 +452,7 @@ export async function setup2fa(): Promise<{ otpauth_url: string, qrCode: string 
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return undefined;
 		}
 
@@ -484,6 +491,7 @@ export async function activate2fa(token: string): Promise<boolean> {
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return false;
 		}
 
@@ -503,8 +511,7 @@ export async function activate2fa(token: string): Promise<boolean> {
 
 export async function update(
 	username: string, email: string,
-	old_password: string, new_password: string): Promise<boolean> {
-	// console.log(old_password);
+	old_password: string, new_password: string): Promise<{success: boolean, user: any} | false> {
 	try {
 		let body = { username: username, email: email, old_password: old_password, new_password: new_password };
 		const response = await fetch('/api/update', {
@@ -523,6 +530,7 @@ export async function update(
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return false;
 		}
 		if (!response.ok || !data.success) {
@@ -531,7 +539,7 @@ export async function update(
 			return false;
 		}
 		showSuccess(`Account updated !`);
-		return true;
+		return data;
 	} catch (error) {
 		// console.error('/api/update error:', error);
 		showError("Sorry, updating account failed");
@@ -554,6 +562,7 @@ export async function verify2fa(token: string, temp_token: string): Promise<bool
 		if (!response.ok || !data.success) {
 			const errorMessage = data?.error || "2FA verification failed";
 			showError(errorMessage);
+			check_redirect();
 			return false;
 		}
 
@@ -592,6 +601,7 @@ export async function disable2fa(password?: string): Promise<boolean> {
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return false;
 		}
 
@@ -623,6 +633,7 @@ export async function get2faStatus(): Promise<boolean | undefined> {
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return undefined;
 		}
 
@@ -652,6 +663,7 @@ export async function getUserAccountType(): Promise<{ is_google_account: boolean
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return undefined;
 		}
 
@@ -761,6 +773,7 @@ async function completeGoogleRegistration(username: string, tempToken: string): 
 		showError("Failed to complete Google registration");
 	}
 }
+
 export async function updateAvatar(file: File): Promise<boolean> {
 	try {
 		const maxSize = 2 * 1024 * 1024;
@@ -793,6 +806,7 @@ export async function updateAvatar(file: File): Promise<boolean> {
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			return false;
 		}
 
@@ -808,6 +822,7 @@ export async function updateAvatar(file: File): Promise<boolean> {
 				avatar.src = `${data.user.avatar}?${Date.now()}`;
 			});
 			showInfo("Avatar updated successfully!");
+			user.avatar_path = data.user.avatar;
 			return true;
 		}
 		return false;
@@ -832,6 +847,7 @@ export async function getGameHistory(userId: string) {
 			update_user(undefined);
 			const errorMessage = data?.error || "Session expired";
 			showError(errorMessage);
+			check_redirect();
 			throw new Error('Failed to fetch game history');
 		}
 		if (!response.ok || !data.success) {
@@ -844,7 +860,6 @@ export async function getGameHistory(userId: string) {
 		return;
 	}
 }
-
 
 export async function unregister(password?: string): Promise<boolean> {
 	try {
@@ -867,6 +882,7 @@ export async function unregister(password?: string): Promise<boolean> {
 			if (response.status === 401) {
 				const errorMessage = data?.error || "Session expired";
 				showError(errorMessage);
+				check_redirect();
 				return false;
 			}
 
@@ -886,4 +902,14 @@ export async function unregister(password?: string): Promise<boolean> {
 		showError("Sorry, unregistering failed");
 		return false;
 	}
+}
+
+async function check_redirect() {
+	let type = get_url_type(window.location.pathname);
+	let type_index = get_type_index(type);
+	
+	if (type_index === undefined || (sections[type_index] as ASection).protected === true)
+		await go_section('home', '');
+	else
+		update_sections();
 }

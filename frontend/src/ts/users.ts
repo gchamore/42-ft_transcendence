@@ -52,10 +52,10 @@ export class Message {
 
 /* User */
 export class User {
-	readonly name: string;
+	name: string; // Changed from readonly to updatable
 	readonly userId: number = 0;
-	readonly email: string = '';
-	readonly avatar_path: string = '';
+	email: string = ''; // Changed from readonly to updatable
+	avatar_path: string = '';
 	isTournamentCreator?: boolean = false;
 	web_socket: WebSocket | undefined;
 	livechat: Array<Message>;
@@ -325,6 +325,17 @@ export function update_user(new_user_value: User | undefined) {
 	update_sections();
 }
 
+export function update_user_data(username: string, email: string) {
+	if (user === undefined) {
+		return;
+	}
+	
+	user.name = username;
+	user.email = email;
+	
+	update_sections();
+}
+
 export function get_user_messages(): Array<Message> | undefined {
 	return user?.livechat;
 }
@@ -361,16 +372,17 @@ export class OtherUser {
 	readonly stat1: string;
 	readonly stat2: number;
 	readonly stat3: number;
-	readonly avatar: string = 'avatar/avatar.png';
+	readonly avatar: string;
 
 	constructor(username: string, is_friend: boolean, is_connected: boolean = false,
-		stat1: string, stat2: number, stat3: number) {
+		stat1: string, stat2: number, stat3: number, avatar: string ='avatar/avatar.png') {
 		this.username = username;
 		this.is_friend = is_friend;
 		this.is_connected = is_connected;
 		this.stat1 = stat1;
 		this.stat2 = stat2;
 		this.stat3 = stat3;
+		this.avatar = avatar;
 	}
 
 	format_stats(): string[] {
