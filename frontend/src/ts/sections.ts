@@ -28,7 +28,7 @@ var gamePage: Game | null = null;
 
 
 /* Classes */
-abstract class ASection {
+export abstract class ASection {
 	abstract readonly type: string;
 	abstract readonly protected: boolean;
 	abstract readonly parent: HTMLElement;
