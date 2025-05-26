@@ -24,76 +24,45 @@ Le projet est conçu comme un **site web single-page (SPA)**, combinant **fronte
 
 ### **📌 Modules (Fonctionnalités Additionnelles)**  
 
-🟢 Modules Majeurs ✅  
-⛔ Utilisation d’un framework backend (Fastify, Node.js) **GREG**  
-⛔ Gestion complète des utilisateurs (authentification, avatars, stats, amis) **GREG** & **ALEX**  
-⛔ Sécurisation avancée (JWT, 2FA) **GREG**  
+#### 🟢 Modules Majeurs ✅  
+- ✅ Utilisation d’un framework backend (Fastify, Node.js) **GREG**
+- ✅ Gestion complète des utilisateurs (authentification, avatars, stats, amis) **ALEX on front** & **GREG on back**
+- ✅ Sécurisation avancée (JWT, 2FA) **ALEX on front** & **GREG on back**
+- ✅ Authentification Google (OAuth) **ALEX on front** & **GREG on back**
+- ✅ Remote player (matchs en ligne, WebSocket) **ANTO**
+- ✅ Live chat (public + privé, temps réel) **ALEX on front** & **GREG on back**
+- ✅ Intégration BabylonJS (rendu 3D du jeu) **ANTO**
 
-🟡 Modules Mineurs ✅  
-⛔ Utilisation d’une base de données (SQLite) **GREG**  
-⛔ Authentification Google (OAuth) **GREG**  
+#### 🟡 Modules Mineurs ✅  
+- ✅ Personnalisation du jeu (Game Customization)  **ANTO**
+- ✅ Utilisation d’une base de données (SQLite)  **GREG**
+- ✅ Compatibilité navigateur (Browser Compatibility)  **ALEX** **ANTO** **GREG**
+- ✅ Conformité RGPD (mentions légales, gestion des données)  **GREG**
+- ✅ Multi-device sur téléphone (responsive + synchronisation de session)  **ALEX**
 
 ---
 
 ## 📌 Technologies Utilisées
 
 ### **Frontend**
-- TypeScript
-- Tailwind CSS
-- WebSockets (temps réel)
+- TypeScript (vanilla, sans framework)
+- Tailwind CSS (UI responsive)
+- WebSockets (chat, matchmaking, jeu en temps réel)
+- Google OAuth 2.0 (connexion via compte Google)
+- BabylonJS (rendu 3D du jeu dans le navigateur)
 
 ### **Backend**
-- Node.js avec Fastify
-- SQLite (base de données)
-- JWT (authentification sécurisée)
+- Node.js avec Fastify (serveur API REST & WebSocket)
+- SQLite (base de données légère embarquée)
+- JWT (authentification sécurisée par token)
+- 2FA (authentification à deux facteurs via TOTP)
+- Docker (conteneurisation et orchestration du projet)
 
-### **Jeu Multijoueur & WebSockets**
-- Gestion des parties en temps réel
-- 
-
----
-
-## 🏗️ Structure du Projet
-
-/frontend        # Code du client (UI, SPA)  
-/backend         # API REST et gestion des utilisateurs  
-/game            # Moteur du jeu Pong (logique et multijoueur)  
-/infra           # Docker, CI/CD, monitoring et logs  
-/docs            # Documentation technique et API  
-
----
-
-## 📅 Planning sur 6 Semaines
-
-### **🗓️ Semaine 1 : Mise en place des bases**
-- **Frontend** : 
-- **Backend** : Installation et configuration de Node.js, Fastify, SQLite. Structuration du projet, mise en place de l’API, création de la base de données et des premiers modèles (users, games, friends). Implémentation des routes CRUD pour la gestion des utilisateurs avec sécurisation des mots de passe (bcrypt).  
-- **Jeu** : 
-
-### **🗓️ Semaine 2 : Développement des Fondations**
-- **Frontend** : 
-- **Backend** : Mise en place de JWT pour l’authentification sécurisée et ajout du 2FA via Google Authenticator. Gestion des profils utilisateurs et système d’amis. Développement du matchmaking et des WebSockets pour la gestion des parties en temps réel.  
-- **Jeu** : 
-
-### **🗓️ Semaine 3 : Développement des Fonctionnalités Clés**
-- **Frontend** : 
-- **Backend** : Implémentation de Google OAuth pour l’authentification externe. Sécurisation avancée du serveur (validation des entrées, protection XSS/SQL Injection). Optimisation des requêtes SQLite, mise en place des tests unitaires et d’intégration. Finalisation avec documentation API et logs pour le monitoring.
-- **Jeu** : 
-
-### **🗓️ Semaine 4 : Intégration des Modules Avancés**
-- **Frontend** : 
-- **Backend** : 
-- **Jeu** : 
-
-### **🗓️ Semaine 5 : Tests et Optimisation**
-- **Frontend** : 
-- **Backend** : 
-- **Jeu** : 
-
-### **🗓️ Semaine 6 : Finalisation & Préparation à l’Évaluation**
-- **Frontend** : 
-- **Backend** : 
-- **Jeu** : 
+### **Jeu Multijoueur & Communication**
+- WebSockets (temps réel pour jeu, matchmaking et chat)
+- Architecture orientée événements (gestion des états de partie, joueurs en ligne, etc.)
+- Prise en charge du multi-device (desktop/mobile)
+- Respect des bonnes pratiques RGPD (gestion des données utilisateurs)
 
 ---
 
@@ -108,7 +77,3 @@ Le projet est conçu comme un **site web single-page (SPA)**, combinant **fronte
 ## 📜 Licence
 
 Ce projet est développé dans le cadre du cursus **42** et suit ses directives pédagogiques.  
-
----
-
-Ce **README** servira de **base** et pourra être **mis à jour** avec les instructions d'installation et d'utilisation. 🚀
